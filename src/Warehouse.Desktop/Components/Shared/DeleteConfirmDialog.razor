@@ -1,0 +1,91 @@
+@using MudBlazor
+@using Radzen
+@using Radzen.Blazor
+
+<MudDialog Class="delete-confirm-dialog">
+    <DialogContent>
+        <div class="p-5 d-flex flex-column align-items-center text-center" dir="@(IsArabic ? "rtl" : "ltr")">
+            <div class="delete-icon-animation mb-4">
+                <div class="icon-bg">
+                    <RadzenIcon Icon="delete_forever" Style="font-size: 3.5rem; color: #ef4444;" />
+                </div>
+            </div>
+            
+            <h3 class="mb-2" style="font-weight: 800; color: #1e293b; font-size: 1.5rem;">
+                @(IsArabic ? TitleArabic : TitleEnglish)
+            </h3>
+            
+            <p class="text-muted mb-0" style="font-size: 1.1rem; line-height: 1.6; max-width: 300px;">
+                @(IsArabic ? MessageArabic : MessageEnglish)
+            </p>
+            
+            @if (!string.IsNullOrEmpty(ItemName))
+            {
+                <div class="item-name-badge mt-3">
+                    "@ItemName"
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="w-100 d-flex justify-content-center gap-3 pb-5 px-5">
+            <RadzenButton Click="Cancel" Text="@(IsArabic ? "إلغاء" : "Cancel")" 
+                          ButtonStyle="Radzen.ButtonStyle.Light" 
+                          Style="border-radius: 12px; height: 50px; min-width: 120px; font-weight: 600; font-size: 1rem;" />
+            
+            <RadzenButton Click="Confirm" Text="@(IsArabic ? "حذف" : "Delete")" 
+                          ButtonStyle="Radzen.ButtonStyle.Danger" 
+                          Style="border-radius: 12px; height: 50px; min-width: 120px; font-weight: 800; font-size: 1.1rem; background: #ef4444; border: none; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);" />
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .delete-confirm-dialog .mud-dialog-title { display: none; }
+    .delete-confirm-dialog .mud-dialog-content { padding: 0 !important; }
+    
+    .delete-icon-animation {
+        position: relative;
+    }
+    
+    .icon-bg {
+        background: #fee2e2;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse-red 2s infinite;
+    }
+    
+    .item-name-badge {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: 1px dashed #cbd5e1;
+    }
+
+    @@keyframes pulse-red {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public string TitleArabic { get; set; } = "تأكيد الحذف";
+    [Parameter] public string TitleEnglish { get; set; } = "Confirm Delete";
+    [Parameter] public string MessageArabic { get; set; } = "هل أنت متأكد من عملية الحذف؟ لا يمكن التراجع عن هذا الإجراء.";
+    [Parameter] public string MessageEnglish { get; set; } = "Are you sure you want to delete? This action cannot be undone.";
+    [Parameter] public string? ItemName { get; set; }
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog.Cancel();
+}

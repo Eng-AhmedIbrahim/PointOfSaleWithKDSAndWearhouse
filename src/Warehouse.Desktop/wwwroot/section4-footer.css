@@ -1,0 +1,224 @@
+/* Section 4 Footer Compact Styling */
+.section-footer-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.notes-field {
+    margin: 0 !important;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.notes-field .mud-input-root {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 600 !important;
+    color: #0f171f !important;
+}
+
+/* Action Buttons Styling */
+.action-buttons-row {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.action-btn {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    color: #ffffff !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    min-height: 40px !important;
+    transition: all 0.2s ease !important;
+}
+
+.cancel-btn {
+    background-color: #e53935 !important;
+}
+
+.cancel-btn:hover {
+    background-color: #c62828 !important;
+}
+
+.waiting-btn {
+    background-color: #fb8c00 !important;
+}
+
+.waiting-btn:hover {
+    background-color: #ef6c00 !important;
+}
+
+.print-btn {
+    background-color: #43a047 !important;
+}
+
+.print-btn:hover {
+    background-color: #2e7d32 !important;
+}
+
+.action-btn .mud-button-label {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 700 !important;
+}
+
+/* Finance Section Styling - Vertical Layout */
+.finance-section-compact {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+}
+
+.finance-grid-vertical {
+    margin: 0 !important;
+    width: 100% !important;
+}
+
+.finance-row {
+    padding: 0 !important;
+    border-bottom: 1px solid #f8f9fa;
+    /* Lighter separator */
+}
+
+.finance-row-content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    padding: 1px 8px !important;
+    /* Reduced from 2px */
+}
+
+.finance-label-vertical {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+    /* Slightly smaller to fit better */
+    color: #0f171f !important;
+    white-space: nowrap;
+    width: 30%;
+}
+
+.finance-input-vertical {
+    width: 70% !important;
+}
+
+.finance-input-vertical input {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 1.15rem !important;
+    /* Slightly smaller */
+    color: #0f171f !important;
+    text-align: center !important;
+    padding: 4px 8px !important;
+    /* Reduced padding */
+}
+
+.finance-total input {
+    color: #d32f2f !important;
+    font-size: 1.3rem !important;
+}
+
+/* Branch Selector in Header */
+.branch-selector-container {
+    background: #f8fafc;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.branch-label {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    margin-right: 4px;
+}
+
+.branch-select-pos .mud-input-root {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    color: #1e293b !important;
+}
+
+.finance-input-vertical .mud-input-root {
+    min-height: 34px !important;
+    /* Reduced from 42px */
+    border: 1px solid #dee2e6 !important;
+    background: #ffffff !important;
+    border-radius: 4px !important;
+}
+
+.finance-input-vertical .mud-input-outlined {
+    border: none !important;
+}
+
+.finance-input-vertical .mud-input-slot {
+    padding: 0 !important;
+}
+
+/* Customer Info Button in Header */
+.customer-info-btn-pos {
+    background-color: #114484 !important;
+    color: #ffffff !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    margin-right: 8px;
+    margin-left: 8px;
+}
+
+.customer-info-btn-pos:hover {
+    background-color: #0d3566 !important;
+    transform: scale(1.05);
+}
+
+/* Delivery Customer Card in POS Section 4 */
+.customer-card-pos {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+    border-inline-start: 4px solid #114484 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid #e5e7eb;
+}
+
+.customer-name-pos {
+    color: #1e3a8a !important;
+    font-size: 0.95rem !important;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.customer-phone-pos {
+    color: #0369a1 !important;
+    background: #f0f9ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.customer-zone-badge {
+    background-color: #114484;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.customer-address-pos {
+    color: #4b5563 !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    font-family: 'Cairo', sans-serif !important;
+    flex-grow: 1;
+}
+
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -1,0 +1,161 @@
+@page "/settings/system"
+@using BlazorBase.ERPFrontServices.SettingsServices
+@using POS.Contract.Dtos.SettingsDtos
+@inject ISystemSettingsServices SettingsService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudRTLProvider RightToLeft="@(Localizer.GetCurrentLanguage() == "ar")">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "mt-8 rtl-container" : "mt-8"))">
+        <MudText Typo="Typo.h4" GutterBottom="true" Style="font-weight: 900; color: #1e293b;">
+            <MudIcon Icon="@Icons.Material.Rounded.SettingsApplications" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "mb-n2 ml-2" : "mb-n2 mr-2"))" Size="Size.Large" Color="Color.Primary" />
+            @(Localizer.GetCurrentLanguage() == "ar" ? "إعدادات النظام" : "System Settings")
+        </MudText>
+        <MudText Typo="Typo.subtitle1" Class="mb-6 text-muted">
+            @(Localizer.GetCurrentLanguage() == "ar" ? "إعدادات خاصة بالجهاز الحالي: " : "Settings for current device: ")
+            <span class="badge bg-primary text-white px-2 py-1 rounded">@Environment.MachineName</span>
+        </MudText>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+        }
+        else
+        {
+            <MudGrid>
+                <!-- Delivery & Dispatcher Settings -->
+                <MudItem xs="12" md="7">
+                    <MudCard Elevation="4" Style="border-radius: 24px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <MudCardHeader Style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <CardHeaderContent>
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Color="Color.Primary" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "ml-3" : "mr-3"))" />
+                                    <MudText Typo="Typo.h6" Style="font-weight: 800;">@(Localizer.GetCurrentLanguage() == "ar" ? "إعدادات الدليفري والموزع" : "Delivery & Dispatcher")</MudText>
+                                </div>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="4">
+                                <MudSwitch @bind-Value="_settings.IsDispatcher" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "تفعيل نظام الموزع (Dispatcher)" : "Enable Dispatcher System")" Color="Color.Primary" />
+                                
+                                <MudDivider />
+
+                                <MudNumericField @bind-Value="_settings.RefreshTimeForDeliveryOrderColorsPerSecond" 
+                                               Label="@(Localizer.GetCurrentLanguage() == "ar" ? "وقت تحديث الألوان (ثانية)" : "Colors Refresh Rate (Seconds)")"
+                                               Variant="MudBlazor.Variant.Outlined" Min="5" Max="300" />
+
+                                <MudNumericField @bind-Value="_settings.CriticalTimeForDeliveryOrderPerMinute" 
+                                               Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الوقت الحرج (دقيقة)" : "Critical Time (Minutes)")"
+                                                 Variant="MudBlazor.Variant.Outlined" Min="1" Max="1440" />
+
+                                <MudNumericField @bind-Value="_settings.WarningTimeForDeliveryOrderPerMinute" 
+                                               Label="@(Localizer.GetCurrentLanguage() == "ar" ? "وقت التحذير (دقيقة)" : "Warning Time (Minutes)")"
+                                                 Variant="MudBlazor.Variant.Outlined" Min="1" Max="_settings.CriticalTimeForDeliveryOrderPerMinute" />
+
+                                <MudDivider />
+
+                                <MudSwitch @bind-Value="_settings.AllowVoidLimitMinutesForDeliveryOrder" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "تفعيل مهلة إلغاء الطلب" : "Enable Order Void Timeout")" Color="Color.Secondary" />
+
+                                @if (_settings.AllowVoidLimitMinutesForDeliveryOrder)
+                                {
+                                    <MudNumericField @bind-Value="_settings.VoidLimitMinutesForDeliveryOrder" 
+                                                   Label="@(Localizer.GetCurrentLanguage() == "ar" ? "مهلة الإلغاء (دقيقة)" : "Void Timeout (Minutes)")"
+                                                     Variant="MudBlazor.Variant.Outlined" Min="1" Max="240" />
+                                }
+
+                                <MudSwitch @bind-Value="_settings.AllowDeliveryVoidFromBranch" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "السماح بإلغاء طلبات الدليفري من الفرع" : "Allow Delivery Void from Branch")" Color="Color.Error" />
+                            </MudStack>
+                        </MudCardContent>
+                        <MudCardActions Class="pa-4 justify-end">
+                        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="SaveSettings"
+                                   StartIcon="@Icons.Material.Rounded.Save" Style="border-radius: 12px; height: 50px; min-width: 150px; font-weight: 800;">
+                                @(Localizer.GetCurrentLanguage() == "ar" ? "حفظ الإعدادات" : "Save Settings")
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Info Card -->
+                <MudItem xs="12" md="5">
+                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled" Elevation="4" Style="border-radius: 18px;" Class="mb-6">
+                        <MudText Typo="Typo.body2">
+                            @(Localizer.GetCurrentLanguage() == "ar" 
+                                ? "هذه الإعدادات يتم تخزينها لكل جهاز بشكل منفصل. التغييرات التي تجريها هنا ستؤثر فقط على هذا الكمبيوتر." 
+                                : "These settings are stored per device. Changes made here will only affect this computer.")
+                        </MudText>
+                    </MudAlert>
+
+                    <MudCard Elevation="2" Style="border-radius: 20px; background: #ebf5ff;">
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Style="font-weight: 800; letter-spacing: 0.5px;">SYSTEM INFO</MudText>
+                            <MudStack Spacing="1" Class="mt-3">
+                                <div class="d-flex justify-space-between border-bottom pb-1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Device Name:</MudText>
+                                    <MudText Typo="Typo.body2" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "mr-auto" : "ml-auto"))">@Environment.MachineName</MudText>
+                                </div>
+                                <div class="d-flex justify-space-between border-bottom pb-1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">OS Version:</MudText>
+                                    <MudText Typo="Typo.body2" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "mr-auto" : "ml-auto"))">@Environment.OSVersion</MudText>
+                                </div>
+                                <div class="d-flex justify-space-between border-bottom pb-1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Platform:</MudText>
+                                    <MudText Typo="Typo.body2" Class="@((Localizer.GetCurrentLanguage() == "ar" ? "mr-auto" : "ml-auto"))">@Environment.OSVersion.Platform</MudText>
+                                </div>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudContainer>
+</MudRTLProvider>
+
+<style>
+    .rounded { border-radius: 8px !important; }
+    .bg-primary { background-color: #3b82f6 !important; }
+    .badge { display: inline-block; font-size: 0.75rem; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; }
+    .rtl-container { direction: rtl; }
+</style>
+
+@code {
+    private DispatcherSettingsDto _settings = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        _isLoading = true;
+        try
+        {
+            _settings = await SettingsService.GetDispatcherSettingsAsync();
+            if (_settings == null) _settings = new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "فشل تحميل الإعدادات" : "Failed to load settings", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        var result = await SettingsService.UpdateDispatcherSettingsAsync(_settings);
+        if (result.Success)
+        {
+            Snackbar.Add(result.Message ?? (Localizer.GetCurrentLanguage() == "ar" ? "تم الحفظ بنجاح" : "Saved successfully"), Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? (Localizer.GetCurrentLanguage() == "ar" ? "فشل الحفظ" : "Save failed"), Severity.Error);
+        }
+    }
+}

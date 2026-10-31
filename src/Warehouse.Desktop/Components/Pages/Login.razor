@@ -1,0 +1,81 @@
+﻿@inject LocalizationService Localizer
+@page "/login"
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@inject IHttpClientFactory _clientFactory
+@inject NavigationManager _navigationManager
+@inject ISnackbar Snackbar
+@inject CommonProperties _commonProperties
+@layout AuthLayout
+
+<div class="login-page">
+    <div class="brand-section">
+        <button class="close-app-btn" @onclick="ExitApp">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="brand-content">
+            <img src="/images/logo.png" class="brand-logo" alt="Logo" />
+            <h1 class="brand-title">New Tech WMS</h1>
+            <p class="brand-subtitle">Warehouse Management System</p>
+        </div>
+    </div>
+
+    <div class="login-section">
+        <div class="login-card">
+            <div class="login-header">
+                <h2>@Localizer["Welcome"]</h2>
+            </div>
+
+            <div class="login-form">
+                <div class="form-group">
+                    <select dir="rtl" @onchange="HandelOnChange" class="form-control-custom select-user">
+                        <option dir="rtl" disabled selected>@Localizer["SelectUser"]</option>
+                        @foreach (var user in Users)
+                        {
+                            <option dir="rtl" value="@user.DisplayName">
+                                @user.DisplayName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <input @ref="pinInput" type="password" class="form-control-custom otp-display" placeholder="@Localizer["PIN"]" 
+                           @bind="_pin" @bind:event="oninput" @onkeydown="HandleKeyDown" />
+                </div>
+
+                <div class="keypad-container">
+                    <div class="keypad-grid">
+                        @for (byte i = 1; i <= 9; i++)
+                        {
+                            var num = i;
+                            <div class="keypad-btn" @onclick="() => AddDigit(num.ToString())">
+                                @num
+                            </div>
+                        }
+                        
+                        <div class="keypad-btn action-btn bs" @onclick="DeleteLastDigit">
+                            <i class="bi bi-backspace"></i>
+                        </div>
+                        
+                        <div class="keypad-btn" @onclick='() => AddDigit("0")'>
+                            0
+                        </div>
+
+                        <div class="keypad-btn action-btn del" @onclick="ClearInput">
+                            C
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-custom btn-primary-custom" @onclick="LoginAction">
+                        @Localizer["Login"]
+                    </button>
+                    <button class="btn-custom btn-danger-custom" @onclick="ExitApp">
+                        @Localizer["Exit"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

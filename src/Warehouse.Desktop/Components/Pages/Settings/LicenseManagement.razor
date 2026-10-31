@@ -1,0 +1,84 @@
+@page "/LicenseManagement"
+@using POS.Core.Entities.Settings
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">إدارة التراخيص عبر الفروع</MudText>
+
+<MudTable Items="@_licenses" Hover="true" Striped="true" Loading="@_isLoading" Filter="new Func<License, bool>(FilterFunc)" SortLabel="ترتيب بواسطة">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">الأجهزة والتراخيص</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="بحث برقم الفرع أو الترخيص..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="LoadLicensesAsync" Class="ml-2" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<License, object>(x=>x.BranchName)">الفرع</MudTableSortLabel></MudTh>
+        <MudTh>العميل</MudTh>
+        <MudTh>نوع الترخيص</MudTh>
+        <MudTh>وقت الانتهاء (Date Limit)</MudTh>
+        <MudTh>حالة الجهاز (Computer)</MudTh>
+        <MudTh>مستخرج من / الماك أدرس</MudTh>
+        <MudTh>تاريخ التفعيل</MudTh>
+        <MudTh>الإجراءات</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="الفرع">@context.BranchName (@context.BranchID)</MudTd>
+        <MudTd DataLabel="العميل">@context.CustomerName</MudTd>
+        <MudTd DataLabel="نوع الترخيص">
+            <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.LicenseType</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Date Limit">@context.DateLimit</MudTd>
+        <MudTd DataLabel="حالة الجهاز">
+            @if (string.IsNullOrEmpty(context.ComputerName))
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">متاح للاستخدام</MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error"><strong>@context.ComputerName</strong></MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="الماك أدرس">
+             @if (string.IsNullOrEmpty(context.MacAddress))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Default">---</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">@context.MacAddress</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="تاريخ التفعيل">
+            @if(context.JoinDate.HasValue)
+            {
+                <MudText Typo="Typo.body2">@context.JoinDate.Value.ToString("MMM dd, yyyy HH:mm")</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">لم يُفعّل بعد</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="الإجراءات">
+            @if (!string.IsNullOrEmpty(context.ComputerName))
+            {
+                <MudTooltip Text="فك الارتباط لإتاحة المفتاح لجهاز آخر">
+                    <MudIconButton Icon="@Icons.Material.Filled.LinkOff" Color="Color.Warning" OnClick="@(() => UnlinkDeviceAsync(context))" Size="Size.Small" />
+                </MudTooltip>
+            }
+            else
+            {
+                <MudTooltip Text="هذا الترخيص متاح وجاهز للإدخال في أي جهاز حديث">
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Success" Size="Size.Small" Disabled="true" />
+                </MudTooltip>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>لا توجد تراخيص مسجلة حتى الآن.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>جاري تحميل التراخيص...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager InfoFormat="{first_item}-{last_item} من {all_items}" RowsPerPageString="عدد الصفوف:" />
+    </PagerContent>
+</MudTable>

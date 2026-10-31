@@ -1,0 +1,126 @@
+@page "/settings/workers-meals"
+@using POS.Core.Services.Contract
+@using BlazorBase.ERPFrontServices.AccountServices
+@inject IStaffMealService StaffMealService
+@inject IAccountService AccountService
+@inject IItemService ItemService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+
+<div class="pa-6 fade-in" style="direction:rtl;">
+    <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Style="font-weight:900; color:#1e3a8a;">@Localizer["WorkersMealsManagement"]</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizer["WorkersMealsManagementDesc"]</MudText>
+        </div>
+        <MudButton Variant="MudBlazor.Variant.Filled"
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenAddDialog"
+                   Class="rounded-pill px-6">
+            @Localizer["AddNewConfig"]
+        </MudButton>
+    </MudStack>
+
+    <MudTable Items="@_configs" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" 
+              Elevation="1" Class="rounded-xl overflow-hidden" Dense="true" Bordered="false">
+        <HeaderContent>
+            <MudTh Style="text-align:right;">@Localizer["Employee"]</MudTh>
+            <MudTh Style="text-align:right;">@Localizer["AssignedMeal"]</MudTh>
+            <MudTh Style="text-align:center;">@Localizer["DailyLimit"]</MudTh>
+            <MudTh Style="text-align:center;">@Localizer["MealLimit"]</MudTh>
+            <MudTh Style="text-align:center;">@Localizer["AssignedPrice"]</MudTh>
+            <MudTh Style="text-align:center;">@Localizer["Status"]</MudTh>
+            <MudTh Style="text-align:center;">@Localizer["Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="config">
+            <MudTd DataLabel="@Localizer["Employee"]">
+                <div class="d-flex align-center gap-2">
+                    <MudAvatar Color="Color.Info" Size="Size.Small">@config.UserName?.FirstOrDefault()</MudAvatar>
+                    <MudText Style="font-weight:700;">@config.UserName</MudText>
+                </div>
+            </MudTd>
+            <MudTd DataLabel="@Localizer["AssignedMeal"]">
+                @(config.ItemName ?? config.CategoryName ?? config.GroupName ?? "---")
+            </MudTd>
+            <MudTd DataLabel="@Localizer["DailyLimit"]" Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="Color.Default">@config.DailyLimit</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@Localizer["MealLimit"]" Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="Color.Info">@config.MealLimit</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@Localizer["AssignedPrice"]" Style="text-align:center;">
+                <MudText Typo="Typo.body2" Color="@(config.SpecialPrice == 0 ? Color.Success : Color.Secondary)" Style="font-weight:700;">
+                    @(config.SpecialPrice == 0 ? Localizer["Free"] : config.SpecialPrice.ToString("N2"))
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="@Localizer["Status"]" Style="text-align:center;">
+                <MudSwitch T="bool" Value="@config.IsActive" ValueChanged="@((v) => ToggleStatus(config, v))" Color="Color.Success" />
+            </MudTd>
+            <MudTd DataLabel="@Localizer["Actions"]" Style="text-align:center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OpenEditDialog(config))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteConfig(config))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@Localizer["NoStaffMealsFound"]</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+<style>
+    .rounded-xl { border-radius: 16px !important; }
+    .fade-in { animation: fadeIn 0.4s ease-in; }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+@code {
+    private IEnumerable<StaffMealConfigDto> _configs = new List<StaffMealConfigDto>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConfigs();
+    }
+
+    private async Task LoadConfigs()
+    {
+        _loading = true;
+        _configs = await StaffMealService.GetAllConfigsAsync();
+        _loading = false;
+    }
+
+    private async Task ToggleStatus(StaffMealConfigDto config, bool val)
+    {
+        config.IsActive = val;
+        await StaffMealService.UpsertConfigAsync(config);
+        Snackbar.Add(Localizer["StatusUpdated"], Severity.Success);
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<StaffMealConfigDialog>(Localizer["AddNewConfig"], options);
+        var result = await dialog.Result;
+        if (!result!.Canceled) await LoadConfigs();
+    }
+
+    private async Task OpenEditDialog(StaffMealConfigDto config)
+    {
+        var parameters = new DialogParameters { ["Config"] = config };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<StaffMealConfigDialog>(Localizer["EditConfig"], parameters, options);
+        var result = await dialog.Result;
+        if (!result!.Canceled) await LoadConfigs();
+    }
+
+    private async Task DeleteConfig(StaffMealConfigDto config)
+    {
+        // Simple mock delete for now (IsActive = false)
+        config.IsActive = false;
+        await StaffMealService.UpsertConfigAsync(config);
+        Snackbar.Add(Localizer["RecordDeleted"], Severity.Info);
+        await LoadConfigs();
+    }
+}

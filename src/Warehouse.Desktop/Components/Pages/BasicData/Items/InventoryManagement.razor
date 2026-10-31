@@ -1,0 +1,226 @@
+@page "/basicdata/inventory-old"
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@using BlazorBase.ERPFrontServices.ItemServices
+@inject IInventoryFrontService InventoryService
+@inject IItemService ItemService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<div class="inventory-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة المخزن" : "Inventory Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Info" 
+                       StartIcon="@Icons.Material.Filled.PlaylistAdd"
+                       OnClick="InitializeNewItems"
+                       Style="border-radius: 8px;">
+                @(IsArabic ? "إضافة الأصناف الجديدة للمخزن" : "Initialize New Items")
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Secondary" 
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadData"
+                       Style="border-radius: 8px;">
+                @(IsArabic ? "تحديث" : "Refresh")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0;">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث في الأصناف..." : "Search items...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                             IsLoading="@IsLoading"
+                             Data="@FilteredItems" 
+                             TItem="InventoryItemDto"
+                             AllowFiltering="true" 
+                             AllowColumnResize="true" 
+                             AllowAlternatingRows="false" 
+                             FilterMode="Radzen.FilterMode.Advanced" 
+                             AllowSorting="true" 
+                             PageSize="15" 
+                             AllowPaging="true" 
+                             PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                             ShowPagingSummary="true"
+                             Style="height: 100%; border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Property="MenuSalesItemId" Title="@(IsArabic ? "كود الصنف" : "Item ID")" Width="100px" TextAlign="Radzen.TextAlign.Center" />
+                    
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(IsArabic ? "اسم الصنف" : "Item Name")" Width="200px">
+                        <Template Context="item">
+                            <span style="font-weight: bold;">@(IsArabic ? item.ItemNameAr : item.ItemNameEn)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Property="CurrentQuantity" Title="@(IsArabic ? "الكمية الحالية" : "Current Qty")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            <MudChip T="string" Color="@GetQtyColor(item)" Size="MudBlazor.Size.Small" Text="@item.CurrentQuantity.ToString("N2")" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Property="MinimumQuantity" Title="@(IsArabic ? "الحد الأدنى" : "Min Qty")" Width="120px" TextAlign="Radzen.TextAlign.Center" />
+                    
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Property="Unit" Title="@(IsArabic ? "الوحدة" : "Unit")" Width="100px" />
+
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(IsArabic ? "الحالة" : "Status")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            @if (item.CurrentQuantity <= item.MinimumQuantity)
+                            {
+                                <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small">@(IsArabic ? "منخفض" : "Low")</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small">@(IsArabic ? "كافٍ" : "OK")</MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="150px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.AddBox" 
+                                               Color="MudBlazor.Color.Primary" 
+                                               Title="@(IsArabic ? "تعديل الكمية" : "Adjust Stock")"
+                                               OnClick="@(() => OpenAdjustDialog(item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.RestaurantMenu" 
+                                               Color="MudBlazor.Color.Warning" 
+                                               Title="@(IsArabic ? "إدارة المكونات (ريسبي)" : "Manage Recipe (BOM)")"
+                                               OnClick="@(() => OpenRecipeDialog(item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.History" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Title="@(IsArabic ? "تاريخ الحركات" : "Transaction History")"
+                                               OnClick="@(() => OpenHistoryDialog(item))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<InventoryItemDto> Items = new();
+    private List<InventoryItemDto> FilteredItems = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<InventoryItemDto>? grid;
+    private string SearchTerm = "";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await InventoryService.GetAllInventoryAsync();
+            if (response != null && response.Success)
+            {
+                Items = response.Data.ToList();
+                ApplyFilter();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل بيانات المخزن" : "Failed to load inventory data", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task InitializeNewItems()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await InventoryService.InitializeAllItemsAsync();
+            if (response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تمت إضافة الأصناف الجديدة بنجاح" : "New items initialized successfully", Severity.Success);
+                await LoadData();
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredItems = Items;
+        }
+        else
+        {
+            var term = SearchTerm.ToLower().Trim();
+            FilteredItems = Items.Where(x => 
+                (x.ItemNameAr?.ToLower().Contains(term) ?? false) ||
+                (x.ItemNameEn?.ToLower().Contains(term) ?? false) ||
+                x.MenuSalesItemId.ToString().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private MudBlazor.Color GetQtyColor(InventoryItemDto item)
+    {
+        if (item.CurrentQuantity <= 0) return MudBlazor.Color.Error;
+        if (item.CurrentQuantity <= item.MinimumQuantity) return MudBlazor.Color.Warning;
+        return MudBlazor.Color.Success;
+    }
+
+    private async Task OpenAdjustDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<StockAdjustDialog>(IsArabic ? "تعديل كمية المخزن" : "Adjust Stock", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenHistoryDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        DialogService.Show<StockHistoryDialog>(IsArabic ? $"سجل حركات: {item.ItemNameAr}" : $"History: {item.ItemNameEn}", parameters, options);
+    }
+
+    private async Task OpenRecipeDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<RecipeDialog>(IsArabic ? $"مكونات: {item.ItemNameAr}" : $"Recipe: {item.ItemNameEn}", parameters, options);
+        var result = await dialog.Result;
+    }
+}
+

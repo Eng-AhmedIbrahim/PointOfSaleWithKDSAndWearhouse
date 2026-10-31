@@ -1,0 +1,123 @@
+/* file: basicdata/complaintmanagement.css */
+.complaint-management-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background-color: #f8fafc;
+    overflow: hidden;
+}
+
+.complaint-management-container.rtl-mode {
+    direction: rtl;
+    text-align: right;
+}
+
+.complaint-management-container .page-header {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.complaint-management-container .page-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.025em;
+}
+
+.complaint-management-container .data-grid-container {
+    background: white;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-open {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.status-inprogress {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.status-resolved {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+
+/* Make Radzen DataGrid look more premium */
+.data-grid-container .rz-datatable {
+    border: none !important;
+}
+
+.data-grid-container .rz-datatable-header th {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.data-grid-container .rz-datatable-even {
+    background-color: #ffffff;
+}
+
+.data-grid-container .rz-datatable-odd {
+    background-color: #f8fafc;
+}
+
+.data-grid-container .rz-grid-table td,
+.data-grid-container .rz-datatable-data td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1rem 0.5rem;
+    font-weight: 700;
+}
+
+.data-grid-container .rz-datatable-row:hover {
+    background-color: #f1f5f9;
+}
+
+.complaint-text-truncate {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.customer-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.customer-name {
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.customer-phone {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+}

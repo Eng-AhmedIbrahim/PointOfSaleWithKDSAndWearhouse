@@ -1,0 +1,1336 @@
+@using global::POS.Contract.Dtos.ReportingDtos
+@inject IPrintOrderService PrintOrderService
+@inject IPrinterServices PrinterServices
+@inject ISnackbar Snackbar
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+
+@* dir is always LTR on the outer shell (toolbar items), paper content gets its own dir *@
+<MudDialog Class="report-preview-dialog-container" Style="max-width:1200px;width:100vw;height:100vh;overflow:hidden;">
+    <DialogContent>
+        <div class="preview-layout" dir="ltr">
+
+            @* ══════════════ PREMIUM            @* ══════════════ PREMIUM TOOLBAR ══════════════ *@
+            <div class="premium-toolbar" dir="ltr">
+                <div class="toolbar-content">
+                    <div class="toolbar-section left">
+                        <MudButton Variant="MudBlazor.Variant.Filled" 
+                                   Color="Color.Success" 
+                                   OnClick="QuickPrint"
+                                   StartIcon="@Icons.Material.Filled.FlashOn" 
+                                   Class="action-pill-btn shadow-glow">
+                            @(_isArabic ? "طباعة سريعة" : "Quick Print")
+                        </MudButton>
+
+                        <MudMenu Label="@(_isArabic ? "اختر طابعة" : "Printer")"
+                                 EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                                 Color="Color.Info" 
+                                 Variant="MudBlazor.Variant.Outlined" 
+                                 Class="action-pill-btn printer-selector">
+                            @if (_printers.Any())
+                            {
+                                @foreach (var p in _printers)
+                                {
+                                    <MudMenuItem OnClick="@(() => PrintTo(p))">@p</MudMenuItem>
+                                }
+                            }
+                            else
+                            {
+                                <MudMenuItem Disabled="true">@Localizer["NoPrintersFound"]</MudMenuItem>
+                            }
+                        </MudMenu>
+
+                        <div class="toolbar-divider"></div>
+
+                        @* Settings Group *@
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <span class="setting-label">@(_isArabic ? "مقاس:" : "Size:")</span>
+                                <MudToggleGroup T="bool" @bind-Value="_useA4" SelectionMode="SelectionMode.SingleSelection"
+                                                Color="Color.Primary" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                    <MudToggleItem Value="false">80mm</MudToggleItem>
+                                    <MudToggleItem Value="true">A4</MudToggleItem>
+                                </MudToggleGroup>
+                            </div>
+
+                            <div class="setting-item">
+                                <span class="setting-label">@(_isArabic ? "أوردرات:" : "Orders:")</span>
+                                <MudToggleGroup T="bool" @bind-Value="_showOrderDetails" SelectionMode="SelectionMode.SingleSelection"
+                                                Color="Color.Info" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                    <MudToggleItem Value="true">@(_isArabic ? "نعم" : "Yes")</MudToggleItem>
+                                    <MudToggleItem Value="false">@(_isArabic ? "لا" : "No")</MudToggleItem>
+                                </MudToggleGroup>
+                            </div>
+
+                            <div class="setting-item">
+                                <span class="setting-label">@(_isArabic ? "تفاصيل الموظفين:" : "Staff Details:")</span>
+                                <MudToggleGroup T="bool" @bind-Value="_showStaffDetails" SelectionMode="SelectionMode.SingleSelection"
+                                                Color="Color.Secondary" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                    <MudToggleItem Value="true">@(_isArabic ? "نعم" : "Yes")</MudToggleItem>
+                                    <MudToggleItem Value="false">@(_isArabic ? "لا" : "No")</MudToggleItem>
+                                </MudToggleGroup>
+                            </div>
+
+                            @if (_showOrderDetails)
+                            {
+                                <div class="setting-item">
+                                    <span class="setting-label">@(_isArabic ? "فلتر:" : "Filter:")</span>
+                                    <MudToggleGroup T="string" @bind-Value="_filterType" SelectionMode="SelectionMode.SingleSelection"
+                                                    Color="Color.Warning" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                        <MudToggleItem Value="@("All")">@(_isArabic ? "الكل" : "All")</MudToggleItem>
+                                        <MudToggleItem Value="@("Void")">@(_isArabic ? "فويد" : "Void")</MudToggleItem>
+                                        <MudToggleItem Value="@("Discount")">@(_isArabic ? "خصم" : "Disc")</MudToggleItem>
+                                    </MudToggleGroup>
+                                </div>
+
+                                <div class="setting-item">
+                                    <span class="setting-label">@(_isArabic ? "الأسباب:" : "Reasons:")</span>
+                                    <MudToggleGroup T="bool" @bind-Value="_showVoidDiscountDetails" SelectionMode="SelectionMode.SingleSelection"
+                                                    Color="Color.Error" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                        <MudToggleItem Value="true">@(_isArabic ? "نعم" : "Yes")</MudToggleItem>
+                                        <MudToggleItem Value="false">@(_isArabic ? "لا" : "No")</MudToggleItem>
+                                    </MudToggleGroup>
+                                </div>
+                            }
+
+                            <div class="setting-item">
+                                <span class="setting-label">@(_isArabic ? "اللغة:" : "Lang:")</span>
+                                <MudToggleGroup T="bool" @bind-Value="_isArabic" SelectionMode="SelectionMode.SingleSelection"
+                                                Color="Color.Secondary" Size="Size.Small" CheckMark="false" Class="pill-toggle-group">
+                                    <MudToggleItem Value="true">AR</MudToggleItem>
+                                    <MudToggleItem Value="false">EN</MudToggleItem>
+                                </MudToggleGroup>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-section center">
+                        <div class="report-main-title">@ReportTitle</div>
+                        <div class="report-sub-title">@BranchName</div>
+                    </div>
+
+                    <div class="toolbar-section right">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Cancel"
+                                       Color="Color.Error" Variant="MudBlazor.Variant.Filled" Size="Size.Medium" Class="close-btn" />
+                    </div>
+                </div>
+            </div>
+
+
+            @* ══════════════ PAPER CANVAS ══════════════ *@
+            <div class="report-viewport">
+                <div class="report-canvas-scroll">
+                    <div class="@(GetPaperClass()) shadow-2xl" dir="@(_isArabic ? "rtl" : "ltr")">
+
+                        @{
+                            // ── Shared data used in both Cashier and A4 ──
+                            var resolvedBranchName = !string.IsNullOrWhiteSpace(BranchName)
+                                ? BranchName
+                                : (SummaryData.DetailedOrders?.FirstOrDefault(o => !string.IsNullOrEmpty(o.BranchName))?.BranchName
+                                   ?? _commonProperties.BranchDetails?.Name
+                                   ?? _commonProperties.StoreName
+                                   ?? (_isArabic ? "الفرع الرئيسي" : "Main Branch"));
+
+                            var modeDetails = SummaryData.Overall != null && SummaryData.Overall.ModeDetails != null && SummaryData.Overall.ModeDetails.Any()
+                                ? SummaryData.Overall.ModeDetails
+                                : (SummaryData.DetailedOrders != null && SummaryData.DetailedOrders.Any()
+                                    ? SummaryData.DetailedOrders
+                                        .GroupBy(o => o.OrderType ?? "TakeAway")
+                                        .Select(g => new global::POS.Contract.Dtos.ReportingDtos.ModeDetails
+                                        {
+                                            ModeTitle = g.Key == "TakeAway" ? (_isArabic ? "تيك أواي" : "Takeaway") :
+                                                        g.Key == "Delivery" ? (_isArabic ? "دليفري" : "Delivery") :
+                                                        g.Key == "DineIn" ? (_isArabic ? "صالة" : "Dine-In") :
+                                                        g.Key == "Hospitality" ? (_isArabic ? "ضيافة" : "Hospitality") : g.Key,
+                                            OrderCount = g.Count(),
+                                            Discount = g.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0))),
+                                            VoidAmount = g.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0)),
+                                            VoidCount = g.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0),
+                                            DiscountCount = g.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0),
+                                            GrandTotal = g.Where(o => o.OrderState == "Completed").Sum(o => o.GrandTotal ?? 0)
+                                        }).ToList()
+                                    : new List<global::POS.Contract.Dtos.ReportingDtos.ModeDetails>());
+
+                            if ((Items == null || !Items.Any()) && SummaryData.DetailedOrders != null && SummaryData.DetailedOrders.Any())
+                            {
+                                Items = SummaryData.DetailedOrders
+                                    .SelectMany(o => o.OrderDetails ?? new List<global::POS.Contract.Models.TableItem>())
+                                    .Where(i => !i.IsVoided && (i.VoidAmount ?? 0) == 0)
+                                    .GroupBy(i => new { Name = i.Name ?? "صنف", Price = i.Price ?? 0 })
+                                    .Select(g => new SalesItemSummaryDto
+                                    {
+                                        ItemName = g.Key.Name,
+                                        Quantity = g.Sum(x => x.Quantity),
+                                        UnitPrice = g.Key.Price,
+                                        TotalAmount = g.Sum(x => x.Total ?? (x.Quantity * (x.Price ?? 0)))
+                                    })
+                                    .OrderByDescending(x => x.TotalAmount)
+                                    .ToList();
+                            }
+                            
+                            var filteredOrders = (_showOrderDetails && SummaryData.DetailedOrders != null)
+                                ? GetFilteredOrders().ToList()
+                                : new List<global::POS.Contract.Dtos.OrderDtos.OrderDto>();
+                            
+                            var extractedVoids = _showVoidDiscountDetails 
+                                ? (SummaryData.VoidEvents ?? new List<VoidEventDto>()) 
+                                : new List<VoidEventDto>();
+                        }
+
+                        @if (!_useA4)
+                        {
+                            <div class="cashier-receipt">
+                                @* Header *@
+                                <div class="cr-header">
+                                    <div class="cr-store">@resolvedBranchName</div>
+                                    <div class="cr-report-title">
+                                        @(_isArabic ? "مـلـخـص الـمـبـيـعـات" : "SALES SUMMARY")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(SummaryData.StaffName))
+                                    {
+                                        <div class="cr-staff">@(_isArabic ? "بواسطة:" : "By:") @SummaryData.StaffName</div>
+                                    }
+                                </div>
+                                <div class="cr-line"></div>
+
+                                @* Meta *@
+                                <div class="cr-row">
+                                    <span>@(_isArabic ? "التاريخ" : "Date")</span>
+                                    <span>@SummaryData.PosDate.ToString("yyyy-MM-dd")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(SummaryData.StaffName))
+                                {
+                                    <div class="cr-row">
+                                        <span>@(_isArabic ? "الكاشير" : "Cashier")</span>
+                                        <span>@SummaryData.StaffName</span>
+                                    </div>
+                                }
+                                <div class="cr-line-dashed"></div>
+
+                                @* Financial summary *@
+                                <div class="cr-section-title">@(_isArabic ? "الملخص المالي" : "Financial Summary")</div>
+                                
+                                <div class="cr-row cr-bold highlight">
+                                    <span>@(_isArabic ? "إجمالي المبيعات" : "Total Sales")</span>
+                                    <span>@SummaryData.Overall.TotalRevenue.ToString("0.##")</span>
+                                </div>
+                                
+                                <div class="cr-line-dashed-thin"></div>
+                                
+                                @* Staff Performance Summary (New) *@
+                                @if (IsStaffReport && SummaryData.CashierSummaries != null && SummaryData.CashierSummaries.Any())
+                                {
+                                    <div class="cr-section-title">@(_isArabic ? "أداء الموظفين" : "Staff Performance")</div>
+                                    <table class="cr-items-table staff-table">
+                                        <thead>
+                                            <tr>
+                                                <th>@(_isArabic ? "الموظف" : "Staff")</th>
+                                                <th>@(_isArabic ? "العدد" : "Qty")</th>
+                                                <th>@(_isArabic ? "الخصم" : "Disc")</th>
+                                                <th>@(_isArabic ? "الفويد" : "Void")</th>
+                                                <th>@(_isArabic ? "الإجمالي" : "Total")</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var s in SummaryData.CashierSummaries)
+                                            {
+                                                var sOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                                var sDisc = s.DiscountAmount > 0 
+                                                    ? s.DiscountAmount 
+                                                    : sOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                                var sVoid = s.VoidAmount > 0 
+                                                    ? s.VoidAmount 
+                                                    : sOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+                                                var sVoidCount = s.VoidCount > 0 ? s.VoidCount : sOrders.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0);
+                                                var sDiscCount = s.DiscountCount > 0 ? s.DiscountCount : sOrders.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0);
+                                                <tr>
+                                                    <td>@s.Name</td>
+                                                    <td class="text-center">@s.OrderCount</td>
+                                                    <td class="text-center" style="color:#2e7d32;">
+                                                        @sDisc.ToString("0.##")
+                                                        @if (sDiscCount > 0) { <small style="color:#888;">(@sDiscCount)</small> }
+                                                    </td>
+                                                    <td class="text-center" style="color:#c62828;">
+                                                        @sVoid.ToString("0.##")
+                                                        @if (sVoidCount > 0) { <small style="color:#888;">(@sVoidCount)</small> }
+                                                    </td>
+                                                    <td class="text-center fw-bold">@s.TotalAmount.ToString("0.##")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    <div class="cr-line-dashed-thin"></div>
+                                }
+
+                                @* Sales Distribution *@
+                                <div class="cr-section-title">@(_isArabic ? "توزيع المبيعات" : "Sales Distribution")</div>
+                                <table class="cr-items-table">
+                                    <thead><tr>
+                                        <th>@(_isArabic ? "النوع" : "Type")</th>
+                                        <th>@(_isArabic ? "العدد" : "Qty")</th>
+                                        <th>@(_isArabic ? "الخصم" : "Disc")</th>
+                                        <th>@(_isArabic ? "الفويد" : "Void")</th>
+                                        <th>@(_isArabic ? "الإجمالي" : "Total")</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        @foreach (var m in modeDetails)
+                                        {
+                                            <tr>
+                                                <td>@m.ModeTitle</td>
+                                                <td class="text-center">@m.OrderCount</td>
+                                                <td class="text-center" style="color:#2e7d32;">
+                                                    @m.Discount.ToString("0.##")
+                                                    @if (m.DiscountCount > 0) { <small style="color:#888;">(@m.DiscountCount)</small> }
+                                                </td>
+                                                <td class="text-center" style="color:#c62828;">
+                                                    @m.VoidAmount.ToString("0.##")
+                                                    @if (m.VoidCount > 0) { <small style="color:#888;">(@m.VoidCount)</small> }
+                                                </td>
+                                                <td class="text-center fw-bold">@m.GrandTotal.ToString("0.##")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                
+                                <div class="cr-line-dashed-thin"></div>
+
+                                <div class="cr-row cr-bold">
+                                    <span>@(_isArabic ? "صافي المحصل" : "Net Collected")</span>
+                                    <span>@SummaryData.Overall.TotalSales.ToString("0.##")</span>
+                                </div>
+                                
+                                <div class="cr-row sub-row">
+                                    <span>@(_isArabic ? "- نقدي" : "- Cash")</span>
+                                    <span>@SummaryData.Overall.CashAmount.ToString("0.##")</span>
+                                </div>
+                                <div class="cr-row sub-row">
+                                    <span>@(_isArabic ? "- فيزا / بطاقة" : "- Visa / Card")</span>
+                                    <span>@SummaryData.Overall.CreditAmount.ToString("0.##")</span>
+                                </div>
+
+                                <div class="cr-line-dashed-thin"></div>
+
+                                @* Voids and Discounts Summary only shown if _showOrderDetails is true *@
+                                @if (_showOrderDetails)
+                                {
+                                    <div class="cr-row cr-discount">
+                                        <span>@(_isArabic ? $"الخصومات ({GetOrdersWithDiscountCount()})" : $"Discounts ({GetOrdersWithDiscountCount()})")</span>
+                                        <span>@SummaryData.Overall.TotalDiscount.ToString("0.##")</span>
+                                    </div>
+                                    <div class="cr-row cr-void">
+                                        <span>@(_isArabic ? $"الفويد ({GetOrdersWithVoidCount()})" : $"Voids ({GetOrdersWithVoidCount()})")</span>
+                                        <span>@SummaryData.Overall.VoidAmount.ToString("0.##")</span>
+                                    </div>
+                                    <div class="cr-line-dashed"></div>
+                                }
+
+                                @* Orders detail *@
+                                @if (_showOrderDetails && SummaryData.DetailedOrders != null && SummaryData.DetailedOrders.Any())
+                                {
+                                    var printOrders = GetFilteredOrders().ToList();
+                                    if (printOrders.Any())
+                                    {
+                                        <div class="cr-section-title">@(_isArabic ? "تفاصيل الأوردرات" : "Orders Details")</div>
+                                        <table class="cr-table">
+                                            <thead>
+                                                <tr>
+                                                    @if (_isArabic)
+                                                    {
+                                                        <th>@("الإجمالي")</th>
+                                                        <th style="color:#b71c1c;">@("فويد")</th>
+                                                        <th style="color:#1b5e20;">@("خصم")</th>
+                                                        <th>@("النوع")</th>
+                                                        <th>@("رقم")</th>
+                                                    }
+                                                    else
+                                                    {
+                                                        <th>@("ID")</th>
+                                                        <th>@("Type")</th>
+                                                        <th style="color:#1b5e20;">@("Disc")</th>
+                                                        <th style="color:#b71c1c;">@("Void")</th>
+                                                        <th>@("Total")</th>
+                                                    }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var order in printOrders)
+                                                {
+                                                    var isOrderVoided = order.OrderState == "Voided" || (order.VoidAmount ?? 0) > 0;
+                                                    var oVoidAmount = (order.VoidAmount ?? 0) > 0 ? order.VoidAmount.Value : (order.OrderState == "Voided" ? (order.GrandTotal ?? (order.SubTotal ?? 0)) : 0);
+                                                    var oDiscAmount = (order.TotalOrderDiscount ?? 0) > 0 ? order.TotalOrderDiscount.Value : ((order.TotalDiscount ?? 0) > 0 ? order.TotalDiscount.Value : (order.DiscountedItems ?? 0));
+                                                    var hasDiscount = oDiscAmount > 0;
+
+                                                    <tr style="@(isOrderVoided ? "background-color: #fff0f0;" : hasDiscount ? "background-color: #f0fff4;" : "")">
+                                                        @if (_isArabic)
+                                                        {
+                                                            <td class="num fw-bold @(isOrderVoided ? "text-decoration-line-through" : "")">@order.GrandTotal?.ToString("0.##")</td>
+                                                            <td class="num" style="color:#c62828;">@(isOrderVoided ? oVoidAmount.ToString("0.##") : "")</td>
+                                                            <td class="num" style="color:#2e7d32;">@(hasDiscount ? oDiscAmount.ToString("0.##") : "")</td>
+                                                            <td class="lbl-cell">@order.OrderType</td>
+                                                            <td class="num">#@order.OrderId</td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td class="num">#@order.OrderId</td>
+                                                            <td class="lbl-cell">@order.OrderType</td>
+                                                            <td class="num" style="color:#2e7d32;">@(hasDiscount ? oDiscAmount.ToString("0.##") : "")</td>
+                                                            <td class="num" style="color:#c62828;">@(isOrderVoided ? oVoidAmount.ToString("0.##") : "")</td>
+                                                            <td class="num fw-bold @(isOrderVoided ? "text-decoration-line-through" : "")">@order.GrandTotal?.ToString("0.##")</td>
+                                                        }
+                                                    </tr>
+                                                    @if (isOrderVoided)
+                                                    {
+                                                        <tr class="reason-row reason-void">
+                                                            <td colspan="5">
+                                                                🚫 <strong>@(_isArabic ? "سبب الفويد:" : "Void:")</strong> @(string.IsNullOrEmpty(order.VoidReason) ? (_isArabic ? "ملغي" : "Voided") : order.VoidReason)
+                                                                @if (!string.IsNullOrEmpty(order.VoidByName))
+                                                                {
+                                                                    <span class="by"> — @order.VoidByName</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                    @if (hasDiscount)
+                                                    {
+                                                        <tr class="reason-row reason-disc">
+                                                            <td colspan="5">
+                                                                🏷️ <strong>@(_isArabic ? "سبب الخصم:" : "Disc:")</strong> @(string.IsNullOrEmpty(order.DiscountReason) ? (_isArabic ? "خصم" : "Discount") : order.DiscountReason)
+                                                                @if (!string.IsNullOrEmpty(order.DiscountByName))
+                                                                {
+                                                                    <span class="by"> — @order.DiscountByName</span>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(order.DiscountType))
+                                                                {
+                                                                    <span class="by"> — @order.DiscountType</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                        <div class="cr-line-dashed"></div>
+                                    }
+                                }
+
+                                @* Staff Summary *@
+                                @if (SummaryData.CashierSummaries != null && SummaryData.CashierSummaries.Any())
+                                {
+                                    if (_showStaffDetails)
+                                    {
+                                        foreach (var s in SummaryData.CashierSummaries)
+                                        {
+                                            var staffOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                            var sDisc = s.DiscountAmount > 0 
+                                                ? s.DiscountAmount 
+                                                : staffOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                            var sVoid = s.VoidAmount > 0 
+                                                ? s.VoidAmount 
+                                                : staffOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+
+                                            var sVoidCount = s.VoidCount > 0 ? s.VoidCount : staffOrders.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0);
+                                            var sDiscCount = s.DiscountCount > 0 ? s.DiscountCount : staffOrders.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0);
+
+                                            <div class="cr-section-title" style="background:#1e88e5; color:white; padding:4px;">@(s.Name)</div>
+                                            <table class="cr-table" style="margin-bottom:8px; border:1px solid #1e88e5;">
+                                                <tr><td class="lbl-cell" style="width:60%;">@(_isArabic ? "العدد" : "Qty")</td><td class="num">@s.OrderCount</td></tr>
+                                                <tr>
+                                                    <td class="lbl-cell" style="width:60%; color:#c62828;">@(_isArabic ? "إجمالي الفويد" : "Total Void")</td>
+                                                    <td class="num" style="color:#c62828;">
+                                                        @sVoid.ToString("0.##")
+                                                        @if (sVoidCount > 0) { <small style="color:#888;"> (@(_isArabic ? $"{sVoidCount} طلب" : $"{sVoidCount} ord"))</small> }
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="lbl-cell" style="width:60%; color:#1b5e20;">@(_isArabic ? "إجمالي الخصم" : "Total Discount")</td>
+                                                    <td class="num" style="color:#1b5e20;">
+                                                        @sDisc.ToString("0.##")
+                                                        @if (sDiscCount > 0) { <small style="color:#888;"> (@(_isArabic ? $"{sDiscCount} طلب" : $"{sDiscCount} ord"))</small> }
+                                                    </td>
+                                                </tr>
+                                                <tr><td class="lbl-cell cr-bold" style="width:60%;">@(_isArabic ? "الإجمالي" : "Total")</td><td class="num cr-bold">@s.TotalAmount.ToString("0.##")</td></tr>
+                                            </table>
+                                            
+                                            var staffItems = staffOrders.SelectMany(o => o.OrderDetails ?? new List<global::POS.Contract.Models.TableItem>())
+                                                .GroupBy(i => i.Name)
+                                                .Select(g => new { Name = g.Key, Qty = g.Sum(x => x.Quantity), Total = g.Sum(x => x.Total ?? ((x.Price ?? 0) * x.Quantity)) })
+                                                .ToList();
+                                            
+                                            if (staffItems.Any())
+                                            {
+                                                <div style="font-size:10px; font-weight:800; background:#eee; padding:3px; text-align:center; border:1px solid #ccc; margin-top:8px;">@(_isArabic?"ملخص الأصناف المباعة":"Item Summary")</div>
+                                                <table class="cr-table" style="margin-bottom:8px;">
+                                                    <thead><tr><th>@(_isArabic?"كم":"Qty")</th><th>@(_isArabic?"صنف":"Item")</th><th>@(_isArabic?"إجمالي":"Total")</th></tr></thead>
+                                                    <tbody>
+                                                        @foreach(var si in staffItems) {
+                                                            <tr><td class="num">@si.Qty.ToString("0.##")</td><td>@si.Name</td><td class="num">@si.Total.ToString("0.##")</td></tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            }
+
+                                            if (_showOrderDetails && staffOrders.Any())
+                                            {
+                                                <div style="font-size:10px; font-weight:800; background:#eee; padding:3px; text-align:center; border:1px solid #ccc; margin-top:8px;">@(_isArabic?"قائمة الأوردرات":"Order List")</div>
+                                                <table class="cr-table" style="border:1px dashed #ccc; margin-bottom:15px;">
+                                                    <thead><tr><th>@(_isArabic?"رقم":"No.")</th><th>@(_isArabic?"النوع":"Type")</th><th>@(_isArabic?"إجمالي":"Total")</th></tr></thead>
+                                                    @foreach(var so in staffOrders) {
+                                                        <tr><td>#@so.OrderId</td><td>@so.OrderType</td><td class="num">@so.GrandTotal?.ToString("0.##")</td></tr>
+                                                    }
+                                                </table>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="cr-section-title">@(_isArabic ? "ملخص حسابات الموظفين" : "Staff Accounts Summary")</div>
+                                        <table class="cr-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>@(_isArabic ? "الإجمالي" : "Total")</th>
+                                                    <th>@(_isArabic ? "الفويد" : "Void")</th>
+                                                    <th>@(_isArabic ? "الخصم" : "Disc")</th>
+                                                    <th>@(_isArabic ? "العدد" : "Qty")</th>
+                                                    <th>@(_isArabic ? "الموظف" : "Staff")</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var s in SummaryData.CashierSummaries)
+                                                {
+                                                    var sOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                                    var sDisc = s.DiscountAmount > 0 
+                                                        ? s.DiscountAmount 
+                                                        : sOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                                    var sVoid = s.VoidAmount > 0 
+                                                        ? s.VoidAmount 
+                                                        : sOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+                                                    var sVoidCount = s.VoidCount > 0 ? s.VoidCount : sOrders.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0);
+                                                    var sDiscCount = s.DiscountCount > 0 ? s.DiscountCount : sOrders.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0);
+                                                    <tr>
+                                                        <td class="num">@s.TotalAmount.ToString("0.##")</td>
+                                                        <td class="num" style="color:#c62828;">
+                                                            @sVoid.ToString("0.##")
+                                                            @if (sVoidCount > 0) { <small style="color:#888;">(@sVoidCount)</small> }
+                                                        </td>
+                                                        <td class="num" style="color:#2e7d32;">
+                                                            @sDisc.ToString("0.##")
+                                                            @if (sDiscCount > 0) { <small style="color:#888;">(@sDiscCount)</small> }
+                                                        </td>
+                                                        <td class="num">@s.OrderCount</td>
+                                                        <td>@s.Name</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                    <div class="cr-line-dashed"></div>
+                                }
+
+                                @* Overall Items only shown if _showOrderDetails is true *@
+                                @if (_showOrderDetails)
+                                {
+                                    @* Items detail *@
+                                    <div class="cr-section-title">@(_isArabic ? "تفاصيل الأصناف" : "Items Details")</div>
+                                    <table class="cr-table">
+                                        <thead>
+                                            <tr>
+                                                @if (_isArabic)
+                                                {
+                                                    <th>الإجمالي</th>
+                                                    <th>إسم الصنف</th>
+                                                    <th>كمية</th>
+                                                }
+                                                else
+                                                {
+                                                    <th>Qty</th>
+                                                    <th>Item</th>
+                                                    <th>Total</th>
+                                                }
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Items)
+                                            {
+                                                <tr>
+                                                    @if (_isArabic)
+                                                    {
+                                                        <td class="num">@item.TotalAmount.ToString("0.##")</td>
+                                                        <td class="item-name">@item.ItemName</td>
+                                                        <td class="num">@item.Quantity.ToString("0.##")</td>
+                                                    }
+                                                    else
+                                                    {
+                                                        <td class="num">@item.Quantity.ToString("0.##")</td>
+                                                        <td class="item-name">@item.ItemName</td>
+                                                        <td class="num">@item.TotalAmount.ToString("0.##")</td>
+                                                    }
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="cr-total-row">
+                                                @if (_isArabic)
+                                                {
+                                                    <td class="num cr-bold">@Items.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                                    <td colspan="2" class="cr-bold">@("الإجمالي الكلي")</td>
+                                                }
+                                                else
+                                                {
+                                                    <td colspan="2" class="cr-bold">@("Grand Total")</td>
+                                                    <td class="num cr-bold">@Items.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                                }
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                }
+
+                                <div class="cr-footer">
+                                    @(_isArabic ? "طُبع في:" : "Printed:") @DateTime.Now.ToString("dd/MM/yyyy  hh:mm tt")
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* ── A4 ── *@
+                            var a4Total = SummaryData.Overall.TotalSales > 0
+                                ? SummaryData.Overall.TotalSales
+                                : Items.Sum(x => x.TotalAmount);
+
+                            <div class="a4-content">
+                                @* A4 Header *@
+                                <div class="a4-header">
+                                    @if (_isArabic)
+                                    {
+                                        <div class="a4-logo-area" style="text-align:right;">
+                                            <div class="brand-text">POS SYSTEM</div>
+                                            <div class="report-title-main">
+                                                @(!string.IsNullOrEmpty(SummaryData.StaffName)
+                                                    ? $"تقرير مبيعات: {SummaryData.StaffName}"
+                                                    : "ملخص مبيعات الأصناف")
+                                            </div>
+                                        </div>
+                                        <div class="a4-info-box">
+                                            <div class="a4-info-row"><span class="a4-lbl">إسم الفرع</span><span class="a4-val">@BranchName</span></div>
+                                            <div class="a4-info-row"><span class="a4-lbl">التاريخ</span><span class="a4-val">@ReportDate.ToString("yyyy-MM-dd")</span></div>
+                                            @if (!string.IsNullOrEmpty(SummaryData.StaffName))
+                                            {
+                                                <div class="a4-info-row"><span class="a4-lbl">الكاشير</span><span class="a4-val">@SummaryData.StaffName</span></div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="a4-logo-area" style="text-align:left;">
+                                            <div class="brand-text">POS SYSTEM</div>
+                                            <div class="report-title-main">
+                                                @(!string.IsNullOrEmpty(SummaryData.StaffName)
+                                                    ? $"Sales Report: {SummaryData.StaffName}"
+                                                    : "Sales Items Summary")
+                                            </div>
+                                        </div>
+                                        <div class="a4-info-box">
+                                            <div class="a4-info-row"><span class="a4-lbl">Branch</span><span class="a4-val">@BranchName</span></div>
+                                            <div class="a4-info-row"><span class="a4-lbl">Date</span><span class="a4-val">@ReportDate.ToString("yyyy-MM-dd")</span></div>
+                                            @if (!string.IsNullOrEmpty(SummaryData.StaffName))
+                                            {
+                                                <div class="a4-info-row"><span class="a4-lbl">Cashier</span><span class="a4-val">@SummaryData.StaffName</span></div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                @* Financial summary cards *@
+                                <div class="a4-fin-grid">
+                                    <div class="a4-fin-card a4-fin-total">
+                                        <div class="a4-fin-label">@(_isArabic ? "إجمالي المبيعات" : "Total Sales")</div>
+                                        <div class="a4-fin-value">@SummaryData.Overall.TotalRevenue.ToString("0.##")</div>
+                                    </div>
+                                    <div class="a4-fin-card a4-fin-cash">
+                                        <div class="a4-fin-label">@(_isArabic ? "المحصل (صافي)" : "Collected (Net)")</div>
+                                        <div class="a4-fin-value">@SummaryData.Overall.TotalSales.ToString("0.##")</div>
+                                    </div>
+                                    <div class="a4-fin-card a4-fin-mode">
+                                        <div class="a4-fin-label text-xs" style="font-size: 10px; opacity: 0.7;">@(_isArabic ? "توزيع القنوات" : "Channels")</div>
+                                        <div class="mode-mini-list">
+                                            <div class="mode-item" style="display: flex; justify-content: space-between; font-size: 11px;"><span>@(_isArabic ? "تيك أواي" : "T.A"):</span> <span>@SummaryData.TakeAway.Total.ToString("0.##")</span></div>
+                                            <div class="mode-item" style="display: flex; justify-content: space-between; font-size: 11px;"><span>@(_isArabic ? "صالة" : "D.I"):</span> <span>@SummaryData.DineIn.Total.ToString("0.##")</span></div>
+                                            <div class="mode-item" style="display: flex; justify-content: space-between; font-size: 11px;"><span>@(_isArabic ? "دليفري" : "Del"):</span> <span>@SummaryData.Delivery.Total.ToString("0.##")</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="a4-fin-card a4-fin-disc">
+                                        <div class="a4-fin-label">@(_isArabic ? "إجمالي الخصم" : "Total Discount")</div>
+                                        <div class="a4-fin-value">@SummaryData.Overall.TotalDiscount.ToString("0.##")</div>
+                                        <div class="a4-fin-count" style="font-size: 9px; opacity: 0.5;">@GetOrdersWithDiscountCount() @(_isArabic ? "أوردر" : "Orders")</div>
+                                    </div>
+                                    <div class="a4-fin-card a4-fin-void">
+                                        <div class="a4-fin-label">@(_isArabic ? "إجمالي الفويد" : "Total Void")</div>
+                                        <div class="a4-fin-value">@SummaryData.Overall.VoidAmount.ToString("0.##")</div>
+                                        <div class="a4-fin-count" style="font-size: 9px; opacity: 0.5;">@GetOrdersWithVoidCount() @(_isArabic ? "أوردر" : "Orders")</div>
+                                    </div>
+                                </div>
+
+                                @* Staff Performance Summary (New) *@
+                                @if (IsStaffReport && SummaryData.CashierSummaries != null && SummaryData.CashierSummaries.Any())
+                                {
+                                    <div class="a4-section-title">@(_isArabic ? "أداء الموظفين" : "Staff Performance")</div>
+                                    <table class="a4-table">
+                                        <thead>
+                                            <tr>
+                                                <th>@(_isArabic ? "الموظف" : "Staff")</th>
+                                                <th>@(_isArabic ? "عدد" : "Qty")</th>
+                                                <th>@(_isArabic ? "كاش" : "Cash")</th>
+                                                <th>@(_isArabic ? "فيزا" : "Visa")</th>
+                                                <th>@(_isArabic ? "فويد/خصم" : "V/D")</th>
+                                                <th>@(_isArabic ? "الإجمالي" : "Total")</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var s in SummaryData.CashierSummaries)
+                                            {
+                                                var sOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                                var sDisc = s.DiscountAmount > 0 
+                                                    ? s.DiscountAmount 
+                                                    : sOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                                var sVoid = s.VoidAmount > 0 
+                                                    ? s.VoidAmount 
+                                                    : sOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+                                                <tr>
+                                                    <td>@s.Name</td>
+                                                    <td class="text-center">@s.OrderCount</td>
+                                                    <td class="text-center">@s.CashAmount.ToString("N2")</td>
+                                                    <td class="text-center">@s.CreditAmount.ToString("N2")</td>
+                                                    <td class="text-center">@((sVoid + sDisc).ToString("0.##"))</td>
+                                                    <td class="text-center fw-bold">@s.TotalAmount.ToString("0.##")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+
+                                @* Orders detail *@
+                                @if (_showOrderDetails && SummaryData.DetailedOrders != null && SummaryData.DetailedOrders.Any())
+                                {
+                                    var printOrders = GetFilteredOrders().ToList();
+                                    if (printOrders.Any())
+                                    {
+                                        <div class="a4-section-title">@(_isArabic ? "تفاصيل الأوردرات" : "Orders Details")</div>
+                                        <table class="a4-table">
+                                            <thead>
+                                                <tr>
+                                                    @if (_isArabic)
+                                                    {
+                                                        <th>الإجمالي</th>
+                                                        <th style="color:#b71c1c;">فويد</th>
+                                                        <th style="color:#1b5e20;">خصم</th>
+                                                        <th>الأوردر</th>
+                                                    }
+                                                    else
+                                                    {
+                                                        <th>Order</th>
+                                                        <th style="color:#1b5e20;">Disc</th>
+                                                        <th style="color:#b71c1c;">Void</th>
+                                                        <th>Total</th>
+                                                    }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var order in printOrders)
+                                                {
+                                                    var isOrderVoided = order.OrderState == "Voided" || (order.VoidAmount ?? 0) > 0;
+                                                    var oVoidAmount = (order.VoidAmount ?? 0) > 0 ? order.VoidAmount.Value : (order.OrderState == "Voided" ? (order.GrandTotal ?? (order.SubTotal ?? 0)) : 0);
+                                                    var oDiscAmount = (order.TotalOrderDiscount ?? 0) > 0 ? order.TotalOrderDiscount.Value : ((order.TotalDiscount ?? 0) > 0 ? order.TotalDiscount.Value : (order.DiscountedItems ?? 0));
+                                                    var hasDiscount = oDiscAmount > 0;
+
+                                                    <tr style="@(isOrderVoided ? "background-color: #fff0f0;" : hasDiscount ? "background-color: #f0fff4;" : "")">
+                                                        @if (_isArabic)
+                                                        {
+                                                            <td class="text-center fw-bold @(isOrderVoided ? "text-decoration-line-through" : "")">@order.GrandTotal?.ToString("0.##")</td>
+                                                            <td class="text-center" style="color:#c62828;">@(isOrderVoided ? oVoidAmount.ToString("0.##") : "")</td>
+                                                            <td class="text-center" style="color:#2e7d32;">@(hasDiscount ? oDiscAmount.ToString("0.##") : "")</td>
+                                                            <td>@order.OrderType #@order.OrderId</td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>@order.OrderType #@order.OrderId</td>
+                                                            <td class="text-center" style="color:#2e7d32;">@(hasDiscount ? oDiscAmount.ToString("0.##") : "")</td>
+                                                            <td class="text-center" style="color:#c62828;">@(isOrderVoided ? oVoidAmount.ToString("0.##") : "")</td>
+                                                            <td class="text-center fw-bold @(isOrderVoided ? "text-decoration-line-through" : "")">@order.GrandTotal?.ToString("0.##")</td>
+                                                        }
+                                                    </tr>
+                                                    @if (isOrderVoided)
+                                                    {
+                                                        <tr class="a4-reason-void">
+                                                            <td colspan="4">
+                                                                🚫 <strong>@(_isArabic ? "سبب الفويد:" : "Void Reason:")</strong>
+                                                                @(string.IsNullOrEmpty(order.VoidReason) ? (_isArabic ? "ملغي" : "Voided") : order.VoidReason)
+                                                                @if (!string.IsNullOrEmpty(order.VoidByName))
+                                                                {
+                                                                    <span class="a4-by"> | @(_isArabic ? "بواسطة:" : "By:") @order.VoidByName</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                    @if (hasDiscount)
+                                                    {
+                                                        <tr class="a4-reason-disc">
+                                                            <td colspan="4">
+                                                                🏷️ <strong>@(_isArabic ? "سبب الخصم:" : "Discount Reason:")</strong>
+                                                                @(string.IsNullOrEmpty(order.DiscountReason) ? (_isArabic ? "خصم" : "Discount") : order.DiscountReason)
+                                                                @if (!string.IsNullOrEmpty(order.DiscountByName))
+                                                                {
+                                                                    <span class="a4-by"> | @(_isArabic ? "بواسطة:" : "By:") @order.DiscountByName</span>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(order.DiscountType))
+                                                                {
+                                                                    <span class="a4-by"> | @(_isArabic ? "نوع:" : "Type:") @order.DiscountType</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                }
+
+                                @* Staff Accounts Section *@
+                                @if (SummaryData.CashierSummaries != null && SummaryData.CashierSummaries.Any())
+                                {
+                                    if (_showStaffDetails)
+                                    {
+                                        foreach (var s in SummaryData.CashierSummaries)
+                                        {
+                                            var staffOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                            var sDisc = s.DiscountAmount > 0 
+                                                ? s.DiscountAmount 
+                                                : staffOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                            var sVoid = s.VoidAmount > 0 
+                                                ? s.VoidAmount 
+                                                : staffOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+
+                                            var sVoidCount = s.VoidCount > 0 ? s.VoidCount : staffOrders.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0);
+                                            var sDiscCount = s.DiscountCount > 0 ? s.DiscountCount : staffOrders.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0);
+
+                                            <div class="a4-section-title" style="background:#1e88e5; text-align:right;">@(s.Name)</div>
+                                            <table class="a4-table" style="background:#f1f8fe; margin-bottom:5px;">
+                                                <thead><tr>
+                                                    <th>@(_isArabic?"العدد":"Orders")</th>
+                                                    <th>@(_isArabic?"الخصم":"Disc")</th>
+                                                    <th>@(_isArabic?"الفويد":"Void")</th>
+                                                    <th>@(_isArabic?"الإجمالي":"Total")</th>
+                                                </tr></thead>
+                                                <tr>
+                                                    <td class="text-center">@s.OrderCount</td>
+                                                    <td class="text-center" style="color:#2e7d32;">
+                                                        @sDisc.ToString("0.##")
+                                                        @if (sDiscCount > 0) { <small style="color:#888;"> (@sDiscCount)</small> }
+                                                    </td>
+                                                    <td class="text-center" style="color:#c62828;">
+                                                        @sVoid.ToString("0.##")
+                                                        @if (sVoidCount > 0) { <small style="color:#888;"> (@sVoidCount)</small> }
+                                                    </td>
+                                                    <td class="text-center fw-bold">@s.TotalAmount.ToString("0.##")</td>
+                                                </tr>
+                                            </table>
+                                            
+                                            var staffItems = staffOrders.SelectMany(o => o.OrderDetails ?? new List<global::POS.Contract.Models.TableItem>())
+                                                .GroupBy(i => i.Name)
+                                                .Select(g => new { Name = g.Key, Qty = g.Sum(x => x.Quantity), Total = g.Sum(x => x.Total ?? ((x.Price ?? 0) * x.Quantity)) })
+                                                .ToList();
+                                            
+                                            if (staffItems.Any())
+                                            {
+                                                <div style="font-size:11px; font-weight:bold; margin-top:5px; margin-bottom:2px; color:#1e88e5; text-align:right;">@(_isArabic?"ملخص المبيعات:":"Sales Summary:")</div>
+                                                <table class="a4-table" style="margin-bottom:8px;">
+                                                    <thead><tr style="background:#eee;"><th>@(_isArabic?"الكمية":"Qty")</th><th>@(_isArabic?"الصنف":"Item")</th><th>@(_isArabic?"الإجمالي":"Total")</th></tr></thead>
+                                                    <tbody>
+                                                        @foreach(var si in staffItems) {
+                                                            <tr><td class="text-center">@si.Qty.ToString("0.##")</td><td>@si.Name</td><td class="text-center">@si.Total.ToString("0.##")</td></tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            }
+
+                                            if (_showOrderDetails && staffOrders.Any())
+                                            {
+                                                <div style="font-size:11px; font-weight:bold; margin-top:5px; margin-bottom:2px; color:#1e88e5; text-align:right;">@(_isArabic?"الأوردرات:":"Orders:")</div>
+                                                <table class="a4-table" style="margin-bottom:15px;">
+                                                    <thead><tr style="background:#f5f5f5;"><th>@(_isArabic?"رقم":"No.")</th><th>@(_isArabic?"النوع":"Type")</th><th>@(_isArabic?"الإجمالي":"Total")</th></tr></thead>
+                                                    @foreach(var so in staffOrders) {
+                                                        <tr><td class="text-center">#@so.OrderId</td><td class="text-center">@so.OrderType</td><td class="text-center">@so.GrandTotal?.ToString("0.##")</td></tr>
+                                                    }
+                                                </table>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="a4-section-title">@(_isArabic ? "ملخص حسابات الموظفين" : "Staff Accounts Summary")</div>
+                                        <table class="a4-table">
+                                            <thead>
+                                                <tr>
+                                                    @if (_isArabic)
+                                                    {
+                                                        <th>إسم الموظف</th>
+                                                        <th>عدد الطلبات</th>
+                                                        <th>إجمالي الخصم</th>
+                                                        <th>إجمالي الفويد</th>
+                                                        <th>الإجمالي</th>
+                                                    }
+                                                    else
+                                                    {
+                                                        <th>Staff Name</th>
+                                                        <th>Orders</th>
+                                                        <th>Discount</th>
+                                                        <th>Void</th>
+                                                        <th>Total</th>
+                                                    }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var s in SummaryData.CashierSummaries)
+                                                {
+                                                    var sOrders = SummaryData.DetailedOrders?.Where(o => o.CashierId == s.Id || o.CashierName == s.Name).ToList() ?? new();
+                                                    var sDisc = s.DiscountAmount > 0 
+                                                        ? s.DiscountAmount 
+                                                        : sOrders.Sum(o => (o.TotalOrderDiscount ?? 0) > 0 ? o.TotalOrderDiscount.Value : ((o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.DiscountedItems ?? 0)));
+                                                    var sVoid = s.VoidAmount > 0 
+                                                        ? s.VoidAmount 
+                                                        : sOrders.Sum(o => o.VoidAmount ?? (o.OrderState == "Voided" ? (o.GrandTotal ?? (o.SubTotal ?? 0)) : 0));
+                                                    var sVoidCount = s.VoidCount > 0 ? s.VoidCount : sOrders.Count(o => o.OrderState == "Voided" || (o.VoidAmount ?? 0) > 0);
+                                                    var sDiscCount = s.DiscountCount > 0 ? s.DiscountCount : sOrders.Count(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0 || (o.DiscountedItems ?? 0) > 0);
+                                                    <tr>
+                                                        @if (_isArabic)
+                                                        {
+                                                            <td>@s.Name</td>
+                                                            <td class="text-center">@s.OrderCount</td>
+                                                            <td class="text-center" style="color:#2e7d32;">
+                                                                @sDisc.ToString("0.##")
+                                                                @if (sDiscCount > 0) { <small style="color:#888;"> (@sDiscCount)</small> }
+                                                            </td>
+                                                            <td class="text-center" style="color:#c62828;">
+                                                                @sVoid.ToString("0.##")
+                                                                @if (sVoidCount > 0) { <small style="color:#888;"> (@sVoidCount)</small> }
+                                                            </td>
+                                                            <td class="text-center fw-bold">@s.TotalAmount.ToString("0.##")</td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>@s.Name</td>
+                                                            <td class="text-center">@s.OrderCount</td>
+                                                            <td class="text-center" style="color:#2e7d32;">
+                                                                @sDisc.ToString("0.##")
+                                                                @if (sDiscCount > 0) { <small style="color:#888;"> (@sDiscCount)</small> }
+                                                            </td>
+                                                            <td class="text-center" style="color:#c62828;">
+                                                                @sVoid.ToString("0.##")
+                                                                @if (sVoidCount > 0) { <small style="color:#888;"> (@sVoidCount)</small> }
+                                                            </td>
+                                                            <td class="text-center fw-bold">@s.TotalAmount.ToString("0.##")</td>
+                                                        }
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="a4-total-row">
+                                                    @if (_isArabic)
+                                                    {
+                                                        <td class="text-center fw-bold">@SummaryData.CashierSummaries.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                                        <td colspan="4" class="fw-bold">@("الإجمالي الكلي")</td>
+                                                    }
+                                                    else
+                                                    {
+                                                        <td colspan="4" class="fw-bold">@("Grand Total")</td>
+                                                        <td class="text-center fw-bold">@SummaryData.CashierSummaries.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                                    }
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    }
+                                }
+
+                                @* Items detail *@
+                                <div class="a4-section-title">@(_isArabic ? "تفاصيل الأصناف المباعة" : "Sold Items Details")</div>
+                                <table class="a4-table">
+                                    <thead>
+                                        <tr>
+                                            @if (_isArabic)
+                                            {
+                                                <th style="width:150px;">الإجمالي</th>
+                                                <th>إسم الصنف</th>
+                                                <th style="width:100px;">الكمية</th>
+                                            }
+                                            else
+                                            {
+                                                <th style="width:80px;">Qty</th>
+                                                <th>Item Name</th>
+                                                <th style="width:150px;">Total</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Items)
+                                        {
+                                            <tr>
+                                                @if (_isArabic)
+                                                {
+                                                    <td class="text-center">@item.TotalAmount.ToString("0.##")</td>
+                                                    <td>@item.ItemName</td>
+                                                    <td class="text-center">@item.Quantity.ToString("0.##")</td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="text-center">@item.Quantity.ToString("0.##")</td>
+                                                    <td>@item.ItemName</td>
+                                                    <td class="text-center">@item.TotalAmount.ToString("0.##")</td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="a4-total-row">
+                                            @if (_isArabic)
+                                            {
+                                                <td class="text-center fw-bold">@Items.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                                <td colspan="2" class="fw-bold">@("الإجمالي الكلي")</td>
+                                            }
+                                            else
+                                            {
+                                                <td colspan="2" class="fw-bold">@("Grand Total")</td>
+                                                <td class="text-center fw-bold">@Items.Sum(x => x.TotalAmount).ToString("0.##")</td>
+                                            }
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <div class="a4-footer">
+                                    @(_isArabic ? "طُبع بواسطة:" : "Printed By:") @_commonProperties.CurrentUser
+                                    &nbsp;|&nbsp; @DateTime.Now.ToString("dd/MM/yyyy  hh:mm tt")
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    /* ── Dialog Shell ── */
+    .report-preview-dialog-container .mud-dialog-content { padding: 0 !important; }
+    .preview-layout { display: flex; flex-direction: column; height: 100vh; background: #263238; }
+
+    /* ── Premium Toolbar ── */
+    .premium-toolbar {
+        background: #0f172a;
+        padding: 8px 16px;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .toolbar-content {
+        display: grid;
+        grid-template-columns: 1fr auto 200px;
+        align-items: center;
+        gap: 16px;
+    }
+    .toolbar-section { display: flex; align-items: center; gap: 12px; }
+    .toolbar-section.left { flex-grow: 1; overflow-x: auto; scrollbar-width: none; }
+    .toolbar-section.left::-webkit-scrollbar { display: none; }
+    
+    .toolbar-section.center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        min-width: 250px;
+    }
+    .report-main-title { font-size: 15px; font-weight: 900; color: #fff; line-height: 1.2; }
+    .report-sub-title { font-size: 11px; font-weight: 700; color: #94a3b8; }
+
+    .action-pill-btn {
+        border-radius: 50px !important;
+        height: 44px !important;
+        text-transform: none !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        padding: 0 20px !important;
+        font-size: 14px !important;
+    }
+    .shadow-glow { box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important; }
+    .toolbar-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+    
+    .settings-group { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .settings-group::-webkit-scrollbar { display: none; }
+    .setting-item { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-shrink: 0; }
+    .setting-label { font-size: 11px; font-weight: 800; color: #94a3b8; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
+    
+    .pill-toggle-group {
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 50px !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        overflow: hidden !important;
+        flex-shrink: 0;
+    }
+    .pill-toggle-group .mud-toggle-item {
+        color: #e2e8f0 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        padding: 4px 14px !important;
+        min-width: 54px !important;
+        height: 34px !important;
+    }
+    .pill-toggle-group .mud-toggle-item.mud-toggle-item-selected {
+        background: var(--mud-palette-primary) !important;
+        color: white !important;
+    }
+    
+    .close-btn { background: rgba(239, 68, 68, 0.1) !important; border-radius: 12px !important; transition: all 0.2s; }
+    .close-btn:hover { background: #ef4444 !important; color: white !important; }
+
+    /* ── Viewport ── */
+    .report-viewport { flex: 1; overflow: hidden; position: relative; }
+    .report-canvas-scroll {
+        position: absolute; inset: 0;
+        overflow-y: auto; padding: 40px 20px;
+        display: flex; flex-direction: column; align-items: center;
+        background: #1e293b;
+    }
+    .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+
+    /* ── Paper sizes ── */
+    .report-paper-a4     { background: #fff; width: 210mm; min-height: 297mm; padding: 18mm; box-sizing: border-box; }
+    .report-paper-cashier{ background: #fff; width: 82mm;  min-height: 120mm; padding: 6mm;  box-sizing: border-box; font-family: 'Arial', 'Noto Sans Arabic', sans-serif; font-size: 11px; }
+
+    /* ════════════════════════════
+       CASHIER RECEIPT STYLES
+    ════════════════════════════ */
+    .cashier-receipt { width: 100%; }
+
+    .cr-store {
+        text-align: center; font-size: 15px; font-weight: 900;
+        letter-spacing: 1px; margin-bottom: 2px;
+    }
+    .cr-subtitle {
+        text-align: center; font-size: 11px; font-weight: 700;
+        margin-bottom: 4px; opacity: .85;
+    }
+    .cr-header { padding-bottom: 8px; }
+    .cr-report-title { 
+        text-align: center; border: 1.5px solid #000; padding: 4px; margin: 4px 6px; 
+        font-size: 13px; font-weight: 950; letter-spacing: 1px;
+    }
+    .cr-staff { text-align: center; font-size: 10px; opacity: 0.8; font-weight: 600; }
+    .cr-line { border-top: 2px solid #000; margin: 5px 0; }
+    .cr-line-dashed { border-top: 1.5px dashed #000; margin: 5px 0; }
+    .cr-line-dashed-thin { border-top: 1px dashed #ccc; margin: 4px 0; }
+
+    .cr-section-title {
+        text-align: center; font-size: 10px; font-weight: 900;
+        background: #000; color: #fff;
+        padding: 2px 4px; margin: 4px 0 2px;
+    }
+    .cr-row {
+        display: flex; justify-content: space-between;
+        font-size: 11px; padding: 1px 0;
+    }
+    .cr-bold { font-weight: 900; }
+    .cr-bold.highlight { background: #eee; padding: 2px 4px; margin: 2px 0; border: 1px solid #000; }
+    .cr-discount { color: #1b5e20; }
+    .cr-void     { color: #b71c1c; }
+    .sub-row { padding-right: 12px; font-size: 10px; opacity: 0.9; }
+    [dir="rtl"] .sub-row { padding-right: 0; padding-left: 12px; }
+
+    /* Cashier table */
+    .cr-table { width: 100%; border-collapse: collapse; margin: 3px 0; }
+    .cr-table th {
+        background: #424242; color: #fff;
+        font-size: 10px; font-weight: 900;
+        padding: 3px 2px; border: 1px solid #000;
+        text-align: center;
+    }
+    .cr-table td {
+        font-size: 10.5px; font-weight: 600;
+        padding: 2px 3px; border: 1px solid #ccc;
+    }
+    .cr-table .num { text-align: center; }
+    .cr-table .lbl-cell { text-align: center; font-size: 10px; }
+    .cr-table .item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+
+    .cr-total-row td { background: #f5f5f5; border-top: 2px solid #000; font-size: 11.5px; }
+
+    /* Reason rows (cashier) */
+    .reason-row td { font-size: 9.5px; padding: 1px 4px; border: none; }
+    .reason-void { background: #fff5f5; color: #c62828; }
+    .reason-disc { background: #f0fff4; color: #2e7d32; }
+    .by { opacity: .75; }
+
+    .cr-footer {
+        text-align: center; font-size: 9px; opacity: .6;
+        margin-top: 10px; padding-top: 4px;
+        border-top: 1px dashed #000;
+    }
+
+    /* ════════════════════════════
+       A4 STYLES
+    ════════════════════════════ */
+    .a4-content { width: 100%; }
+    .a4-header  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+
+    .brand-text       { font-size: 28px; font-weight: 900; color: #1565c0; letter-spacing: 2px; }
+    .report-title-main{ font-size: 16px; font-weight: 700; color: #444; margin-top: 4px; }
+
+    .a4-info-box { border: 2px solid #333; min-width: 200px; }
+    .a4-info-row { display: flex; border-bottom: 1px solid #ccc; }
+    .a4-info-row:last-child { border-bottom: none; }
+    .a4-lbl { background: #eeeeee; padding: 6px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; border-left: 2px solid #333; border-right: 2px solid #333; }
+    .a4-val { padding: 6px 10px; font-size: 12px; font-weight: 800; flex: 1; }
+
+    /* Financial summary cards strip */
+    .a4-fin-grid {
+        display: flex; gap: 10px; flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .a4-fin-card {
+        flex: 1; min-width: 100px;
+        border-radius: 8px; padding: 12px 16px;
+        box-shadow: 0 2px 6px rgba(0,0,0,.12);
+        text-align: center;
+    }
+    .a4-fin-total { background: #e3f2fd; border-left: 4px solid #1565c0; }
+    .a4-fin-cash  { background: #e8f5e9; border-left: 4px solid #2e7d32; }
+    .a4-fin-card2 { background: #ede7f6; border-left: 4px solid #6a1b9a; }
+    .a4-fin-disc  { background: #fff8e1; border-left: 4px solid #f9a825; }
+    .a4-fin-void  { background: #fce4ec; border-left: 4px solid #c62828; }
+    .a4-fin-label { font-size: 11px; font-weight: 700; opacity: .75; margin-bottom: 4px; }
+    .a4-fin-value { font-size: 17px; font-weight: 900; }
+
+    /* A4 section titles */
+    .a4-section-title {
+        font-size: 13px; font-weight: 900;
+        background: #1a237e; color: #fff;
+        padding: 6px 14px; margin: 18px 0 0;
+        border-radius: 4px 4px 0 0;
+    }
+
+    /* A4 table */
+    .a4-table { width: 100%; border-collapse: collapse; }
+    .a4-table th {
+        background: #e8eaf6; padding: 10px 12px;
+        border: 1px solid #9fa8da; font-weight: 900; font-size: 13px;
+    }
+    .a4-table td { padding: 9px 12px; border: 1px solid #ddd; font-size: 13px; }
+    .a4-table tbody tr:nth-child(even) { background: #f9f9f9; }
+    .a4-total-row td { background: #e8eaf6; border: 2px solid #3949ab; font-size: 14px; padding: 10px 12px; }
+
+    /* Reason rows (A4) */
+    .a4-reason-void { background: #fff5f5; }
+    .a4-reason-void td { color: #c62828; font-size: 11px; padding: 4px 12px; border: none; border-bottom: 1px solid #ffcdd2; }
+    .a4-reason-disc { background: #f0fff4; }
+    .a4-reason-disc td { color: #2e7d32; font-size: 11px; padding: 4px 12px; border: none; border-bottom: 1px solid #c8e6c9; }
+    .a4-by { opacity: .7; }
+
+    .a4-footer {
+        margin-top: 30px; text-align: center;
+        font-size: 11px; color: #777;
+        border-top: 1px dashed #ccc; padding-top: 10px;
+    }
+
+    /* ── Utilities ── */
+    .fw-bold { font-weight: 900 !important; }
+    .text-center { text-align: center !important; }
+    .text-right  { text-align: right !important; }
+    .text-left   { text-align: left !important; }
+</style>
+
+@code {
+    [Parameter] public string ReportTitle { get; set; } = "";
+    [Parameter] public string BranchName  { get; set; } = "Main Branch";
+    [Parameter] public DateTime ReportDate { get; set; } = DateTime.Today;
+    [Parameter] public List<SalesItemSummaryDto> Items { get; set; } = new();
+    [Parameter] public SalesSummaryDto SummaryData { get; set; } = new();
+    [Parameter] public bool IsStaffReport { get; set; } = false;
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<string> _printers = new();
+    private bool _useA4 = false;
+    private bool _isArabic = true;
+    private bool _showOrderDetails = true;
+    private string _filterType = "All"; // All, Void, Discount
+    private bool _showStaffDetails = false;
+    private bool _showVoidDiscountDetails = true;
+
+    private IEnumerable<OrderDto> GetFilteredOrders()
+    {
+        if (SummaryData.DetailedOrders == null) return Enumerable.Empty<OrderDto>();
+        var orders = SummaryData.DetailedOrders.AsEnumerable();
+        
+        if (_filterType == "Void")
+            orders = orders.Where(o => (o.VoidAmount ?? 0) > 0);
+        else if (_filterType == "Discount")
+            orders = orders.Where(o => (o.TotalDiscount ?? 0) > 0);
+            
+        return orders;
+    }
+
+    private int GetOrdersWithVoidCount() => SummaryData.DetailedOrders?.Count(o => (o.VoidAmount ?? 0) > 0) ?? (int)SummaryData.Overall.VoidCount;
+    private int GetOrdersWithDiscountCount() => SummaryData.DetailedOrders?.Count(o => (o.TotalDiscount ?? 0) > 0) ?? 0;
+
+    [Parameter] public bool InitialShowOrderDetails { get; set; } = true;
+    [Parameter] public bool InitialUseA4 { get; set; } = false;
+    [Parameter] public bool InitialShowStaffDetails { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isArabic = Localizer.GetCurrentLanguage() == "ar";
+        _showOrderDetails = InitialShowOrderDetails;
+        _useA4 = InitialUseA4;
+        _showStaffDetails = InitialShowStaffDetails;
+        _printers = await PrinterServices.GetInstalledPrinters();
+    }
+
+    private string GetPaperClass() => _useA4 ? "report-paper-a4" : "report-paper-cashier";
+    private void Cancel() => MudDialog.Cancel();
+    private async Task QuickPrint() => await PrintTo(null);
+
+    private async Task PrintTo(string? printerName)
+    {
+        try
+        {
+            Snackbar.Add(_isArabic ? "جاري تحضير التقرير..." : "Preparing report...", Severity.Info);
+
+            var dataToPrint = new SalesSummaryDto
+            {
+                PosDate    = SummaryData.PosDate,
+                StaffName  = SummaryData.StaffName,
+                StaffId    = SummaryData.StaffId,
+                Overall    = SummaryData.Overall,
+                DineIn     = SummaryData.DineIn,
+                TakeAway   = SummaryData.TakeAway,
+                Delivery   = SummaryData.Delivery,
+                VoidEvents = SummaryData.VoidEvents,
+                CashierSummaries = SummaryData.CashierSummaries,
+                DetailedOrders = _showOrderDetails ? GetFilteredOrders().ToList() : new List<OrderDto>()
+            };
+
+            if (IsStaffReport)
+            {
+                await PrintOrderService.PrintStaffPerformanceAsync(dataToPrint, printerName, _useA4, _isArabic, _showOrderDetails, SummaryData.StaffId);
+            }
+            else
+            {
+                await PrintOrderService.PrintSalesSummaryAsync(dataToPrint, Items, printerName, _useA4, _isArabic);
+            }
+            Snackbar.Add(_isArabic ? "تم إرسال الأمر للطابعة" : "Print command sent", Severity.Success);
+            MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["Error"] + ": " + ex.Message, Severity.Error);
+        }
+    }
+}

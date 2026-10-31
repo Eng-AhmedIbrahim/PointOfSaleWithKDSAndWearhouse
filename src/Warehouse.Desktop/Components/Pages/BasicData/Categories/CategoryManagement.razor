@@ -1,0 +1,253 @@
+@page "/basicdata/categories"
+@using POS.Contract.Dtos.CategoryDtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.CategoryServices
+@using Radzen
+@using Radzen.Blazor
+@inject ICategoryServices CategoryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+@inject NavigationManager NavigationManager
+
+<link href="basicdata/categorymanagement.css" rel="stylesheet" />
+
+<div class="category-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.Category" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة الأصناف (الأقسام)" : "Categories Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem;">
+                @(IsArabic ? "إضافة قسم جديد" : "Add New Category")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث بالاسم أو الكود..." : "Search by name or ID...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredCategories" 
+                            TItem="CategoryToReturnDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Responsive="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="Id" Title="@(IsArabic ? "كود القسم" : "Category ID")" Width="100px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="category">
+                            <span style="font-weight: 900; color: #3b82f6;">#@category.Id</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="ArabicName" Title="@(IsArabic ? "الاسم بالعربي" : "Arabic Name")" Width="200px">
+                        <Template Context="category">
+                            <span style="font-weight: bold;">@category.ArabicName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="EnglishName" Title="@(IsArabic ? "الاسم بالإنجليزي" : "English Name")" Width="200px">
+                        <Template Context="category">
+                            <span style="font-weight: bold;">@category.EnglishName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="CreationDate" Title="@(IsArabic ? "تاريخ الإنشاء" : "Creation Date")" Width="180px">
+                        <Template Context="category">
+                            <span style="font-weight: bold;">@category.CreationDate.ToString("yyyy-MM-dd HH:mm")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="Invisible" Title="@(IsArabic ? "مخفي" : "Invisible")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="category">
+                            @if (category.Invisible)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Style="font-weight: 900;">true</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Style="font-weight: 900;">false</MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Property="IsInventory" Title="@(IsArabic ? "تتبع المخزن" : "Inventory Tracking")" Width="140px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="category">
+                            @if (category.IsInventory)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Style="font-weight: 900;">true</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Style="font-weight: 900;">false</MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="CategoryToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="160px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="category">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => OpenEditDialog(category))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="MudBlazor.Color.Error" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => DeleteCategory(category))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CategoryToReturnDto> Categories = new();
+    private List<CategoryToReturnDto> FilteredCategories = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<CategoryToReturnDto>? grid;
+    private string SearchTerm = "";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await CategoryService.GetAllCategories();
+            if (response != null && response.Success && response.Data != null)
+            {
+                Categories = response.Data.ToList();
+                ApplyFilter();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل الأقسام..." : "Failed to load categories...", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredCategories = new List<CategoryToReturnDto>(Categories);
+        }
+        else
+        {
+            var term = SearchTerm.ToLower().Trim();
+            FilteredCategories = Categories.Where(x => 
+                (x.ArabicName != null && x.ArabicName.ToLower().Contains(term)) ||
+                (x.EnglishName != null && x.EnglishName.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ExistingCategories"] = Categories
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<CategoryDialog>(IsArabic ? "إضافة قسم جديد" : "Add New Category", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEditDialog(CategoryToReturnDto category)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["CategoryToEdit"] = category
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<CategoryDialog>(IsArabic ? "تعديل قسم" : "Edit Category", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteCategory(CategoryToReturnDto category)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemName"] = IsArabic ? category.ArabicName : category.EnglishName,
+            ["TitleArabic"] = "تأكيد الحذف",
+            ["MessageArabic"] = $"هل أنت متأكد من حذف القسم '{category.ArabicName}'؟"
+        };
+        
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<DeleteConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await CategoryService.DeleteCategory(category.Id);
+            if (response != null && response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add(response?.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,141 @@
+.actions-grid-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: minmax(60px, 1fr) !important;
+    width: 100% !important;
+    height: 100% !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+}
+
+.action-button {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 4px !important;
+    /* Reduced padding */
+    border-radius: 0 !important;
+    border: 0.5px solid #dee2e6 !important;
+    background-color: #ffffff !important;
+    font-family: 'Cairo', sans-serif !important;
+    font-size: 1.1rem !important;
+    /* Slightly smaller */
+    font-weight: 700 !important;
+    color: #0f171f !important;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: all 0.15s ease;
+    height: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    /* Allow shrinking */
+    overflow: hidden !important;
+}
+
+.action-button:hover:not(:disabled) {
+    background-color: #f1f3f5 !important;
+    transform: scale(0.98);
+}
+
+.action-button:active:not(:disabled) {
+    background-color: #e9ecef !important;
+    transform: scale(0.96);
+}
+
+.action-button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background-color: #f8f9fa !important;
+}
+
+.keypad-btn {
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+}
+
+.customer-data-btn {
+    background-color: #f0fdf4 !important;
+    border-color: #22c55e !important;
+}
+
+.customer-data-btn .mud-icon-root {
+    color: #16a34a !important;
+}
+
+.customer-data-btn:hover:not(:disabled) {
+    background-color: #dcfce7 !important;
+}
+
+.icon-btn {
+    grid-column: span 1;
+}
+
+.icon-btn .mud-icon-root {
+    font-size: 2rem !important;
+    /* Reduced icon size */
+}
+
+.full-width {
+    grid-column: span 2 !important;
+}
+
+.span-2 {
+    grid-column: span 2 !important;
+}
+
+.full-width .mud-icon-root {
+    font-size: 2.2rem !important;
+}
+
+/* Plus button - Green with filled icon */
+.plus-btn {
+    background-color: #e8f5e9 !important;
+    border-color: #4caf50 !important;
+}
+
+.plus-btn .mud-icon-root {
+    color: #2e7d32 !important;
+    font-size: 2.5rem !important;
+    /* Reduced from 3rem */
+}
+
+.plus-btn:hover:not(:disabled) {
+    background-color: #c8e6c9 !important;
+}
+
+/* Minus button - Red with filled icon */
+.minus-btn {
+    background-color: #ffebee !important;
+    border-color: #ef5350 !important;
+}
+
+.minus-btn .mud-icon-root {
+    color: #c62828 !important;
+    font-size: 2.5rem !important;
+    /* Reduced from 3rem */
+}
+
+.minus-btn:hover:not(:disabled) {
+    background-color: #ffcdd2 !important;
+}
+
+/* Delete button - Red */
+.delete-btn .mud-icon-root {
+    color: #e53935 !important;
+}
+
+/* Discount button - Orange */
+.discount-btn .mud-icon-root {
+    color: #f57c00 !important;
+}
+
+/* Edit button - Blue */
+.edit-btn .mud-icon-root {
+    color: #1976d2 !important;
+}
+
+.full-width .mud-icon-root {
+    font-size: 2.2rem !important;
+}

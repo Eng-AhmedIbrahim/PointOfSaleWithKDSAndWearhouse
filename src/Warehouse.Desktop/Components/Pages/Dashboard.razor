@@ -1,0 +1,181 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject BlazorBase.Services.LocalizationService LocalizerService
+@inject IAuthorizationService AuthorizationService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<div class="warehouse-dashboard" dir="@(IsArabic ? "rtl" : "ltr")">
+    <!-- Header Bar -->
+    <div class="wh-header-bar">
+        <div class="header-info">
+            <div class="d-flex align-center gap-3">
+                <div class="header-icon-box">
+                    <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="Size.Large" Class="header-icon" />
+                </div>
+                <div>
+                    <div class="d-flex align-center gap-2">
+                        <h1 class="header-title">@(IsArabic ? "لوحة تحكم إدارة المستودعات وسلاسل الإمداد" : "Multi-Warehouse & Supply Management")</h1>
+                        <span class="live-pill"><span class="pulse-dot"></span> @(IsArabic ? "متصل بالنظام" : "Live Online")</span>
+                    </div>
+                    <p class="header-subtitle">@(IsArabic ? "مراقبة المخزون، طلبات الفروع، التحويلات، والتنبيهات اللحظية" : "Real-time inventory valuation, branch requisitions, transfers & alerts")</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button class="quick-btn primary" @onclick='() => NavigateTo("/requisitions")'>
+                <MudIcon Icon="@Icons.Material.Rounded.AddShoppingCart" Size="Size.Small" Class="me-1" />
+                @(IsArabic ? "طلب فرع جديد" : "New Requisition")
+            </button>
+            <button class="quick-btn secondary" @onclick='() => NavigateTo("/transfers")'>
+                <MudIcon Icon="@Icons.Material.Rounded.CompareArrows" Size="Size.Small" Class="me-1" />
+                @(IsArabic ? "تحويل مخزني" : "Stock Transfer")
+            </button>
+            <button class="quick-btn secondary" @onclick='() => NavigateTo("/purchasing")'>
+                <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Small" Class="me-1" />
+                @(IsArabic ? "إذن استلام GRN" : "New GRN")
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="metrics-grid">
+        <div class="metric-card card-orange">
+            <div class="metric-header">
+                <span class="metric-label">@(IsArabic ? "قيمة المخزون الإجمالية" : "Total Stock Valuation")</span>
+                <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.AccountBalanceWallet" /></div>
+            </div>
+            <div class="metric-value">428,750 <span class="unit">@(IsArabic ? "ج.م" : "EGP")</span></div>
+            <div class="metric-footer positive">
+                <MudIcon Icon="@Icons.Material.Rounded.TrendingUp" Size="Size.Small" />
+                <span>@(IsArabic ? "محدث لحظياً عبر Stock Ledger" : "Weighted Avg Costing")</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-amber">
+            <div class="metric-header">
+                <span class="metric-label">@(IsArabic ? "المستودعات والفروع" : "Active Warehouses")</span>
+                <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.HomeWork" /></div>
+            </div>
+            <div class="metric-value">7 <span class="unit">@(IsArabic ? "مستودع" : "Locations")</span></div>
+            <div class="metric-footer neutral">
+                <span>@(IsArabic ? "2 رئيسي (مركزي) + 5 فروع" : "2 Main + 5 Branches")</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-blue">
+            <div class="metric-header">
+                <span class="metric-label">@(IsArabic ? "بضائع في الطريق" : "In-Transit Shipments")</span>
+                <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.LocalShipping" /></div>
+            </div>
+            <div class="metric-value">3 <span class="unit">@(IsArabic ? "شحنات" : "Shipments")</span></div>
+            <div class="metric-footer info">
+                <span>@(IsArabic ? "بانتظار تأكيد استلام الفروع" : "Pending Branch Receipts")</span>
+            </div>
+        </div>
+
+        <div class="metric-card card-rose">
+            <div class="metric-header">
+                <span class="metric-label">@(IsArabic ? "نواقص تحتاج طلب" : "Low Stock Alerts")</span>
+                <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.WarningAmber" /></div>
+            </div>
+            <div class="metric-value">5 <span class="unit">@(IsArabic ? "أصناف" : "Items")</span></div>
+            <div class="metric-footer negative">
+                <MudIcon Icon="@Icons.Material.Rounded.ArrowDownward" Size="Size.Small" />
+                <span>@(IsArabic ? "أقل من حد إعادة الطلب" : "Below Reorder Point")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Sections (2 Columns) -->
+    <div class="operational-grid">
+        <!-- Pending Branch Requisitions -->
+        <div class="op-panel">
+            <div class="panel-header">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Rounded.PendingActions" Class="panel-icon text-orange" />
+                    <h2 class="panel-title">@(IsArabic ? "طلبات الفروع المعلقة" : "Pending Branch Requisitions")</h2>
+                </div>
+                <span class="badge-count">3 @(IsArabic ? "طلبات" : "orders")</span>
+            </div>
+            <div class="panel-body">
+                <div class="custom-table">
+                    <div class="table-row head">
+                        <span>@(IsArabic ? "رقم الطلب" : "Req #")</span>
+                        <span>@(IsArabic ? "الفرع الطالب" : "Branch")</span>
+                        <span>@(IsArabic ? "التاريخ" : "Date")</span>
+                        <span>@(IsArabic ? "الحالة" : "Status")</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="code">REQ-2026-0042</span>
+                        <span>فرع التجمع الأول</span>
+                        <span>اليوم 10:30 ص</span>
+                        <span class="status-pill warning">@(IsArabic ? "قيد المراجعة" : "Submitted")</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="code">REQ-2026-0041</span>
+                        <span>فرع المعادي</span>
+                        <span>اليوم 09:15 ص</span>
+                        <span class="status-pill info">@(IsArabic ? "جاري التجهيز" : "Approved")</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="code">REQ-2026-0039</span>
+                        <span>فرع مدينة نصر</span>
+                        <span>أمس 04:20 م</span>
+                        <span class="status-pill purple">@(IsArabic ? "في الطريق" : "In-Transit")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Stock Ledger Movements -->
+        <div class="op-panel">
+            <div class="panel-header">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Rounded.Receipt" Class="panel-icon text-orange" />
+                    <h2 class="panel-title">@(IsArabic ? "أحدث حركات المخزون (Stock Ledger)" : "Live Stock Ledger")</h2>
+                </div>
+                <span class="sub-link">@(IsArabic ? "عرض السجل الكامل" : "View Full Ledger")</span>
+            </div>
+            <div class="panel-body">
+                <div class="custom-table">
+                    <div class="table-row head">
+                        <span>@(IsArabic ? "الصنف" : "Item")</span>
+                        <span>@(IsArabic ? "المستودع" : "Warehouse")</span>
+                        <span>@(IsArabic ? "النوع" : "Type")</span>
+                        <span>@(IsArabic ? "الكمية" : "Qty")</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="fw-bold">زيت نخيل ممتاز 20 لتر</span>
+                        <span>المستودع المركزي الرئيسي</span>
+                        <span class="type-in">+ وارد (GRN)</span>
+                        <span class="qty-in">+50 كرتون</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="fw-bold">أرز بسمتي هندي درجة 1</span>
+                        <span>المستودع المركزي الرئيسي</span>
+                        <span class="type-out">- صرف فرع</span>
+                        <span class="qty-out">-15 كيس</span>
+                    </div>
+                    <div class="table-row">
+                        <span class="fw-bold">لحم بقري مجمد برازيلي</span>
+                        <span>مستودع فرع المعادي</span>
+                        <span class="type-in">+ استلام تحويل</span>
+                        <span class="qty-in">+80 كغ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    private void NavigateTo(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+}

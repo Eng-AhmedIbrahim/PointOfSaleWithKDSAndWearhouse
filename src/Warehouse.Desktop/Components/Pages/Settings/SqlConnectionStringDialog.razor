@@ -1,0 +1,243 @@
+@using POS.Contract.Dtos.SettingsDtos
+@using BlazorBase.ERPFrontServices.DataSyncServices
+@inject IDataSyncFrontService SyncService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudDialog Class="custom-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h5" Style="font-weight: 800;">
+            <MudIcon Icon="@Icons.Material.Filled.SettingsEthernet" Class="mr-3 mb-1" Color="Color.Primary" />
+            @(Localizer.GetCurrentLanguage() == "ar" ? "خصائص ارتباط البيانات" : "Data Link Properties")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 mt-2" Color="Color.Primary" SliderColor="Color.Secondary">
+            <!-- Provider Tab -->
+            <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "المزود (Provider)" : "Provider")" Icon="@Icons.Material.Filled.Dns">
+                <MudText Typo="Typo.subtitle1" Class="mb-4" Style="font-weight: 600;">@(Localizer.GetCurrentLanguage() == "ar" ? "اختر البيانات التي تريد الاتصال بها:" : "Select the data you want to connect to:")</MudText>
+                <MudPaper Outlined="true" Class="pa-2">
+                    <MudList T="string" Dense="true" ReadOnly="true">
+                        <MudListItem Text="Microsoft OLE DB Driver for SQL Server" Icon="@Icons.Material.Filled.ChevronRight" IconColor="Color.Primary" />
+                        <MudListItem Text="SQL Server Native Client 11.0" Icon="@Icons.Material.Filled.ChevronRight" />
+                        <MudListItem Text="Microsoft OLE DB Provider for SQL Server" Icon="@Icons.Material.Filled.ChevronRight" />
+                    </MudList>
+                </MudPaper>
+                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Text" Class="mt-4">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "يتم استخدام برنامج تشغيل SQL Server بشكل افتراضي." : "SQL Server driver is used by default for this application.")
+                </MudAlert>
+            </MudTabPanel>
+
+            <!-- Connection Tab -->
+            <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الاتصال (Connection)" : "Connection")" Icon="@Icons.Material.Filled.Link">
+                <MudStack Spacing="4">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: bold; color: var(--mud-palette-primary);">1. @(Localizer.GetCurrentLanguage() == "ar" ? "حدد اسم السيرفر:" : "Select or enter a server name:")</MudText>
+                    <MudTextField @bind-Value="Settings.ServerName" 
+                                  Label="@(Localizer.GetCurrentLanguage() == "ar" ? "اسم السيرفر" : "Server Name")" 
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Adornment="Adornment.End" 
+                                  AdornmentIcon="@Icons.Material.Filled.Refresh"
+                                  OnAdornmentClick="RefreshServers"
+                                  Placeholder="e.g. localhost or .\SQLEXPRESS" />
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: bold; color: var(--mud-palette-primary);">2. @(Localizer.GetCurrentLanguage() == "ar" ? "أدخل معلومات تسجيل الدخول:" : "Enter information to log on to the server:")</MudText>
+                    
+                    <MudRadioGroup T="bool" @bind-Value="Settings.UseIntegratedSecurity" Class="ml-4">
+                        <MudRadio Value="true" Color="Color.Primary" UnCheckedColor="Color.Default">@(Localizer.GetCurrentLanguage() == "ar" ? "استخدام Windows NT Integrated security" : "Use Windows NT Integrated security")</MudRadio>
+                        <MudRadio Value="false" Color="Color.Primary" UnCheckedColor="Color.Default">@(Localizer.GetCurrentLanguage() == "ar" ? "استخدام اسم مستخدم وكلمة مرور محددة:" : "Use a specific user name and password:")</MudRadio>
+                    </MudRadioGroup>
+
+                    @if (!Settings.UseIntegratedSecurity)
+                    {
+                        <MudGrid Class="ml-6 mt-0">
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="Settings.UserName" 
+                                              Label="@(Localizer.GetCurrentLanguage() == "ar" ? "اسم المستخدم" : "User name")"
+                                              Variant="MudBlazor.Variant.Outlined" Dense="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="Settings.Password" 
+                                              Label="@(Localizer.GetCurrentLanguage() == "ar" ? "كلمة المرور" : "Password")"
+                                              InputType="InputType.Password" Variant="MudBlazor.Variant.Outlined" Dense="true" />
+                            </MudItem>
+                        </MudGrid>
+                    }
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: bold; color: var(--mud-palette-primary);">3. @(Localizer.GetCurrentLanguage() == "ar" ? "اختر قاعدة البيانات على السيرفر:" : "Select the database on the server:")</MudText>
+                    <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center">
+                        <MudSelect T="string" @bind-Value="Settings.DatabaseName" 
+                                   Label="@(Localizer.GetCurrentLanguage() == "ar" ? "قاعدة البيانات" : "Database")" 
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Disabled="@string.IsNullOrEmpty(Settings.ServerName)"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Dense="true">
+                            @foreach (var db in _databases)
+                            {
+                                <MudSelectItem Value="@db">@db</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudIconButton Icon="@Icons.Material.Filled.Search" 
+                                       Color="Color.Info" 
+                                       OnClick="LoadDatabases" 
+                                       Loading="_loadingDatabases" 
+                                       Title="@(Localizer.GetCurrentLanguage() == "ar" ? "بحث عن قواعد البيانات" : "Find Databases")" />
+                    </MudStack>
+
+                    <MudButton Variant="MudBlazor.Variant.Filled"
+                               Color="Color.Info" 
+                               StartIcon="@Icons.Material.Filled.NetworkCheck" 
+                               OnClick="TestConnection" 
+                               Loading="_testing" 
+                               Class="mt-4 align-self-end"
+                               Style="border-radius: 8px;">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "اختبار الاتصال" : "Test Connection")
+                    </MudButton>
+                </MudStack>
+            </MudTabPanel>
+
+            <!-- Advanced Tab -->
+            <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "خيارات متقدمة (Advanced)" : "Advanced")" Icon="@Icons.Material.Filled.Build">
+                <MudStack Spacing="4" Class="pa-4">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Network Settings</MudText>
+                    <MudNumericField @bind-Value="Settings.ConnectTimeout" 
+                                     Label="@(Localizer.GetCurrentLanguage() == "ar" ? "مهلة الاتصال (ثانية)" : "Connect timeout (seconds)")" 
+                                     Variant="MudBlazor.Variant.Outlined" Min="5" Max="300" />
+                    
+                    <MudDivider />
+                    
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Security Settings</MudText>
+                    <MudCheckBox @bind-Value="Settings.Encrypt" 
+                                 Label="@(Localizer.GetCurrentLanguage() == "ar" ? "تشفير الاتصال" : "Encrypt connection")" 
+                                 Color="Color.Primary" />
+                    
+                    <MudCheckBox @bind-Value="Settings.TrustServerCertificate" 
+                                 Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الوثوق بشهادة السيرفر" : "Trust server certificate")" 
+                                 Color="Color.Primary" />
+                </MudStack>
+            </MudTabPanel>
+
+            <!-- All Tab -->
+            <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الكل (All)" : "All")" Icon="@Icons.Material.Filled.List">
+                <MudPaper Outlined="true" Class="overflow-hidden">
+                    <MudSimpleTable Dense="true" Hover="true" FixedHeader="true" Style="height: 300px;">
+                        <thead>
+                            <tr style="background: var(--mud-palette-drawer-background);">
+                                <th style="font-weight: bold;">@(Localizer.GetCurrentLanguage() == "ar" ? "الخاصية" : "Property")</th>
+                                <th style="font-weight: bold;">@(Localizer.GetCurrentLanguage() == "ar" ? "القيمة" : "Value")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Data Source</td><td>@Settings.ServerName</td></tr>
+                            <tr><td>Initial Catalog</td><td>@Settings.DatabaseName</td></tr>
+                            <tr><td>Integrated Security</td><td>@Settings.UseIntegratedSecurity</td></tr>
+                            <tr><td>User ID</td><td>@(!Settings.UseIntegratedSecurity ? Settings.UserName : "N/A")</td></tr>
+                            <tr><td>Connect Timeout</td><td>@Settings.ConnectTimeout</td></tr>
+                            <tr><td>Encrypt</td><td>@Settings.Encrypt</td></tr>
+                            <tr><td>Trust Server Certificate</td><td>@Settings.TrustServerCertificate</td></tr>
+                            <tr><td>Application Name</td><td>Point Of Sale HQ Sync</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudSpacer />
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Class="px-8">@(Localizer.GetCurrentLanguage() == "ar" ? "إلغاء" : "Cancel")</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Variant="MudBlazor.Variant.Filled" Class="px-8" Style="border-radius: 10px;">
+            @(Localizer.GetCurrentLanguage() == "ar" ? "موافق" : "OK")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .custom-dialog {
+        border-radius: 16px !important;
+    }
+    .mud-tab {
+        min-width: 100px;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public HqSettingDto Settings { get; set; } = new();
+
+    private List<string> _databases = new();
+    private bool _loadingDatabases = false;
+    private bool _testing = false;
+
+    private async Task RefreshServers()
+    {
+        Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "جاري البحث عن السيرفرات المتوفرة..." : "Refreshing available servers...", Severity.Info);
+        await Task.Delay(1000); // Simulate network scan
+        Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم تحديث القائمة" : "Server list updated", Severity.Success);
+    }
+
+    private async Task LoadDatabases()
+    {
+        if (string.IsNullOrEmpty(Settings.ServerName))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى إدخال اسم السيرفر أولاً" : "Please enter a server name first", Severity.Error);
+            return;
+        }
+
+        _loadingDatabases = true;
+        try
+        {
+            _databases = await SyncService.GetDatabasesAsync(Settings);
+            if (!_databases.Any())
+            {
+                 Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "لم يتم العثور على قواعد بيانات أو فشل الاتصال" : "No databases found or connection failed", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loadingDatabases = false;
+        }
+    }
+
+    private async Task TestConnection()
+    {
+        if (string.IsNullOrEmpty(Settings.ServerName))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى تحديد السيرفر" : "Please specify a server", Severity.Warning);
+            return;
+        }
+
+        _testing = true;
+        try
+        {
+            var result = await SyncService.TestHqConnectionAsync(Settings);
+            Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private void Submit()
+    {
+        if (string.IsNullOrEmpty(Settings.ServerName) || string.IsNullOrEmpty(Settings.DatabaseName))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى إكمال بيانات الاتصال" : "Please complete connection details", Severity.Warning);
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(Settings));
+    }
+    
+    private void Cancel() => MudDialog.Cancel();
+}

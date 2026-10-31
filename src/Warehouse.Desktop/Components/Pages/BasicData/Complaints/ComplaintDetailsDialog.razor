@@ -1,0 +1,250 @@
+@using POS.Contract.Dtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.ComplaintServices
+@inject IComplaintServices ComplaintService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="complaint-details-dialog">
+    <DialogContent>
+        <div class="p-4" dir="@(IsArabic ? "rtl" : "ltr")">
+            <div class="row gy-4">
+                <!-- Header Info -->
+                <div class="col-12 d-flex justify-content-between align-items-start border-bottom pb-3">
+                    <div>
+                        <h3 style="font-weight: 800; color: #1e293b; margin-bottom: 4px;">
+                            @(IsArabic ? "شكوى رقم:" : "Complaint #:") <span style="color: #3b82f6;">@Complaint.ComplaintNumber</span>
+                        </h3>
+                        <p class="text-muted mb-0">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="MudBlazor.Size.Small" /> 
+                            @Complaint.ComplaintDate.ToString("yyyy-MM-dd HH:mm")
+                        </p>
+                    </div>
+                    <div class="text-end">
+                         <span class="status-badge @GetStatusClass(Complaint.Status)">
+                            @(IsArabic ? GetStatusArabic(Complaint.Status) : Complaint.Status)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="col-md-6 mt-4">
+                    <div class="info-card">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="icon-avatar me-3">
+                                <RadzenIcon Icon="person" />
+                            </span>
+                            <div>
+                                <h4 class="mb-0" style="font-weight: 700;">@(IsArabic ? "بيانات العميل" : "Customer Info")</h4>
+                            </div>
+                        </div>
+                        <div class="ps-1">
+                            <p class="mb-2"><strong>@(IsArabic ? "الاسم:" : "Name:")</strong> @Complaint.CustomerName</p>
+                            <p class="mb-0"><strong>@(IsArabic ? "رقم الهاتف:" : "Phone:")</strong> <span style="color: #3b82f6; font-weight: 700;">@Complaint.CustomerPhone</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Details (If exists) -->
+                @if (Complaint.OrderId.HasValue)
+                {
+                    <div class="col-md-6 mt-4">
+                        <div class="info-card">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="icon-avatar me-3" style="background: #e0f2fe; color: #0ea5e9;">
+                                    <RadzenIcon Icon="receipt" />
+                                </span>
+                                <div>
+                                    <h4 class="mb-0" style="font-weight: 700;">@(IsArabic ? "بيانات الطلب" : "Order Info")</h4>
+                                </div>
+                            </div>
+                            <div class="ps-1">
+                                <p class="mb-0"><strong>@(IsArabic ? "رقم الطلب:" : "Order #:")</strong> <span style="font-weight: 700;">#@Complaint.OrderId</span></p>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Complaint Content -->
+                <div class="col-12 mt-4">
+                    <h4 style="font-weight: 700; color: #475569; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <RadzenIcon Icon="assignment" Style="color: #94a3b8;" />
+                        @(IsArabic ? "نص الشكوى" : "Complaint Statement")
+                    </h4>
+                    <div class="content-box">
+                        @Complaint.ComplaintText
+                    </div>
+                </div>
+
+                <!-- Action Section -->
+                <div class="col-12 mt-4 border-top pt-4">
+                    <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 20px;">@(IsArabic ? "تحديث الحالة والحل" : "Update Status & Resolution")</h4>
+                    
+                    <div class="row gy-3">
+                        <div class="col-md-5">
+                            <RadzenLabel Text="@(IsArabic ? "تغيير الحالة" : "Change Status")" Style="display: block; margin-bottom: 8px; font-weight: 600;" />
+                            <RadzenDropDown @bind-Value="Complaint.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                                            Style="width: 100%; border-radius: 10px;" />
+                        </div>
+                        <div class="col-12">
+                            <RadzenLabel Text="@(IsArabic ? "ملاحظات الحل / الرد" : "Resolution / Notes")" Style="display: block; margin-bottom: 8px; font-weight: 600;" />
+                            <RadzenTextArea @bind-Value="Complaint.Resolution" Placeholder="@(IsArabic ? "أدخل تفاصيل الحل هنا..." : "Enter resolution details here...")"
+                                            Style="width: 100%; border-radius: 10px; height: 100px; padding: 12px;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end px-4 pb-4 gap-3 mt-4 border-top pt-4">
+            <RadzenButton Click="@Cancel" Text="@(IsArabic ? "إغلاق" : "Close")" ButtonStyle="Radzen.ButtonStyle.Light" Style="border-radius: 10px; padding: 0 25px; height: 48px; font-weight: 600;" />
+            <RadzenButton Click="@Save" 
+                           ButtonStyle="Radzen.ButtonStyle.Primary" 
+                           Disabled="@_isSaving"
+                           Style="border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #2563eb, #3b82f6); border: none; min-width: 140px; height: 48px;">
+                @if (_isSaving)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Inherit" />
+                        <span>@(IsArabic ? "جاري..." : "Saving...")</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <RadzenIcon Icon="save" />
+                        <span>@(IsArabic ? "حفظ التعديلات" : "Save Changes")</span>
+                    </div>
+                }
+            </RadzenButton>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .complaint-details-dialog .mud-dialog-title { display: none; }
+    .complaint-details-dialog .mud-dialog-content { padding: 0 !important; overflow: hidden !important; }
+    
+    .status-badge {
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        font-weight: 800;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .status-open { background: #fee2e2; color: #ef4444; }
+    .status-inprogress { background: #fef3c7; color: #d97706; }
+    .status-resolved { background: #d1fae5; color: #10b981; }
+
+    .info-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .icon-avatar {
+        width: 40px;
+        height: 40px;
+        background: #eff6ff;
+        color: #2563eb;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .content-box {
+        background: #ffffff;
+        border: 2px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 20px;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: #1e293b;
+        min-height: 80px;
+    }
+
+    .rz-dropdown:focus, .rz-textarea:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsArabic { get; set; }
+    [Parameter] public ComplaintDto Complaint { get; set; } = new();
+
+    private bool _isSaving = false;
+
+    private List<object> StatusOptions => new()
+    {
+        new { Text = IsArabic ? "مفتوحة" : "Open", Value = "Open" },
+        new { Text = IsArabic ? "قيد التنفيذ" : "InProgress", Value = "InProgress" },
+        new { Text = IsArabic ? "تم الحل" : "Resolved", Value = "Resolved" }
+    };
+
+    private string GetStatusClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "open" => "status-open",
+            "inprogress" => "status-inprogress",
+            "resolved" => "status-resolved",
+            _ => "status-open"
+        };
+    }
+
+    private string GetStatusArabic(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "open" => "مفتوحة",
+            "inprogress" => "قيد التنفيذ",
+            "resolved" => "تم الحل",
+            _ => "مفتوحة"
+        };
+    }
+
+    private async Task Save()
+    {
+        _isSaving = true;
+        try
+        {
+            // Update status
+            var statusSuccess = await ComplaintService.UpdateComplaintStatusAsync(Complaint.Id, Complaint.Status);
+            
+            // Note: If you want to save resolution text, you might need a separate service call 
+            // but for now we follow the existing Service pattern.
+            
+            if (statusSuccess)
+            {
+                Snackbar.Add(IsArabic ? "تم تحديث الحالة بنجاح" : "Status updated successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(IsArabic ? "فشل تحديث الحالة" : "Failed to update status", Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "حدث خطأ أثناء الحفظ" : "An error occurred while saving", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

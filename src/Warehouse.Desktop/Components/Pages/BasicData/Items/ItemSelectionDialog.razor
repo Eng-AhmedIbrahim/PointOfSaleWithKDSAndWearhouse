@@ -1,0 +1,163 @@
+@inject IItemService ItemService
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudDialog dir="@(IsArabic ? "rtl" : "ltr")" Class="premium-selection-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-3 p-4 dialog-header-gradient">
+            <div class="header-icon-container">
+                <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Color="MudBlazor.Color.Primary" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h6" Class="font-bold">@(IsArabic ? "اختيار أصناف المنيو" : "Select Menu Items")</MudText>
+                <MudText Typo="Typo.caption" Class="text-slate-400">@(IsArabic ? "اختر الصنف المراد إضافته كخاصية" : "Pick an item to add as an attribute")</MudText>
+            </div>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Cancel" Color="MudBlazor.Color.Inherit" />
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="p-4 bg-slate-50/50">
+            <MudTextField @bind-Value="_searchText" 
+                          TextChanged="@(s => OnSearch(s))"
+                          Placeholder="@(IsArabic ? "ابحث بالاسم أو الكود..." : "Search by name or code...")" 
+                          Variant="MudBlazor.Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" 
+                          Class="mb-4 search-field-custom" AdornmentColor="MudBlazor.Color.Primary" />
+
+            <div class="items-scroll-view">
+                @if (_isLoading)
+                {
+                    <div class="d-flex flex-column align-center justify-center p-12 gap-3">
+                        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" Size="MudBlazor.Size.Large" />
+                        <MudText Typo="Typo.body2" Class="text-slate-400">@(IsArabic ? "جاري تحميل الأصناف..." : "Loading items...")</MudText>
+                    </div>
+                }
+                else if (!_filteredItems.Any())
+                {
+                    <div class="d-flex flex-column align-center justify-center p-12 gap-3 text-slate-300">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="MudBlazor.Size.Large" />
+                        <MudText Typo="Typo.body1">@(IsArabic ? "لا توجد نتائج" : "No results found")</MudText>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-grid gap-2">
+                        @foreach (var item in _filteredItems)
+                        {
+                            <div class="selectable-item-card" @onclick="@(() => SelectItem(item))">
+                                <div class="item-visual text-center">
+                                    <div class="item-id-tag">#@item.Id</div>
+                                </div>
+                                <div class="item-info">
+                                    <div class="item-main-name">@(IsArabic ? item.ArabicName : item.EnglishName)</div>
+                                    <div class="d-flex gap-3 align-center">
+                                        <div class="price-chip">@item.Price?.ToString("0.##") <span class="currency">EGP</span></div>
+                                        @if (item.ExtraPrice > 0)
+                                        {
+                                            <div class="attr-price-chip">
+                                                <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Small" />
+                                                @(IsArabic ? "سعر الإضافة:" : "Extra Price:") @item.ExtraPrice?.ToString("0.##")
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="item-action">
+                                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="action-chevron" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .premium-selection-dialog { border-radius: 20px !important; overflow: hidden; }
+    .dialog-header-gradient { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0; }
+    .header-icon-container { width: 44px; height: 44px; background: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    
+    .search-field-custom ::deep .mud-input { background: white !important; border-radius: 12px; }
+    
+    .items-scroll-view { max-height: 480px; overflow-y: auto; padding-right: 4px; }
+    .items-scroll-view::-webkit-scrollbar { width: 6px; }
+    .items-scroll-view::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 10px; }
+    
+    .selectable-item-card { 
+        display: flex; align-items: center; gap: 16px; padding: 12px; 
+        background: white; border-radius: 14px; border: 1px solid #e2e8f0;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .selectable-item-card:hover { 
+        border-color: #3b82f6; background: #eff6ff; 
+        transform: scale(1.01);
+    }
+    
+    .item-id-tag { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; }
+    
+    .item-info { flex-grow: 1; }
+    .item-main-name { font-weight: 800; color: #1e293b; font-size: 0.95rem; margin-bottom: 4px; }
+    
+    .price-chip { background: #f8fafc; color: #64748b; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+    .currency { font-size: 0.65rem; opacity: 0.7; }
+    
+    .attr-price-chip { color: #2563eb; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 2px; }
+    
+    .action-chevron { color: #cbd5e1; transition: color 0.2s; }
+    .selectable-item-card:hover .action-chevron { color: #3b82f6; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsArabic { get; set; }
+
+    private List<MenuSalesItemsToReturnDto> _allItems = new();
+    private List<MenuSalesItemsToReturnDto> _filteredItems = new();
+    private string _searchText = "";
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        _isLoading = true;
+        try 
+        {
+            var response = await ItemService.GetAllItemsAsync();
+            if (response.Success && response.Data != null)
+            {
+                _allItems = response.Data.ToList();
+                _filteredItems = _allItems;
+            }
+        }
+        finally { _isLoading = false; }
+    }
+
+    private void OnSearch(string text)
+    {
+        _searchText = text;
+        if (string.IsNullOrWhiteSpace(_searchText))
+        {
+            _filteredItems = _allItems;
+        }
+        else
+        {
+            _filteredItems = _allItems.Where(x => 
+                (x.ArabicName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) || 
+                (x.EnglishName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                x.Id.ToString().Contains(_searchText)
+            ).ToList();
+        }
+    }
+
+    private void SelectItem(MenuSalesItemsToReturnDto item)
+    {
+        MudDialog.Close(DialogResult.Ok(item));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

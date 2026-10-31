@@ -1,0 +1,46 @@
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudDialog Class="rounded-xl overflow-hidden shadow-xl" Style="min-width: 400px;">
+    <TitleContent>
+        <div class="pa-4 bg-info text-white d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Rounded.FilterAlt" />
+            <MudText Typo="Typo.h6" Style="font-weight: 800;">@(IsArabic ? "فلتر نوع الطلب" : "Order Type Filter")</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-4">
+            <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">@(IsArabic ? "اختر نوع الطلبات المراد عرضها في التقرير" : "Select the order type to display in the report")</MudText>
+            
+            <MudRadioGroup T="string" @bind-Value="_orderType" Class="d-flex flex-column gap-2">
+                <MudRadio Value="@("")" Color="Color.Default">@(IsArabic ? "كل الأنواع" : "All Types")</MudRadio>
+                <MudRadio Value="@("DineIn")" Color="Color.Primary">@(IsArabic ? "صالة" : "Dine-In")</MudRadio>
+                <MudRadio Value="@("TakeAway")" Color="Color.Success">@(IsArabic ? "تيك اواي" : "Takeaway")</MudRadio>
+                <MudRadio Value="@("Delivery")" Color="Color.Warning">@(IsArabic ? "دليفري" : "Delivery")</MudRadio>
+                <MudRadio Value="@("Staff")" Color="Color.Info">@(IsArabic ? "وجبات عاملين" : "Workers Meals")</MudRadio>
+                <MudRadio Value="@("Hospitality")" Color="Color.Secondary">@(IsArabic ? "ضيافة" : "Hospitality")</MudRadio>
+            </MudRadioGroup>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="pa-4 w-100 d-flex gap-2">
+            <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Class="rounded-pill flex-1">@(IsArabic ? "إغلاق" : "Cancel")</MudButton>
+            <MudButton Color="Color.Info" OnClick="Submit" Variant="MudBlazor.Variant.Filled" 
+                       Class="rounded-pill flex-2" DisableElevation="true">
+                @(IsArabic ? "عرض التقرير" : "Show Report")
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    private string _orderType = "";
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(_orderType));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,416 @@
+@page "/basicdata/attribute/assignment"
+@using POS.Core.Entities.Item
+@using POS.Contract.Dtos.ItemDto
+@using POS.Contract.Dtos.CategoryDtos
+@using BlazorBase.ERPFrontServices.ItemServices
+@using BlazorBase.ERPFrontServices.CategoryServices
+@using POS.Core.Services.Contract.ItemServices
+@using Radzen
+@using Radzen.Blazor
+@inject IItemService ItemService
+@inject ICategoryServices CategoryService
+@inject IAttributeService AttributeService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+@inject IDialogService DialogService
+
+<div class="assignment-canvas @(IsArabic ? "rtl-mode" : "")" dir="@(IsArabic ? "rtl" : "ltr")">
+    <!-- Refined Premium Header -->
+    <div class="modern-header animate__animated animate__fadeIn">
+        <div class="header-overlay"></div>
+        <div class="header-inner">
+            <div class="title-group">
+                <div class="accent-badge">@(IsArabic ? "توزيع ذكي" : "SMART LINK")</div>
+                <h1 class="main-title">@(IsArabic ? "ربط الخصائص بالأصناف" : "Attribute Assignment")</h1>
+                <p class="sub-text">@(IsArabic ? "إدارة توزيع الخصائص الرئيسية بلمسة عصرية" : "Modern allocation of primary item attributes")</p>
+            </div>
+            
+            <div class="header-performance">
+                <div class="hub-pill">
+                    <div class="hub-icon blue"><MudIcon Icon="@Icons.Material.Rounded.SettingsSuggest" Size="MudBlazor.Size.Small" /></div>
+                    <div class="hub-content">
+                        <span class="hub-val">@Attributes.Count</span>
+                        <span class="hub-lab">@(IsArabic ? "الخصائص" : "Attributes")</span>
+                    </div>
+                </div>
+                <div class="hub-pill">
+                    <div class="hub-icon green"><MudIcon Icon="@Icons.Material.Rounded.Inventory2" Size="MudBlazor.Size.Small" /></div>
+                    <div class="hub-content">
+                        <span class="hub-val">@Items.Count</span>
+                        <span class="hub-lab">@(IsArabic ? "الأصناف" : "Items")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Integrated Control Center -->
+    <div class="glass-controls-bar animate__animated animate__fadeIn">
+        <div class="controls-grid">
+            <div class="search-wrap">
+                <MudIcon Icon="@Icons.Material.Rounded.Search" Class="search-icon-lead" />
+                <input @bind-value="SearchTerm" @bind-value:event="oninput" @onkeyup="ApplyFilters"
+                       placeholder="@(IsArabic ? "ابحث عن صنف أو كود..." : "Search items or codes...")" 
+                       class="glass-input" />
+            </div>
+
+            <div class="filter-wrap">
+                <MudSelect T="int?" 
+                           Value="FilterCategoryId" ValueChanged="OnCategoryFilterChanged"
+                           Variant="MudBlazor.Variant.Outlined" 
+                           AnchorOrigin="Origin.BottomCenter"
+                           Placeholder="@(IsArabic ? "فلترة حسب القسم..." : "All Categories...")"
+                           Class="glass-select"
+                           AdornmentIcon="@Icons.Material.Rounded.FilterList"
+                           Adornment="Adornment.Start"
+                           Dense="true"
+                           Clearable="true">
+                    <MudSelectItem T="int?" Value="@((int?)null)">@(IsArabic ? "جميع الأقسام" : "All Categories")</MudSelectItem>
+                    @foreach(var cat in Categories)
+                    {
+                        <MudSelectItem T="int?" Value="@cat.Id">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Rounded.Folder" Size="MudBlazor.Size.Small" />
+                                @(IsArabic ? cat.ArabicName : cat.EnglishName)
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <div class="status-summary">
+                <div class="live-tag">
+                    <span class="ripple-dot"></span>
+                    @(IsArabic ? $"تم عرض {FilteredItems.Count} صنف" : $"{FilteredItems.Count} items shown")
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Clean Grid -->
+    <div class="high-density-card animate__animated animate__fadeInUp">
+        <div class="premium-table-layout">
+            <div class="table-head">
+                <div class="th-id">#ID</div>
+                <div class="th-item">@(IsArabic ? "بيانات الصنف" : "Item Details")</div>
+                <div class="th-cat">@(IsArabic ? "القسم" : "Category")</div>
+                <div class="th-link">@(IsArabic ? "ربط الخاصية الرئيسية" : "Main Attribute Link")</div>
+                <div class="th-status">@(IsArabic ? "الحالة" : "Status")</div>
+            </div>
+
+            <div class="table-body">
+                @if (IsLoading)
+                {
+                    @for (int i = 0; i < 6; i++)
+                    {
+                        <div class="skeleton-row-item"></div>
+                    }
+                }
+                else if (!FilteredItems.Any())
+                {
+                    <div class="refined-empty-state">
+                        <MudIcon Icon="@Icons.Material.Rounded.LayersClear" Size="MudBlazor.Size.Large" Class="mb-4 opacity-10" />
+                        <h3>@(IsArabic ? "لا يوجد بيانات متوفرة" : "No results available")</h3>
+                        <p>@(IsArabic ? "جرب تغيير معايير البحث أو القسم" : "Adjust your search filters to see items")</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var item in FilteredItems)
+                    {
+                        <div class="compact-grid-row @(item.AttributeId > 0 ? "assigned-active" : "")">
+                            <div class="td-id"><span class="tiny-id">#@item.Id</span></div>
+                            
+                            <div class="td-item">
+                                <div class="item-stack">
+                                    <span class="item-main-name">@(IsArabic ? item.ArabicName : item.EnglishName)</span>
+                                    <span class="item-price-tag">@item.Price EGP</span>
+                                </div>
+                            </div>
+
+                            <div class="td-cat">
+                                <span class="chip-cat">@(IsArabic ? item.CategoryArabicName : item.CategoryEnglishName)</span>
+                            </div>
+
+                            <div class="td-link">
+                                <div class="select-field-box">
+                                    <MudSelect T="int?" 
+                                               Value="@item.AttributeId"
+                                               ValueChanged="@((int? val) => UpdateItemAttribute(item, val))"
+                                               Dense="true" 
+                                               Placeholder="@(IsArabic ? "اختر الخاصية..." : "Link Attribute...")"
+                                               Variant="MudBlazor.Variant.Outlined"
+                                               Class="premium-picker-select"
+                                               AnchorOrigin="Origin.BottomCenter">
+                                        <MudSelectItem T="int?" Value="@((int?)null)">
+                                            <div class="d-flex align-center gap-2 text-danger">
+                                                <MudIcon Icon="@Icons.Material.Rounded.LinkOff" Size="MudBlazor.Size.Small" />
+                                                @(IsArabic ? "إلغاء الربط" : "Remove Link")
+                                            </div>
+                                        </MudSelectItem>
+                                        @foreach (var attr in Attributes)
+                                        {
+                                            <MudSelectItem T="int?" Value="@attr.Id">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudIcon Icon="@Icons.Material.Rounded.Label" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" />
+                                                    @(IsArabic ? attr.ArabicName : attr.EnglishName)
+                                                </div>
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+                            </div>
+
+                            <div class="td-status">
+                                @if(item.AttributeId > 0)
+                                {
+                                    <div class="status-chip ready ripple">
+                                        <MudIcon Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" />
+                                        @(IsArabic ? "مفعل" : "Active")
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="status-chip idle">
+                                        @(IsArabic ? "غير مرتبط" : "Unlinked")
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-brand: #4f46e5;
+        --secondary-brand: #6366f1;
+        --surface-deep: #1e293b;
+        --surface-low: #f8fafc;
+        --text-pure: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --success-glow: #10b981;
+    }
+
+    .assignment-canvas { padding: clamp(15px, 3vw, 30px); background: #fdfdfd; min-height: 100vh; }
+    .rtl-mode { font-family: 'Cairo', sans-serif !important; }
+
+    /* Compact Premium Header - Responsive */
+    .modern-header {
+        background: var(--surface-deep);
+        border-radius: 20px;
+        padding: clamp(20px, 4vw, 30px) clamp(25px, 5vw, 40px);
+        color: var(--text-pure);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        z-index: 1;
+    }
+    .header-overlay {
+        position: absolute; top:0; right:0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, transparent 100%);
+    }
+    .header-inner { 
+        position: relative; z-index: 2; 
+        display: flex; justify-content: space-between; align-items: center; 
+        flex-wrap: wrap; gap: 20px;
+    }
+    
+    .title-group { flex: 1; min-width: 250px; }
+    .main-title { font-weight: 900; font-size: clamp(1.4rem, 4vw, 1.9rem); margin: 0; letter-spacing: -0.5px; }
+    .sub-text { opacity: 0.5; font-size: 0.85rem; margin-top: 4px; font-weight: 600; }
+
+    .header-performance { display: flex; gap: 15px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+    .hub-pill {
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+        padding: 10px 18px; border-radius: 14px; display: flex; align-items: center; gap: 10px;
+        backdrop-filter: blur(10px); min-width: 130px; flex: 0 1 auto;
+    }
+    .hub-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .hub-icon.blue { background: #3b82f6; color: white; }
+    .hub-icon.green { background: #10b981; color: white; }
+    .hub-val { display: block; font-size: 1.2rem; font-weight: 900; line-height: 1; }
+    .hub-lab { font-size: 0.65rem; font-weight: 800; opacity: 0.4; text-transform: uppercase; }
+
+    /* Control Bar - High Quality & Responsive */
+    .glass-controls-bar {
+        background: white;
+        padding: 12px 25px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        margin-bottom: 25px;
+    }
+    .controls-grid { 
+        display: grid; 
+        grid-template-columns: 1fr auto auto; 
+        align-items: center; 
+        gap: 15px; 
+    }
+
+    @@media (max-width: 1100px) {
+        .controls-grid { grid-template-columns: 1fr 1fr; }
+        .status-summary { grid-column: span 2; display: flex; justify-content: center; }
+    }
+    @@media (max-width: 768px) {
+        .controls-grid { grid-template-columns: 1fr; }
+        .status-summary { grid-column: span 1; }
+        .header-performance { justify-content: flex-start; }
+    }
+    .rtl-mode .controls-grid { grid-template-columns: auto auto 1fr; }
+
+    .search-wrap { 
+        background: #f8fafc; border-radius: 10px; display: flex; align-items: center; 
+        padding: 0 12px; border: 1.5px solid #e2e8f0; transition: all 0.3s;
+    }
+    .search-wrap:focus-within { background: white; border-color: var(--secondary-brand); box-shadow: 0 5px 15px rgba(99,102,241,0.1); }
+    .search-icon-lead { color: #94a3b8; font-size: 1.3rem; }
+    .glass-input { width: 100%; height: 48px; border: none; background: transparent; outline: none; padding-left: 10px; font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+    .rtl-mode .glass-input { padding-left: 0; padding-right: 10px; }
+
+    .glass-select { min-width: 220px; }
+    .glass-select ::deep .mud-input { background: #f1f5f9 !important; border-radius: 12px !important; border: none !important; height: 48px !important; font-weight: 800; }
+    .glass-select ::deep .mud-input-outlined-border { border: none !important; }
+    .glass-select ::deep .mud-adornment-start { color: #94a3b8; margin-inline-end: 8px; }
+
+    .live-tag { background: #e0e7ff; color: #4338ca; padding: 8px 18px; border-radius: 12px; font-weight: 900; font-size: 0.8rem; display: flex; align-items: center; gap: 10px; }
+    .ripple-dot { width: 8px; height: 8px; border-radius: 50%; background: #4f46e5; animation: ripple 2s infinite; }
+    @@keyframes ripple { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.4); } 100% { opacity: 1; transform: scale(1); } }
+
+    /* High Density Grid - Responsive Scroll */
+    .high-density-card { 
+        background: white; border-radius: 20px; border: 1px solid #eef2f6; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02); overflow-x: auto; 
+    }
+    .premium-table-layout { min-width: 900px; }
+
+    .table-head {
+        background: #fafcff; border-bottom: 2px solid #f1f5f9;
+        display: grid; grid-template-columns: 80px 1.8fr 1fr 1.5fr 130px;
+        padding: 16px 30px; color: var(--text-muted); font-weight: 900; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+    }
+    
+    .compact-grid-row {
+        display: grid; grid-template-columns: 80px 1.8fr 1fr 1.5fr 130px;
+        padding: 12px 30px; align-items: center; border-bottom: 1px solid #f8fafc;
+        transition: all 0.2s;
+    }
+    .compact-grid-row:hover { background: #fafbff; transform: translateX(5px); }
+    .rtl-mode .compact-grid-row:hover { transform: translateX(-5px); }
+    .assigned-active { background: #fcfdfe; }
+
+    .tiny-id { color: #6366f1; font-weight: 900; font-size: 0.8rem; opacity: 0.4; }
+    
+    .item-stack { display: flex; flex-direction: column; }
+    .item-main-name { font-weight: 800; color: var(--text-main); font-size: 1rem; line-height: 1.1; }
+    .item-price-tag { font-size: 0.75rem; color: #94a3b8; font-weight: 700; margin-top: 3px; }
+    
+    .chip-cat { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; }
+    
+    .premium-picker-select ::deep .mud-input { border-radius: 10px !important; background: #fff !important; font-size: 0.85rem !important; height: 38px !important; font-weight: 800; border-color: #e2e8f0 !important; }
+    
+    .status-chip { display: flex; align-items: center; gap: 6px; justify-content: center; padding: 6px 14px; border-radius: 30px; font-weight: 900; font-size: 0.7rem; }
+    .status-chip.ready { background: #ecfdf5; color: #059669; border: 1px solid #d1fae5; }
+    .status-chip.idle { background: #f8fafc; color: #94a3b8; border: 1px solid #f1f5f9; }
+
+    .refined-empty-state { padding: 60px 40px; text-align: center; color: #cbd5e1; }
+    .skeleton-row-item { height: 70px; margin: 15px 30px; background: #f8fafc; border-radius: 12px; }
+
+    .rtl-mode .table-head, .rtl-mode .compact-grid-row { direction: rtl; }
+</style>
+
+@code {
+    private List<MenuSalesItemsToReturnDto> Items = new();
+    private List<MenuSalesItemsToReturnDto> FilteredItems = new();
+    private List<Attributes> Attributes = new();
+    private List<CategoryToReturnDto> Categories = new();
+    
+    private bool IsLoading = true;
+    private string SearchTerm = "";
+    private int? FilterCategoryId = null;
+    
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try 
+        {
+            var itemsResponse = await ItemService.GetAllItemsAsync();
+            var catsResponse = await CategoryService.GetAllCategories();
+            var attrsResponse = await AttributeService.GetAllAttributeAsync();
+            
+            Items = itemsResponse?.Data?.ToList() ?? new();
+            Categories = catsResponse?.Data?.ToList() ?? new();
+            Attributes = attrsResponse?.ToList() ?? new();
+            
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات" : "Failed to load data", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OnCategoryFilterChanged(int? catId)
+    {
+        FilterCategoryId = catId;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var tempItems = Items.AsEnumerable();
+        
+        if (FilterCategoryId.HasValue)
+        {
+            tempItems = tempItems.Where(x => x.CategoryId == FilterCategoryId.Value);
+        }
+        
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.ToLower().Trim();
+            tempItems = tempItems.Where(x => 
+                (x.ArabicName != null && x.ArabicName.ToLower().Contains(term)) ||
+                (x.EnglishName != null && x.EnglishName.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term) ||
+                (x.CategoryArabicName != null && x.CategoryArabicName.ToLower().Contains(term))
+            );
+        }
+        
+        FilteredItems = tempItems.ToList();
+    }
+
+    private async Task UpdateItemAttribute(MenuSalesItemsToReturnDto item, int? attrId)
+    {
+        int targetId = attrId ?? 0;
+        if (item.AttributeId == targetId) return;
+
+        var response = await ItemService.AddAttributeToItemAsync(targetId, item.Id);
+        if (response != null && response.Success)
+        {
+            item.AttributeId = targetId;
+            item.HasAttribute = targetId > 0;
+            Snackbar.Add(IsArabic ? "تم تحديث الارتباط" : "Link Updated", Severity.Success);
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(IsArabic ? "خطأ في التحديث" : "Link Failed", Severity.Error);
+        }
+    }
+}

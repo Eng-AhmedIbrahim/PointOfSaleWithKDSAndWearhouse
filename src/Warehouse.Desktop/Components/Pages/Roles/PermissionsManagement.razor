@@ -1,0 +1,800 @@
+@page "/basicdata/permissions"
+@using Radzen
+@using Radzen.Blazor
+@using BlazorBase.ERPFrontServices.AccountServices
+@using POS.Contract.Dtos.AccountDtos
+@attribute [Authorize]
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<div class="permissions-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة الصلاحيات" : "Permissions Management")</h2>
+        </div>
+        <div>
+            <MudButton Variant="MudBlazor.Variant.Outlined" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Language"
+                       OnClick="ToggleLanguage"
+                       Style="border-radius: 20px; font-weight: 800; border-width: 2px;">
+                @(IsArabic ? "English Layout" : "الواجهة العربية")
+            </MudButton>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="loading-state h-100 d-flex flex-column justify-content-center align-items-center">
+            <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            <h4 class="mt-4" style="color: #64748b; font-weight: 700;">@(IsArabic ? "جاري تحميل البيانات..." : "Loading data...")</h4>
+        </div>
+    }
+    else
+    {
+        <div class="tab-content px-3" style="display: flex; flex-direction: column; overflow: hidden; height: 100%;">
+            
+            <div class="role-selector-header">
+                <div class="d-flex align-items-center" style="gap: 1.5rem;">
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="MudBlazor.Color.Primary" />
+                    <RadzenLabel Text="@(IsArabic ? "اختر الدور لتعديل صلاحياته:" : "Select Role to Edit Permissions:")" Style="font-weight: 900; font-size: 1.15rem; color: #1e293b;" />
+                    <RadzenDropDown TValue="string" Data="@AllRoles" TextProperty="Name" ValueProperty="Name" 
+                                    @bind-Value="SelectedRoleForPermissions"
+                                    Style="width: 300px; font-weight: 800; font-size: 1.1rem; border-radius: 8px;"
+                                    Placeholder="@(IsArabic ? "اختر الدور..." : "Select Role...")" 
+                                    AllowClear="false" />
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(SelectedRoleForPermissions))
+            {
+                <div class="permissions-content-area mt-4" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                    <RadzenTabs RenderMode="Radzen.TabRenderMode.Client" Style="flex: 1; height: 100%;">
+                        <Tabs>
+                            <RadzenTabsItem Text="@(IsArabic ? "🔒 ملخص الفويد والتعديل والأمان" : "🔒 Void & Security Control")" Icon="gpp_maybe">
+                                @RenderVoidAndSecuritySummary()
+                            </RadzenTabsItem>
+                            <RadzenTabsItem Text="@(IsArabic ? "صلاحيات الـ POS" : "POS Permissions")" Icon="point_of_sale">
+                                @RenderRolePermissionsEditor(PosPermissions)
+                            </RadzenTabsItem>
+                            <RadzenTabsItem Text="@(IsArabic ? "صلاحيات Back Office" : "Back Office Permissions")" Icon="desktop_windows">
+                                @RenderRolePermissionsEditor(BackOfficePermissions)
+                            </RadzenTabsItem>
+                        </Tabs>
+                    </RadzenTabs>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state text-center p-5 mt-4" style="background: white; border-radius: 16px; border: 2px dashed #cbd5e1;">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Style="font-size: 5rem; color: #94a3b8" />
+                    <h3 class="mt-4" style="font-weight: 900; color: #475569;">@(IsArabic ? "الرجاء اختيار الدور أولاً" : "Please select a role first")</h3>
+                    <p style="color: #64748b; font-weight: 700;">@(IsArabic ? "حدد الدور من القائمة بالأعلى لعرض وتعديل صلاحياته." : "Select a role from the dropdown above to view and modify its permissions.")</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string SelectedRoleForPermissions = "";
+    private string _voidSearchQuery = "";
+    private string _voidFilterCategory = "All";
+
+    RenderFragment RenderRolePermissionsEditor(List<PermissionDto> permissions) => __builder => {
+        <div class="permissions-editor-container">
+            <div class="row m-0 w-100">
+                @{
+                    var grouped = permissions
+                        .GroupBy(p => GetScreenName(p))
+                        .OrderBy(g => GetSortOrder(g.Key));
+                    
+                    foreach (var group in grouped)
+                    {
+                        <div class="col-12 col-md-6 col-xl-4 p-2">
+                            <div class="permission-group-card">
+                                <div class="group-header">
+                                    <h5 class="m-0 group-header-title w-100 d-flex align-items-center justify-content-center">
+                                        <span>@group.Key</span>
+                                        <MudIcon Icon="@Icons.Material.Filled.ViewModule" Class="ms-2" Size="Size.Small"/>
+                                    </h5>
+                                </div>
+                                <div class="group-body">
+                                    @foreach (var p in group)
+                                    {
+                                        var isGranted = RolePermissionsMap.ContainsKey(SelectedRoleForPermissions) && RolePermissionsMap[SelectedRoleForPermissions].Contains(p.Name);
+                                        <div class="permission-item px-3 py-2 @(isGranted ? "granted" : "")">
+                                            <div class="permission-action">
+                                                 <MudSwitch T="bool"
+                                                            Value="@isGranted" 
+                                                            ValueChanged="@(async (args) => await TogglePermission(SelectedRoleForPermissions, p.Name))" 
+                                                            Color="MudBlazor.Color.Primary" 
+                                                            UnCheckedColor="MudBlazor.Color.Default" 
+                                                            Size="Size.Large" />
+                                            </div>
+                                            <div class="permission-info text-end flex-grow-1">
+                                                <span class="permission-name">@GetPermissionTitle(p)</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    };
+
+    RenderFragment RenderVoidAndSecuritySummary() => __builder => {
+        var allPerms = PosPermissions.Concat(BackOfficePermissions).ToList();
+        var allVoidDetails = GetAllVoidItemDetails();
+
+        // Count granted vs locked
+        var grantedCount = allVoidDetails.Count(v => RolePermissionsMap.ContainsKey(SelectedRoleForPermissions) && RolePermissionsMap[SelectedRoleForPermissions].Contains(v.Key));
+        var lockedCount = allVoidDetails.Count - grantedCount;
+
+        // Filter list based on search and category
+        var filteredList = allVoidDetails.Where(v => {
+            if (_voidFilterCategory == "Void" && v.Category != "Void") return false;
+            if (_voidFilterCategory == "Edit" && v.Category != "Edit") return false;
+            if (_voidFilterCategory == "Discounts" && v.Category != "Discounts") return false;
+
+            if (!string.IsNullOrWhiteSpace(_voidSearchQuery))
+            {
+                var q = _voidSearchQuery.Trim().ToLower();
+                var match = v.Key.ToLower().Contains(q)
+                    || (v.TitleAr.ToLower().Contains(q))
+                    || (v.TitleEn.ToLower().Contains(q))
+                    || (v.ScreenAr.ToLower().Contains(q))
+                    || (v.ExactLocationAr.ToLower().Contains(q))
+                    || (v.ButtonVisualAr.ToLower().Contains(q));
+                if (!match) return false;
+            }
+            return true;
+        }).ToList();
+
+        <div class="permissions-editor-container" style="background: #f1f5f9;">
+            <!-- Security Warning & Status Header -->
+            <div class="alert alert-warning mb-3 p-3 rounded-lg shadow-sm" style="border: 2px solid #f59e0b; background-color: #fffbeb;">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Shield" Color="MudBlazor.Color.Warning" Size="Size.Large" />
+                        <div>
+                            <h5 class="m-0 font-weight-bold" style="color: #92400e;">
+                                @(IsArabic ? "مركز التحكم في الفويد والتعديل والأمان (الـ POS والـ BackOffice)" : "Void & Security Permissions Control Center")
+                            </h5>
+                            <p class="m-0 text-muted" style="font-size: 0.9rem;">
+                                @(IsArabic 
+                                    ? "يوضح هذا التبويب جميع الصلاحيات الحساسة التي تتيح إلغاء الفواتير أو تعديل الطلبات النشطة أو حذف الأصناف والخصومات في POS والـ BackOffice مع تحديد مكان كل زر بدقة."
+                                    : "Detailed overview of all sensitive permissions allowing voiding, editing active orders, deleting items, or discounts across POS and BackOffice.")
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="MudBlazor.Variant.Filled" 
+                                   Color="MudBlazor.Color.Error" 
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Lock"
+                                   OnClick="RevokeAllVoidForCurrentRole">
+                            @(IsArabic ? "قفل الكل لهذا الدور" : "Lock All For Role")
+                        </MudButton>
+                        <MudButton Variant="MudBlazor.Variant.Outlined" 
+                                   Color="MudBlazor.Color.Success" 
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.LockOpen"
+                                   OnClick="GrantAllVoidForCurrentRole">
+                            @(IsArabic ? "تفعيل الكل لهذا الدور" : "Allow All For Role")
+                        </MudButton>
+                    </div>
+                </div>
+
+                <!-- Statistics Bar -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-2" style="border-top: 1px dashed #fcd34d;">
+                    <div class="d-flex align-items-center gap-1 px-3 py-1 rounded" style="background: white; border: 1px solid #cbd5e1;">
+                        <span style="font-weight: 700; color: #475569;">إجمالي صلاحيات الفويد:</span>
+                        <span class="badge" style="background: #0284c7; color: white; font-size: 0.85rem;">@allVoidDetails.Count</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 px-3 py-1 rounded" style="background: white; border: 1px solid #cbd5e1;">
+                        <span style="font-weight: 700; color: #b91c1c;">المفعل لهذا الدور (خطر):</span>
+                        <span class="badge" style="background: #ef4444; color: white; font-size: 0.85rem;">@grantedCount</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 px-3 py-1 rounded" style="background: white; border: 1px solid #cbd5e1;">
+                        <span style="font-weight: 700; color: #15803d;">المغلق لهذا الدور (محمي):</span>
+                        <span class="badge" style="background: #22c55e; color: white; font-size: 0.85rem;">@lockedCount</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Category Filters -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 p-2 bg-white rounded-lg shadow-sm border">
+                <div class="d-flex align-items-center gap-2" style="min-width: 320px;">
+                    <MudTextField @bind-Value="_voidSearchQuery"
+                                  Placeholder="@(IsArabic ? "بحث بالشاشة، الزر، الموضع، أو الصلاحية..." : "Search by screen, button, location...")"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Clearable="true"
+                                  Immediate="true"
+                                  Style="background: #f8fafc;" />
+                </div>
+                <div class="d-flex gap-1 flex-wrap">
+                    <MudChip T="string" Color="@(_voidFilterCategory == "All" ? Color.Primary : Color.Default)" 
+                             Variant="MudBlazor.Variant.Filled" 
+                             OnClick='() => _voidFilterCategory = "All"'>
+                        @(IsArabic ? "الكل" : "All") (@allVoidDetails.Count)
+                    </MudChip>
+                    <MudChip T="string" Color="@(_voidFilterCategory == "Void" ? Color.Error : Color.Default)" 
+                             Variant="MudBlazor.Variant.Filled" 
+                             OnClick='() => _voidFilterCategory = "Void"'>
+                        @(IsArabic ? "🛑 فويد وإلغاء الطلبات" : "🛑 Order Void") (@allVoidDetails.Count(x => x.Category == "Void"))
+                    </MudChip>
+                    <MudChip T="string" Color="@(_voidFilterCategory == "Edit" ? Color.Info : Color.Default)" 
+                             Variant="MudBlazor.Variant.Filled" 
+                             OnClick='() => _voidFilterCategory = "Edit"'>
+                        @(IsArabic ? "✏️ تعديل وحذف الأصناف" : "✏️ Edit & Delete") (@allVoidDetails.Count(x => x.Category == "Edit"))
+                    </MudChip>
+                    <MudChip T="string" Color="@(_voidFilterCategory == "Discounts" ? Color.Warning : Color.Default)" 
+                             Variant="MudBlazor.Variant.Filled" 
+                             OnClick='() => _voidFilterCategory = "Discounts"'>
+                        @(IsArabic ? "🏷️ الخصومات وسجلات الفويد" : "🏷️ Discounts & Logs") (@allVoidDetails.Count(x => x.Category == "Discounts"))
+                    </MudChip>
+                </div>
+            </div>
+
+            <!-- Cards Grid: Detailed Location, Button Visual, and Action Impact -->
+            <div class="row m-0 w-100">
+                @foreach (var detail in filteredList)
+                {
+                    var isGranted = RolePermissionsMap.ContainsKey(SelectedRoleForPermissions) && RolePermissionsMap[SelectedRoleForPermissions].Contains(detail.Key);
+
+                    <div class="col-12 col-lg-6 col-xxl-4 p-2">
+                        <div class="permission-detail-card" 
+                             style="background: white; border-radius: 12px; overflow: hidden; height: 100%; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06); border: 2px solid @(isGranted ? "#f87171" : "#86efac"); transition: all 0.2s ease;">
+                            
+                            <!-- Card Header -->
+                            <div class="d-flex align-items-start justify-content-between p-3" 
+                                 style="background: @(isGranted ? "#fff1f2" : "#f0fdf4"); border-bottom: 1px solid @(isGranted ? "#fecdd3" : "#bbf7d0");">
+                                <div class="d-flex align-items-start gap-2">
+                                    <div class="p-2 rounded-circle" style="background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                        <MudIcon Icon="@detail.Icon" Color="@(isGranted ? Color.Error : Color.Success)" Size="Size.Medium" />
+                                    </div>
+                                    <div>
+                                        <h6 class="m-0 font-weight-bold" style="color: #0f172a; font-size: 1.05rem;">
+                                            @(IsArabic ? detail.TitleAr : detail.TitleEn)
+                                        </h6>
+                                        <div class="d-flex align-items-center gap-1 mt-1">
+                                            <code style="font-size: 0.75rem; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
+                                                @detail.Key
+                                            </code>
+                                            <span class="badge" style="font-size: 0.7rem; font-weight: 800; background: @(detail.Severity == "حرج" ? "#fee2e2" : detail.Severity == "عالي" ? "#ffedd5" : "#fef9c3"); color: @(detail.Severity == "حرج" ? "#b91c1c" : detail.Severity == "عالي" ? "#c2410c" : "#854d0e");">
+                                                @(detail.Severity == "حرج" ? "مستوى الخطر: حرج 🔴" : detail.Severity == "عالي" ? "مستوى الخطر: عالي 🟠" : "مستوى الخطر: متوسط 🟡")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-column align-items-end">
+                                    <MudSwitch T="bool"
+                                               Value="@isGranted" 
+                                               ValueChanged="@(async (args) => await TogglePermission(SelectedRoleForPermissions, detail.Key))" 
+                                               Color="@(isGranted ? Color.Error : Color.Success)" 
+                                               UnCheckedColor="MudBlazor.Color.Default" 
+                                               Size="Size.Large" />
+                                    @if (isGranted)
+                                    {
+                                        <span class="badge mt-1" style="background: #ef4444; color: white; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px;">
+                                            @(IsArabic ? "مفعل (صلاحية مفتوحة)" : "Granted")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge mt-1" style="background: #22c55e; color: white; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px;">
+                                            @(IsArabic ? "مغلق (محمي وآمن)" : "Locked")
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Card Body: Explicit Screen Location, Button Appearance, and Security Impact -->
+                            <div class="p-3 d-flex flex-column gap-2 flex-grow-1" style="font-size: 0.88rem;">
+                                <!-- 1. Screen -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold text-muted" style="min-width: 90px;">🖥️ الشاشة:</span>
+                                    <span class="badge" style="background: #e0f2fe; color: #0284c7; font-size: 0.82rem; font-weight: 800; border: 1px solid #bae6fd; padding: 4px 8px;">
+                                        @(IsArabic ? detail.ScreenAr : detail.ScreenEn)
+                                    </span>
+                                </div>
+
+                                <!-- 2. Exact Location -->
+                                <div class="d-flex align-items-start gap-2">
+                                    <span class="fw-bold text-muted" style="min-width: 90px;">📍 الموضع:</span>
+                                    <span style="color: #1e293b; font-weight: 700;">
+                                        @(IsArabic ? detail.ExactLocationAr : detail.ExactLocationEn)
+                                    </span>
+                                </div>
+
+                                <!-- 3. Button Appearance -->
+                                <div class="d-flex align-items-start gap-2">
+                                    <span class="fw-bold text-muted" style="min-width: 90px;">🔘 شكل الزر:</span>
+                                    <span class="badge" style="background: #f8fafc; color: #334155; font-size: 0.8rem; font-weight: 700; border: 1px solid #cbd5e1; padding: 4px 8px;">
+                                        @(IsArabic ? detail.ButtonVisualAr : detail.ButtonVisualEn)
+                                    </span>
+                                </div>
+
+                                <!-- 4. Financial & Operational Impact -->
+                                <div class="p-2 rounded mt-2" style="background: #f8fafc; border-inline-start: 4px solid @(detail.Severity == "حرج" ? "#ef4444" : detail.Severity == "عالي" ? "#f97316" : "#eab308"); border: 1px solid #e2e8f0; border-inline-start-width: 4px;">
+                                    <div class="fw-bold mb-1" style="color: @(detail.Severity == "حرج" ? "#b91c1c" : detail.Severity == "عالي" ? "#c2410c" : "#854d0e"); font-size: 0.8rem;">
+                                        ⚠️ الأثر المالي والرقابي:
+                                    </div>
+                                    <div style="color: #475569; font-size: 0.83rem; line-height: 1.4;">
+                                        @(IsArabic ? detail.ImpactAr : detail.ImpactEn)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    };
+
+    public class VoidItemDetail
+    {
+        public string Key { get; set; } = "";
+        public string TitleAr { get; set; } = "";
+        public string TitleEn { get; set; } = "";
+        public string ScreenAr { get; set; } = "";
+        public string ScreenEn { get; set; } = "";
+        public string ExactLocationAr { get; set; } = "";
+        public string ExactLocationEn { get; set; } = "";
+        public string ButtonVisualAr { get; set; } = "";
+        public string ButtonVisualEn { get; set; } = "";
+        public string ImpactAr { get; set; } = "";
+        public string ImpactEn { get; set; } = "";
+        public string Severity { get; set; } = "حرج";
+        public string Category { get; set; } = "Void";
+        public string Icon { get; set; } = Icons.Material.Filled.Block;
+    }
+
+    private static readonly List<VoidItemDetail> _staticVoidItems = new()
+    {
+        new VoidItemDetail
+        {
+            Key = "CanCancelOrder",
+            TitleAr = "إلغاء وتفريغ الفاتورة الحالية بالكامل",
+            TitleEn = "Cancel & Clear Current Order",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "الشريط السفلي أسفل جدول الفاتورة (Section 4) بجوار زري الانتظار والطباعة",
+            ExactLocationEn = "Bottom Bar below order table (Section 4) next to Waiting and Print",
+            ButtonVisualAr = "زر أحمر مكتوب عليه 'إلغاء' (Cancel) مع أيقونة إلغاء",
+            ButtonVisualEn = "Red button labeled 'Cancel' with cancel icon",
+            ImpactAr = "مسح وتفريغ جميع الأصناف المضافة في الفاتورة الحالية بالكامل قبل الحفظ أو السداد وتفريغ السلة",
+            ImpactEn = "Clears and removes all items from current order before saving or paying",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Cancel
+        },
+        new VoidItemDetail
+        {
+            Key = "CanDeleteItem",
+            TitleAr = "حذف صنف محدد من الفاتورة",
+            TitleEn = "Delete Single Item from Order",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "لوحة الإجراءات السريعة (Section 3) بجوار الآلة الحاسبة",
+            ExactLocationEn = "Quick Actions Panel (Section 3) next to numeric keypad",
+            ButtonVisualAr = "زر بعرض كامل يحمل أيقونة سلة المهملات 🗑️ (أحمر)",
+            ButtonVisualEn = "Full-width red button with Trash icon 🗑️",
+            ImpactAr = "حذف البند أو الصنف المحدد نهائياً من قائمة الفاتورة الحالية وإعادة حساب الإجمالي",
+            ImpactEn = "Deletes selected line item from order and recalculates total",
+            Severity = "عالي",
+            Category = "Edit",
+            Icon = Icons.Material.Outlined.DeleteOutline
+        },
+        new VoidItemDetail
+        {
+            Key = "CanDecrementQuantity",
+            TitleAr = "إنقاص كمية الصنف المضاف (-)",
+            TitleEn = "Decrement Item Quantity (-)",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "لوحة الإجراءات السريعة (Section 3) بجوار لوحة الأرقام",
+            ExactLocationEn = "Quick Actions Panel (Section 3) next to numeric keypad",
+            ButtonVisualAr = "زر أيقونة الطرح (-) باللون الرمادي",
+            ButtonVisualEn = "Minus (-) icon button",
+            ImpactAr = "تقليل كمية الصنف المضاف بمقدار واحد أو تقليل الوزن مباشرة في الفاتورة",
+            ImpactEn = "Reduces item quantity by 1 or decreases weight",
+            Severity = "متوسط",
+            Category = "Edit",
+            Icon = Icons.Material.Filled.Remove
+        },
+        new VoidItemDetail
+        {
+            Key = "CanEditItemComment",
+            TitleAr = "تعديل الملاحظات والتعليمات الخاصة بالصنف",
+            TitleEn = "Edit Item Notes / Instructions",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "لوحة الإجراءات السريعة (Section 3)",
+            ExactLocationEn = "Quick Actions Panel (Section 3)",
+            ButtonVisualAr = "زر بعرض كامل يحمل أيقونة تعديل الملاحظة 📝",
+            ButtonVisualEn = "Full-width button with Edit Note icon 📝",
+            ImpactAr = "فتح نافذة كتابة ملاحظات وتوجيهات خاصة على الصنف للمطبخ (مثل: بدون شطة أو تسوية خاصة)",
+            ImpactEn = "Opens dialog to edit preparation notes sent to kitchen printer",
+            Severity = "متوسط",
+            Category = "Edit",
+            Icon = Icons.Material.Outlined.EditNote
+        },
+        new VoidItemDetail
+        {
+            Key = "CanApplyItemDiscount",
+            TitleAr = "تطبيق خصم مالي أو نسبة على صنف محدد",
+            TitleEn = "Apply Discount on Specific Item",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "لوحة الإجراءات السريعة (Section 3)",
+            ExactLocationEn = "Quick Actions Panel (Section 3)",
+            ButtonVisualAr = "زر أصفر بعرض كامل يحمل أيقونة بطاقة الخصم 🏷️",
+            ButtonVisualEn = "Full-width yellow button with Tag icon 🏷️",
+            ImpactAr = "تخفيض سعر صنف محدد بقيمة ثابتة أو نسبة مئوية مباشرة في الفاتورة",
+            ImpactEn = "Discounts a specific item by fixed amount or percentage",
+            Severity = "عالي",
+            Category = "Discounts",
+            Icon = Icons.Material.Filled.LocalOffer
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessFooterDiscountBtn",
+            TitleAr = "تطبيق خصم عام على إجمالي الفاتورة بالكامل",
+            TitleEn = "Apply Total Order Discount",
+            ScreenAr = "شاشة الكاشير الرئيسية (POS)",
+            ScreenEn = "POS Main Cashier Screen",
+            ExactLocationAr = "شريط الفوتر السفلي للشاشة (Footer Bar)",
+            ExactLocationEn = "Fixed Bottom Footer Bar",
+            ButtonVisualAr = "زر 'خصم' (Discount) بأيقونة الخصم في شريط الفوتر السفلي",
+            ButtonVisualEn = "Button labeled 'Discount' in bottom footer",
+            ImpactAr = "تطبيق خصم عام على المبلغ الإجمالي للفاتورة وتحديد نوع الخصم وسببه",
+            ImpactEn = "Applies overall discount on total invoice with reason and type",
+            Severity = "حرج",
+            Category = "Discounts",
+            Icon = Icons.Material.Filled.Discount
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDineInVoidBtn",
+            TitleAr = "إلغاء أوردر صالة مفتوح (كامل أو بنود محددة)",
+            TitleEn = "Dine-In Order / Items Void",
+            ScreenAr = "شاشة الصالة والطاولات (Dine-In)",
+            ScreenEn = "Dine-In Tables Screen",
+            ExactLocationAr = "القائمة الجانبية للطاولة المفتوحة (Menu Buttons يمين/يسار الشاشة)",
+            ExactLocationEn = "Vertical Menu Buttons for selected open table",
+            ButtonVisualAr = "زر كبير مكتوب عليه 'Void' بأيقونة سلة باللون الأحمر",
+            ButtonVisualEn = "Large button labeled 'Void' with trash icon",
+            ImpactAr = "إلغاء بنود محددة أو إلغاء طاولة كاملة بعد إرسالها للمطبخ وتتطلب إدخال سبب الفويد والكمية الملغاة",
+            ImpactEn = "Voids sent kitchen items or cancels active dine-in table with void reason",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Delete
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDeliveryVoidBtn",
+            TitleAr = "إلغاء أوردر دليفري نشط للعميل",
+            TitleEn = "Cancel Active Customer Delivery Order",
+            ScreenAr = "شاشة الدليفري والتوصيل (Delivery)",
+            ScreenEn = "Delivery Screen",
+            ExactLocationAr = "النافذة المنبثقة عند اختيار العميل ← جدول 'الطلبات السابقة النشطة للعميل'",
+            ExactLocationEn = "Active Orders Dialog → Previous orders table actions column",
+            ButtonVisualAr = "زر أحمر مكتوب عليه 'إلغاء الطلب' (Void Order) بجانب كل فاتورة نشطة",
+            ButtonVisualEn = "Red button labeled 'Void Order' in active orders table",
+            ImpactAr = "إلغاء أوردر دليفري معلق أو قيد التجهيز للعميل قبل خروجه مع الطيار وتسجيل سبب الإلغاء",
+            ImpactEn = "Cancels active delivery order before driver dispatch and logs reason",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.DeleteForever
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDeliveryEditBtn",
+            TitleAr = "تعديل أوردر دليفري نشط",
+            TitleEn = "Edit Active Customer Delivery Order",
+            ScreenAr = "شاشة الدليفري والتوصيل (Delivery)",
+            ScreenEn = "Delivery Screen",
+            ExactLocationAr = "النافذة المنبثقة عند اختيار العميل ← جدول 'الطلبات السابقة النشطة للعميل'",
+            ExactLocationEn = "Active Orders Dialog → Previous orders table actions column",
+            ButtonVisualAr = "زر أزرق مكتوب عليه 'تعديل' (Edit) بجانب الفاتورة",
+            ButtonVisualEn = "Blue button labeled 'Edit' in active orders table",
+            ImpactAr = "إعادة تحميل وتفريغ أوردر الدليفري السابق في شاشة الـ POS لإضافة أو حذف أصناف",
+            ImpactEn = "Loads previous delivery order back into POS for item modifications",
+            Severity = "عالي",
+            Category = "Edit",
+            Icon = Icons.Material.Filled.Edit
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDistributionVoidBtn",
+            TitleAr = "إلغاء أوردر من جدول التوزيع (الديسباتشر)",
+            TitleEn = "Void Order from Distribution Dispatcher",
+            ScreenAr = "شاشة التوزيع وإدارة الطيارين (Distribution)",
+            ScreenEn = "Distribution / Dispatcher Screen",
+            ExactLocationAr = "جدول الفواتير المطلوب توزيعها ← عمود الإجراءات في صف كل أوردر",
+            ExactLocationEn = "Orders table → Actions column on each order row",
+            ButtonVisualAr = "أيقونة سلة مهملات حمراء (DeleteForever) في صف الفاتورة",
+            ButtonVisualEn = "Red trash icon (DeleteForever) on order row",
+            ImpactAr = "إلغاء الفاتورة من منظومة الدليفري بالكامل وتسجيل الفويد المالي مع السبب",
+            ImpactEn = "Cancels delivery order from distribution queue and logs void record",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.DeleteForever
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDistributionUnDispatchBtn",
+            TitleAr = "سحب الأوردر وإلغاء توجيهه للطيار (UnDispatch)",
+            TitleEn = "Un-dispatch Order from Driver",
+            ScreenAr = "شاشة التوزيع وإدارة الطيارين (Distribution)",
+            ScreenEn = "Distribution / Dispatcher Screen",
+            ExactLocationAr = "جدول الطلبات المسلمة للطيارين (Assigned) ← عمود الإجراءات",
+            ExactLocationEn = "Assigned orders table → Actions column",
+            ButtonVisualAr = "أيقونة التراجع السريع (Undo) الرمادية",
+            ButtonVisualEn = "Gray Undo icon in assigned order row",
+            ImpactAr = "سحب الفاتورة من عهدة الطيار بعد استلامها وإعادتها لقائمة الانتظار للتوزيع على طيار آخر",
+            ImpactEn = "Reverts order from driver custody back to unassigned queue",
+            Severity = "عالي",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Undo
+        },
+        new VoidItemDetail
+        {
+            Key = "CanAccessDistributionVoidHistoryBtn",
+            TitleAr = "الاطلاع على سجل ومبالغ الإلغاءات في التوزيع",
+            TitleEn = "View Distribution Void History",
+            ScreenAr = "شاشة التوزيع وإدارة الطيارين (Distribution)",
+            ScreenEn = "Distribution / Dispatcher Screen",
+            ExactLocationAr = "شريط الأدوات السفلي لشاشة التوزيع (Footer Toolbar)",
+            ExactLocationEn = "Bottom Footer Toolbar on Distribution Screen",
+            ButtonVisualAr = "زر 'سجل الإلغاءات' (Void History) بأيقونة التقويم",
+            ButtonVisualEn = "Button labeled 'Void History' with calendar icon",
+            ImpactAr = "عرض سجل الفواتير الملغاة وأسماء من قاموا بالإلغاء ومبالغ الإلغاءات وأسبابها",
+            ImpactEn = "Displays all voided delivery orders with amounts and reasons",
+            Severity = "متوسط",
+            Category = "Discounts",
+            Icon = Icons.Material.Filled.EventBusy
+        },
+        new VoidItemDetail
+        {
+            Key = "CanVoidOrderFromList",
+            TitleAr = "إلغاء فاتورة من قائمة فواتير وردية اليوم",
+            TitleEn = "Void Order from Today Orders List",
+            ScreenAr = "شاشة فواتير اليوم (Today Orders / All Orders)",
+            ScreenEn = "Today / All Orders Screen",
+            ExactLocationAr = "جدول فواتير اليوم بالـ POS ← زر 'الإجراءات' أو قائمة الخيارات (...)",
+            ExactLocationEn = "Orders table in POS → Actions menu (...)",
+            ButtonVisualAr = "خيار 'إلغاء الطلب' (Void Order) بلون أحمر مع أيقونة الحظر 🚫",
+            ButtonVisualEn = "Red menu item labeled 'Void' with Block icon 🚫",
+            ImpactAr = "إلغاء فاتورة سابقة مدفوعة أو محفوظة خلال الوردية وعكس إيراداتها ومخزونها في الوردية",
+            ImpactEn = "Cancels closed or paid order during current shift and reverts finances",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Block
+        },
+        new VoidItemDetail
+        {
+            Key = "CanVoidBranchDeliveryOrder",
+            TitleAr = "إلغاء أوردر محول للفرع من الكول سنتر",
+            TitleEn = "Void Transferred Branch Order",
+            ScreenAr = "شاشة فواتير الفروع المحولة (Branch Orders)",
+            ScreenEn = "Branch Transferred Orders Screen",
+            ExactLocationAr = "جدول الأوردرات المحولة للفرع ← قائمة الإجراءات (...) في عمود الإجراءات",
+            ExactLocationEn = "Branch orders table → Actions dropdown menu (...)",
+            ButtonVisualAr = "خيار 'إلغاء الأوردر' (Void Order) باللون الأحمر",
+            ButtonVisualEn = "Red menu item labeled 'Void Order'",
+            ImpactAr = "إلغاء طلب توصيل تم تحويله إلى هذا الفرع من نظام الإدارة المركزي أو الكول سنتر",
+            ImpactEn = "Cancels delivery order transferred to this branch from call center",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Block
+        },
+        new VoidItemDetail
+        {
+            Key = "CanVoidOrderAtBackOffice",
+            TitleAr = "إلغاء فاتورة من لوحة الإدارة المركزية (BackOffice)",
+            TitleEn = "Void Order from Central BackOffice",
+            ScreenAr = "لوحة الإدارة المركزية (BackOffice) ← إدارة الفواتير والمعاملات",
+            ScreenEn = "Central BackOffice → Transactions & Orders Management",
+            ExactLocationAr = "جدول فواتير النظام ← القائمة المنسدلة للإجراءات (...) في صف الفاتورة",
+            ExactLocationEn = "Central orders table → Actions dropdown menu (...)",
+            ButtonVisualAr = "خيار 'إلغاء / Void' بلون أحمر داخل القائمة",
+            ButtonVisualEn = "Red dropdown item labeled 'Void'",
+            ImpactAr = "إلغاء أي فاتورة مسجلة في قاعدة البيانات المركزية لجميع الفروع وعكس مبيعاتها مركزياً",
+            ImpactEn = "Centrally cancels any registered order in database across all branches",
+            Severity = "حرج",
+            Category = "Void",
+            Icon = Icons.Material.Filled.Block
+        },
+        new VoidItemDetail
+        {
+            Key = "CanViewVoidHistoryAtBackOffice",
+            TitleAr = "استعراض تقارير وسجلات الإلغاءات المركزية",
+            TitleEn = "View Central Void Audit Reports",
+            ScreenAr = "لوحة الإدارة المركزية (BackOffice) ← التقارير والعمليات",
+            ScreenEn = "Central BackOffice → Reports & Operations",
+            ExactLocationAr = "قسم تقارير التوزيع وسجلات الإلغاء",
+            ExactLocationEn = "Reports section → Distribution & Void audit reports",
+            ButtonVisualAr = "زر ورابط 'سجل الفويد والإلغاءات' في شاشة التقارير",
+            ButtonVisualEn = "Report link labeled 'Void Audit History'",
+            ImpactAr = "عرض تقارير رقابية وتدقيق مالي شامل لكافة حركات الإلغاء والفويد على مستوى كل الفروع",
+            ImpactEn = "Full audit report of all voided transactions across all branches",
+            Severity = "متوسط",
+            Category = "Discounts",
+            Icon = Icons.Material.Filled.Assessment
+        }
+    };
+
+    private List<VoidItemDetail> GetAllVoidItemDetails() => _staticVoidItems;
+
+    private string GetPermissionTitle(PermissionDto p)
+    {
+        var matched = _staticVoidItems.FirstOrDefault(v => v.Key == p.Name);
+        if (matched != null)
+        {
+            return IsArabic ? matched.TitleAr : matched.TitleEn;
+        }
+
+        if (!IsArabic) return p.PoliceEnglishNameEn ?? p.Name;
+
+        return (!string.IsNullOrEmpty(p.PoliceArabicName) && !p.PoliceArabicName.Contains("Ø") && !p.PoliceArabicName.Contains("?") 
+                ? p.PoliceArabicName 
+                : (p.PoliceEnglishNameEn ?? p.Name));
+    }
+
+    private string GetScreenName(PermissionDto p)
+    {
+        var matched = _staticVoidItems.FirstOrDefault(v => v.Key == p.Name);
+        if (matched != null)
+        {
+            return IsArabic ? matched.ScreenAr : matched.ScreenEn;
+        }
+
+        if (!IsArabic) return p.ScreenEnglishName ?? "Other";
+
+        return p.Name switch
+        {
+            "CanAccessDeliveryVoidBtn" or "CanAccessDeliveryEditBtn" => "شاشة التوصيل",
+            "CanVoidBranchDeliveryOrder" => "أوردرات الفروع",
+            _ => (!string.IsNullOrEmpty(p.ScreenArabicName) && !p.ScreenArabicName.Contains("Ø") && !p.ScreenArabicName.Contains("?")
+                    ? p.ScreenArabicName
+                    : (p.ScreenEnglishName ?? "أخرى"))
+        };
+    }
+
+    private async Task RevokeAllVoidForCurrentRole()
+    {
+        if (string.IsNullOrEmpty(SelectedRoleForPermissions)) return;
+        var allKeys = _staticVoidItems.Select(v => v.Key).Distinct().ToList();
+
+        foreach (var key in allKeys)
+        {
+            if (RolePermissionsMap.ContainsKey(SelectedRoleForPermissions) && RolePermissionsMap[SelectedRoleForPermissions].Contains(key))
+            {
+                await TogglePermission(SelectedRoleForPermissions, key);
+            }
+        }
+        Snackbar.Add(IsArabic ? "تم قفل جميع صلاحيات الفويد والتعديل والأمان لهذا الدور بنجاح" : "Locked all void/security permissions for role", Severity.Success);
+    }
+
+    private async Task GrantAllVoidForCurrentRole()
+    {
+        if (string.IsNullOrEmpty(SelectedRoleForPermissions)) return;
+        var allKeys = _staticVoidItems.Select(v => v.Key).Distinct().ToList();
+
+        foreach (var key in allKeys)
+        {
+            if (!RolePermissionsMap.ContainsKey(SelectedRoleForPermissions) || !RolePermissionsMap[SelectedRoleForPermissions].Contains(key))
+            {
+                await TogglePermission(SelectedRoleForPermissions, key);
+            }
+        }
+        Snackbar.Add(IsArabic ? "تم تفعيل جميع صلاحيات الفويد والتعديل لهذا الدور" : "Granted all void/security permissions for role", Severity.Warning);
+    }
+
+    private List<RoleToReturnDto> AllRoles = new();
+    private List<PermissionDto> BackOfficePermissions = new();
+    private List<PermissionDto> PosPermissions = new();
+    private Dictionary<string, HashSet<string>> RolePermissionsMap = new();
+    private bool IsLoading = true;
+
+    private bool? _isArabicOverride = null;
+    private bool IsArabic => _isArabicOverride ?? (LocalizerService.GetCurrentLanguage() == "ar");
+
+    private void ToggleLanguage()
+    {
+        _isArabicOverride = !IsArabic;
+    }
+
+    private static int GetSortOrder(string groupKey)
+    {
+        return groupKey switch
+        {
+            "قائمة شاشة المبيعات" => 1,
+            "أزرار اسفل شاشة البيع" => 2,
+            "شاشة الصالة" => 3,
+            "شاشة التوصيل" => 4,
+            "Navigation Menu Actions" => 1,
+            "Footer Layout Actions" => 2,
+            "Dine-In Screen" => 3,
+            "Delivery Screen" => 4,
+            _ => 99
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            AllRoles = (await AccountService.GetRoles()).ToList();
+            
+            var allPerms = (await AccountService.GetAllPermissions()).ToList();
+            BackOfficePermissions = allPerms.Where(p => p.IsBackOffice).ToList();
+            PosPermissions = allPerms.Where(p => !p.IsBackOffice).ToList();
+            
+            foreach (var role in AllRoles)
+            {
+                var rolePerms = await AccountService.GetRolePermissions(role.Name);
+                RolePermissionsMap[role.Name] = new HashSet<string>(rolePerms);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات" : "Failed to load data", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task TogglePermission(string roleName, string permissionName)
+    {
+        if (string.IsNullOrEmpty(roleName)) return;
+
+        if (!RolePermissionsMap.ContainsKey(roleName))
+            RolePermissionsMap[roleName] = new HashSet<string>();
+
+        bool isGranted = !RolePermissionsMap[roleName].Contains(permissionName);
+        
+        if (isGranted)
+            RolePermissionsMap[roleName].Add(permissionName);
+        else
+            RolePermissionsMap[roleName].Remove(permissionName);
+
+        StateHasChanged();
+
+        var updateItems = new List<RolePermissionItemDto> 
+        { 
+            new RolePermissionItemDto { Permission = permissionName, IsGranted = isGranted } 
+        };
+        
+        var success = await AccountService.UpdateRolePermissions(roleName, updateItems);
+        if (!success)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحديث الصلاحية" : "Failed to update permission", Severity.Error);
+            if (!isGranted)
+                RolePermissionsMap[roleName].Add(permissionName);
+            else
+                RolePermissionsMap[roleName].Remove(permissionName);
+        }
+    }
+}

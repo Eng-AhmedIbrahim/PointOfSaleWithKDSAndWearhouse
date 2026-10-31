@@ -1,0 +1,434 @@
+@import url('fonts.css');
+
+/* Modern Delivery Page Styles */
+.delivery-container {
+    font-family: 'Tajawal', 'Cairo', sans-serif !important;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+    min-height: 100vh;
+}
+
+/* Premium Card Styling */
+.premium-card {
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    transition: none;
+    overflow: hidden;
+}
+
+/* Removed hover for cleaner look */
+
+/* Section Labels with Modern Gradient */
+.modern-section-label {
+    background: #447cad;
+    color: white !important;
+    padding: 6px 12px !important;
+    text-align: center !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px;
+    margin: 0 !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modern-section-label:first-child {
+    border-left: none;
+}
+
+/* Removed label hover effect for simplicity */
+
+/* Enhanced Input Fields - Maximum Visibility */
+.premium-input .mud-input-label {
+    color: #114484 !important;
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+    background: white;
+    padding: 0 8px;
+    z-index: 10;
+}
+
+.premium-input .mud-input-root {
+    background-color: #ffffff !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    padding: 4px 10px !important;
+    /* Reduced from 12px 14px to save space */
+    min-height: 48px !important;
+    /* Reduced from 56px */
+}
+
+.premium-input .mud-input-root:focus-within {
+    border-color: #114484 !important;
+    box-shadow: 0 0 0 3px rgba(17, 68, 132, 0.1);
+}
+
+.premium-input input {
+    font-family: 'Cairo', sans-serif !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    font-size: 1.2rem !important;
+    /* Slightly smaller to fit */
+}
+
+/* Modern Table Styling */
+.modern-table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modern-table .mud-table-head {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.modern-table .mud-table-head th {
+    font-weight: 700 !important;
+    color: #2c3e50 !important;
+    font-size: 0.85rem !important;
+    /* Smaller head */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #447cad !important;
+    padding: 4px 8px !important;
+}
+
+.modern-table tbody tr {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.modern-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(68, 124, 173, 0.05) 0%, rgba(68, 124, 173, 0.1) 100%);
+    transform: scale(1.01);
+}
+
+.modern-table tbody td {
+    font-size: 0.85rem !important;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef !important;
+    padding: 4px 8px !important;
+    /* Snugger rows */
+}
+
+/* Action Buttons Styling */
+.action-button-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+    padding: 0;
+}
+
+.modern-action-button {
+    flex: 1;
+    /* Take all available height */
+    width: 100%;
+    border-radius: 0 !important;
+    /* Unified edges */
+    font-weight: 600 !important;
+    text-transform: none !important;
+    transition: all 0.2s ease;
+    box-shadow: none;
+    border: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-action-button:last-child {
+    border-bottom: none !important;
+}
+
+/* Removed ripple effect for simplicity */
+
+.modern-action-button:hover {
+    filter: brightness(0.95);
+}
+
+.modern-action-button:active {
+    filter: brightness(0.9);
+}
+
+/* Button Variants - Consistent with Dine-In style */
+.btn-primary-gradient {
+    background: linear-gradient(135deg, #fbd14b, #ffea92) !important;
+    color: #2c3e50 !important;
+}
+
+.btn-secondary-gradient {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5) !important;
+    color: #143155 !important;
+    border: 1px solid rgba(20, 49, 85, 0.1) !important;
+}
+
+.btn-success-gradient {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5) !important;
+    color: #143155 !important;
+}
+
+.btn-danger-gradient {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5) !important;
+    color: #143155 !important;
+}
+
+.btn-info-gradient {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5) !important;
+    color: #143155 !important;
+}
+
+.btn-warning-gradient {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5) !important;
+    color: #143155 !important;
+}
+
+/* Icon Styling */
+.action-icon {
+    font-size: 1.4rem !important;
+    margin-bottom: 0px;
+}
+
+.modern-action-button {
+    font-size: 0.85rem !important;
+    padding: 2px 4px !important;
+}
+
+/* Responsive Grid */
+.delivery-grid {
+    height: 100% !important;
+}
+
+.custom-border-color {
+    border-color: rgba(68, 124, 173, 0.1) !important;
+}
+
+.border-r {
+    border-right: 1px solid rgba(68, 124, 173, 0.1) !important;
+}
+
+.border-solid {
+    border-style: solid !important;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #447cad #f1f3f5;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #447cad 0%, #2c5f8d 100%);
+    border-radius: 10px;
+    transition: background 0.3s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #2c5f8d 0%, #1e4565 100%);
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.loading-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+    background-size: 1000px 100%;
+}
+
+/* Stats Footer Section - Identical to screenshot */
+.delivery-stats-footer {
+    background: #ffffff;
+    border-top: 3px solid #447cad;
+    padding: 8px 15px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.stats-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #4834d4 !important;
+    /* Indigo Blue from screenshot */
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-align: right;
+}
+
+.stat-value {
+    color: #000000 !important;
+    /* Bold black */
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-align: left;
+}
+
+/* Badge Styling */
+.status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.badge-pending {
+    background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
+    color: #856404;
+}
+
+.badge-completed {
+    background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);
+    color: #155724;
+}
+
+.badge-cancelled {
+    background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+    color: #721C24;
+}
+
+/* Elevation Effects */
+.elevation-1 {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.elevation-2 {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.elevation-3 {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* RTL Support */
+[dir="rtl"] .delivery-container {
+    direction: rtl;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Empty State - Perfect Center */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    min-height: 300px;
+    color: #6c757d;
+    text-align: center;
+}
+
+.empty-state-icon {
+    font-size: 5rem !important;
+    color: #dee2e6;
+    margin-bottom: 16px;
+}
+
+/* Premium Popover Styling */
+.premium-popover {
+    font-family: 'Cairo', sans-serif !important;
+}
+
+.premium-popover .mud-list {
+    padding: 4px !important;
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.premium-popover .mud-list-item {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    padding: 8px 12px !important;
+    margin: 2px 0 !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    justify-content: flex-start !important;
+    /* Align text to start */
+    text-align: right !important;
+    /* Force RTL text alignment */
+    height: auto !important;
+    min-height: 40px !important;
+}
+
+.premium-popover .mud-list-item:hover {
+    background-color: #f1f5f9 !important;
+    color: #114484 !important;
+    padding-right: 16px !important;
+    /* Add hover effect padding */
+}
+
+/* Ensure RTL direction inside popover if page is RTL */
+[dir="rtl"] .premium-popover .mud-list-item {
+    text-align: right !important;
+    justify-content: flex-start !important;
+}
+
+/* Scrollbar within popover */
+.premium-popover .mud-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.premium-popover .mud-list::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.premium-popover .mud-list::-webkit-scrollbar-track {
+    background-color: transparent;
+}

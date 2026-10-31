@@ -1,0 +1,95 @@
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject LocalizationService LocalizerService
+
+<MudDialog dir="@(IsArabic ? "rtl" : "ltr")">
+    <DialogContent>
+        <div class="pa-4">
+            <MudText Typo="MudBlazor.Typo.h6" Class="mb-4">
+                @(IsArabic ? $"صنف: {Item.ItemNameAr}" : $"Item: {Item.ItemNameEn}")
+            </MudText>
+            
+            <div class="d-flex align-center mb-4 p-3 bg-light rounded">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Color="MudBlazor.Color.Info" Class="me-2" />
+                <MudText>
+                    @(IsArabic ? $"الكمية الحالية: {Item.CurrentQuantity:N2} {Item.Unit}" : $"Current Stock: {Item.CurrentQuantity:N2} {Item.Unit}")
+                </MudText>
+            </div>
+
+            <MudSelect T="int" Label="@(IsArabic ? "نوع الحركة" : "Transaction Type")" @bind-Value="Type" Variant="MudBlazor.Variant.Outlined" Class="mb-4">
+                <MudSelectItem Value="10">@(IsArabic ? "إضافة مخزنية (+)" : "Stock In (+)")</MudSelectItem>
+                <MudSelectItem Value="20">@(IsArabic ? "صرف / سحب (-)" : "Stock Out (-)")</MudSelectItem>
+                <MudSelectItem Value="40">@(IsArabic ? "تعديل يدوي (تغيير نسبي)" : "Manual Adjustment (Relative)")</MudSelectItem>
+                <MudSelectItem Value="50">@(IsArabic ? "تالف (-)" : "Damaged (-)")</MudSelectItem>
+                <MudSelectItem Value="60">@(IsArabic ? "رصيد افتتاحي / جرد (تعديل القيمة الحالية)" : "Opening Stock / Physical Count (Set Absolute)")</MudSelectItem>
+            </MudSelect>
+
+            <MudNumericField @bind-Value="QuantityChange" 
+                            Label="@(IsArabic ? (Type == 60 ? "الكمية الفعلية الآن" : "الكمية") : (Type == 60 ? "Actual Quantity Now" : "Quantity"))" 
+                            Variant="MudBlazor.Variant.Outlined" 
+                            Min="0" 
+                            Class="mb-4" />
+
+            <MudTextField @bind-Value="Notes" 
+                         Label="@(IsArabic ? "ملاحظات" : "Notes")" 
+                         Variant="MudBlazor.Variant.Outlined" 
+                         Lines="2" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@(IsArabic ? "إلغاء" : "Cancel")</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="Submit" Disabled="QuantityChange < 0">
+            @(IsArabic ? "حفظ" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public InventoryItemDto Item { get; set; } = default!;
+
+    private decimal QuantityChange { get; set; } = 1;
+    private int Type { get; set; } = 10; 
+    private string? Notes { get; set; }
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task Submit()
+    {
+        var dto = new UpdateStockDto
+        {
+            MenuSalesItemId = Item.MenuSalesItemId,
+            QuantityChange = QuantityChange,
+            TransactionType = Type,
+            Notes = Notes
+        };
+
+        ServiceResponse<bool> response;
+
+        if (Type == 60)
+        {
+            // Set Absolute Quantity
+            response = await InventoryService.SetOpeningStockAsync(dto);
+        }
+        else
+        {
+            // Adjust Relative Quantity
+            if (Type == 20 || Type == 50) dto.QuantityChange = -QuantityChange;
+            response = await InventoryService.UpdateStockAsync(dto);
+        }
+
+        if (response.Success)
+        {
+            Snackbar.Add(IsArabic ? "تم تحديث المخزن بنجاح" : "Stock updated successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(response.Message ?? "Error updating stock", Severity.Error);
+        }
+    }
+}

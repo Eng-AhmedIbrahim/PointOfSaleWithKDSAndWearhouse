@@ -1,0 +1,23 @@
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex justify-center align-center p-2" style="min-height: 300px; background: #000;">
+            <img src="@DisplayUrl" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" OnClick="Close" FullWidth="true" Style="height: 46px;">@(IsArabic ? "إغلاق" : "Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? ImageUrl { get; set; }
+
+    private string DisplayUrl => (ImageUrl?.StartsWith("data:") ?? false) || (ImageUrl?.Contains("/") ?? false)
+        ? ImageUrl 
+        : $"data:image/jpeg;base64,{ImageUrl}";
+
+    private bool IsArabic => System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+
+    private void Close() => MudDialog.Close();
+}

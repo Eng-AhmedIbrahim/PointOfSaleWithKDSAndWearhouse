@@ -1,0 +1,600 @@
+@page "/settings/printersettings"
+@inject NotificationService NotificationService
+@inject LocalizationService Localizer
+@inject IOrderSettingsService OrderSettingsService
+@inject IBranchService BranchService
+@inject IPrinterServices PrinterServices
+@using Radzen
+@using Radzen.Blazor
+@using POS.Contract.Dtos.CompanyDtos
+@using BlazorBase.ERPFrontServices.BranchServices
+@using POS.Core.Services.Contract.PrinterServices
+
+<div class="orders-settings-wrapper" dir="rtl">
+    <header class="settings-header">
+        <div class="header-main-info">
+            <div class="icon-box-modern d-flex align-center justify-center rz-p-2">
+                <RadzenIcon Icon="print" IconColor="var(--rz-primary)" Size="32px" />
+            </div>
+            <div class="text-group">
+                <RadzenText TextStyle="TextStyle.H5" Class="rz-m-0 font-weight-bold">@Localizer["PrintSettings"]</RadzenText>
+                <div class="status-indicator d-flex align-center">
+                    <span class="dot rz-bg-success"></span>
+                    <RadzenText TextStyle="TextStyle.Caption" Class="rz-m-0 rz-ml-1">@Localizer["ActiveDevice"]: <b>@_computerName</b></RadzenText>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <RadzenTabs @bind-SelectedIndex="_activeTab" RenderMode="TabRenderMode.Client" Class="header-tabs">
+                <Tabs>
+                    <RadzenTabsItem Text="@Localizer["KitchenSettingsTab"]" Icon="kitchen" />
+                    <RadzenTabsItem Text="@Localizer["PrinterSettingsTab"]" Icon="print" />
+                </Tabs>
+            </RadzenTabs>
+        </div>
+    </header>
+
+    <main class="main-content">
+
+        @if (_isLoading)
+        {
+            <div class="loading-state">
+                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body1" Class="rz-mt-4 pulse-text">@Localizer["SyncingSettings"]</RadzenText>
+            </div>
+        }
+        else
+        {
+            <div class="pa-4">
+                @if (_activeTab == 0)
+                {
+                    <div class="tab-panel-content">
+                        <div class="glass-card border-top-orange max-w-card mx-auto">
+                            <div class="c-header d-flex justify-space-between align-center">
+                                <div class="d-flex align-center gap-2">
+                                    <RadzenIcon Icon="kitchen" Size="24px" />
+                                    <RadzenText TextStyle="TextStyle.H6" Class="rz-m-0">@Localizer["KitchensSection"]</RadzenText>
+                                </div>
+                                <RadzenButton Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Click="OpenAddKitchen" Size="ButtonSize.Medium" Variant="Radzen.Variant.Text" />
+                            </div>
+                            <div class="c-body pa-0">
+                                <RadzenDataList Data="@_kitchens" TItem="KitchenTypeToReturnDto" CssClass="rz-p-0">
+                                    <Template Context="kitchen">
+                                        <div class="d-flex align-center justify-space-between w-100 px-6 py-2 list-item-hover clickable" @onclick="@(() => EditKitchen(kitchen))">
+                                            <RadzenText TextStyle="TextStyle.Body1" Class="rz-m-0 font-weight-bold">@kitchen.KitchenName</RadzenText>
+                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" 
+                                                         Click="@(() => DeleteKitchen(kitchen.Id))" StopPropagation="true" Variant="Radzen.Variant.Text" />
+                                        </div>
+                                    </Template>
+                                </RadzenDataList>
+                            </div>
+                        </div>
+
+                        @if (_showKitchenForm)
+                        {
+                            <div class="glass-card mt-6 border-top-blue max-w-card mx-auto animate-fade-in shadow-lg">
+                                <div class="c-header d-flex align-center justify-space-between">
+                                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H3" Class="rz-m-0">
+                                        @(_editingKitchenId == 0 ? Localizer["AddKitchen"] : Localizer["EditKitchen"])
+                                    </RadzenText>
+                                </div>
+                                <div class="c-body pa-6">
+                                    <RadzenStack Gap="1.5rem">
+                                        <RadzenFormField Text="@Localizer["KitchenNameLabel"]" Variant="@rzVariant" Style="width: 100%;">
+                                            <RadzenTextBox @bind-Value="_kitchenModel.KitchenName" Class="w-100" />
+                                        </RadzenFormField>
+                                        
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem">
+                                            <RadzenButton Text="@Localizer["Save"]" Click="SaveKitchen" ButtonStyle="ButtonStyle.Primary" Icon="save" Size="ButtonSize.Small" />
+                                            <RadzenButton Text="@Localizer["Cancel"]" Click="@(() => _showKitchenForm = false)" ButtonStyle="ButtonStyle.Light" Variant="Radzen.Variant.Text" Size="ButtonSize.Small" />
+                                        </RadzenStack>
+                                    </RadzenStack>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="tab-panel-content">
+                        <div class="glass-card border-top-purple max-w-card mx-auto">
+                            <div class="c-header d-flex justify-space-between align-center">
+                                <RadzenButton Icon="add_circle" ButtonStyle="ButtonStyle.Info" Click="OpenAddPrinter" Size="ButtonSize.Small" class="add-printer-btn-rz" />
+                                <div class="d-flex align-center gap-2">
+                                    <RadzenText TextStyle="TextStyle.H6" Class="rz-m-0 printer-title-text">@Localizer["PrinterSettingsTab"]</RadzenText>
+                                    <RadzenIcon Icon="print" />
+                                </div>
+                            </div>
+                            <div class="c-body pa-0">
+                                <RadzenDataList Data="@_kitchenPrinters" TItem="KitchenPrintersToReturnDto" CssClass="rz-p-0">
+                                    <Template Context="printer">
+                                        <div class="d-flex align-center justify-space-between w-100 px-6 py-2 printer-list-item-premium clickable" @onclick="@(() => EditPrinter(printer))">
+                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" 
+                                                         Click="@(() => DeletePrinter(printer.Id))" StopPropagation="true" Variant="Radzen.Variant.Text" />
+                                            
+                                            <div class="printer-info-right text-right">
+                                                <RadzenText TextStyle="TextStyle.Body1" Class="rz-m-0 device-name-text">
+                                                    @( _kitchens.FirstOrDefault(k => k.Id == printer.KitchenTypeId)?.KitchenName ?? "Unknown Kitchen" )
+                                                </RadzenText>
+                                                <RadzenText  TextStyle="TextStyle.Caption" Class="rz-m-0 kitchen-name-sub" >@printer.DeviceName</RadzenText>
+                                            </div>
+                                        </div>
+                                    </Template>
+                                </RadzenDataList>
+                            </div>
+                        </div>
+
+                        @if (_showPrinterForm)
+                        {
+                            <div class="glass-card mt-6 border-top-blue max-w-card mx-auto animate-fade-in shadow-xl mb-12">
+                                <div class="c-header d-flex align-center justify-space-between">
+                                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H3" Class="rz-m-0">
+                                        @(_editingPrinterId == 0 ? Localizer["AddPrinter"] : Localizer["EditPrinter"])
+                                    </RadzenText>
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Info" IsPill="true" class="rz-ml-2">
+                                        <RadzenIcon Icon="computer" Size="16px" class="rz-mr-1" /> @_computerName
+                                    </RadzenBadge>
+                                </div>
+                                <div class="c-body">
+                                    <RadzenStack Gap="1.5rem">
+                                        <RadzenFormField Text="@Localizer["KitchenSelectLabel"]" Variant="@rzVariant" Style="width: 100%;">
+                                            <RadzenDropDown TValue="int?" @bind-Value="_printerModel.KitchenTypeId" 
+                                                          Data="@AvailableKitchens" TextProperty="KitchenName" ValueProperty="Id" 
+                                                          Placeholder="@Localizer["KitchenSelectLabel"]" Class="w-100" />
+                                        </RadzenFormField>
+
+                                        <RadzenDivider />
+                                        
+                                        <div class="d-flex align-center gap-2 mb-2">
+                                            <RadzenIcon Icon="print" IconColor="var(--rz-primary)" />
+                                            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-m-0 font-weight-bold">@Localizer["PrinterCopiesSetup"]</RadzenText>
+                                        </div>
+
+                                        <div class="copies-grid">
+                                            @for (int i = 1; i <= 6; i++)
+                                            {
+                                                int index = i;
+                                                <RadzenFormField Text="@($"Copy {index}")" Variant="@rzVariant">
+                                                    <RadzenDropDown TValue="string" 
+                                                                  Value="@GetCopyValue(index)" 
+                                                                  ValueChanged="@(v => SetCopyValue(index, v))"
+                                                                  Data="@_installedPrinters" 
+                                                                  AllowClear="true" Placeholder="Select Printer" Class="w-100" />
+                                                </RadzenFormField>
+                                            }
+                                        </div>
+
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="rz-mt-4">
+                                            <RadzenButton Text="@Localizer["Save"]" Click="SavePrinter" ButtonStyle="ButtonStyle.Primary" Icon="save" Size="ButtonSize.Medium" Class="rz-px-6" />
+                                            <RadzenButton Text="@Localizer["Cancel"]" Click="@(() => _showPrinterForm = false)" ButtonStyle="ButtonStyle.Light" Variant="Radzen.Variant.Text" Size="ButtonSize.Medium" />
+                                        </RadzenStack>
+                                    </RadzenStack>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </main>
+</div>
+
+<style>
+    .clickable { cursor: pointer; }
+    .add-printer-btn-rz {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+    }
+ 
+    :root {
+        --bg-soft: #f8fafc;
+        --border-color: #e2e8f0;
+        --primary-main: #2563eb;
+        --secondary-pink: #ec4899;
+    }
+
+    .orders-settings-wrapper {
+        background-color: var(--bg-soft);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .settings-header {
+        background: white;
+        padding: 8px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .main-content { padding: 0; flex: 1; overflow-y: auto; }
+    
+    .tab-panel-content { padding: 16px; }
+    .max-w-card { max-width: 900px; }
+
+    .glass-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .c-header {
+        padding: 10px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex; align-items: center; gap: 12px;
+        font-weight: 700;
+        background: #ffffff;
+    }
+
+    .printer-header-premium {
+        background: #fcfcfc;
+    }
+
+    .printer-title-text { font-weight: 800; color: #1e293b; }
+
+    .c-body { padding: 12px 20px; flex: 1; }
+    .grid-fields-container { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    
+    .copies-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+    }
+
+    .border-top-blue { border-top: 6px solid #3b82f6; }
+    .border-top-orange { border-top: 6px solid #f59e0b; }
+    .border-top-purple { border-top: 6px solid #8b5cf6; }
+
+    .custom-Filled-input { margin-top: 0; }
+    
+    .list-item-hover:hover { background-color: #f8fafc !important; }
+
+    /* Printer List Styles Based on Screenshot */
+    .printer-list { padding: 0; }
+    .printer-list-item-premium {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .printer-list-item-premium:hover {
+        background-color: #fbfcfe;
+    }
+
+    .device-name-text { font-weight: 700; color: #334155; font-size: 1.1rem; }
+    .kitchen-name-sub { color: var(--secondary-pink); font-weight: 700; display: block; }
+    
+    .add-printer-fab {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+    }
+
+    .loading-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .glass-card-sm {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+
+    .header-tabs {
+        border-bottom: none !important;
+    }
+    .header-tabs .rz-tabview-nav {
+        background: transparent !important;
+        padding: 0 !important;
+        border-bottom: none !important;
+    }
+    .header-tabs .rz-tabview-panels {
+        display: none !important;
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private int _activeTab = 0;
+    private string _computerName = Environment.MachineName;
+    Radzen.Variant rzVariant = Radzen.Variant.Outlined;
+    
+    // Kitchens & Printers State
+    private List<KitchenTypeToReturnDto> _kitchens = new();
+    private List<KitchenPrintersToReturnDto> _kitchenPrinters = new();
+    private List<BranchToReturnDto> _branchesList = new();
+    private List<string> _installedPrinters = new();
+    private int _selectedBranchId;
+
+    private bool _showKitchenForm;
+    private bool _showPrinterForm;
+    private KitchenTypeDto _kitchenModel = new();
+    private KitchenPrintersDto _printerModel = new();
+    private int _editingKitchenId;
+    private int _editingPrinterId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBranches();
+        await LoadInstalledPrinters();
+        await LoadKitchensAndPrinters();
+    }
+
+    private async Task LoadInstalledPrinters()
+    {
+        _installedPrinters = await PrinterServices.GetInstalledPrinters() ?? new();
+    }
+
+    private async Task LoadBranches()
+    {
+        var branches = await BranchService.GetBranches();
+        _branchesList = branches?.ToList() ?? new();
+        if (_branchesList.Any() && _selectedBranchId == 0)
+        {
+            _selectedBranchId = _branchesList.First().Id;
+        }
+    }
+
+    private async Task OnBranchChanged()
+    {
+        await LoadKitchensAndPrinters();
+    }
+
+    private async Task LoadKitchensAndPrinters()
+    {
+        _isLoading = true;
+        try {
+            _kitchens = await OrderSettingsService.GetAllKitchenTypesAsync() ?? new();
+            var allPrinters = await OrderSettingsService.GetAllKitchenPrintersAsync() ?? new();
+            
+            // Filter printers for THIS device 
+            _kitchenPrinters = allPrinters.Where(p => p.DeviceName == _computerName).ToList();
+
+            // Use selected branch for seeding
+            int branchId = _selectedBranchId;
+            if (branchId == 0)
+            {
+                var settings = await OrderSettingsService.GetOrderSettingsAsync(_computerName);
+                if (settings != null && settings.Any())
+                {
+                    branchId = settings.First().BranchID;
+                }
+                else if (_branchesList.Any())
+                {
+                    branchId = _branchesList.First().Id;
+                }
+                else
+                {
+                    branchId = 1;
+                }
+            }
+
+            // Seeding logic for the first two kitchens (Cash and Backup by default)
+            bool neededReload = false;
+            var sortedKitchens = _kitchens.OrderBy(k => k.Id).ToList();
+            
+            if (sortedKitchens.Count < 1) {
+                await OrderSettingsService.CreateKitchenTypeAsync(new KitchenTypeDto { KitchenName = "Cash", BranchId = branchId });
+                neededReload = true;
+            }
+            if (sortedKitchens.Count < 2) {
+                await OrderSettingsService.CreateKitchenTypeAsync(new KitchenTypeDto { KitchenName = "Backup", BranchId = branchId });
+                neededReload = true;
+            }
+            
+            if (neededReload) {
+                _kitchens = await OrderSettingsService.GetAllKitchenTypesAsync() ?? new();
+                sortedKitchens = _kitchens.OrderBy(k => k.Id).ToList();
+            }
+            
+            // Ensure per-device printer records exist for the first two kitchens
+            for (int i = 0; i < Math.Min(2, sortedKitchens.Count); i++)
+            {
+                var kitchen = sortedKitchens[i];
+                if (!_kitchenPrinters.Any(p => p.KitchenTypeId == kitchen.Id)) {
+                    await OrderSettingsService.CreateKitchenPrinterAsync(new KitchenPrintersDto { KitchenTypeId = kitchen.Id, DeviceName = _computerName });
+                    neededReload = true;
+                }
+            }
+            
+            if (neededReload) {
+                 allPrinters = await OrderSettingsService.GetAllKitchenPrintersAsync() ?? new();
+                 _kitchenPrinters = allPrinters.Where(p => p.DeviceName == _computerName).ToList();
+            }
+        } finally {
+            _isLoading = false;
+        }
+    }
+
+    // Kitchen CRUD logic
+    private void OpenAddKitchen()
+    {
+        _editingKitchenId = 0;
+        _kitchenModel = new KitchenTypeDto { BranchId = _selectedBranchId };
+        _showKitchenForm = true;
+        _showPrinterForm = false;
+    }
+
+    private void EditKitchen(KitchenTypeToReturnDto kitchen)
+    {
+        _editingKitchenId = kitchen.Id;
+        _kitchenModel = new KitchenTypeDto { KitchenName = kitchen.KitchenName };
+        _showKitchenForm = true;
+        _showPrinterForm = false;
+    }
+
+    private async Task SaveKitchen()
+    {
+        var isArabic = Localizer.GetCurrentLanguage() == "ar";
+
+        if (string.IsNullOrWhiteSpace(_kitchenModel.KitchenName))
+        {
+             NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = isArabic ? "يرجى إدخال اسم المطبخ" : "Please enter kitchen name" });
+             return;
+        }
+
+        if (_kitchens.Any(k => k.KitchenName.Trim().ToLower() == _kitchenModel.KitchenName.Trim().ToLower() && (_editingKitchenId == 0 || k.Id != _editingKitchenId)))
+        {
+             NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = isArabic ? "هذا الاسم موجود بالفعل" : "Kitchen name already exists" });
+             return;
+        }
+
+        bool success;
+        if (_editingKitchenId == 0)
+            success = await OrderSettingsService.CreateKitchenTypeAsync(_kitchenModel) != null;
+        else
+            success = await OrderSettingsService.UpdateKitchenTypeAsync(_editingKitchenId, _kitchenModel);
+
+        if (success) {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = isArabic ? "تم الحفظ بنجاح" : "Saved Successfully" });
+            _showKitchenForm = false;
+            await LoadKitchensAndPrinters();
+        } else {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = isArabic ? "خطأ عند الحفظ" : "Error Saving" });
+        }
+    }
+
+    private async Task DeleteKitchen(int id)
+    {
+        var isArabic = Localizer.GetCurrentLanguage() == "ar";
+        var sortedKitchens = _kitchens.OrderBy(k => k.Id).ToList();
+        var protectedIds = sortedKitchens.Take(2).Select(k => k.Id).ToList();
+        
+        if (protectedIds.Contains(id))
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = isArabic ? "لا يمكن حذف المطابخ الافتراضية الرئيسية" : Localizer["CannotDeleteDefaultKitchen"] });
+            return;
+        }
+
+        if (await OrderSettingsService.DeleteKitchenTypeAsync(id))
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = isArabic ? "تم الحذف بنجاح" : Localizer["Deleted"] });
+            await LoadKitchensAndPrinters();
+        }
+        else
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = isArabic ? "فشل حذف المطبخ، يرجى المحاولة مرة أخرى" : "Failed to delete kitchen" });
+        }
+    }
+
+    // Printer CRUD logic
+    private void OpenAddPrinter()
+    {
+        _editingPrinterId = 0;
+        _printerModel = new KitchenPrintersDto { DeviceName = _computerName };
+        _showPrinterForm = true;
+        _showKitchenForm = false;
+    }
+
+    private void EditPrinter(KitchenPrintersToReturnDto printer)
+    {
+        _editingPrinterId = printer.Id;
+        _printerModel = new KitchenPrintersDto { 
+            DeviceName = printer.DeviceName, 
+            KitchenTypeId = printer.KitchenTypeId,
+            Copy1 = printer.Copy1,
+            Copy2 = printer.Copy2,
+            Copy3 = printer.Copy3,
+            Copy4 = printer.Copy4,
+            Copy5 = printer.Copy5,
+            Copy6 = printer.Copy6,
+            Copy7 = printer.Copy7,
+            Copy8 = printer.Copy8,
+            Copy9 = printer.Copy9,
+            Copy10 = printer.Copy10
+        };
+        _showPrinterForm = true;
+        _showKitchenForm = false;
+    }
+
+    private List<KitchenTypeToReturnDto> AvailableKitchens => 
+        _kitchens.Where(k => 
+            !_kitchenPrinters.Any(p => p.KitchenTypeId == k.Id) || 
+            (_editingPrinterId != 0 && _printerModel.KitchenTypeId == k.Id)
+        ).ToList();
+
+    private async Task SavePrinter()
+    {
+        var isArabic = Localizer.GetCurrentLanguage() == "ar";
+
+        if (_printerModel.KitchenTypeId == null)
+        {
+            NotificationService.Notify(new NotificationMessage { 
+                Severity = NotificationSeverity.Error, 
+                Summary = isArabic ? "يرجى اختيار المطبخ" : "Please select a kitchen" 
+            });
+            return;
+        }
+
+        // Re-validate that this kitchen doesn't have a record on this device (except if we are editing IT)
+        if (_kitchenPrinters.Any(p => p.KitchenTypeId == _printerModel.KitchenTypeId && (_editingPrinterId == 0 || p.Id != _editingPrinterId)))
+        {
+            NotificationService.Notify(new NotificationMessage { 
+                Severity = NotificationSeverity.Warning, 
+                Summary = isArabic ? "توجد طابعة مضافة بالفعل لهذا المطبخ" : "Printer already assigned for this kitchen" 
+            });
+            return;
+        }
+
+        _printerModel.DeviceName = _computerName; // Force this device
+        bool success;
+        if (_editingPrinterId == 0)
+            success = await OrderSettingsService.CreateKitchenPrinterAsync(_printerModel) != null;
+        else
+            success = await OrderSettingsService.UpdateKitchenPrinterAsync(_editingPrinterId, _printerModel);
+
+        if (success) {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = Localizer["SavedSuccessfully"] });
+            _showPrinterForm = false;
+            await LoadKitchensAndPrinters();
+        } else {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = Localizer["ErrorSaving"] });
+        }
+    }
+
+    private async Task DeletePrinter(int id)
+    {
+        var isArabic = Localizer.GetCurrentLanguage() == "ar";
+        if (await OrderSettingsService.DeleteKitchenPrinterAsync(id)) {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = isArabic ? "تم الحذف بنجاح" : Localizer["Deleted"] });
+            await LoadKitchensAndPrinters();
+        }
+        else {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = isArabic ? "فشل حذف إعداد الطابعة" : "Failed to delete printer" });
+        }
+    }
+
+    private string GetCopyValue(int index)
+    {
+        return typeof(KitchenPrintersDto).GetProperty($"Copy{index}")?.GetValue(_printerModel) as string ?? "";
+    }
+
+    private void SetCopyValue(int index, string value)
+    {
+        typeof(KitchenPrintersDto).GetProperty($"Copy{index}")?.SetValue(_printerModel, value);
+    }
+    
+    // Helper to allow binding to dynamic properties
+    private string Copy1 { get => _printerModel.Copy1; set => _printerModel.Copy1 = value; }
+    private string Copy2 { get => _printerModel.Copy2; set => _printerModel.Copy2 = value; }
+    private string Copy3 { get => _printerModel.Copy3; set => _printerModel.Copy3 = value; }
+    private string Copy4 { get => _printerModel.Copy4; set => _printerModel.Copy4 = value; }
+    private string Copy5 { get => _printerModel.Copy5; set => _printerModel.Copy5 = value; }
+    private string Copy6 { get => _printerModel.Copy6; set => _printerModel.Copy6 = value; }
+}

@@ -1,0 +1,142 @@
+.role-management-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    height: 100%;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Cairo', 'Inter', sans-serif !important;
+    box-sizing: border-box;
+}
+
+.search-container {
+    margin-bottom: 0.75rem;
+    width: 100%;
+    overflow: hidden;
+    max-width: 450px;
+    position: relative;
+}
+
+.grid-container {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 2px solid #e2e8f0;
+    background: white;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Fix header text color and alignment */
+::deep .rz-grid-table thead th {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    padding: 0.5rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+::deep .rz-grid-table thead th .rz-column-title {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    font-size: 1.05rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table body styles */
+::deep .rz-grid-table tbody td {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+    padding: 0.5rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+::deep .rz-datagrid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100% !important;
+    border: none !important;
+}
+
+::deep .rz-datagrid-data {
+    overflow-y: auto !important;
+    flex: 1;
+}
+
+::deep .rz-grid-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+::deep .rz-grid-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+::deep .rz-grid-table tbody tr:hover td {
+    background-color: #f8fafc !important;
+}
+
+/* Tabs and Layout responsiveness */
+::deep .rz-tabs,
+::deep .rz-tabview,
+::deep .rz-tabview-panels {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    height: 100% !important;
+}
+
+.tab-content {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.rtl-mode ::deep .rz-grid-table {
+    direction: rtl !important;
+}
+
+/* Global Bold Font Overrides */
+::deep .rz-form-field-label {
+    font-weight: 900 !important;
+    color: #475569 !important;
+    font-size: 1rem !important;
+}
+
+::deep .rz-textbox,
+::deep .rz-dropdown-label {
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    font-size: 1.15rem !important;
+}
+
+/* RTL Specific Alignment */
+.rtl-mode ::deep .rz-textbox,
+.rtl-mode ::deep .rz-dropdown-label {
+    text-align: right !important;
+    direction: rtl !important;
+}
+
+.rtl-mode ::deep .rz-form-field-label {
+    text-align: right !important;
+}
+
+/* MudTextField Search Bold */
+::deep .premium-search-input input {
+    font-weight: 900 !important;
+    font-size: 1.1rem !important;
+}
+
+.rtl-mode ::deep .premium-search-input input {
+    text-align: right !important;
+}

@@ -1,0 +1,210 @@
+@using MudBlazor
+@using Radzen
+@using Radzen.Blazor
+@using POS.Contract.Dtos.AccountDtos
+@using BlazorBase.ERPFrontServices.AccountServices
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+
+<style>
+    .premium-dialog {
+        border-radius: 16px !important;
+        overflow: hidden;
+    }
+    .premium-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        margin: -16px -24px 16px -24px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    }
+    .premium-header-icon {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px;
+        border-radius: 12px;
+    }
+    .field-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.75rem;
+        transition: all 0.2s;
+    }
+    .field-card:focus-within {
+        border-color: #4f46e5;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Bold Labels and Inputs */
+    ::deep .rz-form-field-label {
+        font-weight: 900 !important;
+        color: #475569 !important;
+        font-size: 1rem !important;
+    }
+    ::deep .rz-textbox, 
+    ::deep .rz-dropdown-label,
+    ::deep .rz-password input {
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        font-size: 1.15rem !important; /* Larger font */
+    }
+
+    /* RTL Alignment for Arabic */
+    .premium-dialog[dir="rtl"] ::deep .rz-textbox,
+    .premium-dialog[dir="rtl"] ::deep .rz-dropdown-label,
+    .premium-dialog[dir="rtl"] ::deep .rz-password input {
+        text-align: right !important;
+        direction: rtl !important;
+    }
+
+    .premium-dialog[dir="rtl"] ::deep .rz-form-field-label {
+        text-align: right !important;
+        width: 100% !important;
+    }
+
+    .status-section {
+        background: #eff6ff;
+        border: 2px dashed #bfdbfe;
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+</style>
+
+<MudDialog Class="premium-dialog" dir="@(IsArabic ? "rtl" : "ltr")">
+    <TitleContent>
+        <div class="premium-header">
+            <div class="premium-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Inherit" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h5" Style="font-weight: 900;">@(IsArabic ? "تعديل الملف الشخصي" : "Edit User Profile")</MudText>
+                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">@(IsArabic ? "تحديث بيانات المستخدم الحالية" : "Update existing user information")</MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <RadzenTemplateForm TItem="UserDto" Data="@User" Submit="@OnSubmit" id="edit-user-form">
+            <div style="display: flex; flex-direction: column; gap: 1rem; padding-top: 0.5rem;">
+                <div class="field-card">
+                    <RadzenFormField Text="@(IsArabic ? "اسم المستخدم" : "Username")" Style="width: 100%;" Variant="Radzen.Variant.Flat">
+                        <RadzenTextBox @bind-Value="User.UserName" Name="UserName" Style="width: 100%; border:none; background:transparent;" />
+                        <RadzenRequiredValidator Component="UserName" Text="@(IsArabic ? "حقل مطلوب" : "Required")" />
+                    </RadzenFormField>
+                </div>
+                
+                <div class="field-card">
+                    <RadzenFormField Text="@(IsArabic ? "الاسم الكامل (اختياري)" : "Full Name (Optional)")" Style="width: 100%;" Variant="Radzen.Variant.Flat">
+                        <RadzenTextBox @bind-Value="User.ArabicName" Style="width: 100%; border:none; background:transparent;" />
+                    </RadzenFormField>
+                </div>
+
+                <div class="field-card">
+                    <RadzenFormField Text="@(IsArabic ? "البريد الإلكتروني (اختياري)" : "Email (Optional)")" Style="width: 100%;" Variant="Radzen.Variant.Flat">
+                        <RadzenTextBox @bind-Value="User.Email" Name="Email" Style="width: 100%; border:none; background:transparent;" />
+                    </RadzenFormField>
+                </div>
+
+                <div class="field-card">
+                    <RadzenFormField Text="@(IsArabic ? "رقم الهاتف (اختياري)" : "Phone Number (Optional)")" Style="width: 100%;" Variant="Radzen.Variant.Flat">
+                        <RadzenTextBox @bind-Value="User.PhoneNumber" Style="width: 100%; border:none; background:transparent;" />
+                    </RadzenFormField>
+                </div>
+
+                <div class="field-card">
+                    <RadzenFormField Text="@(IsArabic ? "الدور الوظيفي" : "System Role")" Style="width: 100%;" Variant="Radzen.Variant.Flat">
+                        <RadzenDropDown @bind-Value="SelectedRole" Data="@Roles" TextProperty="Name" ValueProperty="Name" Style="width: 100%; border:none; background:transparent;" />
+                    </RadzenFormField>
+                </div>
+
+                <div class="status-section">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <MudIcon Icon="@(User.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)" 
+                                 Color="@(User.IsActive ? Color.Success : Color.Error)" />
+                        <MudText Style="font-weight: 900; color: #1e293b;">@(IsArabic ? "حالة الحساب" : "Account Status")</MudText>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                         <span style="font-weight: 900; color: @(User.IsActive ? "#10b981" : "#ef4444");">
+                            @(User.IsActive ? (IsArabic ? "نشط" : "Active") : (IsArabic ? "غير نشط" : "Inactive"))
+                        </span>
+                        <RadzenSwitch @bind-Value="User.IsActive" />
+                    </div>
+                </div>
+            </div>
+        </RadzenTemplateForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Style="font-weight: 900;">@(IsArabic ? "تراجع" : "Discard")</MudButton>
+        <MudButton ButtonType="MudBlazor.ButtonType.Submit" form="edit-user-form" Variant="MudBlazor.Variant.Filled"
+                   Color="Color.Primary" Style="font-weight: 900; padding: 0.6rem 2rem; border-radius: 12px;" 
+                   Disabled="@IsSaving">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Save" Class="me-2" />
+                <MudText>@(IsArabic ? "حفظ التغييرات" : "Save Changes")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public UserDto User { get; set; } = new();
+    [Parameter] public List<RoleToReturnDto> Roles { get; set; } = new();
+    [Parameter] public bool IsArabic { get; set; }
+
+    private string? SelectedRole { get; set; }
+    private bool IsSaving { get; set; }
+
+    protected override void OnInitialized()
+    {
+        SelectedRole = User.Roles?.FirstOrDefault();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task OnSubmit(UserDto model)
+    {
+        IsSaving = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(SelectedRole))
+            {
+                model.Roles = new List<string> { SelectedRole };
+            }
+
+            model.DisplayName = model.ArabicName;
+
+            var success = await AccountService.UpdateUser(model);
+            if (success)
+            {
+                Snackbar.Add(IsArabic ? "تم تحديث البيانات بنجاح" : "User updated successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(IsArabic ? "فشل في تحديث البيانات" : "Failed to update user", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+}

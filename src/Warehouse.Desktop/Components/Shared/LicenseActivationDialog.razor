@@ -1,0 +1,278 @@
+@using BlazorBase.ERPFrontServices.LicensingServices
+@using MudBlazor
+@using System.Net.Http.Json
+@using POS.Core.Entities.Settings
+@inject ILicenseService LicenseService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IHttpClientFactory HttpClientFactory
+@inject BlazorBase.API.ApiSettings ApiSettings
+
+<MudDialog DisableSidePadding="true">
+    <DialogContent>
+        <div class="d-flex flex-column" style="min-width: 980px; min-height: 520px; max-height: 88vh; overflow-y: auto; padding: 28px 32px; font-family: 'Tajawal', sans-serif; background: #f8f9fb; direction: rtl;">
+
+            @* Header *@
+            <div class="d-flex flex-column align-center mb-6">
+                <div style="background: linear-gradient(135deg, #1565C0, #1976D2); border-radius: 50%; width: 70px; height: 70px; display:flex; align-items:center; justify-content:center; margin-bottom: 12px; box-shadow: 0 4px 18px rgba(25,118,210,0.3);">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Style="color:white; font-size:2.2rem;" />
+                </div>
+                <MudText Typo="Typo.h5" Align="Align.Center" Style="font-weight: 800; color: #1565C0; letter-spacing: -0.5px;">نظـام إدارة التراخيص المركزية</MudText>
+            </div>
+
+            @if (!_isAuthenticated)
+            {
+                <MudPaper Elevation="0" Class="pa-8 mx-auto" Style="max-width: 640px; width: 100%; border-radius: 16px; background: white; border: 1px solid #e0e7ff; box-shadow: 0 8px 32px rgba(25,118,210,0.08);">
+                    <div class="d-flex flex-column">
+                        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-5" Style="font-weight: 700; color: #212121;">تأكيد صلاحيات الإدارة</MudText>
+                        <MudTextField @bind-Value="_username" Label="اسم المستخدم" Variant="MudBlazor.Variant.Outlined" FullWidth Class="mb-4"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" Style="font-size:1rem;" />
+                        <MudTextField @bind-Value="_password" Label="كلمة المرور" Variant="MudBlazor.Variant.Outlined" FullWidth Class="mb-6"
+                                      InputType="@_passwordInput"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@(_passwordInput == InputType.Password ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                      OnAdornmentClick="TogglePassword" Style="font-size:1rem;" />
+                        <MudButton Color="Color.Primary" Variant="MudBlazor.Variant.Filled" Size="Size.Large" FullWidth="true" OnClick="Authenticate"
+                                   Style="font-weight:700; font-size:1.05rem; border-radius:10px; height:48px;">دخول وإدارة التراخيص</MudButton>
+                    </div>
+                </MudPaper>
+            }
+            else
+            {
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <MudText Typo="Typo.h6" Style="font-weight: 700; color: #1565C0;">قائمة التراخيص المتاحة</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="DoRefresh" />
+                </div>
+
+                @if (_deviceAlreadyRegistered)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">هذا الجهاز مرتبط بالفعل بترخيص نشط.</MudAlert>
+                }
+
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mx-auto d-block my-8" />
+                }
+                else
+                {
+                    <MudTable T="License" Items="@_licenses" Hover="true" Striped="true" Elevation="1">
+                        <HeaderContent>
+                            <MudTh>الشركة / الفرع</MudTh>
+                            <MudTh>تاريخ الانتهاء</MudTh>
+                            <MudTh>نوع الترخيص</MudTh>
+                            <MudTh>الجهاز المرتبط</MudTh>
+                            <MudTh>الإجراء</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="lic">
+                            <MudTd>
+                                <div class="d-flex flex-column">
+                                    <MudText Typo="Typo.body2" Style="font-weight:700">@lic.BranchName</MudText>
+                                    <MudText Typo="Typo.caption">@lic.CustomerName</MudText>
+                                </div>
+                            </MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetExpiryColor(lic)" Variant="MudBlazor.Variant.Outlined">
+                                    @GetExpiryText(lic)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetLicenseColor(lic)" Variant="MudBlazor.Variant.Filled" Icon="@GetLicenseIcon(lic)">
+                                    @GetLicenseLabel(lic)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                @(string.IsNullOrEmpty(lic.ComputerName)
+                                    ? (MarkupString)"<span style='color:green'>\u0645تاح</span>"
+                                    : (MarkupString)$"<span style='color:#c62828'>{lic.ComputerName}</span>")
+                            </MudTd>
+                            <MudTd>
+                                <MudButton Variant="@GetBtnVariant(lic)"
+                                           Color="@GetBtnColor(lic)"
+                                           Size="Size.Small"
+                                           Disabled="@GetBtnDisabled(lic)"
+                                           OnClick="async () => await HandleLicenseAction(lic)">
+                                    @GetBtnLabel(lic)
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">إغلاق</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    private string _username = "";
+    private string _password = "";
+    private bool _isAuthenticated = false;
+    private bool _isLoading = false;
+    private bool _isProcessing = false;
+    private bool _deviceAlreadyRegistered = false;
+    private List<License> _licenses = new();
+    private InputType _passwordInput = InputType.Password;
+    private void TogglePassword() {
+        _passwordInput = _passwordInput == InputType.Password ? InputType.Text : InputType.Password;
+    }
+    private HttpClient Client => HttpClientFactory.CreateClient(ApiSettings.ApiName ?? "Default");
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Authenticate() { 
+        if (LicenseService.VerifyAdminCredentials(_username, _password)) {
+            _isAuthenticated = true; _ = LoadLicensesAsync();
+        } else Snackbar.Add("خطأ في البيانات", Severity.Error);
+    }
+
+    private async Task LoadLicensesAsync() {
+        _isLoading = true; StateHasChanged();
+        try {
+            _licenses = await Client.GetFromJsonAsync<List<License>>("api/License/GetAll") ?? new();
+            var hwId = await LicenseService.GetHardwareIdAsync();
+            _deviceAlreadyRegistered = _licenses.Any(l => !string.IsNullOrEmpty(l.MacAddress) && l.MacAddress.Equals(hwId, StringComparison.OrdinalIgnoreCase));
+        } catch { Snackbar.Add("فشل التحميل", Severity.Error); }
+        finally { _isLoading = false; StateHasChanged(); }
+    }
+
+    private MudBlazor.Color GetExpiryColor(License l) => GetExpiryDate(l) < DateTime.Now ? MudBlazor.Color.Error : MudBlazor.Color.Success;
+    private string GetExpiryText(License l) {
+        var dt = GetExpiryDate(l);
+        return dt == DateTime.MaxValue ? "غير محدد" : dt.ToString("yyyy/MM/dd");
+    }
+    private DateTime GetExpiryDate(License l) {
+        if (!string.IsNullOrEmpty(l.DateLimit) && l.DateLimit.Length >= 8 && 
+            DateTime.TryParseExact(l.DateLimit.Substring(0, 8), "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var dt))
+            return dt;
+        return DateTime.MaxValue;
+    }
+
+    private string GetLicenseLabel(License l) {
+        if (l.LicenseType == "Full" || l.LicenseType == "3") return "POS & BackOffice";
+        if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return "BackOffice";
+        if (l.LicenseType == "POSOnly" || l.LicenseType == "1") return "POS";
+        return l.LicenseType ?? "غير معروف";
+    }
+    private MudBlazor.Color GetLicenseColor(License l) {
+        if (l.LicenseType == "Full"          || l.LicenseType == "3") return MudBlazor.Color.Success;
+        if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return MudBlazor.Color.Info;
+        if (l.LicenseType == "POSOnly"        || l.LicenseType == "1") return MudBlazor.Color.Warning;
+        return MudBlazor.Color.Default;
+    }
+    private string GetLicenseIcon(License l) {
+        if (l.LicenseType == "Full"          || l.LicenseType == "3") return Icons.Material.Filled.Stars;
+        if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return Icons.Material.Filled.AdminPanelSettings;
+        return Icons.Material.Filled.PointOfSale;
+    }
+
+    // Unified action - avoids @if/@else lambda branching that causes CS1662
+    private void DoRefresh() { _ = LoadLicensesAsync(); }
+    private async Task HandleLicenseAction(License lic) {
+        if (string.IsNullOrEmpty(lic.ComputerName)) await OnActivateClicked(lic);
+        else await OnUnlinkClicked(lic);
+    }
+    private MudBlazor.Variant GetBtnVariant(License l) => string.IsNullOrEmpty(l.ComputerName) ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined;
+    private MudBlazor.Color GetBtnColor(License l) => string.IsNullOrEmpty(l.ComputerName) ? MudBlazor.Color.Success : MudBlazor.Color.Error;
+    private bool GetBtnDisabled(License l) => string.IsNullOrEmpty(l.ComputerName) && (_isProcessing || _deviceAlreadyRegistered);
+    private string GetBtnLabel(License l) => string.IsNullOrEmpty(l.ComputerName) ? "تفعيل" : "فك الارتباط";
+
+    private async Task OnActivateClicked(License l) => await PullAndActivateLicense(l);
+    private async Task OnUnlinkClicked(License l)   => await UnlinkDeviceAsync(l);
+
+    private async Task PullAndActivateLicense(License license)
+    {
+        // Confirm activation
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد التفعيل",
+            $"هل تريد تفعيل هذا الجهاز بترخيص الفرع: {license.BranchName}؟",
+            yesText: "نعم، فعّل", cancelText: "تراجع");
+        if (confirm != true) return;
+
+        _isProcessing = true;
+        StateHasChanged();
+        try
+        {
+            BlazorBase.ERPFrontServices.LicensingServices.LicenseType licType;
+            if (license.LicenseType == "Full" || license.LicenseType == "3")
+                licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.Full;
+            else if (license.LicenseType == "BackOfficeOnly" || license.LicenseType == "2")
+                licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.BackOfficeOnly;
+            else
+                licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.POSOnly;
+
+            var result = await LicenseService.ActivateAsync(new ActivationRequest
+            {
+                Username = _username,
+                Password = _password,
+                Type = licType,
+                LicenseKey = license.LicenseKey
+            });
+
+            if (result.Success)
+            {
+                Snackbar.Add("✅ تم تفعيل الجهاز بنجاح! سيتم إغلاق النافذة.", Severity.Success);
+                await Task.Delay(1200);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                // Show clear Arabic error from API
+                string msg = result.Message ?? "فشل التفعيل لسبب غير معروف.";
+                Snackbar.Add($"❌ {msg}", Severity.Error, cfg => cfg.VisibleStateDuration = 6000);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("⚠️ تعذّر الاتصال بالخادم. تأكد من تشغيل الـ API.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ غير متوقع: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+            await LoadLicensesAsync();
+        }
+    }
+
+    private async Task UnlinkDeviceAsync(License license)
+    {
+        // Confirm unlink
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد فك الارتباط",
+            $"سيتوقف البرنامج على الجهاز \"{license.ComputerName}\". هل أنت متأكد؟",
+            yesText: "نعم، افصل الجهاز", cancelText: "تراجع");
+        if (confirm != true) return;
+
+        try
+        {
+            var res = await Client.PostAsJsonAsync(
+                "api/License/UnlinkDevice",
+                new { LicenseKey = license.LicenseKey, BranchId = license.BranchID });
+
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("✅ تم فك ارتباط الجهاز بنجاح.", Severity.Success);
+                await LoadLicensesAsync();
+            }
+            else
+            {
+                string error = await res.Content.ReadAsStringAsync();
+                // Clean up JSON wrapper if present
+                error = error.Trim('"', ' ', '{', '}').Replace("\"message\":", "").Trim('"');
+                Snackbar.Add($"❌ {(string.IsNullOrEmpty(error) ? "فشل فك الارتباط" : error)}", Severity.Error);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("⚠️ تعذّر الاتصال بالخادم.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,371 @@
+@page "/reports/overview"
+@inject IReportingErpService ReportingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IDesktopPrintingService PrintingService
+@inject BlazorBase.Services.LocalizationService LocalizerService
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<div class="reports-page-wrapper @(IsArabic ? "rtl-mode" : "")" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="reports-header mb-6">
+        <div class="header-left">
+            <h1 class="page-title">مركز التقارير المتقدم</h1>
+            <p class="page-subtitle">Advanced Reporting Hub & Analytics</p>
+        </div>
+        <div class="header-right">
+            <MudPaper Outlined="true" Class="d-flex align-center px-4 py-2 rounded-xl border-2">
+                <MudIcon Icon="@Icons.Material.Rounded.CalendarToday" Class="me-2 text-primary" />
+                <MudDateRangePicker @bind-DateRange="_dateRange" Label="@(IsArabic ? "فترة التقرير" : "Report Period")"
+                                    Variant="MudBlazor.Variant.Text" DisableToolbar="true" Color="Color.Primary" />
+            </MudPaper>
+        </div>
+    </div>
+
+    <MudGrid Spacing="4">
+        @foreach (var category in _reportCategories)
+        {
+            <MudItem xs="12">
+                <div class="category-section">
+                    <div class="category-header mb-3 d-flex align-center gap-2">
+                        <MudIcon Icon="@category.Icon" Color="@category.Color" Size="Size.Large" />
+                        <h2 class="category-title">@category.Title</h2>
+                    </div>
+
+                    <div class="reports-grid">
+                        @foreach (var report in category.Reports)
+                        {
+                            <div class="report-card interactive-card" @onclick="() => SelectReport(report)">
+                                <div class="card-icon" style="background: @(category.ColorHex)15; color: @category.ColorHex;">
+                                    <MudIcon Icon="@report.Icon" />
+                                </div>
+                                <div class="card-content">
+                                    <h3 class="report-name">@report.Name</h3>
+                                    <p class="report-desc">@report.Description</p>
+                                </div>
+                                <div class="card-actions-hover">
+                                    <MudTooltip Text="@(IsArabic ? "معاينة وتحميل" : "Preview & Download")">
+                                        <MudIconButton Icon="@Icons.Material.Rounded.OpenInNew" Size="Size.Small" Color="Color.Primary" />
+                                    </MudTooltip>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </MudItem>
+        }
+    </MudGrid>
+</div>
+
+@code {
+    private DateRange _dateRange = new DateRange(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), DateTime.Today);
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    private class ReportInfo
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+
+    private class ReportCategory
+    {
+        public string Title { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public Color Color { get; set; }
+        public string ColorHex { get; set; } = "#3b82f6";
+        public List<ReportInfo> Reports { get; set; } = new();
+    }
+
+    private List<ReportCategory> _reportCategories = new();
+
+    protected override void OnInitialized()
+    {
+        InitializeCategories();
+    }
+
+    private void InitializeCategories()
+    {
+        _reportCategories = new List<ReportCategory>
+        {
+            new ReportCategory
+            {
+                Title = IsArabic ? "مبيعات عامة" : "General Sales",
+                Icon = Icons.Material.Rounded.BarChart,
+                Color = Color.Info,
+                ColorHex = "#0ea5e9",
+                Reports = new List<ReportInfo>
+                {
+                    new ReportInfo {
+                        Id = "SalesSummary",
+                        Name = IsArabic ? "ملخص المبيعات" : "Sales Summary",
+                        Description = IsArabic ? "تقرير المبيعات والضرائب حسب الفترة" : "Sales and tax summary by period",
+                        Icon = Icons.Material.Rounded.Summarize
+                    },
+                    new ReportInfo {
+                        Id = "SalesDetailed",
+                        Name = IsArabic ? "المبيعات التفصيلية" : "Detailed Sales",
+                        Description = IsArabic ? "سجل جميع الطلبات وتفاصيل الدفع" : "Log of all orders and payment details",
+                        Icon = Icons.Material.Rounded.ListAlt
+                    },
+                    new ReportInfo {
+                        Id = "ItemSales",
+                        Name = IsArabic ? "تحليل الأصناف" : "Item Analysis",
+                        Description = IsArabic ? "الأصناف الأكثر مبيعاً وتحليل الربح" : "Top selling items and profit analysis",
+                        Icon = Icons.Material.Rounded.Inventory2
+                    },
+                    new ReportInfo {
+                        Id = "HourlySales",
+                        Name = IsArabic ? "مبيعات بالساعة" : "Hourly Sales",
+                        Description = IsArabic ? "توزيع المبيعات على مدار اليوم" : "Sales distribution throughout the day",
+                        Icon = Icons.Material.Rounded.AccessTime
+                    },
+                    new ReportInfo {
+                        Id = "TopSellingItems",
+                        Name = IsArabic ? "الأصناف الأكثر طلباً" : "Top Selling Items",
+                        Description = IsArabic ? "قائمة بأعلى الأصناف مبيعاً" : "List of most sold items",
+                        Icon = Icons.Material.Rounded.Star
+                    },
+                    new ReportInfo {
+                        Id = "CategoryAnalysis",
+                        Name = IsArabic ? "مبيعات الفئات" : "Category Sales",
+                        Description = IsArabic ? "تحليل المبيعات حسب فئة الصنف" : "Sales analysis by item category",
+                        Icon = Icons.Material.Rounded.Category
+                    },
+                    new ReportInfo {
+                        Id = "StaffSales",
+                        Name = IsArabic ? "مبيعات العاملين" : "Workers Sales",
+                        Description = IsArabic ? "أداء الكاشير والويتر والدليفري" : "Performance for Cashier, Waiter, and Driver",
+                        Icon = Icons.Material.Rounded.People
+                    },
+                    new ReportInfo {
+                        Id = "StaffMeals",
+                        Name = IsArabic ? "وجبات العاملين" : "Workers Meals",
+                        Description = IsArabic ? "تقرير الوجبات المستهلكة للعاملين" : "Report of consumed workers meals",
+                        Icon = Icons.Material.Rounded.Fastfood
+                    },
+                    new ReportInfo {
+                        Id = "HospitalityReport",
+                        Name = IsArabic ? "تقرير الضيافة" : "Hospitality Report",
+                        Description = IsArabic ? "سجل جميع طلبات الضيافة والمسئولين" : "Log of all hospitality orders and reasons",
+                        Icon = Icons.Material.Rounded.WineBar
+                    },
+                    new ReportInfo {
+                        Id = "PnLReport",
+                        Name = IsArabic ? "الأرباح والخسائر (P&L)" : "Profit & Loss",
+                        Description = IsArabic ? "ملخص الإيرادات والمصروفات وصافي الربح" : "Summary of revenues, expenses, and net profit",
+                        Icon = Icons.Material.Rounded.Analytics
+                    }
+                }
+            },
+            new ReportCategory
+            {
+                Title = IsArabic ? "خدمة العملاء والتوصيل" : "Call Center & Delivery",
+                Icon = Icons.Material.Rounded.SupportAgent,
+                Color = Color.Warning,
+                ColorHex = "#f59e0b",
+                Reports = new List<ReportInfo>
+                {
+                    new ReportInfo { Id = "CustomerDirectory", Name = IsArabic ? "دليل العملاء" : "Customer Directory", Description = IsArabic ? "سجل كافة العملاء وبياناتهم" : "Log of all customers and their info", Icon = Icons.Material.Rounded.ContactPhone },
+                    new ReportInfo { Id = "DeliveryOrders", Name = IsArabic ? "طلبات التوصيل" : "Delivery Orders", Description = IsArabic ? "سجل طلبات الدليفري وتفاصيلها" : "Log of delivery orders and details", Icon = Icons.Material.Rounded.DeliveryDining },
+                    new ReportInfo { Id = "DeliveryAreas", Name = IsArabic ? "مناطق التوصيل (المناطق الأكثر طلباً)" : "Delivery Areas", Description = IsArabic ? "تحليل مبيعات وطلبات كل منطقة" : "Analysis of sales and orders by zone", Icon = Icons.Material.Rounded.Map },
+                    new ReportInfo { Id = "VipCustomers", Name = IsArabic ? "العملاء الأكثر طلباً (VIP)" : "VIP Customers", Description = IsArabic ? "ترتيب العملاء حسب عدد الطلبات" : "Customers ranked by order count", Icon = Icons.Material.Rounded.WorkspacePremium },
+                    new ReportInfo { Id = "DormantCustomers", Name = IsArabic ? "العملاء المنقطعين" : "Dormant Customers", Description = IsArabic ? "العملاء الذين لم يطلبوا منذ فترة" : "Customers inactive for a specified period", Icon = Icons.Material.Rounded.Snooze }
+                }
+            },
+            new ReportCategory
+            {
+                Title = IsArabic ? "المخازن" : "Inventory",
+                Icon = Icons.Material.Rounded.Warehouse,
+                Color = Color.Success,
+                ColorHex = "#10b981",
+                Reports = new List<ReportInfo>
+                {
+                    new ReportInfo { Id = "InventoryStatus", Name = IsArabic ? "حالة المخزن" : "Stock Status", Description = IsArabic ? "الرصيد الحالي والحد الأدنى" : "Current balance and min quantity", Icon = Icons.Material.Rounded.Inventory },
+                    new ReportInfo { Id = "StockMovementReport", Name = IsArabic ? "حركات الأصناف" : "Stock Movements", Description = IsArabic ? "سجل الحركات التفصيلي لكل صنف" : "Detailed transaction log for each item", Icon = Icons.Material.Rounded.HistoryEdu },
+                    new ReportInfo { Id = "WasteReport", Name = IsArabic ? "تقرير الهوالك والتالف" : "Waste & Damage", Description = IsArabic ? "تقرير مفصل بالهوالك والتوالف مع صورها" : "Detailed waste and damage report with images", Icon = Icons.Material.Rounded.AutoDelete },
+                    new ReportInfo { Id = "RecipeReport", Name = IsArabic ? "تقرير المكونات" : "Recipe Report", Description = IsArabic ? "مكونات كل صنف (الريسبي)" : "Item ingredients and recipe details", Icon = Icons.Material.Rounded.MenuBook },
+                    new ReportInfo { Id = "LowStockReport", Name = IsArabic ? "تقرير النواقص" : "Low Stock Report", Description = IsArabic ? "أصناف وصلت للحد الأدنى" : "Items below minimum threshold", Icon = Icons.Material.Rounded.NotificationImportant },
+                    new ReportInfo { Id = "StockTakeReport", Name = IsArabic ? "نموذج الجرد الفعلي" : "Stock Take Form", Description = IsArabic ? "قائمة مطبوعة لعملية الجرد" : "Printable form for physical counting", Icon = Icons.Material.Rounded.FactCheck }
+                }
+            },
+            new ReportCategory
+            {
+                Title = IsArabic ? "الأمن والتدقيق" : "Audit & Security",
+                Icon = Icons.Material.Rounded.Security,
+                Color = Color.Error,
+                ColorHex = "#ef4444",
+                Reports = new List<ReportInfo>
+                {
+                    new ReportInfo { Id = "VoidedOrders", Name = IsArabic ? "عمليات الحذف (Void)" : "Voids Log", Description = IsArabic ? "تقرير الطلبات المحذوفة والأسباب" : "Report of voided orders and reasons", Icon = Icons.Material.Rounded.DeleteSweep },
+                    new ReportInfo { Id = "DetailedVoidReport", Name = IsArabic ? "المحذوفات التفصيلية" : "Detailed Voids", Description = IsArabic ? "عرض كل صنف تم حذفه والسبب" : "View every voided item and reason", Icon = Icons.Material.Rounded.History },
+                    new ReportInfo { Id = "DiscountedOrders", Name = IsArabic ? "تقرير الخصومات" : "Discounts Log", Description = IsArabic ? "جميع الطلبات التي تحتوي على خصم" : "All orders containing discounts", Icon = Icons.Material.Rounded.Redeem },
+                    new ReportInfo { Id = "CommentsReport", Name = IsArabic ? "تقرير الملاحظات" : "Comments Report", Description = IsArabic ? "كل التعليقات المسجلة على الأصناف" : "All recorded notes and item comments", Icon = Icons.Material.Rounded.Comment }
+                }
+            }
+        };
+    }
+
+    private async Task SelectReport(ReportInfo report)
+    {
+        Dictionary<string, string>? additionalFilters = null;
+
+        if (report.Id == "SalesSummary")
+        {
+            var start = _dateRange.Start?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
+            var end = _dateRange.End?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
+            NavigationManager.NavigateTo($"/transactions/summary?start={start}&end={end}");
+            return;
+        }
+
+        if (report.Id == "SalesDetailed")
+        {
+            var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = await DialogService.ShowAsync<OrderTypeSelectionDialog>("", options);
+            var result = await dialog.Result;
+            if (result == null || result.Canceled) return;
+
+            var type = result.Data as string;
+            if (!string.IsNullOrEmpty(type))
+            {
+                additionalFilters = new Dictionary<string, string> { ["OrderType"] = type };
+            }
+        }
+        else if (report.Id == "HourlySales")
+        {
+            var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = await DialogService.ShowAsync<HourRangeSelectionDialog>("", options);
+            var result = await dialog.Result;
+            if (result == null || result.Canceled) return;
+
+            additionalFilters = result.Data as Dictionary<string, string>;
+        }
+        else if (report.Id == "StaffSales")
+        {
+            var parameters = new DialogParameters<StaffReportSelectionDialog>
+            {
+                { x => x.SelectedDate, _dateRange.Start ?? DateTime.Today }
+            };
+            var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = await DialogService.ShowAsync<StaffReportSelectionDialog>("", parameters, options);
+            var result = await dialog.Result;
+            if (result == null || result.Canceled) return;
+
+            additionalFilters = result.Data as Dictionary<string, string>;
+            // Staff report uses SalesDetailed template with filters
+            report = new ReportInfo { Id = "SalesDetailed", Name = report.Name };
+        }
+        else if (report.Id == "DormantCustomers")
+        {
+            var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = await DialogService.ShowAsync<DormantCustomerDaysDialog>("", options);
+            var result = await dialog.Result;
+            if (result == null || result.Canceled) return;
+
+            additionalFilters = result.Data as Dictionary<string, string>;
+        }
+
+        var dialogParams = new DialogParameters<ReportViewerDialog>
+        {
+            { x => x.ReportId, report.Id },
+            { x => x.ReportName, report.Name },
+            { x => x.FromDate, _dateRange.Start ?? DateTime.Today },
+            { x => x.ToDate, _dateRange.End ?? DateTime.Today },
+            { x => x.AdditionalFilters, additionalFilters }
+        };
+
+        var viewOptions = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, FullScreen = true };
+        await DialogService.ShowAsync<ReportViewerDialog>(report.Name, dialogParams, viewOptions);
+    }
+}
+
+<style>
+    .reports-page-wrapper {
+        padding: 24px;
+        background: #f8fafc;
+        min-height: 100vh;
+    }
+
+    .page-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        font-size: 0.95rem;
+    }
+
+    .category-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        cursor: pointer;
+    }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px -10px rgba(0,0,0,0.12);
+            border-color: #3b82f6;
+        }
+
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .report-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+
+    .report-desc {
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+
+    .card-actions-hover {
+        position: absolute;
+        right: 16px;
+        top: 16px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .report-card:hover .card-actions-hover {
+        opacity: 1;
+    }
+
+    .rtl-mode .card-actions-hover {
+        right: auto;
+        left: 16px;
+    }
+</style>

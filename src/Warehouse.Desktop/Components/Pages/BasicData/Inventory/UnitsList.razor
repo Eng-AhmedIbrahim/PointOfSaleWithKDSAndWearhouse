@@ -1,0 +1,263 @@
+﻿@page "/basicdata/units"
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@inject IUnitFrontService UnitService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+@inject Radzen.DialogService RadzenDialogService
+@inject NavigationManager NavManager
+@inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+@using Warehouse.Desktop.Components.Shared
+
+<style>
+    .units-page {
+        font-family: 'Tajawal', sans-serif;
+        background: #f8fafc;
+        height: 100%;
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .page-header-compact { 
+        flex-shrink: 0;
+        background: white; 
+        padding: 0.75rem 1.5rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-icon-small { 
+        background: #6366f1; 
+        color: white; 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.2rem;
+    }
+    .header-text-compact h1 { margin: 0; font-size: 1.25rem; font-weight: 950; color: #1e293b; }
+    .header-text-compact p { margin: 0; color: #64748b; font-size: 0.8rem; font-weight: 600; }
+    
+    .stats-row-compact { 
+        flex-shrink: 0;
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 0.75rem; 
+        margin-bottom: 1rem; 
+    }
+    
+    .stat-card-compact { 
+        background: white; 
+        padding: 0.75rem 1rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+    }
+    
+    .mini-icon { 
+        width: 32px; 
+        height: 32px; 
+        background: #eff6ff;
+        color: #3b82f6;
+        border-radius: 8px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1rem;
+    }
+    
+    .stat-data .label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+    .stat-data .value { font-size: 1.25rem; font-weight: 950; color: #0f172a; line-height: 1; }
+
+    .grid-container-fixed { 
+        flex-grow: 1;
+        background: white; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .premium-add-btn {
+        border-radius: 10px !important;
+        padding: 0 1.25rem !important;
+        height: 40px !important;
+        background: #6366f1 !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 850 !important;
+        font-size: 0.85rem !important;
+    }
+
+    .action-btn { border-radius: 8px !important; }
+    .rz-datagrid { border: none !important; font-family: 'Tajawal', sans-serif !important; }
+    .rz-column-title { color: #64748b !important; font-weight: 850 !important; font-size: 0.8rem !important; text-transform: uppercase !important; }
+
+    /* RTL Numeric Flip: Arrows Left, Number Right */
+    .rz-numeric { display: flex !important; flex-direction: row-reverse !important; }
+    .rz-numeric-input { text-align: right !important; flex-grow: 1 !important; padding-right: 8px !important; }
+    .rz-spinner { display: flex !important; flex-direction: column !important; }
+</style>
+
+<div class="units-page animate__animated animate__fadeIn" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+    @if (!IsInventoryEnabled)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
+            <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù…ÙŠØ²Ø© Ø§Ù„Ù…Ø®Ø§Ø²Ù† ØºÙŠØ± Ù…ÙØ¹Ù„Ø©" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„ 'ØªØªØ¨Ø¹ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†' Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®ØµØ§Ø¦Øµ Ø£ÙˆÙ„Ø§Ù‹." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+        </div>
+    }
+    else
+    {
+        <div class="page-header-compact">
+            <div class="header-left">
+                <div class="header-icon-small">
+                    <RadzenIcon Icon="straighten" />
+                </div>
+                <div class="header-text-compact">
+                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ¹Ø±ÙŠÙ Ø§Ù„ÙˆØ­Ø¯Ø§Øª" : "Unit Hub")</h1>
+                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¯Ø§Ø±Ø© ÙˆØ­Ø¯Ø§Øª Ø§Ù„Ù‚ÙŠØ§Ø³ (ÙƒÙŠÙ„ÙˆØŒ Ø¬Ø±Ø§Ù…ØŒ Ù„ØªØ±ØŒ Ø¥Ù„Ø®)" : "Manage all measurement units")</p>
+                </div>
+            </div>
+            <RadzenButton Click="() => OpenUnitDialog(null)" 
+                          Icon="add" 
+                          Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¶Ø§ÙØ© ÙˆØ­Ø¯Ø©" : "New Unit")" 
+                          Class="premium-add-btn" />
+        </div>
+
+        <div class="stats-row-compact">
+            <div class="stat-card-compact total">
+                <div class="mini-icon"><RadzenIcon Icon="list_alt" /></div>
+                <div class="stat-data">
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙˆØ­Ø¯Ø§Øª" : "Total")</div>
+                    <div class="value">@Units.Count</div>
+                </div>
+            </div>
+        </div>
+
+    <div class="grid-container-fixed">
+        <RadzenDataGrid Data="@Units" TItem="UnitDto" 
+                        AllowFiltering="true" FilterMode="FilterMode.Simple" 
+                        AllowPaging="false" AllowSorting="true" 
+                        Style="height: 100%;" AllowColumnResize="true"
+                        EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "Ù„Ø§ ØªÙˆØ¬Ø¯ ÙˆØ­Ø¯Ø§Øª Ù…Ø¹Ø±ÙØ© Ø­Ø§Ù„ÙŠØ§Ù‹" : "No units defined")">
+            <Columns>
+                <RadzenDataGridColumn TItem="UnitDto" Property="ArabicName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠ" : "Arabic Name")">
+                    <Template Context="unit">
+                        <span style="font-weight: 900; color: #1e293b;">@unit.ArabicName</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="UnitDto" Property="EnglishName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ" : "English Name")">
+                     <Template Context="unit">
+                        <span style="font-weight: 700; color: #64748b;">@unit.EnglishName</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="UnitDto" Property="Code" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ÙƒÙˆØ¯ / Ø§Ù„Ø±Ù…Ø²" : "Code")" Width="150px">
+                    <Template Context="unit">
+                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@unit.Code" Style="border-radius: 8px; padding: 5px 15px; font-weight: 900; background: #eff6ff; color: #3b82f6;" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="UnitDto" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="120px">
+                    <HeaderTemplate>
+                        <span style="font-weight: 850;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª" : "Actions")</span>
+                    </HeaderTemplate>
+                    <Template Context="unit">
+                        <div class="d-flex justify-content-center gap-2">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" 
+                                          Click="@(() => OpenUnitDialog(unit))" Class="action-btn" Style="background: #f1f5f9; color: #475569;" />
+                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" 
+                                          Click="@(() => DeleteUnit(unit.Id))" Class="action-btn" Style="background: #fee2e2; color: #ef4444; border: none;" />
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+    }
+</div>
+
+@code {
+    private List<UnitDto> Units = new();
+    private bool IsLoading = true;
+    private bool IsInventoryEnabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        if (!IsInventoryEnabled) return;
+        await LoadUnits();
+    }
+
+    private async Task LoadUnits()
+    {
+        IsLoading = true;
+        var response = await UnitService.GetAllUnitsAsync();
+        if (response.Success) Units = response.Data.ToList();
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenUnitDialog(UnitDto? unit)
+    {
+        var parameters = new DialogParameters<UnitEditDialog> { ["Unit"] = unit ?? new UnitDto() };
+        var options = new MudBlazor.DialogOptions { 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.Small, 
+            FullWidth = true,
+            NoHeader = true 
+        };
+        
+        var dialog = await DialogService.ShowAsync<UnitEditDialog>("", parameters, options);
+            
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadUnits();
+    }
+
+    private async Task DeleteUnit(int id)
+    {
+        var parameters = new DialogParameters<PremiumConfirmDialog>
+        {
+            { x => x.Title, Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø°Ù Ø§Ù„ÙˆØ­Ø¯Ø©" : "Delete Unit" },
+            { x => x.Message, Localizer.GetCurrentLanguage() == "ar" ? "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ­Ø¯Ø©ØŸ Ù‚Ø¯ ÙŠØ¤Ø«Ø± Ø°Ù„Ùƒ Ø¹Ù„Ù‰ Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ§Ù„ÙˆØ­Ø¯Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§." : "Are you sure you want to delete this unit? This might affect related items." },
+            { x => x.ConfirmText, Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø°Ù Ù†Ù‡Ø§Ø¦ÙŠ" : "Delete Permanently" },
+            { x => x.CancelText, Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø­Ø°Ù" : "Cancel" },
+            { x => x.Icon, "delete_forever" },
+            { x => x.StyleClass, "danger" }
+        };
+
+        var options = new MudBlazor.DialogOptions { NoHeader = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PremiumConfirmDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await UnitService.DeleteUnitAsync(id);
+            if (response.Success)
+            {
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ… Ø§Ù„Ø­Ø°Ù Ø¨Ù†Ø¬Ø§Ø­" : "Deleted successfully", Severity.Success);
+                await LoadUnits();
+            }
+        }
+    }
+}
+

@@ -1,0 +1,23 @@
+﻿@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager _navigationManager
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // if (firstRender)
+        // {
+        //     var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        //     var user = authState.User;
+
+        //     if (user.Identity is null || !user.Identity.IsAuthenticated) 
+        //     {
+        //         _navigationManager.NavigateTo("/login");
+        //         return;
+        //     }
+
+        //     var token = await AuthStateProvider.GetTokenAsync(); Fetch token from your AuthProvider
+        //     await AuthStateProvider.SetTokenAsync(token); Ensure token is set
+        //     StateHasChanged();
+        // }
+    }
+}

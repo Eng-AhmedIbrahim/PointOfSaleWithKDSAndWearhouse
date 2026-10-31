@@ -1,0 +1,236 @@
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@inject IRecipeFrontService RecipeService
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject LocalizationService LocalizerService
+@inject IDialogService DialogService
+
+<MudDialog dir="@(IsArabic ? "rtl" : "ltr")" Class="recipe-dialog">
+    <DialogContent>
+        <div class="pa-4">
+            <div class="d-flex align-center justify-between mb-4">
+                <MudText Typo="MudBlazor.Typo.h6">
+                    @(IsArabic ? $"مكونات الصنف (الريسبي): {Item.ItemNameAr}" : $"Recipe (BOM) for: {Item.ItemNameEn}")
+                </MudText>
+            </div>
+
+            @if (IsLoading)
+            {
+                <div class="d-flex justify-center pa-10">
+                    <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else
+            {
+                <MudTable Items="@CurrentRecipe.Ingredients" Hover="true" Dense="true" Elevation="0" Class="mb-4 rounded-lg border border-solid border-gray-200">
+                    <HeaderContent>
+                        <MudTh>@(IsArabic ? "المكون" : "Ingredient")</MudTh>
+                        <MudTh>@(IsArabic ? "الكمية" : "Quantity")</MudTh>
+                        <MudTh>@(IsArabic ? "الوحدة" : "Unit")</MudTh>
+                        <MudTh Style="width: 50px"></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Ingredient">@context.IngredientName</MudTd>
+                        <MudTd DataLabel="Quantity">
+                            <MudNumericField @bind-Value="context.Quantity" 
+                                            Margin="MudBlazor.Margin.Dense" 
+                                            Variant="MudBlazor.Variant.Outlined" 
+                                            Min="0.0001M" 
+                                            Style="max-width: 100px" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit">
+                            <MudTextField @bind-Value="context.Unit" 
+                                         Margin="MudBlazor.Margin.Dense" 
+                                         Variant="MudBlazor.Variant.Outlined" 
+                                         Style="max-width: 80px" />
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                           Color="MudBlazor.Color.Error" 
+                                           Size="MudBlazor.Size.Small" 
+                                           OnClick="@(() => RemoveIngredient(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <div class="pa-4 text-center gray-text">
+                            @(IsArabic ? "لا يوجد مكونات مضافة حالياً" : "No ingredients added yet")
+                        </div>
+                    </NoRecordsContent>
+                </MudTable>
+
+                <div class="add-ingredient-section p-3 rounded-lg" style="background-color: #f8fafc; border: 1px dashed #cbd5e1;">
+                    <div class="row align-items-end g-2">
+                        <div class="col-md-7">
+                            <MudAutocomplete T="InventoryItemDto" 
+                                            Label="@(IsArabic ? "بحث عن مكون لإضافته" : "Search ingredient to add")"
+                                            @bind-Value="SelectedIngredient" 
+                                            SearchFunc="@SearchIngredients"
+                                            ToStringFunc="@(i => IsArabic ? i?.ItemNameAr : i?.ItemNameEn)"
+                                            Variant="MudBlazor.Variant.Outlined" 
+                                            Dense="true" 
+                                            Margin="MudBlazor.Margin.Dense" />
+                        </div>
+                        <div class="col-md-3">
+                            <MudNumericField @bind-Value="NewIngredientQty" 
+                                            Label="@(IsArabic ? "الكمية" : "Qty")" 
+                                            Variant="MudBlazor.Variant.Outlined" 
+                                            Dense="true" 
+                                            Margin="MudBlazor.Margin.Dense" />
+                        </div>
+                        <div class="col-md-2">
+                            <MudButton Variant="MudBlazor.Variant.Filled" 
+                                       Color="MudBlazor.Color.Primary" 
+                                       FullWidth="true" 
+                                       OnClick="AddIngredient"
+                                       Style="height: 40px">
+                                @(IsArabic ? "إضافة" : "Add")
+                            </MudButton>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@(IsArabic ? "إلغاء" : "Cancel")</MudButton>
+        <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" OnClick="SaveRecipe" Loading="@IsSaving">
+            @(IsArabic ? "حفظ الريسبي" : "Save Recipe")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .recipe-dialog {
+        min-width: 650px;
+    }
+    .gray-text {
+        color: #64748b;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public InventoryItemDto Item { get; set; } = default!;
+
+    private RecipeDto CurrentRecipe { get; set; } = new();
+    private List<InventoryItemDto> AllInventoryItems { get; set; } = new();
+    private InventoryItemDto? SelectedIngredient { get; set; }
+    private decimal NewIngredientQty { get; set; } = 1;
+    
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            // 1. Get current recipe
+            var recipeResponse = await RecipeService.GetRecipeByItemIdAsync(Item.MenuSalesItemId);
+            if (recipeResponse.Success && recipeResponse.Data != null)
+            {
+                CurrentRecipe = recipeResponse.Data;
+            }
+            else
+            {
+                CurrentRecipe = new RecipeDto 
+                { 
+                    MenuSalesItemId = Item.MenuSalesItemId,
+                    RecipeName = Item.ItemNameEn,
+                    IsActive = true
+                };
+            }
+
+            // 2. Load all inventory items for ingredient selection
+            var itemsResponse = await InventoryService.GetAllInventoryAsync();
+            if (itemsResponse.Success)
+            {
+                // Filter out the item itself to prevent circular 
+                AllInventoryItems = itemsResponse.Data.Where(i => i.MenuSalesItemId != Item.MenuSalesItemId).ToList();
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private Task<IEnumerable<InventoryItemDto>> SearchIngredients(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return Task.FromResult<IEnumerable<InventoryItemDto>>(AllInventoryItems.Take(10));
+        
+        return Task.FromResult<IEnumerable<InventoryItemDto>>(
+            AllInventoryItems.Where(x => 
+                (x.ItemNameAr?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.ItemNameEn?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).Take(15)
+        );
+    }
+
+    private void AddIngredient()
+    {
+        if (SelectedIngredient == null || NewIngredientQty <= 0) return;
+
+        if (CurrentRecipe.Ingredients.Any(i => i.MenuSalesIngredientId == SelectedIngredient.MenuSalesItemId))
+        {
+            Snackbar.Add(IsArabic ? "هذا المكون مضاف بالفعل" : "This ingredient is already added", Severity.Warning);
+            return;
+        }
+
+        CurrentRecipe.Ingredients.Add(new RecipeIngredientDto
+        {
+            MenuSalesIngredientId = SelectedIngredient.MenuSalesItemId,
+            IngredientName = IsArabic ? SelectedIngredient.ItemNameAr : SelectedIngredient.ItemNameEn,
+            Quantity = NewIngredientQty,
+            Unit = SelectedIngredient.Unit
+        });
+
+        SelectedIngredient = null;
+        NewIngredientQty = 1;
+    }
+
+    private void RemoveIngredient(RecipeIngredientDto ingredient)
+    {
+        CurrentRecipe.Ingredients.Remove(ingredient);
+    }
+
+    private async Task SaveRecipe()
+    {
+        IsSaving = true;
+        try
+        {
+            ServiceResponse<bool> response;
+            if (CurrentRecipe.Id == 0)
+            {
+                response = await RecipeService.CreateRecipeAsync(CurrentRecipe);
+            }
+            else
+            {
+                response = await RecipeService.UpdateRecipeAsync(CurrentRecipe);
+            }
+
+            if (response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم حفظ الريسبي بنجاح" : "Recipe saved successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(response.Message ?? "Error saving recipe", Severity.Error);
+            }
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

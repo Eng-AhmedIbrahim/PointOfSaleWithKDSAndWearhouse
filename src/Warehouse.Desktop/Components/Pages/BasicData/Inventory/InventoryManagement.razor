@@ -1,0 +1,728 @@
+﻿@page "/basicdata/inventory"
+@using Warehouse.Desktop.Components.Pages.BasicData.Items
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+@inject NotificationService NotificationService
+@inject Radzen.DialogService RadzenDialogService
+@inject NavigationManager NavManager
+@inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+
+<style>
+    .inventory-page { 
+        font-family: 'Tajawal', 'Outfit', sans-serif; 
+        background: #f8fafc; 
+        height: 100%; 
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    
+    .page-header-compact { 
+        flex-shrink: 0;
+        background: white; 
+        padding: 0.75rem 1.5rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-icon-small { 
+        background: #6366f1; 
+        color: white; 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.2rem;
+    }
+    .header-text-compact h1 { margin: 0; font-size: 1.25rem; font-weight: 900; color: #1e293b; }
+    .header-text-compact p { margin: 0; color: #64748b; font-size: 0.8rem; font-weight: 600; }
+    
+    .item-name-ar { font-weight: 900; color: #1e293b; display: block; font-size: 1rem; }
+    .item-name-en { font-size: 0.85rem; color: #64748b; display: block; font-weight: 700; }
+
+    .stats-row-compact { 
+        flex-shrink: 0;
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 0.75rem; 
+        margin-bottom: 1rem; 
+    }
+    
+    .stat-card-compact { 
+        background: white; 
+        padding: 0.75rem 1rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+        transition: all 0.2s; 
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .stat-card-compact:hover { border-color: #6366f1; background: #fcfdff; }
+    .stat-card-compact.active { border-color: #6366f1; border-width: 2px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1); }
+    
+    .mini-icon { 
+        width: 32px; 
+        height: 32px; 
+        border-radius: 8px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1rem;
+    }
+    .stat-card-compact.total .mini-icon { background: #eff6ff; color: #3b82f6; }
+    .stat-card-compact.low .mini-icon { background: #fffbeb; color: #f59e0b; }
+    .stat-card-compact.available .mini-icon { background: #f0fdf4; color: #10b981; }
+    .stat-card-compact.out .mini-icon { background: #fef2f2; color: #ef4444; }
+    
+    .stat-data .label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+    .stat-data .value { font-size: 1.25rem; font-weight: 950; color: #0f172a; line-height: 1; }
+
+    .inventory-content-box { 
+        flex-grow: 1;
+        background: white; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* Critical for inner scrolling */
+    }
+    
+    .grid-header-bar { 
+        flex-shrink: 0;
+        padding: 0.6rem 1.25rem; 
+        background: #f8fafc; 
+        border-bottom: 1px solid #e2e8f0; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+
+    /* Target the tabs container to take remaining space */
+    .inventory-content-box .mud-tabs {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .inventory-content-box .mud-tabs-panels {
+        flex-grow: 1;
+        min-height: 0;
+    }
+
+    .inventory-content-box .mud-tabpanel {
+        height: 100%;
+    }
+
+    /* Tab Styling Improvements - Fixed for RTL */
+    .inventory-content-box .mud-tabs-toolbar {
+        background: #f8fafc !important;
+        height: 50px !important;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .inventory-content-box .mud-tab {
+        color: #64748b !important;
+        font-weight: 800 !important;
+        font-size: 0.9rem !important;
+        text-transform: none !important;
+        min-width: 150px !important;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+        border-bottom: 3px solid transparent !important;
+    }
+
+    .inventory-content-box .mud-tab-active {
+        color: #6366f1 !important;
+        opacity: 1;
+        background: white !important;
+        border-bottom: 4px solid #6366f1 !important;
+    }
+
+    .inventory-content-box .mud-tab-slider {
+        display: none !important; /* Hide buggy dynamic slider */
+    }
+
+    /* Radzen Dropdown Customization */
+    .rz-dropdown { --rz-dropdown-trigger-icon-width: 24px; font-family: 'Tajawal', sans-serif !important; }
+    .rz-dropdown-label { font-weight: 850 !important; padding-right: 12px !important; text-align: inherit !important; }
+    .rz-dropdown-panel { direction: rtl !important; font-family: 'Tajawal', sans-serif !important; }
+    .rz-dropdown-item { font-weight: 800 !important; text-align: right !important; padding: 10px 15px !important; }
+    .rz-dropdown-item:hover { background: #f1f5f9 !important; color: #6366f1 !important; }
+    .rz-state-highlight { background: #eff6ff !important; color: #1e40af !important; font-weight: 950 !important; }
+
+    /* Premium SplitButton Overrides */
+    .premium-split-btn { 
+        background: #f8fafc !important; 
+        border: 1px solid #e2e8f0 !important; 
+        border-radius: 8px !important;
+        height: 32px !important;
+        transition: all 0.2s;
+    }
+    .premium-split-btn:hover { background: #eff6ff !important; border-color: #6366f1 !important; }
+    .premium-split-btn .rz-button-text { color: #475569 !important; font-weight: 850 !important; font-size: 0.8rem !important; }
+    .premium-split-btn .rz-button-icon-left { color: #6366f1 !important; font-size: 1.1rem !important; }
+    
+    /* Fix split button arrow position in RTL */
+    .premium-split-btn .rz-splitbutton-menubutton { border-right: 1px solid #e2e8f0 !important; padding: 0 4px !important; }
+    .premium-split-btn .rz-button-box { flex-direction: row !important; } 
+
+    /* RTL Numeric Flip: Arrows Left, Number Right */
+    .rz-numeric { display: flex !important; flex-direction: row-reverse !important; }
+    .rz-numeric-input { text-align: right !important; flex-grow: 1 !important; padding-right: 8px !important; }
+    .rz-spinner { display: flex !important; flex-direction: column !important; }
+
+</style>
+
+<style>
+    .inventory-numeric-bold input {
+        font-weight: 950 !important;
+        font-size: 1.3rem !important;
+        text-align: center !important;
+    }
+</style>
+
+<div class="inventory-page" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+    @if (!IsInventoryEnabled)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
+            <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù…ÙŠØ²Ø© Ø§Ù„Ù…Ø®Ø§Ø²Ù† ØºÙŠØ± Ù…ÙØ¹Ù„Ø©" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„ 'ØªØªØ¨Ø¹ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†' Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®ØµØ§Ø¦Øµ Ø£ÙˆÙ„Ø§Ù‹." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+        </div>
+    }
+    else
+    {
+        <div class="page-header-compact">
+            <div class="header-left">
+                <div class="header-icon-small">
+                    <RadzenIcon Icon="inventory_2" />
+                </div>
+                <div class="header-text-compact">
+                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø®Ø²ÙˆÙ†" : "Inventory Hub")</h1>
+                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØªØ¨Ø¹ Ø§Ù„ÙˆØ­Ø¯Ø§Øª ÙˆØ§Ù„ÙˆØµÙØ§Øª Ø¨Ø§Ù„Ø¬ÙˆØ¯Ø©" : "Track items and recipes with precision")</p>
+                </div>
+            </div>
+            <div class="header-actions-compact d-flex align-items-center gap-3">
+                <div class="feature-toggle d-flex align-items-center gap-2 px-3 py-1" style="background: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0; height: 40px;">
+                    <MudText Typo="Typo.caption" Style="font-weight: 800; color: #475569;">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "Ù…Ù†Ø¹ Ø§Ù„Ø¨ÙŠØ¹ Ø¹Ù†Ø¯ Ø­Ø¯ Ø§Ù„Ø·Ù„Ø¨" : "Block Sale on Min Stock")
+                    </MudText>
+                    <MudSwitch Value="IsMinQuantityStopEnabled" T="bool" ValueChanged="ToggleMinQuantityStop" Color="Color.Primary" Size="Size.Small" UnCheckedColor="Color.Default" />
+                </div>
+
+                <RadzenButton Click="@(() => NavManager.NavigateTo("/basicdata/units"))" Icon="straighten" Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ÙˆØ­Ø¯Ø§Øª" : "Units")" 
+                               ButtonStyle="ButtonStyle.Secondary" Style="border-radius: 10px; font-weight: 800; font-size: 0.85rem; padding: 0 15px; height: 40px; background: #ec4899; border: none; color: white;" />
+                
+                <RadzenButton Click="@InitializeAll" Icon="autorenew" Text="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ‡ÙŠØ¦Ø©" : "Init")" 
+                               ButtonStyle="ButtonStyle.Info" Style="border-radius: 10px; font-weight: 800; font-size: 0.85rem; padding: 0 15px; height: 40px; background: #3b82f6; border: none; color: white;" />
+            </div>
+        </div>
+
+        <div class="stats-row-compact">
+            <div class="stat-card-compact total @(string.IsNullOrEmpty(CurrentStatusFilter) ? "active" : "")" @onclick="@(() => SetStatusFilter(null))">
+                <div class="mini-icon"><RadzenIcon Icon="category" /></div>
+                <div class="stat-data">
+                     <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ" : "Total")</div>
+                     <div class="value">@InventoryItems.Count</div>
+                </div>
+            </div>
+            <div class="stat-card-compact low @(CurrentStatusFilter == "low" ? "active" : "")" @onclick="@(() => SetStatusFilter("low"))">
+                <div class="mini-icon"><RadzenIcon Icon="warning" /></div>
+                <div class="stat-data">
+                     <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù†ÙˆØ§Ù‚Øµ" : "Low")</div>
+                     <div class="value">@LowStockCount</div>
+                </div>
+            </div>
+            <div class="stat-card-compact available @(CurrentStatusFilter == "in" ? "active" : "")" @onclick="@(() => SetStatusFilter("in"))">
+                <div class="mini-icon"><RadzenIcon Icon="check_circle" /></div>
+                <div class="stat-data">
+                     <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù…ØªÙˆÙØ±" : "Available")</div>
+                     <div class="value">@InStockCount</div>
+                </div>
+            </div>
+            <div class="stat-card-compact out @(CurrentStatusFilter == "out" ? "active" : "")" @onclick="@(() => SetStatusFilter("out"))">
+                <div class="mini-icon"><RadzenIcon Icon="error" /></div>
+                <div class="stat-data">
+                     <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù†ÙØ°" : "Empty")</div>
+                     <div class="value">@OutOfStockCount</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="inventory-content-box">
+            <div class="grid-header-bar">
+                <div class="d-flex align-items-center gap-3">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight: 950; font-size: 1.1rem; color: #1e293b;">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "ÙƒØ´Ù Ø§Ù„Ø¬Ø±Ø¯ Ø§Ù„Ù…Ø®Ø²Ù†ÙŠ" : "Stock Audit Log")
+                    </RadzenText>
+                    @if (!string.IsNullOrEmpty(CurrentStatusFilter))
+                    {
+                        <RadzenBadge Text="@GetStatusText()" BadgeStyle="@GetStatusFilterStyle()" IsPill="true" Style="font-weight: 900; padding: 5px 12px;" />
+                        <RadzenButton Icon="close" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Light" Click="@(() => SetStatusFilter(null))" 
+                                      Style="padding: 0; min-width: 24px; border-radius: 50%; background: #f1f5f9; color: #475569;" />
+                    }
+                </div>
+                <div class="search-box-wrap" style="position: relative; width: 320px;">
+                    <RadzenIcon Icon="search" Style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem; z-index: 5;" />
+                    <RadzenTextBox Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ø¨Ø­Ø« Ù‡Ù†Ø§ Ø¹Ù† ØµÙ†Ù Ù…Ø¹ÙŠÙ†..." : "Search for items...")" 
+                                     @bind-Value="SearchString" 
+                                     @oninput="@((args) => OnSearch(args.Value?.ToString()))"
+                                     Style="width: 100%; border-radius: 10px; padding-left: 38px; border: 2px solid #e2e8f0; height: 38px; font-weight: 700; font-size: 0.9rem;" />
+                </div>
+            </div>
+
+            <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pa-0" Centered="true" 
+                     Style="background: #f8fafc; flex-grow: 1; display: flex; flex-direction: column;">
+                <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ù…ÙˆØ§Ø¯ Ø§Ù„Ø®Ø§Ù…" : "Raw Materials")">
+                    @RenderInventoryGrid("RawMaterial")
+                </MudTabPanel>
+                <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø£ØµÙ†Ø§Ù Ù…ØµÙ†Ø¹Ø©" : "Manufactured Items")">
+                    @RenderInventoryGrid("SemiFinished")
+                </MudTabPanel>
+                <MudTabPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø£ØµÙ†Ø§Ù Ø§Ù„Ø¨ÙŠØ¹" : "Sale Items")">
+                    @RenderInventoryGrid("SaleItem")
+                </MudTabPanel>
+            </MudTabs>
+        </div>
+    }
+</div>
+
+@code {
+    RenderFragment RenderInventoryGrid(string? typeCode) => __builder => {
+        <RadzenDataGrid AllowFiltering="true" FilterMode="FilterMode.Simple" AllowPaging="false"
+                        AllowSorting="true" Data="@GetFilteredItems(typeCode)" TItem="InventoryItemDto" 
+                        EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª" : "No results found")"
+                        ColumnWidth="200px" SelectionMode="DataGridSelectionMode.Single"
+                        Density="Density.Default" Class="rz-border-radius-0"
+                        Style="height: 100%;" AllowColumnResize="true">
+            <Columns>
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ØµÙ†Ù" : "Item")" Width="250px" Filterable="false">
+                    <Template Context="item">
+                        <div class="item-cell d-flex align-items-center py-1">
+                            <div class="item-names">
+                                @if (Localizer.GetCurrentLanguage() == "ar")
+                                {
+                                    <span class="item-name-ar" style="font-weight: 950; font-size: 1.05rem;">@item.ItemNameAr</span>
+                                    @if (!string.IsNullOrEmpty(item.ItemNameEn) && item.ItemNameEn != item.ItemNameAr)
+                                    {
+                                        <span class="item-name-en" style="font-weight: 700; opacity: 0.8;">@item.ItemNameEn</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="item-name-ar" style="font-weight: 950; font-size: 1.05rem;">@item.ItemNameEn</span>
+                                    @if (!string.IsNullOrEmpty(item.ItemNameAr) && item.ItemNameAr != item.ItemNameEn)
+                                    {
+                                        <span class="item-name-en" style="font-weight: 700; opacity: 0.8;">@item.ItemNameAr</span>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="InventoryItemDto" Property="Unit" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ÙˆØ­Ø¯Ø©" : "Unit")" Width="140px">
+                    <Template Context="item">
+                        <RadzenDropDown TValue="int?" Value="@item.UnitId" Data="@AllUnits" TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" 
+                                        ValueProperty="Id" Change="@((val) => UpdateItemUnit(item, (int?)val))" 
+                                        Style="width: 100%; border-radius: 8px; font-weight: 850; font-size: 0.85rem;" Placeholder="---" />
+                    </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØªØ¨Ø¹ Ø¬Ø±Ø¯" : "Track")" Width="80px" TextAlign="TextAlign.Center">
+                    <Template Context="item">
+                         <RadzenCheckBox @bind-Value="item.TrackInventory" Change="@(args => UpdateItemTrackInventory(item, (bool)args))" TValue="bool" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±ØµÙŠØ¯" : "Stock")" Width="145px" TextAlign="TextAlign.Center">
+                    <Template Context="item">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <RadzenNumeric TValue="decimal" Value="@item.CurrentQuantity" 
+                                           Change="@(args => UpdateCurrentQuantity(item, args))" 
+                                           Format="0.##"
+                                           Style="width: 120px; height: 42px; font-weight: 950; border: 2px solid #d1fae5; border-radius: 8px; text-align: center; background: #f0fdf4; font-size: 1.3rem; color: #065f46;" 
+                                           ShowUpDown="false" Class="inventory-numeric-bold" />
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø¯ Ø§Ù„Ø·Ù„Ø¨" : "Reorder Level")" Width="145px" TextAlign="TextAlign.Center">
+                    <Template Context="item">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <RadzenNumeric TValue="decimal" Value="@item.MinimumQuantity" 
+                                           Change="@(args => UpdateMinQuantity(item, args))" 
+                                           Format="0.##"
+                                           Style="width: 120px; height: 42px; font-weight: 950; border: 2px solid #e2e8f0; border-radius: 8px; text-align: center; background: #fff; font-size: 1.3rem; color: #1e293b;" 
+                                           ShowUpDown="false" Class="inventory-numeric-bold" />
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª" : "Actions")" Width="130px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                    <Template Context="item">
+                        <RadzenSplitButton Icon="settings" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                           Click="@((args) => HandleAction(item, args))" Class="premium-split-btn">
+                            <ChildContent>
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯" : "Stock Adjust")" Icon="tune" Value="adjust" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ³Ø¬ÙŠÙ„ ØªØ§Ù„Ù" : "Damage Record")" Icon="broken_image" Value="damage" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ³Ø¬ÙŠÙ„ Ù‡Ø§Ù„Ùƒ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ" : "Waste Record")" Icon="delete_outline" Value="waste" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¬Ø±Ø¯ ÙØ¹Ù„ÙŠ" : "Physical Count")" Icon="fact_check" Value="physical" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø±ØµÙŠØ¯ Ø£ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø©" : "Opening Stock")" Icon="play_circle" Value="opening" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø³Ø¬Ù„ Ø§Ù„Ø­Ø±ÙƒØ§Øª" : "History")" Icon="history" Value="history" />
+                                <RadzenSplitButtonItem Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±ÙŠØ³ÙŠØ¨ÙŠ" : "Recipe")" Icon="restaurant_menu" Value="recipe" />
+                            </ChildContent>
+                        </RadzenSplitButton>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    };
+
+    private bool IsLoading = true;
+    private bool IsInventoryEnabled = true;
+    private List<InventoryItemDto> InventoryItems = new();
+    private List<UnitDto> AllUnits = new();
+    private string SearchString = "";
+    private RadzenDataGrid<InventoryItemDto> grid = default!;
+
+    private string? CurrentStatusFilter = null;
+
+    private void SetStatusFilter(string? filter)
+    {
+        CurrentStatusFilter = filter;
+        StateHasChanged();
+    }
+
+    private string GetStatusText()
+    {
+        if (string.IsNullOrEmpty(CurrentStatusFilter)) return "";
+        var isAr = Localizer.GetCurrentLanguage() == "ar";
+        return CurrentStatusFilter switch {
+            "low" => isAr ? "Ù†ÙˆØ§Ù‚Øµ" : "Low Stock",
+            "out" => isAr ? "Ù†ÙØ°" : "Out of Stock",
+            "in" => isAr ? "Ù…ØªÙˆÙØ±" : "In Stock",
+            _ => ""
+        };
+    }
+
+    private BadgeStyle GetStatusFilterStyle()
+    {
+        return CurrentStatusFilter switch
+        {
+            "low" => BadgeStyle.Warning,
+            "out" => BadgeStyle.Danger,
+            "in" => BadgeStyle.Success,
+            _ => BadgeStyle.Info
+        };
+    }
+
+    private IEnumerable<InventoryItemDto> GetFilteredItems(string? typeCode)
+    {
+        // 1. Initial Type Filter
+        var items = InventoryItems.Where(x => 
+            x.ItemTypeCode == typeCode || 
+            (typeCode == "SaleItem" && string.IsNullOrEmpty(x.ItemTypeCode))
+        );
+        
+        // 2. Status Filter (New Accuracy Step)
+        if (!string.IsNullOrEmpty(CurrentStatusFilter))
+        {
+            items = CurrentStatusFilter switch
+            {
+                "low" => items.Where(i => i.CurrentQuantity > 0 && i.CurrentQuantity <= i.MinimumQuantity),
+                "out" => items.Where(i => i.CurrentQuantity <= 0),
+                "in" => items.Where(i => i.CurrentQuantity > i.MinimumQuantity),
+                _ => items
+            };
+        }
+
+        // 3. Search Term Filter
+        if (!string.IsNullOrWhiteSpace(SearchString))
+        {
+            items = items.Where(i => (i.ItemNameAr?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false) || 
+                                     (i.ItemNameEn?.Contains(SearchString, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        
+        return items;
+    }
+
+    [Inject] public IUnitFrontService UnitFrontService { get; set; } = default!;
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+    
+    private bool IsMinQuantityStopEnabled { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        if (!IsInventoryEnabled) return;
+
+        IsMinQuantityStopEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableMinQuantityStop");
+
+        await LoadUnits();
+        await LoadData();
+    }
+
+    private async Task ToggleMinQuantityStop(bool value)
+    {
+        IsMinQuantityStopEnabled = value;
+        try 
+        {
+            var settings = await FeatureSettingsService.GetSettingsByComputerNameAsync(Environment.MachineName);
+            var setting = settings.FirstOrDefault(s => s.FeatureName == "EnableMinQuantityStop");
+            if (setting != null)
+            {
+                setting.Value = value;
+                await FeatureSettingsService.UpdateSettingsAsync(Environment.MachineName, settings);
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø­Ø¯ Ø§Ù„Ø·Ù„Ø¨" : "Reorder level settings updated", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task LoadUnits()
+    {
+        var response = await UnitFrontService.GetAllUnitsAsync();
+        if (response.Success) AllUnits = response.Data.ToList();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await InventoryService.GetAllInventoryAsync();
+            if (response.Success)
+            {
+                InventoryItems = response.Data?.ToList() ?? new();
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = response.Message });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = ex.Message });
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OnSearch(string? value)
+    {
+        SearchString = value ?? "";
+    }
+
+    private BadgeStyle GetStockBadgeStyle(InventoryItemDto item)
+    {
+        if (item.CurrentQuantity <= 0) return BadgeStyle.Danger;
+        if (item.CurrentQuantity <= item.MinimumQuantity) return BadgeStyle.Warning;
+        return BadgeStyle.Success;
+    }
+
+    private int LowStockCount => InventoryItems.Count(i => i.CurrentQuantity > 0 && i.CurrentQuantity <= i.MinimumQuantity);
+    private int InStockCount => InventoryItems.Count(i => i.CurrentQuantity > i.MinimumQuantity);
+    private int OutOfStockCount => InventoryItems.Count(i => i.CurrentQuantity <= 0);
+
+    private async Task InitializeAll()
+    {
+        var parameters = new DialogParameters<PremiumConfirmDialog>
+        {
+            { x => x.Title, Localizer.GetCurrentLanguage() == "ar" ? "ØªØ£ÙƒÙŠØ¯ Ø§Ù„ØªÙ‡ÙŠØ¦Ø©" : "Initialize Confirmation" },
+            { x => x.Message, Localizer.GetCurrentLanguage() == "ar" ? "Ù‡Ù„ ØªØ±ÙŠØ¯ ØªÙ‡ÙŠØ¦Ø© Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£ØµÙ†Ø§Ù Ù„Ù„Ù…Ø®Ø²Ù†ØŸ Ø³ÙŠØªÙ… Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø£ØµÙ†Ø§Ù ØºÙŠØ± Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© Ø­Ø§Ù„ÙŠØ§Ù‹." : "Do you want to initialize all items for the warehouse? New items will be added." },
+            { x => x.ConfirmText, Localizer.GetCurrentLanguage() == "ar" ? "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¢Ù†" : "Confirm Now" },
+            { x => x.CancelText, Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ°" : "Cancel" },
+            { x => x.Icon, "autorenew" },
+            { x => x.StyleClass, "info" }
+        };
+
+        var options = new MudBlazor.DialogOptions { NoHeader = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PremiumConfirmDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await InventoryService.InitializeAllItemsAsync();
+            if (response.Success)
+            {
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ…Øª Ø§Ù„ØªÙ‡ÙŠØ¦Ø© Ø¨Ù†Ø¬Ø§Ø­" : "Initialized successfully", Severity.Success);
+                await LoadData();
+            }
+        }
+    }
+
+    private async Task OpenOpeningStockDialog()
+    {
+        Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± ØµÙ†Ù Ù…Ù† Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ù„ØªØ¹ÙŠÙŠÙ† Ø±ØµÙŠØ¯ Ø£ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø©" : "Please select an item from the list to set opening stock", Severity.Info);
+    }
+
+    private async Task UpdateItemUnit(InventoryItemDto item, int? unitId)
+    {
+        item.UnitId = unitId;
+        await InventoryService.InitializeInventoryAsync(item);
+        await LoadData();
+    }
+
+    private async Task UpdateMinQuantity(InventoryItemDto item, decimal newValue)
+    {
+        item.MinimumQuantity = newValue;
+        try 
+        {
+            var response = await InventoryService.InitializeInventoryAsync(item);
+            if (response.Success)
+            {
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø¯ Ø§Ù„Ø·Ù„Ø¨" : "Reorder level updated", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UpdateItemTrackInventory(InventoryItemDto item, bool newValue)
+    {
+        item.TrackInventory = newValue;
+        try 
+        {
+            var response = await InventoryService.InitializeInventoryAsync(item);
+            if (response.Success)
+            {
+                string msg = Localizer.GetCurrentLanguage() == "ar" 
+                    ? (newValue ? "ØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„ØªØªØ¨Ø¹" : "ØªÙ… Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„ØªØªØ¨Ø¹")
+                    : (newValue ? "Tracking Enabled" : "Tracking Disabled");
+                Snackbar.Add(msg, Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UpdateCurrentQuantity(InventoryItemDto item, decimal newValue)
+    {
+        decimal originalValue = item.CurrentQuantity;
+        item.CurrentQuantity = newValue;
+        try 
+        {
+            var response = await InventoryService.SetPhysicalStockAsync(new UpdateStockDto {
+                MenuSalesItemId = item.MenuSalesItemId,
+                QuantityChange = newValue,
+                Notes = "Manual adjustment from grid"
+            });
+            
+            if (response.Success && response.Data)
+            {
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„ÙƒÙ…ÙŠØ©" : "Quantity updated", Severity.Success);
+            }
+            else 
+            {
+                item.CurrentQuantity = originalValue; // Rollback UI
+                var errorMsg = response.Message ?? (Localizer.GetCurrentLanguage() == "ar" ? "ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø§Ù„ÙƒÙ…ÙŠØ© ÙÙŠ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª" : "Failed to update quantity in database");
+                Snackbar.Add(errorMsg, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            item.CurrentQuantity = originalValue; // Rollback UI
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task HandleAction(InventoryItemDto item, RadzenSplitButtonItem? args)
+    {
+        // If main button (gear) is clicked without selecting an item, default to adjust
+        var action = args?.Value?.ToString() ?? "adjust";
+        
+        switch (action)
+        {
+            case "adjust": await OpenAdjustmentDialog(item); break;
+            case "damage": await OpenDamageDialog(item); break;
+            case "waste": await OpenWasteDialog(item); break;
+            case "physical": await OpenPhysicalCountDialog(item); break;
+            case "opening": await OpenOpeningStockForItem(item); break;
+            case "history": await OpenHistory(item); break;
+            case "recipe": await ManageRecipe(item); break;
+        }
+    }
+
+    private async Task OpenAdjustmentDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.Adjustment };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯" : "Stock Adjustment", parameters, options);
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+
+    private async Task OpenDamageDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.Damage };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ³Ø¬ÙŠÙ„ ØªØ§Ù„Ù" : "Damage Recording", parameters, options);
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+
+    private async Task OpenWasteDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.Waste };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ³Ø¬ÙŠÙ„ Ù‡Ø§Ù„Ùƒ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ" : "Waste Recording", parameters, options);
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+
+    private async Task OpenPhysicalCountDialog(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.PhysicalCount };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "Ø¬Ø±Ø¯ ÙŠØ¯ÙˆÙŠ" : "Physical Count", parameters, options);
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+
+    private async Task OpenOpeningStockForItem(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.OpeningStock };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "Ø±ØµÙŠØ¯ Ø£ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø©" : "Opening Stock", parameters, options);
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+
+    private async Task OpenHistory(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true };
+        await DialogService.ShowAsync<StockHistoryDialog>(Localizer.GetCurrentLanguage() == "ar" ? "Ø³Ø¬Ù„ Ø§Ù„Ø­Ø±ÙƒØ§Øª" : "Transaction History", parameters, options);
+    }
+
+    private async Task ManageRecipe(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<Warehouse.Desktop.Components.Pages.BasicData.Inventory.RecipeDialog>(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø±ÙŠØ³ÙŠØ¨ÙŠ" : "Manage Recipe", parameters, options);
+    }
+}
+
