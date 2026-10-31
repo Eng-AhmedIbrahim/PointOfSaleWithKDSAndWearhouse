@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Threading;
 using BlazorBase.ERPFrontServices.OrderTrackServices;
 using BlazorBase.ERPFrontServices.ComplaintServices;
@@ -225,6 +225,7 @@ public partial class App : Application
         // Application services
         services.AddSingleton<CommonProperties>(sp => new CommonProperties { Language = cultureCode });
         services.AddSingleton<HandelDeliveryInvocation>();
+        services.AddSingleton<WarehouseNotificationInvocation>();
         services.AddSingleton<CartService>();
         services.AddSingleton<Section4ButtonsServices>();
         services.AddScoped<CustomAuthenticationStateProvider>();
@@ -238,6 +239,7 @@ public partial class App : Application
         services.AddScoped<BlazorBase.ERPFrontServices.AccountServices.IAccountService, BlazorBase.ERPFrontServices.AccountServices.AccountService>();
         services.AddScoped<IPrintOrderService, DesktopPrintOrderService>();
         services.AddSingleton<CallCenterNotificationService>();
+        services.AddSingleton<WarehouseNotificationService>();
 
         // Category services
         services.AddScoped<ICategoryServices, CategoryService>();

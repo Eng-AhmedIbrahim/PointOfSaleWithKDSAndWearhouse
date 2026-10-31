@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject BlazorBase.WarehouseNotificationInvocation WarehouseEvents
 @implements IDisposable
 
 <PageTitle>طلبيات الفروع</PageTitle>
@@ -106,7 +107,20 @@
     private IEnumerable<RequisitionDto> FilteredRequisitions => string.IsNullOrEmpty(_selectedStatus)
         ? _requisitions : _requisitions.Where(r => r.Status == _selectedStatus);
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+    {
+        WarehouseEvents.OnRequisitionListRefresh += OnWarehouseRefresh;
+        await LoadData();
+    }
+
+    private void OnWarehouseRefresh()
+    {
+        InvokeAsync(async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        });
+    }
 
     private async Task LoadData()
     {
@@ -170,7 +184,10 @@
         "Rejected" => "مرفوضة", "Cancelled" => "ملغاة", _ => status
     };
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        WarehouseEvents.OnRequisitionListRefresh -= OnWarehouseRefresh;
+    }
 
     private record RequisitionDto
     {

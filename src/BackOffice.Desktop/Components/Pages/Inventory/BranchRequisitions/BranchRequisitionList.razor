@@ -1,10 +1,12 @@
-﻿@page "/inventory/branch-requisitions"
+@page "/inventory/branch-requisitions"
 @using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject CommonProperties CommonProps
 @inject LocalizationService Localizer
+@inject WarehouseNotificationInvocation WarehouseEvents
+@implements IDisposable
 
 <PageTitle>طلبات المخزن الرئيسي</PageTitle>
 
@@ -196,6 +198,21 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadRequisitions();
+        WarehouseEvents.OnRequisitionListRefresh += OnWarehouseRefresh;
+    }
+
+    public void Dispose()
+    {
+        WarehouseEvents.OnRequisitionListRefresh -= OnWarehouseRefresh;
+    }
+
+    private void OnWarehouseRefresh()
+    {
+        InvokeAsync(async () =>
+        {
+            await LoadRequisitions();
+            StateHasChanged();
+        });
     }
 
     private void SetStatusFilter(int? status)

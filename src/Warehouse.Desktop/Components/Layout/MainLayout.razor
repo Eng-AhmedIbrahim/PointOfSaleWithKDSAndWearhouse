@@ -11,6 +11,8 @@
 @inject BlazorBase.Services.LocalizationService Localizer
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject BlazorBase.ERPFrontServices.LicensingServices.ILicenseService LicenseService
+@inject Warehouse.Desktop.Services.WarehouseNotificationService WarehouseNotification
+@inject WarehouseNotificationInvocation WarehouseNotificationEvents
 
 @implements IDisposable
 
@@ -85,6 +87,12 @@
     {
         _isLicensed = true; // WMS uses its own licensing
 
+        // Initialize warehouse SignalR connection
+        await WarehouseNotification.InitializeAsync();
+
+        // Subscribe to warehouse notifications -> show snackbar
+        WarehouseNotificationEvents.OnShowWarehouseNotification += HandleWarehouseNotification;
+
         _stateChangedHandler = async () => 
         {
             try { await InvokeAsync(StateHasChanged); } catch { }
@@ -100,6 +108,15 @@
         {
             _commonProperties.OnChange -= _stateChangedHandler;
         }
+        WarehouseNotificationEvents.OnShowWarehouseNotification -= HandleWarehouseNotification;
+    }
+
+    private void HandleWarehouseNotification(string title, string message, MudBlazor.Severity severity)
+    {
+        InvokeAsync(() =>
+        {
+            _snackbar.Add($"[{title}] {message}", severity);
+        });
     }
 }
 

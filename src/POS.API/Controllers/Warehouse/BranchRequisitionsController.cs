@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -59,10 +59,25 @@ public class BranchRequisitionsController : ControllerBase
         var year = DateTime.Now.Year;
         var count = await _db.BranchRequisitions.CountAsync(r => r.RequestDate.Year == year) + 1;
         model.RequisitionNumber = $"REQ-{year}-{count:D4}";
-        model.Status = RequisitionStatus.Draft;
+        if (model.Status == default)
+            model.Status = RequisitionStatus.Draft;
         model.RequestDate = DateTime.UtcNow;
         _db.BranchRequisitions.Add(model);
         await _db.SaveChangesAsync();
+
+        // If submitted immediately, notify warehouse
+        if (model.Status == RequisitionStatus.Submitted)
+        {
+            var branch = await _db.Branches.FindAsync(model.RequestingBranchId);
+            await _hub.Clients.Group($"warehouse_{model.TargetWarehouseId}").SendAsync("NewRequisitionReceived", new
+            {
+                RequisitionId = model.Id,
+                RequisitionNumber = model.RequisitionNumber,
+                BranchName = branch?.Name,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, new { model.Id, model.RequisitionNumber });
     }
 
@@ -97,15 +112,10 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.UnderReview) return BadRequest(new { message = "الطلب يجب أن يكون قيد المراجعة" });
         foreach (var mod in modifications)
         {
-            var line = r.Lines.FirstOrDefault(l => l.Id == mod.LineId);
-            if (line != null)
-            {
-                line.ProposedQuantity = mod.ProposedQuantity;
-                line.ModificationNotes = mod.Notes;
-            }
+            var line = r.Lines.FirstOrDefault(x => x.Id == mod.LineId);
+            if (line != null) { line.ProposedQuantity = mod.ProposedQuantity; line.ModificationNotes = mod.Notes; }
         }
         r.Status = RequisitionStatus.ModificationProposed;
         await _db.SaveChangesAsync();
@@ -118,11 +128,9 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.ModificationProposed) return BadRequest();
-        foreach (var line in r.Lines.Where(l => l.ProposedQuantity.HasValue))
-            line.ApprovedQuantity = line.ProposedQuantity!.Value;
-        r.Status = RequisitionStatus.Approved;
-        r.ApprovedAt = DateTime.UtcNow;
+        foreach (var l in r.Lines.Where(x => x.ProposedQuantity.HasValue))
+            l.RequestedQuantity = l.ProposedQuantity!.Value;
+        r.Status = RequisitionStatus.UnderReview;
         await _db.SaveChangesAsync();
         await NotifyWarehouse(r, "موافقة على التعديل", "الفرع وافق على الكميات المعدلة");
         return Ok(new { message = "تمت الموافقة على التعديل" });
@@ -133,7 +141,7 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
         if (r == null) return NotFound();
-        r.Status = RequisitionStatus.Rejected;
+        r.Status = RequisitionStatus.Cancelled;
         r.RejectionReason = reason.Reason;
         await _db.SaveChangesAsync();
         await NotifyWarehouse(r, "رفض التعديل", $"الفرع رفض التعديل: {reason.Reason}");
@@ -145,8 +153,7 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.Submitted && r.Status != RequisitionStatus.UnderReview) return BadRequest();
-        foreach (var line in r.Lines) line.ApprovedQuantity = line.RequestedQuantity;
+        foreach (var l in r.Lines) l.ApprovedQuantity = l.ProposedQuantity ?? l.RequestedQuantity;
         r.Status = RequisitionStatus.Approved;
         r.ApprovedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -159,9 +166,9 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
         if (r == null) return NotFound();
+        r.Status = RequisitionStatus.Rerouted;
         r.ReroutedToWarehouseId = dto.TargetWarehouseId;
         r.RerouteReason = dto.Reason;
-        r.Status = RequisitionStatus.Rerouted;
         await _db.SaveChangesAsync();
         await NotifyBranch(r, "محول لمخزن آخر", $"تم تحويل طلبكم لمخزن آخر: {dto.Reason}");
         // Notify new warehouse
