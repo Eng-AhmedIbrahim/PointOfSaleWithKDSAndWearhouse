@@ -7,7 +7,6 @@
         xmlns:local="clr-namespace:Warehouse.Desktop"
         mc:Ignorable="d"
         Title="New Tech - Warehouse Management System"
-        Icon="Warehouse.ico" 
         Height="900" 
         Width="1600"
         WindowStartupLocation="CenterScreen"
