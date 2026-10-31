@@ -20,20 +20,9 @@
         <div dir="@(IsArabic ? "rtl" : "ltr")">
             <MudLayout Style="height: 100vh;">
                 <MudMainContent Class="main-content-wrapper py-0">
-                    <NavMenu IsLicensedForBackOffice="_isLicensed" />
+                    <NavMenu />
                     <div class="page-container">
-                        @if (_isLicensed)
-                        {
-                            @Body
-                        }
-                        else
-                        {
-                            <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 6rem;" Color="Color.Error" Class="mb-4" />
-                                <MudText Typo="Typo.h4" Color="Color.Error" Class="mb-2">Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø² ØºÙŠØ± Ù…Ø±Ø®Øµ Ù„Ù„Ù€ BackOffice</MudText>
-                                <MudText Typo="Typo.body1">Ø¨Ø±Ø¬Ø§Ø¡ Ø§Ù„Ø¶ØºØ· Ø¹Ù„Ù‰ Ø²Ø± "Ø§Ù„ØªØ³Ø¬ÙŠÙ„" ÙÙŠ Ø§Ù„Ø£Ø¹Ù„Ù‰ Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙØ¹ÙŠÙ„ØŒ Ø£Ùˆ Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø¥Ø¯Ø§Ø±Ø©.</MudText>
-                            </div>
-                        }
+                        @Body
                     </div>
                 </MudMainContent>
 
@@ -94,7 +83,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isLicensed = await LicenseService.IsBackOfficeAuthorizedAsync();
+        _isLicensed = true; // WMS uses its own licensing
 
         _stateChangedHandler = async () => 
         {
@@ -138,3 +127,4 @@
         flex-direction: column;
     }
 </style>
+
