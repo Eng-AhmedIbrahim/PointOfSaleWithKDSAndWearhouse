@@ -12,7 +12,7 @@ public class AppIdentityDbContextFactory : IDesignTimeDbContextFactory<AppIdenti
         var optionsBuilder = new DbContextOptionsBuilder<AppIdentityDbContext>();
         
         // Plain connection string for migrations only
-        optionsBuilder.UseSqlServer("Server=.;Database=PointOfSale;Trusted_Connection=True;TrustServerCertificate=true");
+        optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=PointOfSaleDB;User Id=sa;Password=NewTechn0;TrustServerCertificate=true");
 
         return new AppIdentityDbContext(optionsBuilder.Options);
     }

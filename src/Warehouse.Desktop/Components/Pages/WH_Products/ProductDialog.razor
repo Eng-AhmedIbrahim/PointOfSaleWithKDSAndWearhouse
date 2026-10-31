@@ -5,7 +5,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">
+        <MudText MudBlazor.Typo="Typo.h6">
             <MudIcon Icon="@(ProductId.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="me-2" />
             @(ProductId.HasValue ? "تعديل المنتج" : "إضافة منتج جديد")
         </MudText>
@@ -82,7 +82,7 @@
             </MudGrid>
 
             <MudDivider Class="my-4" />
-            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2">
+            <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2">
                 <MudIcon Icon="@Icons.Material.Filled.Scale" Class="me-1" />
                 وحدات المنتج
             </MudText>
@@ -208,3 +208,4 @@
 
     private void Cancel() => MudDialog.Cancel();
 }
+

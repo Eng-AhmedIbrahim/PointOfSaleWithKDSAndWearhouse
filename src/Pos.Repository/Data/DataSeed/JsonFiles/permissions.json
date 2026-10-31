@@ -1,1307 +1,1422 @@
-﻿[
-    {
-        "Name":  "CanPrintSummaryReport",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "PoliceEnglishNameEn":  "Print Sales Summary",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  false,
-        "Id":  1
-    },
-    {
-        "Name":  "CanViewSummaryDetails",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙØ§ØµÙŠÙ„ Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "PoliceEnglishNameEn":  "View Sales Summary Details",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  false,
-        "Id":  2
-    },
-    {
-        "Name":  "CanAccessDeliveryAddNewBtn",
-        "PoliceArabicName":  "Ø¥Ø¶Ø§ÙØ© Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯",
-        "PoliceEnglishNameEn":  "Add New Customer",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  3
-    },
-    {
-        "Name":  "CanAccessDeliveryBranchManagementBtn",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙØ±ÙˆØ¹",
-        "PoliceEnglishNameEn":  "Branch Management",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  4
-    },
-    {
-        "Name":  "CanAccessDeliveryClearBtn",
-        "PoliceArabicName":  "Ù…Ø³Ø­ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª",
-        "PoliceEnglishNameEn":  "Clear Data",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  5
-    },
-    {
-        "Name":  "CanAccessDeliveryComplaintsBtn",
-        "PoliceArabicName":  "Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰",
-        "PoliceEnglishNameEn":  "Complaints",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  6
-    },
-    {
-        "Name":  "CanAccessDeliveryDistributionBtn",
-        "PoliceArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Distribution",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  7
-    },
-    {
-        "Name":  "CanAccessDeliveryOrderBtn",
-        "PoliceArabicName":  "Ø·Ù„Ø¨ ØªÙˆØµÙŠÙ„",
-        "PoliceEnglishNameEn":  "Delivery Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  8
-    },
-    {
-        "Name":  "CanAccessDeliverySearchBtn",
-        "PoliceArabicName":  "Ø¨Ø­Ø« ØªÙˆØµÙŠÙ„",
-        "PoliceEnglishNameEn":  "Delivery Search",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  9
-    },
-    {
-        "Name":  "CanAccessDeliveryToggleDirectionBtn",
-        "PoliceArabicName":  "ØªØºÙŠÙŠØ± Ø§Ù„Ø§ØªØ¬Ø§Ù‡",
-        "PoliceEnglishNameEn":  "Toggle Direction",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  10
-    },
-    {
-        "Name":  "CanAccessDineInCloseTableBtn",
-        "PoliceArabicName":  "ØºÙ„Ù‚ Ø§Ù„Ø·Ø§ÙˆÙ„Ø©",
-        "PoliceEnglishNameEn":  "Close Table",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  11
-    },
-    {
-        "Name":  "CanAccessDineInGuestCountBtn",
-        "PoliceArabicName":  "Ø¹Ø¯Ø¯ Ø§Ù„Ø¶ÙŠÙˆÙ",
-        "PoliceEnglishNameEn":  "Guest Count",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  12
-    },
-    {
-        "Name":  "CanAccessDineInMergeTableBtn",
-        "PoliceArabicName":  "Ø¯Ù…Ø¬ Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª",
-        "PoliceEnglishNameEn":  "Merge Tables",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  13
-    },
-    {
-        "Name":  "CanAccessDineInOrderBtn",
-        "PoliceArabicName":  "Ø·Ù„Ø¨ ØµØ§Ù„Ø©",
-        "PoliceEnglishNameEn":  "Dine-In Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  14
-    },
-    {
-        "Name":  "CanAccessDineInReceiptBtn",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© ÙÙˆØ§ØªÙŠØ± Ø§Ù„ØµØ§Ù„Ø©",
-        "PoliceEnglishNameEn":  "Dine-In Receipt",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  15
-    },
-    {
-        "Name":  "CanAccessDineInSplitOrderBtn",
-        "PoliceArabicName":  "ØªÙ‚Ø³ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Split Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  16
-    },
-    {
-        "Name":  "CanAccessDineInTransferBtn",
-        "PoliceArabicName":  "ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø·Ø§ÙˆÙ„Ø©",
-        "PoliceEnglishNameEn":  "Transfer Table",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  17
-    },
-    {
-        "Name":  "CanAccessDineInVoidBtn",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨ ØµØ§Ù„Ø©",
-        "PoliceEnglishNameEn":  "Void Dine-In",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "ScreenEnglishName":  "Dine-In Screen",
-        "IsBackOffice":  false,
-        "Id":  18
-    },
-    {
-        "Name":  "CanAccessDistributionAssignBtn",
-        "PoliceArabicName":  "ØªØ¹ÙŠÙŠÙ† Ø³Ø§Ø¦Ù‚ Ù„Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Assign Driver",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  19
-    },
-    {
-        "Name":  "CanAccessDistributionCollectBtn",
-        "PoliceArabicName":  "ØªØ­ØµÙŠÙ„ Ù…Ø¨Ù„Øº Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Collect Payment",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  20
-    },
-    {
-        "Name":  "CanAccessDistributionDriverSettlementBtn",
-        "PoliceArabicName":  "ØªØ³ÙˆÙŠØ© Ø­Ø³Ø§Ø¨ Ø§Ù„Ø³Ø§Ø¦Ù‚",
-        "PoliceEnglishNameEn":  "Driver Settlement",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  21
-    },
-    {
-        "Name":  "CanAccessDistributionPrintBtn",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Print Delivery Order",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  22
-    },
-    {
-        "Name":  "CanAccessDistributionUnDispatchBtn",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Un-Dispatch Order",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  23
-    },
-    {
-        "Name":  "CanAccessDistributionViewBtn",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙØ§ØµÙŠÙ„ Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "PoliceEnglishNameEn":  "View Dispatch Details",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  24
-    },
-    {
-        "Name":  "CanAccessDistributionViewDriversBtn",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø§Ø¦Ù‚ÙŠÙ†",
-        "PoliceEnglishNameEn":  "View Drivers",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  25
-    },
-    {
-        "Name":  "CanAccessDistributionVoidBtn",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Void Dispatch Order",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  26
-    },
-    {
-        "Name":  "CanAccessDistributionVoidHistoryBtn",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø³Ø¬Ù„ Ø§Ù„Ø¥Ù„ØºØ§Ø¡Ø§Øª",
-        "PoliceEnglishNameEn":  "View Void History",
-        "ScreenArabicName":  "Ø¹Ù…Ù„ÙŠØ§Øª Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  27
-    },
-    {
-        "Name":  "CanAccessPosSettingsFeature",
-        "PoliceArabicName":  "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø©",
-        "PoliceEnglishNameEn":  "POS Advanced Settings Feature",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ø©",
-        "ScreenEnglishName":  "Global Settings",
-        "IsBackOffice":  false,
-        "Id":  28
-    },
-    {
-        "Name":  "CanApplyItemDiscount",
-        "PoliceArabicName":  "Ø¥Ø¶Ø§ÙØ© Ø®ØµÙ… Ø¹Ù„Ù‰ ØµÙ†Ù",
-        "PoliceEnglishNameEn":  "Item Discount",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  29
-    },
-    {
-        "Name":  "CanDecrementQuantity",
-        "PoliceArabicName":  "ØªÙ‚Ù„ÙŠÙ„ Ø§Ù„ÙƒÙ…ÙŠØ© (-)",
-        "PoliceEnglishNameEn":  "Decrement Quantity",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  30
-    },
-    {
-        "Name":  "CanDeleteItem",
-        "PoliceArabicName":  "Ø­Ø°Ù ØµÙ†Ù Ù…Ù† Ø§Ù„Ø¹Ø±Ø¨Ø©",
-        "PoliceEnglishNameEn":  "Remove Item",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  31
-    },
-    {
-        "Name":  "CanEditItemComment",
-        "PoliceArabicName":  "ØªØ¹Ø¯ÙŠÙ„ Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„ØµÙ†Ù",
-        "PoliceEnglishNameEn":  "Edit Item Notes",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  32
-    },
-    {
-        "Name":  "CanIncrementQuantity",
-        "PoliceArabicName":  "Ø²ÙŠØ§Ø¯Ø© Ø§Ù„ÙƒÙ…ÙŠØ© (+)",
-        "PoliceEnglishNameEn":  "Increment Quantity",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  33
-    },
-    {
-        "Name":  "CanUseKeypad",
-        "PoliceArabicName":  "Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù„ÙˆØ­Ø© Ø§Ù„Ø£Ø±Ù‚Ø§Ù…",
-        "PoliceEnglishNameEn":  "Use Keypad",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ©",
-        "ScreenEnglishName":  "POS Screen Actions",
-        "IsBackOffice":  false,
-        "Id":  34
-    },
-    {
-        "Name":  "CanAccessFooterDiscountBtn",
-        "PoliceArabicName":  "Ø®ØµÙ… Ø§Ù„Ø£ÙˆØ±Ø¯Ø± (Footer)",
-        "PoliceEnglishNameEn":  "Order Discount Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  35
-    },
-    {
-        "Name":  "CanAccessFooterCustomerDataBtn",
-        "PoliceArabicName":  "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„ (Footer)",
-        "PoliceEnglishNameEn":  "Customer Data Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  36
-    },
-    {
-        "Name":  "CanAccessFooterMealsBtn",
-        "PoliceArabicName":  "Ø²Ø± Ø§Ù„ÙˆØ¬Ø¨Ø§Øª (Footer)",
-        "PoliceEnglishNameEn":  "Meals Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  37
-    },
-    {
-        "Name":  "CanAccessFooterPaymentMethodBtn",
-        "PoliceArabicName":  "Ø·Ø±Ù‚ Ø§Ù„Ø¯ÙØ¹ (Footer)",
-        "PoliceEnglishNameEn":  "Payment Method Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  38
-    },
-    {
-        "Name":  "CanAccessFooterQuickPaymentBtn",
-        "PoliceArabicName":  "Ø¯ÙØ¹ Ø³Ø±ÙŠØ¹ (Footer)",
-        "PoliceEnglishNameEn":  "Quick Pay Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  39
-    },
-    {
-        "Name":  "CanAccessFooterSettingsBtn",
-        "PoliceArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª (Footer)",
-        "PoliceEnglishNameEn":  "Settings Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  40
-    },
-    {
-        "Name":  "CanAccessFooterWaitingBtn",
-        "PoliceArabicName":  "Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± (Footer)",
-        "PoliceEnglishNameEn":  "Waiting Button",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  41
-    },
-    {
-        "Name":  "CanAccessAccounts",
-        "PoliceArabicName":  "Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª",
-        "PoliceEnglishNameEn":  "Accounts",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  42
-    },
-    {
-        "Name":  "CanAccessDelivery",
-        "PoliceArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "PoliceEnglishNameEn":  "Delivery Screen",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  43
-    },
-    {
-        "Name":  "CanAccessTables",
-        "PoliceArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØµØ§Ù„Ø©",
-        "PoliceEnglishNameEn":  "Dine-In Screen",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  44
-    },
-    {
-        "Name":  "CanAccessDistribution",
-        "PoliceArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Distribution",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  45
-    },
-    {
-        "Name":  "CanAccessOrders",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª",
-        "PoliceEnglishNameEn":  "Orders Management",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  46
-    },
-    {
-        "Name":  "CanAccessSummary",
-        "PoliceArabicName":  "Ø§Ù„Ù…Ù„Ø®Øµ Ø§Ù„ÙŠÙˆÙ…ÙŠ",
-        "PoliceEnglishNameEn":  "Daily Summary",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  47
-    },
-    {
-        "Name":  "CanAccessTakeAway",
-        "PoliceArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙŠÙƒ Ø§ÙˆØ§ÙŠ",
-        "PoliceEnglishNameEn":  "Take-Away Screen",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  48
-    },
-    {
-        "Name":  "CanAccessWaiting",
-        "PoliceArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "PoliceEnglishNameEn":  "Waiting List",
-        "ScreenArabicName":  "Ù‚Ø§Ø¦Ù…Ø© Ø´Ø§Ø´Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenEnglishName":  "POS Screen Nav",
-        "IsBackOffice":  false,
-        "Id":  49
-    },
-    {
-        "Name":  "CanCancelOrder",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø·Ù„Ø¨ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„",
-        "PoliceEnglishNameEn":  "Cancel Entire Order",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø·Ù„Ø¨ (Ø£Ø·Ø±Ø§Ù)",
-        "ScreenEnglishName":  "POS Screen Section4 Actions",
-        "IsBackOffice":  false,
-        "Id":  50
-    },
-    {
-        "Name":  "CanPrintOrder",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Print Order",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø·Ù„Ø¨ (Ø£Ø·Ø±Ø§Ù)",
-        "ScreenEnglishName":  "POS Screen Section4 Actions",
-        "IsBackOffice":  false,
-        "Id":  51
-    },
-    {
-        "Name":  "CanWaitingOrder",
-        "PoliceArabicName":  "Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "PoliceEnglishNameEn":  "Send to Waiting",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø·Ù„Ø¨ - Ø£Ø·Ø±Ø§Ù",
-        "ScreenEnglishName":  "POS Screen Section4 Actions",
-        "IsBackOffice":  false,
-        "Id":  52
-    },
-    {
-        "Name":  "CanPrintStaffAccounts",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© ØªÙ‚Ø±ÙŠØ± Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†",
-        "PoliceEnglishNameEn":  "Print Staff Account Report",
-        "ScreenArabicName":  "Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†",
-        "ScreenEnglishName":  "Staff Accounts Actions",
-        "IsBackOffice":  false,
-        "Id":  53
-    },
-    {
-        "Name":  "CanViewStaffAccounts",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙØ§ØµÙŠÙ„ Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†",
-        "PoliceEnglishNameEn":  "View Staff Account Details",
-        "ScreenArabicName":  "Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†",
-        "ScreenEnglishName":  "Staff Accounts Actions",
-        "IsBackOffice":  false,
-        "Id":  54
-    },
-    {
-        "Name":  "CanPrintOrderCustomerReceipt",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„",
-        "PoliceEnglishNameEn":  "Print Customer Receipt",
-        "ScreenArabicName":  "ÙƒÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Today Orders Actions",
-        "IsBackOffice":  false,
-        "Id":  55
-    },
-    {
-        "Name":  "CanPrintOrderKitchenReceipt",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø·Ù„Ø¨ÙŠØ© Ø§Ù„ÙƒÙŠØªØ´Ù†",
-        "PoliceEnglishNameEn":  "Print Kitchen Receipt",
-        "ScreenArabicName":  "ÙƒÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Today Orders Actions",
-        "IsBackOffice":  false,
-        "Id":  56
-    },
-    {
-        "Name":  "CanViewOrderDetails",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "View Order Details",
-        "ScreenArabicName":  "ÙƒÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Today Orders Actions",
-        "IsBackOffice":  false,
-        "Id":  57
-    },
-    {
-        "Name":  "CanVoidOrderFromList",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨ Ù…Ù† Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©",
-        "PoliceEnglishNameEn":  "Void Order from List",
-        "ScreenArabicName":  "ÙƒÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Today Orders Actions",
-        "IsBackOffice":  false,
-        "Id":  58
-    },
-    {
-        "Name":  "CanCompleteWaitingOrder",
-        "PoliceArabicName":  "ØªÙØ¹ÙŠÙ„ Ø·Ù„Ø¨ Ù…Ù† Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "PoliceEnglishNameEn":  "Complete Waiting Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "ScreenEnglishName":  "Waiting Page Actions",
-        "IsBackOffice":  false,
-        "Id":  59
-    },
-    {
-        "Name":  "CanRemoveWaitingOrder",
-        "PoliceArabicName":  "Ø­Ø°Ù Ø·Ù„Ø¨ Ù…Ù† Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "PoliceEnglishNameEn":  "Remove Waiting Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
-        "ScreenEnglishName":  "Waiting Page Actions",
-        "IsBackOffice":  false,
-        "Id":  60
-    },
-    {
-        "Name":  "CanAccessBackOffice",
-        "PoliceArabicName":  "Ø¯Ø®ÙˆÙ„ Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…",
-        "PoliceEnglishNameEn":  "Access Back Office",
-        "ScreenArabicName":  "Ø¹Ø§Ù…",
-        "ScreenEnglishName":  "General",
-        "IsBackOffice":  true,
-        "Id":  61
-    },
-    {
-        "Name":  "CanViewDashboardAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ù„ÙˆØ­Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª",
-        "PoliceEnglishNameEn":  "View Dashboard",
-        "ScreenArabicName":  "Ø¹Ø§Ù…",
-        "ScreenEnglishName":  "General",
-        "IsBackOffice":  true,
-        "Id":  62
-    },
-    {
-        "Name":  "CanManageCompanySettingsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙØ±ÙˆØ¹ ÙˆØ§Ù„Ø´Ø±ÙƒØ©",
-        "PoliceEnglishNameEn":  "Manage Company \u0026 Branches",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  63
-    },
-    {
-        "Name":  "CanManageOrderSettingsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø£ÙˆØ±Ø¯Ø±",
-        "PoliceEnglishNameEn":  "Manage Order Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  64
-    },
-    {
-        "Name":  "CanManagePrinterSettingsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø·Ø§Ø¨Ø¹Ø§Øª",
-        "PoliceEnglishNameEn":  "Manage Printer Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  65
-    },
-    {
-        "Name":  "CanManageSystemFeaturesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø®ØµØ§Ø¦Øµ Ø§Ù„Ù†Ø¸Ø§Ù…",
-        "PoliceEnglishNameEn":  "Manage System Features",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  66
-    },
-    {
-        "Name":  "CanSyncDataAtBackOffice",
-        "PoliceArabicName":  "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª",
-        "PoliceEnglishNameEn":  "Sync Data",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  67
-    },
-    {
-        "Name":  "CanManageGeneralSettingsAtBackOffice",
-        "PoliceArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ø©",
-        "PoliceEnglishNameEn":  "General Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  68
-    },
-    {
-        "Name":  "CanManagePosSettingsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù†Ù‚Ø§Ø· Ø§Ù„Ø¨ÙŠØ¹",
-        "PoliceEnglishNameEn":  "POS Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  69
-    },
-    {
-        "Name":  "CanManageLanguageSettingsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù„ØºØ©",
-        "PoliceEnglishNameEn":  "Language Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-        "ScreenEnglishName":  "Settings",
-        "IsBackOffice":  true,
-        "Id":  70
-    },
-    {
-        "Name":  "CanManageUsersAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†",
-        "PoliceEnglishNameEn":  "Manage Users",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  71
-    },
-    {
-        "Name":  "CanManageRolesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Ø±",
-        "PoliceEnglishNameEn":  "Manage Roles",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  72
-    },
-    {
-        "Name":  "CanManagePermissionsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª",
-        "PoliceEnglishNameEn":  "Manage Permissions",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  73
-    },
-    {
-        "Name":  "CanManageItemsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ§Ù„Ù…Ù†ÙŠÙˆ",
-        "PoliceEnglishNameEn":  "Manage Items \u0026 Menu",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  74
-    },
-    {
-        "Name":  "CanManageCategoriesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙØ¦Ø§Øª",
-        "PoliceEnglishNameEn":  "Manage Categories",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  75
-    },
-    {
-        "Name":  "CanManageTablesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª",
-        "PoliceEnglishNameEn":  "Manage Tables",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  76
-    },
-    {
-        "Name":  "CanManageZonesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ù…Ù†Ø§Ø·Ù‚ Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "PoliceEnglishNameEn":  "Manage Delivery Zones",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  77
-    },
-    {
-        "Name":  "CanManagePaymentMethodsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø·Ø±Ù‚ Ø§Ù„Ø¯ÙØ¹",
-        "PoliceEnglishNameEn":  "Manage Payment Methods",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  78
-    },
-    {
-        "Name":  "CanManageInventoryAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "PoliceEnglishNameEn":  "Manage Inventory",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "ScreenEnglishName":  "Inventory",
-        "IsBackOffice":  true,
-        "Id":  79
-    },
-    {
-        "Name":  "CanManageRawMaterialsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…ÙˆØ§Ø¯ Ø§Ù„Ø®Ø§Ù…",
-        "PoliceEnglishNameEn":  "Manage Raw Materials",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "ScreenEnglishName":  "Inventory",
-        "IsBackOffice":  true,
-        "Id":  80
-    },
-    {
-        "Name":  "CanManageSemiFinishedItemsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù Ù†ØµÙ Ø§Ù„Ù…ØµÙ†Ø¹Ø©",
-        "PoliceEnglishNameEn":  "Manage Semi-Finished Items",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "ScreenEnglishName":  "Inventory",
-        "IsBackOffice":  true,
-        "Id":  81
-    },
-    {
-        "Name":  "CanManageRecipesAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø±ÙŠØ³ÙŠØ¨ÙŠ",
-        "PoliceEnglishNameEn":  "Manage Recipes (BOM)",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "ScreenEnglishName":  "Inventory",
-        "IsBackOffice":  true,
-        "Id":  82
-    },
-    {
-        "Name":  "CanManageUnitsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙˆØ­Ø¯Ø§Øª",
-        "PoliceEnglishNameEn":  "Manage Units",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ø®Ø§Ø²Ù†",
-        "ScreenEnglishName":  "Inventory",
-        "IsBackOffice":  true,
-        "Id":  83
-    },
-    {
-        "Name":  "CanAssignDriverAtBackOffice",
-        "PoliceArabicName":  "ØªØ¹ÙŠÙŠÙ† Ø³Ø§Ø¦Ù‚",
-        "PoliceEnglishNameEn":  "Assign Driver",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  84
-    },
-    {
-        "Name":  "CanViewOrderAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "View Order Details",
-        "ScreenArabicName":  "Ø§Ù„Ø·Ù„Ø¨Ø§Øª",
-        "ScreenEnglishName":  "Orders",
-        "IsBackOffice":  true,
-        "Id":  85
-    },
-    {
-        "Name":  "CanVoidOrderAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Void Order",
-        "ScreenArabicName":  "Ø§Ù„Ø·Ù„Ø¨Ø§Øª",
-        "ScreenEnglishName":  "Orders",
-        "IsBackOffice":  true,
-        "Id":  86
-    },
-    {
-        "Name":  "CanPrintOrderAtBackOffice",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Print Order",
-        "ScreenArabicName":  "Ø§Ù„Ø·Ù„Ø¨Ø§Øª",
-        "ScreenEnglishName":  "Orders",
-        "IsBackOffice":  true,
-        "Id":  87
-    },
-    {
-        "Name":  "CanPrintKitchenOrderAtBackOffice",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø¨ÙˆÙ† Ø§Ù„Ù…Ø·Ø¨Ø®",
-        "PoliceEnglishNameEn":  "Print Kitchen Order",
-        "ScreenArabicName":  "Ø§Ù„Ø·Ù„Ø¨Ø§Øª",
-        "ScreenEnglishName":  "Orders",
-        "IsBackOffice":  true,
-        "Id":  88
-    },
-    {
-        "Name":  "CanUnDispatchOrderAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ ØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Un-Dispatch Order",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  89
-    },
-    {
-        "Name":  "CanCollectOrderAtBackOffice",
-        "PoliceArabicName":  "ØªØ­ØµÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨",
-        "PoliceEnglishNameEn":  "Collect Order",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  90
-    },
-    {
-        "Name":  "CanViewDriversListAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø³Ø§Ø¦Ù‚ÙŠÙ†",
-        "PoliceEnglishNameEn":  "View Drivers List",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  91
-    },
-    {
-        "Name":  "CanViewVoidHistoryAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø³Ø¬Ù„ Ø§Ù„Ø¥Ù„ØºØ§Ø¡Ø§Øª",
-        "PoliceEnglishNameEn":  "View Void History",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  92
-    },
-    {
-        "Name":  "CanViewDriverSettlementAtBackOffice",
-        "PoliceArabicName":  "ØªØ³ÙˆÙŠØ© Ø­Ø³Ø§Ø¨ Ø§Ù„Ø³Ø§Ø¦Ù‚",
-        "PoliceEnglishNameEn":  "Driver Settlement",
-        "ScreenArabicName":  "Ø§Ù„ØªÙˆØ²ÙŠØ¹",
-        "ScreenEnglishName":  "Distribution",
-        "IsBackOffice":  true,
-        "Id":  93
-    },
-    {
-        "Name":  "CanViewSummaryDetailsAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ØªÙØµÙŠÙ„ÙŠØ© Ù…Ù† Ø§Ù„Ù…Ù„Ø®Øµ -Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Summary Details",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ù„Ø®Øµ - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Summary",
-        "IsBackOffice":  true,
-        "Id":  94
-    },
-    {
-        "Name":  "CanPrintSummaryReportAtBackOffice",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© ÙŠÙˆÙ…ÙŠØ© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ù…Ù† Ø§Ù„Ù…Ù„Ø®Øµ - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "Print Summary Report",
-        "ScreenArabicName":  "Ø§Ù„Ù…Ù„Ø®Øµ - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Summary",
-        "IsBackOffice":  true,
-        "Id":  95
-    },
-    {
-        "Name":  "CanPrintStaffAccountsAtBackOffice",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© ØªÙ‚Ø§Ø±ÙŠØ± Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ† - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "Print Staff Accounts",
-        "ScreenArabicName":  "Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª  - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Accounts",
-        "IsBackOffice":  true,
-        "Id":  96
-    },
-    {
-        "Name":  "CanViewBackOfficeTransactionsAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Transactions",
-        "ScreenArabicName":  "Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Transactions",
-        "IsBackOffice":  true,
-        "Id":  97
-    },
-    {
-        "Name":  "CanViewBackOfficeReportsAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Reports",
-        "ScreenArabicName":  "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Reports",
-        "IsBackOffice":  true,
-        "Id":  98
-    },
-    {
-        "Name":  "CanViewQueriesAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø§Ù„Ø§Ø³ØªØ¹Ù„Ø§Ù…Ø§Øª - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Queries",
-        "ScreenArabicName":  "Ø§Ù„Ø§Ø³ØªØ¹Ù„Ø§Ù…Ø§Øª - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Queries",
-        "IsBackOffice":  true,
-        "Id":  99
-    },
-    {
-        "Name":  "CanViewRegistrationAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø´Ø§Ø´Ø© Ø§Ù„ØªØ³Ø¬ÙŠÙ„ (Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Registration",
-        "ScreenArabicName":  "Ø§Ù„ØªØ³Ø¬ÙŠÙ„ (Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Registration",
-        "IsBackOffice":  true,
-        "Id":  100
-    },
-    {
-        "Name":  "CanViewClosingAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø´Ø§Ø´Ø© Ø§Ù„Ø¥ØºÙ„Ø§Ù‚ - Ø¥Ø¯Ø§Ø±Ø©",
-        "PoliceEnglishNameEn":  "View Closing",
-        "ScreenArabicName":  "Ø§Ù„Ø¥ØºÙ„Ø§Ù‚ - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Closing",
-        "IsBackOffice":  true,
-        "Id":  101
-    },
-    {
-        "Name":  "CanViewDetailedSales",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ØªÙØµÙŠÙ„ÙŠØ©",
-        "PoliceEnglishNameEn":  "View Detailed Sales",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  false,
-        "Id":  102
-    },
-    {
-        "Name":  "CanViewSalesItems",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø£ØµÙ†Ø§Ù Ø§Ù„Ø¨ÙŠØ¹",
-        "PoliceEnglishNameEn":  "View Sales Items",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  false,
-        "Id":  103
-    },
-    {
-        "Name":  "CanPrintSalesItems",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø£ØµÙ†Ø§Ù Ø§Ù„Ø¨ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Print Sales Items",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  false,
-        "Id":  104
-    },
-    {
-        "Name":  "CanViewSalesItemsAtBackOffice",
-        "PoliceEnglishNameEn":  "View Sales Items - BackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ Ø£ØµÙ†Ø§Ù Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  true,
-        "Id":  105
-    },
-    {
-        "Name":  "CanPrintSalesItemsAtBackOffice",
-        "PoliceArabicName":  "Ø·Ø¨Ø§Ø¹Ø© Ø£ØµÙ†Ø§Ù Ø§Ù„Ø¨ÙŠØ¹",
-        "PoliceEnglishNameEn":  "Print Sales Items",
-        "ScreenArabicName":  "Ù…Ù„Ø®Øµ Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…",
-        "ScreenEnglishName":  "Daily Sales Summary Actions",
-        "IsBackOffice":  true,
-        "Id":  106
-    },
-    {
-        "Name":  "CanAccessFooterHospitalityBtn",
-        "PoliceArabicName":  "Ø§Ù„Ø¶ÙŠØ§ÙØ©",
-        "PoliceEnglishNameEn":  "Hospitality",
-        "ScreenArabicName":  "Ø£Ø²Ø±Ø§Ø± Ø§Ø³ÙÙ„ Ø´Ø§Ø´Ø© Ø§Ù„Ø¨ÙŠØ¹",
-        "ScreenEnglishName":  "POS Screen Footer",
-        "IsBackOffice":  false,
-        "Id":  107
-    },
-    {
-        "Name":  "CanViewStaffMealsReportAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙ‚Ø§Ø±ÙŠØ± ÙˆØ¬Ø¨Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ù„ÙŠÙ†",
-        "PoliceEnglishNameEn":  "View Staff Meals Reports",
-        "ScreenArabicName":  "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Reports",
-        "IsBackOffice":  true,
-        "Id":  108
-    },
-    {
-        "Name":  "CanManageStaffMealConfigsAtBackOffice",
-        "PoliceArabicName":  "Ø¥Ø¯Ø§Ø±Ø© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ÙˆØ¬Ø¨Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ù„ÙŠÙ†",
-        "PoliceEnglishNameEn":  "Manage Staff Meal Settings",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  109
-    },
-    {
-        "Name":  "CanViewHospitalityReportAtBackOffice",
-        "PoliceArabicName":  "Ø¹Ø±Ø¶ ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø¶ÙŠØ§ÙØ©",
-        "PoliceEnglishNameEn":  "View Hospitality Reports",
-        "ScreenArabicName":  "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± - Ø¥Ø¯Ø§Ø±Ø©",
-        "ScreenEnglishName":  "Reports",
-        "IsBackOffice":  true,
-        "Id":  110
-    },
-    {
-        "Name":  "CanResetUserPasswordAtBackOffice",
-        "PoliceArabicName":  "ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø£ÙŠ Ù…Ø³ØªØ®Ø¯Ù…",
-        "PoliceEnglishNameEn":  "Reset Any User Password",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  111
-    },
-    {
-        "Name":  "CanChangeOwnPasswordAtBackOffice",
-        "PoliceArabicName":  "ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø®Ø§ØµØ©",
-        "PoliceEnglishNameEn":  "Change Own Password",
-        "ScreenArabicName":  "Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©",
-        "ScreenEnglishName":  "Basic Data",
-        "IsBackOffice":  true,
-        "Id":  112
-    },
-    {
-        "Name":  "CanAccessDeliveryVoidBtn",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨ Ø¯Ù„ÙŠÙØ±ÙŠ",
-        "PoliceEnglishNameEn":  "Void Delivery Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  113
-    },
-    {
-        "Name":  "CanAccessDeliveryEditBtn",
-        "PoliceArabicName":  "ØªØ¹Ø¯ÙŠÙ„ Ø·Ù„Ø¨ Ø¯Ù„ÙŠÙØ±ÙŠ",
-        "PoliceEnglishNameEn":  "Edit Delivery Order",
-        "ScreenArabicName":  "Ø´Ø§Ø´Ø© Ø§Ù„ØªÙˆØµÙŠÙ„",
-        "ScreenEnglishName":  "Delivery Screen",
-        "IsBackOffice":  false,
-        "Id":  114
-    },
-    {
-        "Name":  "CanVoidBranchDeliveryOrder",
-        "PoliceArabicName":  "Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨ Ø§Ù„ÙØ±ÙˆØ¹",
-        "PoliceEnglishNameEn":  "Void Branch Order",
-        "ScreenArabicName":  "Ø£ÙˆØ±Ø¯Ø±Ø§Øª Ø§Ù„ÙØ±ÙˆØ¹",
-        "ScreenEnglishName":  "Branch Orders",
-        "IsBackOffice":  false,
-        "Id":  115
-    },
-    {
-        "Name":  "CanAccessWarehouseDashboard",
-        "PoliceArabicName":  "الوصول للوحة تحكم المخازن",
-        "PoliceEnglishNameEn":  "Access Warehouse Dashboard",
-        "ScreenArabicName":  "لوحة التحكم",
-        "ScreenEnglishName":  "Warehouse Dashboard",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  116
-    },
-    {
-        "Name":  "CanViewWarehouses",
-        "PoliceArabicName":  "عرض المستودعات والمخازن",
-        "PoliceEnglishNameEn":  "View Warehouses",
-        "ScreenArabicName":  "إدارة المستودعات",
-        "ScreenEnglishName":  "Warehouses Management",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  117
-    },
-    {
-        "Name":  "CanManageWarehouses",
-        "PoliceArabicName":  "إدارة المستودعات والمواقع",
-        "PoliceEnglishNameEn":  "Manage Warehouses \u0026 Locations",
-        "ScreenArabicName":  "إدارة المستودعات",
-        "ScreenEnglishName":  "Warehouses Management",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  118
-    },
-    {
-        "Name":  "CanViewWarehouseProducts",
-        "PoliceArabicName":  "عرض دليل أصناف المخزن",
-        "PoliceEnglishNameEn":  "View Warehouse Products",
-        "ScreenArabicName":  "أصناف المخزن",
-        "ScreenEnglishName":  "Warehouse Products",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  119
-    },
-    {
-        "Name":  "CanManageWarehouseProducts",
-        "PoliceArabicName":  "إدارة وتعديل أصناف المخزن والوحدات",
-        "PoliceEnglishNameEn":  "Manage Products \u0026 Units",
-        "ScreenArabicName":  "أصناف المخزن",
-        "ScreenEnglishName":  "Warehouse Products",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  120
-    },
-    {
-        "Name":  "CanViewStockBalances",
-        "PoliceArabicName":  "عرض أرصدة المخزون",
-        "PoliceEnglishNameEn":  "View Stock Balances",
-        "ScreenArabicName":  "أرصدة المخزون",
-        "ScreenEnglishName":  "Stock Balances",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  121
-    },
-    {
-        "Name":  "CanViewStockLedger",
-        "PoliceArabicName":  "عرض سجل حركات المخزون",
-        "PoliceEnglishNameEn":  "View Stock Ledger",
-        "ScreenArabicName":  "سجل الحركات",
-        "ScreenEnglishName":  "Stock Ledger",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  122
-    },
-    {
-        "Name":  "CanViewSuppliers",
-        "PoliceArabicName":  "عرض بيانات الموردين",
-        "PoliceEnglishNameEn":  "View Suppliers",
-        "ScreenArabicName":  "إدارة الموردين",
-        "ScreenEnglishName":  "Suppliers Management",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  123
-    },
-    {
-        "Name":  "CanManageSuppliers",
-        "PoliceArabicName":  "إدارة وتعديل بيانات الموردين",
-        "PoliceEnglishNameEn":  "Manage Suppliers",
-        "ScreenArabicName":  "إدارة الموردين",
-        "ScreenEnglishName":  "Suppliers Management",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  124
-    },
-    {
-        "Name":  "CanManageSupplierPrices",
-        "PoliceArabicName":  "إدارة تعاقدات وأسعار الموردين",
-        "PoliceEnglishNameEn":  "Manage Supplier Prices",
-        "ScreenArabicName":  "إدارة الموردين",
-        "ScreenEnglishName":  "Suppliers Management",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  125
-    },
-    {
-        "Name":  "CanViewSupplierAccounts",
-        "PoliceArabicName":  "عرض حسابات الموردين والأرصدة",
-        "PoliceEnglishNameEn":  "View Supplier Accounts",
-        "ScreenArabicName":  "حسابات الموردين",
-        "ScreenEnglishName":  "Supplier Accounts",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  126
-    },
-    {
-        "Name":  "CanMakeSupplierPayment",
-        "PoliceArabicName":  "تسجيل مدفوعات وسندات صرف للموردين",
-        "PoliceEnglishNameEn":  "Record Supplier Payment",
-        "ScreenArabicName":  "حسابات الموردين",
-        "ScreenEnglishName":  "Supplier Accounts",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  127
-    },
-    {
-        "Name":  "CanCreatePurchaseOrder",
-        "PoliceArabicName":  "إنشاء وتعديل أوامر الشراء",
-        "PoliceEnglishNameEn":  "Create Purchase Order",
-        "ScreenArabicName":  "أوامر الشراء",
-        "ScreenEnglishName":  "Purchase Orders",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  128
-    },
-    {
-        "Name":  "CanApprovePurchaseOrder",
-        "PoliceArabicName":  "اعتماد أوامر الشراء",
-        "PoliceEnglishNameEn":  "Approve Purchase Order",
-        "ScreenArabicName":  "أوامر الشراء",
-        "ScreenEnglishName":  "Purchase Orders",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  129
-    },
-    {
-        "Name":  "CanReceiveGRN",
-        "PoliceArabicName":  "استلام بضائع الموردين (إذن استلام GRN)",
-        "PoliceEnglishNameEn":  "Receive Goods Receipt Note (GRN)",
-        "ScreenArabicName":  "استلام البضائع",
-        "ScreenEnglishName":  "Goods Receipt",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  130
-    },
-    {
-        "Name":  "CanViewBranchRequisitions",
-        "PoliceArabicName":  "عرض طلبات توريد الفروع",
-        "PoliceEnglishNameEn":  "View Branch Requisitions",
-        "ScreenArabicName":  "طلبات الفروع",
-        "ScreenEnglishName":  "Branch Requisitions",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  131
-    },
-    {
-        "Name":  "CanCreateBranchRequisition",
-        "PoliceArabicName":  "إنشاء طلب توريد فرع",
-        "PoliceEnglishNameEn":  "Create Branch Requisition",
-        "ScreenArabicName":  "طلبات الفروع",
-        "ScreenEnglishName":  "Branch Requisitions",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  132
-    },
-    {
-        "Name":  "CanApproveBranchRequisitions",
-        "PoliceArabicName":  "اعتماد وقبول طلبات الفروع",
-        "PoliceEnglishNameEn":  "Approve Branch Requisitions",
-        "ScreenArabicName":  "طلبات الفروع",
-        "ScreenEnglishName":  "Branch Requisitions",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  133
-    },
-    {
-        "Name":  "CanModifyBranchRequisition",
-        "PoliceArabicName":  "تعديل كميات طلب الفرع واقتراح بدائل",
-        "PoliceEnglishNameEn":  "Modify Requisition Quantities",
-        "ScreenArabicName":  "طلبات الفروع",
-        "ScreenEnglishName":  "Branch Requisitions",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  134
-    },
-    {
-        "Name":  "CanDispatchBranchRequisitions",
-        "PoliceArabicName":  "صرف وشحن طلبيات الفروع",
-        "PoliceEnglishNameEn":  "Dispatch Branch Requisitions",
-        "ScreenArabicName":  "طلبات الفروع",
-        "ScreenEnglishName":  "Branch Requisitions",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  135
-    },
-    {
-        "Name":  "CanCreateStockTransfer",
-        "PoliceArabicName":  "إنشاء تحويل بين المستودعات",
-        "PoliceEnglishNameEn":  "Create Stock Transfer",
-        "ScreenArabicName":  "التحويلات المخزنية",
-        "ScreenEnglishName":  "Stock Transfers",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  136
-    },
-    {
-        "Name":  "CanApproveStockTransfer",
-        "PoliceArabicName":  "اعتماد التحويل المخزني",
-        "PoliceEnglishNameEn":  "Approve Stock Transfer",
-        "ScreenArabicName":  "التحويلات المخزنية",
-        "ScreenEnglishName":  "Stock Transfers",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  137
-    },
-    {
-        "Name":  "CanReceiveStockTransfer",
-        "PoliceArabicName":  "تأكيد استلام التحويل المخزني",
-        "PoliceEnglishNameEn":  "Receive Stock Transfer",
-        "ScreenArabicName":  "التحويلات المخزنية",
-        "ScreenEnglishName":  "Stock Transfers",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  138
-    },
-    {
-        "Name":  "CanCreateStockCount",
-        "PoliceArabicName":  "إنشاء جرد مخزني",
-        "PoliceEnglishNameEn":  "Create Stock Count",
-        "ScreenArabicName":  "الجرد والتسويات",
-        "ScreenEnglishName":  "Stocktaking \u0026 Adjustments",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  139
-    },
-    {
-        "Name":  "CanPostStockAdjustment",
-        "PoliceArabicName":  "تسوية فروقات الجرد والتوالف",
-        "PoliceEnglishNameEn":  "Post Stock Adjustment",
-        "ScreenArabicName":  "الجرد والتسويات",
-        "ScreenEnglishName":  "Stocktaking \u0026 Adjustments",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  140
-    },
-    {
-        "Name":  "CanViewStockValuationReport",
-        "PoliceArabicName":  "تقرير تقييم المخزون المالي",
-        "PoliceEnglishNameEn":  "View Stock Valuation Report",
-        "ScreenArabicName":  "تقارير المخازن",
-        "ScreenEnglishName":  "Warehouse Reports",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  141
-    },
-    {
-        "Name":  "CanViewWarehouseReports",
-        "PoliceArabicName":  "تقارير تحليلات المستودعات وحركة الأصناف",
-        "PoliceEnglishNameEn":  "View Warehouse Reports",
-        "ScreenArabicName":  "تقارير المخازن",
-        "ScreenEnglishName":  "Warehouse Reports",
-        "IsBackOffice":  false,
-        "IsWarehouse":  true,
-        "Id":  142
-    }
+[
+  {
+    "Name": "CanPrintSummaryReport",
+    "PoliceArabicName": "طباعة ملخص المبيعات",
+    "PoliceEnglishNameEn": "Print Sales Summary",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": false,
+    "Id": 1,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewSummaryDetails",
+    "PoliceArabicName": "عرض تفاصيل ملخص المبيعات",
+    "PoliceEnglishNameEn": "View Sales Summary Details",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": false,
+    "Id": 2,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryAddNewBtn",
+    "PoliceArabicName": "إضافة عميل جديد",
+    "PoliceEnglishNameEn": "Add New Customer",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 3,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryBranchManagementBtn",
+    "PoliceArabicName": "إدارة الفروع",
+    "PoliceEnglishNameEn": "Branch Management",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 4,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryClearBtn",
+    "PoliceArabicName": "مسح البيانات",
+    "PoliceEnglishNameEn": "Clear Data",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 5,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryComplaintsBtn",
+    "PoliceArabicName": "الشكاوى",
+    "PoliceEnglishNameEn": "Complaints",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 6,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryDistributionBtn",
+    "PoliceArabicName": "التوزيع",
+    "PoliceEnglishNameEn": "Distribution",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 7,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryOrderBtn",
+    "PoliceArabicName": "طلب توصيل",
+    "PoliceEnglishNameEn": "Delivery Order",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 8,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliverySearchBtn",
+    "PoliceArabicName": "بحث توصيل",
+    "PoliceEnglishNameEn": "Delivery Search",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 9,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryToggleDirectionBtn",
+    "PoliceArabicName": "تغيير الاتجاه",
+    "PoliceEnglishNameEn": "Toggle Direction",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 10,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInCloseTableBtn",
+    "PoliceArabicName": "غلق الطاولة",
+    "PoliceEnglishNameEn": "Close Table",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 11,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInGuestCountBtn",
+    "PoliceArabicName": "عدد الضيوف",
+    "PoliceEnglishNameEn": "Guest Count",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 12,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInMergeTableBtn",
+    "PoliceArabicName": "دمج الطاولات",
+    "PoliceEnglishNameEn": "Merge Tables",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 13,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInOrderBtn",
+    "PoliceArabicName": "طلب صالة",
+    "PoliceEnglishNameEn": "Dine-In Order",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 14,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInReceiptBtn",
+    "PoliceArabicName": "طباعة فواتير الصالة",
+    "PoliceEnglishNameEn": "Dine-In Receipt",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 15,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInSplitOrderBtn",
+    "PoliceArabicName": "تقسيم الطلب",
+    "PoliceEnglishNameEn": "Split Order",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 16,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInTransferBtn",
+    "PoliceArabicName": "تحويل الطاولة",
+    "PoliceEnglishNameEn": "Transfer Table",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 17,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDineInVoidBtn",
+    "PoliceArabicName": "إلغاء طلب صالة",
+    "PoliceEnglishNameEn": "Void Dine-In",
+    "ScreenArabicName": "شاشة الصالة",
+    "ScreenEnglishName": "Dine-In Screen",
+    "IsBackOffice": false,
+    "Id": 18,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionAssignBtn",
+    "PoliceArabicName": "تعيين سائق للطلب",
+    "PoliceEnglishNameEn": "Assign Driver",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 19,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionCollectBtn",
+    "PoliceArabicName": "تحصيل مبلغ الطلب",
+    "PoliceEnglishNameEn": "Collect Payment",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 20,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionDriverSettlementBtn",
+    "PoliceArabicName": "تسوية حساب السائق",
+    "PoliceEnglishNameEn": "Driver Settlement",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 21,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionPrintBtn",
+    "PoliceArabicName": "طباعة طلب التوزيع",
+    "PoliceEnglishNameEn": "Print Delivery Order",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 22,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionUnDispatchBtn",
+    "PoliceArabicName": "إلغاء إرسال الطلب",
+    "PoliceEnglishNameEn": "Un-Dispatch Order",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 23,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionViewBtn",
+    "PoliceArabicName": "عرض تفاصيل طلب التوزيع",
+    "PoliceEnglishNameEn": "View Dispatch Details",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 24,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionViewDriversBtn",
+    "PoliceArabicName": "عرض السائقين",
+    "PoliceEnglishNameEn": "View Drivers",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 25,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionVoidBtn",
+    "PoliceArabicName": "إلغاء طلب التوزيع",
+    "PoliceEnglishNameEn": "Void Dispatch Order",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 26,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistributionVoidHistoryBtn",
+    "PoliceArabicName": "عرض سجل الإلغاءات",
+    "PoliceEnglishNameEn": "View Void History",
+    "ScreenArabicName": "عمليات شاشة التوزيع",
+    "ScreenEnglishName": "Distribution Screen Actions",
+    "IsBackOffice": false,
+    "Id": 27,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessPosSettingsFeature",
+    "PoliceArabicName": "إعدادات النظام المتقدمة",
+    "PoliceEnglishNameEn": "POS Advanced Settings Feature",
+    "ScreenArabicName": "الإعدادات العامة",
+    "ScreenEnglishName": "Global Settings",
+    "IsBackOffice": false,
+    "Id": 28,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanApplyItemDiscount",
+    "PoliceArabicName": "إضافة خصم على صنف",
+    "PoliceEnglishNameEn": "Item Discount",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 29,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanDecrementQuantity",
+    "PoliceArabicName": "تقليل الكمية (-)",
+    "PoliceEnglishNameEn": "Decrement Quantity",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 30,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanDeleteItem",
+    "PoliceArabicName": "حذف صنف من العربة",
+    "PoliceEnglishNameEn": "Remove Item",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 31,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanEditItemComment",
+    "PoliceArabicName": "تعديل ملاحظات الصنف",
+    "PoliceEnglishNameEn": "Edit Item Notes",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 32,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanIncrementQuantity",
+    "PoliceArabicName": "زيادة الكمية (+)",
+    "PoliceEnglishNameEn": "Increment Quantity",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 33,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanUseKeypad",
+    "PoliceArabicName": "استخدام لوحة الأرقام",
+    "PoliceEnglishNameEn": "Use Keypad",
+    "ScreenArabicName": "أزرار شاشة البيع الجانبية",
+    "ScreenEnglishName": "POS Screen Actions",
+    "IsBackOffice": false,
+    "Id": 34,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterDiscountBtn",
+    "PoliceArabicName": "خصم الأوردر (Footer)",
+    "PoliceEnglishNameEn": "Order Discount Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 35,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterCustomerDataBtn",
+    "PoliceArabicName": "بيانات العميل (Footer)",
+    "PoliceEnglishNameEn": "Customer Data Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 36,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterMealsBtn",
+    "PoliceArabicName": "زر الوجبات (Footer)",
+    "PoliceEnglishNameEn": "Meals Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 37,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterPaymentMethodBtn",
+    "PoliceArabicName": "طرق الدفع (Footer)",
+    "PoliceEnglishNameEn": "Payment Method Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 38,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterQuickPaymentBtn",
+    "PoliceArabicName": "دفع سريع (Footer)",
+    "PoliceEnglishNameEn": "Quick Pay Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 39,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterSettingsBtn",
+    "PoliceArabicName": "الإعدادات (Footer)",
+    "PoliceEnglishNameEn": "Settings Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 40,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterWaitingBtn",
+    "PoliceArabicName": "الانتظار (Footer)",
+    "PoliceEnglishNameEn": "Waiting Button",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 41,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessAccounts",
+    "PoliceArabicName": "الحسابات",
+    "PoliceEnglishNameEn": "Accounts",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 42,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDelivery",
+    "PoliceArabicName": "شاشة التوصيل",
+    "PoliceEnglishNameEn": "Delivery Screen",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 43,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessTables",
+    "PoliceArabicName": "شاشة الصالة",
+    "PoliceEnglishNameEn": "Dine-In Screen",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 44,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDistribution",
+    "PoliceArabicName": "التوزيع",
+    "PoliceEnglishNameEn": "Distribution",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 45,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessOrders",
+    "PoliceArabicName": "إدارة الطلبات",
+    "PoliceEnglishNameEn": "Orders Management",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 46,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessSummary",
+    "PoliceArabicName": "الملخص اليومي",
+    "PoliceEnglishNameEn": "Daily Summary",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 47,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessTakeAway",
+    "PoliceArabicName": "شاشة التيك اواي",
+    "PoliceEnglishNameEn": "Take-Away Screen",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 48,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessWaiting",
+    "PoliceArabicName": "قائمة الانتظار",
+    "PoliceEnglishNameEn": "Waiting List",
+    "ScreenArabicName": "قائمة شاشة المبيعات",
+    "ScreenEnglishName": "POS Screen Nav",
+    "IsBackOffice": false,
+    "Id": 49,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanCancelOrder",
+    "PoliceArabicName": "إلغاء الطلب بالكامل",
+    "PoliceEnglishNameEn": "Cancel Entire Order",
+    "ScreenArabicName": "أزرار تنفيذ الطلب (أطراف)",
+    "ScreenEnglishName": "POS Screen Section4 Actions",
+    "IsBackOffice": false,
+    "Id": 50,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintOrder",
+    "PoliceArabicName": "طباعة الطلب",
+    "PoliceEnglishNameEn": "Print Order",
+    "ScreenArabicName": "أزرار تنفيذ الطلب (أطراف)",
+    "ScreenEnglishName": "POS Screen Section4 Actions",
+    "IsBackOffice": false,
+    "Id": 51,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanWaitingOrder",
+    "PoliceArabicName": "إرسال الطلب للانتظار",
+    "PoliceEnglishNameEn": "Send to Waiting",
+    "ScreenArabicName": "أزرار تنفيذ الطلب - أطراف",
+    "ScreenEnglishName": "POS Screen Section4 Actions",
+    "IsBackOffice": false,
+    "Id": 52,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintStaffAccounts",
+    "PoliceArabicName": "طباعة تقرير حسابات الموظفين",
+    "PoliceEnglishNameEn": "Print Staff Account Report",
+    "ScreenArabicName": "حسابات الموظفين",
+    "ScreenEnglishName": "Staff Accounts Actions",
+    "IsBackOffice": false,
+    "Id": 53,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewStaffAccounts",
+    "PoliceArabicName": "عرض تفاصيل حسابات الموظفين",
+    "PoliceEnglishNameEn": "View Staff Account Details",
+    "ScreenArabicName": "حسابات الموظفين",
+    "ScreenEnglishName": "Staff Accounts Actions",
+    "IsBackOffice": false,
+    "Id": 54,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintOrderCustomerReceipt",
+    "PoliceArabicName": "طباعة فاتورة العميل",
+    "PoliceEnglishNameEn": "Print Customer Receipt",
+    "ScreenArabicName": "كل طلبات اليوم",
+    "ScreenEnglishName": "Today Orders Actions",
+    "IsBackOffice": false,
+    "Id": 55,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintOrderKitchenReceipt",
+    "PoliceArabicName": "طباعة طلبية الكيتشن",
+    "PoliceEnglishNameEn": "Print Kitchen Receipt",
+    "ScreenArabicName": "كل طلبات اليوم",
+    "ScreenEnglishName": "Today Orders Actions",
+    "IsBackOffice": false,
+    "Id": 56,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewOrderDetails",
+    "PoliceArabicName": "عرض تفاصيل الطلب",
+    "PoliceEnglishNameEn": "View Order Details",
+    "ScreenArabicName": "كل طلبات اليوم",
+    "ScreenEnglishName": "Today Orders Actions",
+    "IsBackOffice": false,
+    "Id": 57,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanVoidOrderFromList",
+    "PoliceArabicName": "إلغاء طلب من القائمة",
+    "PoliceEnglishNameEn": "Void Order from List",
+    "ScreenArabicName": "كل طلبات اليوم",
+    "ScreenEnglishName": "Today Orders Actions",
+    "IsBackOffice": false,
+    "Id": 58,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanCompleteWaitingOrder",
+    "PoliceArabicName": "تفعيل طلب من الانتظار",
+    "PoliceEnglishNameEn": "Complete Waiting Order",
+    "ScreenArabicName": "شاشة الانتظار",
+    "ScreenEnglishName": "Waiting Page Actions",
+    "IsBackOffice": false,
+    "Id": 59,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanRemoveWaitingOrder",
+    "PoliceArabicName": "حذف طلب من الانتظار",
+    "PoliceEnglishNameEn": "Remove Waiting Order",
+    "ScreenArabicName": "شاشة الانتظار",
+    "ScreenEnglishName": "Waiting Page Actions",
+    "IsBackOffice": false,
+    "Id": 60,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessBackOffice",
+    "PoliceArabicName": "دخول لوحة التحكم",
+    "PoliceEnglishNameEn": "Access Back Office",
+    "ScreenArabicName": "عام",
+    "ScreenEnglishName": "General",
+    "IsBackOffice": true,
+    "Id": 61,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewDashboardAtBackOffice",
+    "PoliceArabicName": "عرض لوحة البيانات",
+    "PoliceEnglishNameEn": "View Dashboard",
+    "ScreenArabicName": "عام",
+    "ScreenEnglishName": "General",
+    "IsBackOffice": true,
+    "Id": 62,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageCompanySettingsAtBackOffice",
+    "PoliceArabicName": "إدارة الفروع والشركة",
+    "PoliceEnglishNameEn": "Manage Company & Branches",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 63,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageOrderSettingsAtBackOffice",
+    "PoliceArabicName": "إدارة إعدادات الأوردر",
+    "PoliceEnglishNameEn": "Manage Order Settings",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 64,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManagePrinterSettingsAtBackOffice",
+    "PoliceArabicName": "إدارة إعدادات الطابعات",
+    "PoliceEnglishNameEn": "Manage Printer Settings",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 65,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageSystemFeaturesAtBackOffice",
+    "PoliceArabicName": "إدارة خصائص النظام",
+    "PoliceEnglishNameEn": "Manage System Features",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 66,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanSyncDataAtBackOffice",
+    "PoliceArabicName": "تحديث البيانات",
+    "PoliceEnglishNameEn": "Sync Data",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 67,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageGeneralSettingsAtBackOffice",
+    "PoliceArabicName": "الإعدادات العامة",
+    "PoliceEnglishNameEn": "General Settings",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 68,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManagePosSettingsAtBackOffice",
+    "PoliceArabicName": "إعدادات نقاط البيع",
+    "PoliceEnglishNameEn": "POS Settings",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 69,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageLanguageSettingsAtBackOffice",
+    "PoliceArabicName": "إعدادات اللغة",
+    "PoliceEnglishNameEn": "Language Settings",
+    "ScreenArabicName": "الإعدادات",
+    "ScreenEnglishName": "Settings",
+    "IsBackOffice": true,
+    "Id": 70,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageUsersAtBackOffice",
+    "PoliceArabicName": "إدارة المستخدمين",
+    "PoliceEnglishNameEn": "Manage Users",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 71,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageRolesAtBackOffice",
+    "PoliceArabicName": "إدارة الأدوار",
+    "PoliceEnglishNameEn": "Manage Roles",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 72,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManagePermissionsAtBackOffice",
+    "PoliceArabicName": "إدارة الصلاحيات",
+    "PoliceEnglishNameEn": "Manage Permissions",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 73,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageItemsAtBackOffice",
+    "PoliceArabicName": "إدارة الأصناف والمنيو",
+    "PoliceEnglishNameEn": "Manage Items & Menu",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 74,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageCategoriesAtBackOffice",
+    "PoliceArabicName": "إدارة الفئات",
+    "PoliceEnglishNameEn": "Manage Categories",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 75,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageTablesAtBackOffice",
+    "PoliceArabicName": "إدارة الطاولات",
+    "PoliceEnglishNameEn": "Manage Tables",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 76,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageZonesAtBackOffice",
+    "PoliceArabicName": "إدارة مناطق التوصيل",
+    "PoliceEnglishNameEn": "Manage Delivery Zones",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 77,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManagePaymentMethodsAtBackOffice",
+    "PoliceArabicName": "إدارة طرق الدفع",
+    "PoliceEnglishNameEn": "Manage Payment Methods",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 78,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageInventoryAtBackOffice",
+    "PoliceArabicName": "إدارة المخازن",
+    "PoliceEnglishNameEn": "Manage Inventory",
+    "ScreenArabicName": "المخازن",
+    "ScreenEnglishName": "Inventory",
+    "IsBackOffice": true,
+    "Id": 79,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageRawMaterialsAtBackOffice",
+    "PoliceArabicName": "إدارة المواد الخام",
+    "PoliceEnglishNameEn": "Manage Raw Materials",
+    "ScreenArabicName": "المخازن",
+    "ScreenEnglishName": "Inventory",
+    "IsBackOffice": true,
+    "Id": 80,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageSemiFinishedItemsAtBackOffice",
+    "PoliceArabicName": "إدارة الأصناف نصف المصنعة",
+    "PoliceEnglishNameEn": "Manage Semi-Finished Items",
+    "ScreenArabicName": "المخازن",
+    "ScreenEnglishName": "Inventory",
+    "IsBackOffice": true,
+    "Id": 81,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageRecipesAtBackOffice",
+    "PoliceArabicName": "إدارة الريسيبي",
+    "PoliceEnglishNameEn": "Manage Recipes (BOM)",
+    "ScreenArabicName": "المخازن",
+    "ScreenEnglishName": "Inventory",
+    "IsBackOffice": true,
+    "Id": 82,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageUnitsAtBackOffice",
+    "PoliceArabicName": "إدارة الوحدات",
+    "PoliceEnglishNameEn": "Manage Units",
+    "ScreenArabicName": "المخازن",
+    "ScreenEnglishName": "Inventory",
+    "IsBackOffice": true,
+    "Id": 83,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAssignDriverAtBackOffice",
+    "PoliceArabicName": "تعيين سائق",
+    "PoliceEnglishNameEn": "Assign Driver",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 84,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewOrderAtBackOffice",
+    "PoliceArabicName": "عرض تفاصيل الطلب",
+    "PoliceEnglishNameEn": "View Order Details",
+    "ScreenArabicName": "الطلبات",
+    "ScreenEnglishName": "Orders",
+    "IsBackOffice": true,
+    "Id": 85,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanVoidOrderAtBackOffice",
+    "PoliceArabicName": "إلغاء الطلب",
+    "PoliceEnglishNameEn": "Void Order",
+    "ScreenArabicName": "الطلبات",
+    "ScreenEnglishName": "Orders",
+    "IsBackOffice": true,
+    "Id": 86,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintOrderAtBackOffice",
+    "PoliceArabicName": "طباعة الطلب",
+    "PoliceEnglishNameEn": "Print Order",
+    "ScreenArabicName": "الطلبات",
+    "ScreenEnglishName": "Orders",
+    "IsBackOffice": true,
+    "Id": 87,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintKitchenOrderAtBackOffice",
+    "PoliceArabicName": "طباعة بون المطبخ",
+    "PoliceEnglishNameEn": "Print Kitchen Order",
+    "ScreenArabicName": "الطلبات",
+    "ScreenEnglishName": "Orders",
+    "IsBackOffice": true,
+    "Id": 88,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanUnDispatchOrderAtBackOffice",
+    "PoliceArabicName": "إلغاء توزيع الطلب",
+    "PoliceEnglishNameEn": "Un-Dispatch Order",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 89,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanCollectOrderAtBackOffice",
+    "PoliceArabicName": "تحصيل الطلب",
+    "PoliceEnglishNameEn": "Collect Order",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 90,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewDriversListAtBackOffice",
+    "PoliceArabicName": "عرض قائمة السائقين",
+    "PoliceEnglishNameEn": "View Drivers List",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 91,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewVoidHistoryAtBackOffice",
+    "PoliceArabicName": "عرض سجل الإلغاءات",
+    "PoliceEnglishNameEn": "View Void History",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 92,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewDriverSettlementAtBackOffice",
+    "PoliceArabicName": "تسوية حساب السائق",
+    "PoliceEnglishNameEn": "Driver Settlement",
+    "ScreenArabicName": "التوزيع",
+    "ScreenEnglishName": "Distribution",
+    "IsBackOffice": true,
+    "Id": 93,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewSummaryDetailsAtBackOffice",
+    "PoliceArabicName": "عرض المبيعات التفصيلية من الملخص -إدارة",
+    "PoliceEnglishNameEn": "View Summary Details",
+    "ScreenArabicName": "الملخص - إدارة",
+    "ScreenEnglishName": "Summary",
+    "IsBackOffice": true,
+    "Id": 94,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintSummaryReportAtBackOffice",
+    "PoliceArabicName": "طباعة يومية المبيعات من الملخص - إدارة",
+    "PoliceEnglishNameEn": "Print Summary Report",
+    "ScreenArabicName": "الملخص - إدارة",
+    "ScreenEnglishName": "Summary",
+    "IsBackOffice": true,
+    "Id": 95,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintStaffAccountsAtBackOffice",
+    "PoliceArabicName": "طباعة تقارير حسابات الموظفين - إدارة",
+    "PoliceEnglishNameEn": "Print Staff Accounts",
+    "ScreenArabicName": "الحسابات  - إدارة",
+    "ScreenEnglishName": "Accounts",
+    "IsBackOffice": true,
+    "Id": 96,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewBackOfficeTransactionsAtBackOffice",
+    "PoliceArabicName": "عرض قائمة العمليات الرئيسية - إدارة",
+    "PoliceEnglishNameEn": "View Transactions",
+    "ScreenArabicName": "العمليات - إدارة",
+    "ScreenEnglishName": "Transactions",
+    "IsBackOffice": true,
+    "Id": 97,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewBackOfficeReportsAtBackOffice",
+    "PoliceArabicName": "عرض قائمة التقارير الرئيسية - إدارة",
+    "PoliceEnglishNameEn": "View Reports",
+    "ScreenArabicName": "التقارير - إدارة",
+    "ScreenEnglishName": "Reports",
+    "IsBackOffice": true,
+    "Id": 98,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewQueriesAtBackOffice",
+    "PoliceArabicName": "عرض الاستعلامات - إدارة",
+    "PoliceEnglishNameEn": "View Queries",
+    "ScreenArabicName": "الاستعلامات - إدارة",
+    "ScreenEnglishName": "Queries",
+    "IsBackOffice": true,
+    "Id": 99,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewRegistrationAtBackOffice",
+    "PoliceArabicName": "عرض شاشة التسجيل (إدارة",
+    "PoliceEnglishNameEn": "View Registration",
+    "ScreenArabicName": "التسجيل (إدارة",
+    "ScreenEnglishName": "Registration",
+    "IsBackOffice": true,
+    "Id": 100,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewClosingAtBackOffice",
+    "PoliceArabicName": "عرض شاشة الإغلاق - إدارة",
+    "PoliceEnglishNameEn": "View Closing",
+    "ScreenArabicName": "الإغلاق - إدارة",
+    "ScreenEnglishName": "Closing",
+    "IsBackOffice": true,
+    "Id": 101,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewDetailedSales",
+    "PoliceArabicName": "عرض المبيعات التفصيلية",
+    "PoliceEnglishNameEn": "View Detailed Sales",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": false,
+    "Id": 102,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewSalesItems",
+    "PoliceArabicName": "عرض أصناف البيع",
+    "PoliceEnglishNameEn": "View Sales Items",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": false,
+    "Id": 103,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintSalesItems",
+    "PoliceArabicName": "طباعة أصناف البيع",
+    "PoliceEnglishNameEn": "Print Sales Items",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": false,
+    "Id": 104,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewSalesItemsAtBackOffice",
+    "PoliceEnglishNameEn": "View Sales Items - BackOffice",
+    "PoliceArabicName": "عرض أصناف المبيعات",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": true,
+    "Id": 105,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanPrintSalesItemsAtBackOffice",
+    "PoliceArabicName": "طباعة أصناف البيع",
+    "PoliceEnglishNameEn": "Print Sales Items",
+    "ScreenArabicName": "ملخص مبيعات اليوم",
+    "ScreenEnglishName": "Daily Sales Summary Actions",
+    "IsBackOffice": true,
+    "Id": 106,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessFooterHospitalityBtn",
+    "PoliceArabicName": "الضيافة",
+    "PoliceEnglishNameEn": "Hospitality",
+    "ScreenArabicName": "أزرار اسفل شاشة البيع",
+    "ScreenEnglishName": "POS Screen Footer",
+    "IsBackOffice": false,
+    "Id": 107,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewStaffMealsReportAtBackOffice",
+    "PoliceArabicName": "عرض تقارير وجبات العاملين",
+    "PoliceEnglishNameEn": "View Staff Meals Reports",
+    "ScreenArabicName": "التقارير - إدارة",
+    "ScreenEnglishName": "Reports",
+    "IsBackOffice": true,
+    "Id": 108,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanManageStaffMealConfigsAtBackOffice",
+    "PoliceArabicName": "إدارة إعدادات وجبات العاملين",
+    "PoliceEnglishNameEn": "Manage Staff Meal Settings",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 109,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanViewHospitalityReportAtBackOffice",
+    "PoliceArabicName": "عرض تقارير الضيافة",
+    "PoliceEnglishNameEn": "View Hospitality Reports",
+    "ScreenArabicName": "التقارير - إدارة",
+    "ScreenEnglishName": "Reports",
+    "IsBackOffice": true,
+    "Id": 110,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanResetUserPasswordAtBackOffice",
+    "PoliceArabicName": "تغيير كلمة مرور أي مستخدم",
+    "PoliceEnglishNameEn": "Reset Any User Password",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 111,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanChangeOwnPasswordAtBackOffice",
+    "PoliceArabicName": "تغيير كلمة المرور الخاصة",
+    "PoliceEnglishNameEn": "Change Own Password",
+    "ScreenArabicName": "البيانات الأساسية",
+    "ScreenEnglishName": "Basic Data",
+    "IsBackOffice": true,
+    "Id": 112,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryVoidBtn",
+    "PoliceArabicName": "إلغاء طلب دليفري",
+    "PoliceEnglishNameEn": "Void Delivery Order",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 113,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessDeliveryEditBtn",
+    "PoliceArabicName": "تعديل طلب دليفري",
+    "PoliceEnglishNameEn": "Edit Delivery Order",
+    "ScreenArabicName": "شاشة التوصيل",
+    "ScreenEnglishName": "Delivery Screen",
+    "IsBackOffice": false,
+    "Id": 114,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanVoidBranchDeliveryOrder",
+    "PoliceArabicName": "إلغاء طلب الفروع",
+    "PoliceEnglishNameEn": "Void Branch Order",
+    "ScreenArabicName": "أوردرات الفروع",
+    "ScreenEnglishName": "Branch Orders",
+    "IsBackOffice": false,
+    "Id": 115,
+    "IsWarehouse": false
+  },
+  {
+    "Name": "CanAccessWarehouseDashboard",
+    "PoliceArabicName": "لوحة تحكم المخازن",
+    "PoliceEnglishNameEn": "Access Warehouse Dashboard",
+    "ScreenArabicName": "لوحة التحكم",
+    "ScreenEnglishName": "Warehouse Dashboard",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 116
+  },
+  {
+    "Name": "CanViewWarehouses",
+    "PoliceArabicName": "عرض المستودعات",
+    "PoliceEnglishNameEn": "View Warehouses",
+    "ScreenArabicName": "إدارة المستودعات",
+    "ScreenEnglishName": "Warehouses Management",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 117
+  },
+  {
+    "Name": "CanManageWarehouses",
+    "PoliceArabicName": "إدارة المستودعات",
+    "PoliceEnglishNameEn": "Manage Warehouses",
+    "ScreenArabicName": "إدارة المستودعات",
+    "ScreenEnglishName": "Warehouses Management",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 118
+  },
+  {
+    "Name": "CanViewWarehouseProducts",
+    "PoliceArabicName": "عرض أصناف المخزن",
+    "PoliceEnglishNameEn": "View Warehouse Products",
+    "ScreenArabicName": "أصناف المخزن",
+    "ScreenEnglishName": "Warehouse Products",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 119
+  },
+  {
+    "Name": "CanManageWarehouseProducts",
+    "PoliceArabicName": "إدارة أصناف المخزن",
+    "PoliceEnglishNameEn": "Manage Warehouse Products",
+    "ScreenArabicName": "أصناف المخزن",
+    "ScreenEnglishName": "Warehouse Products",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 120
+  },
+  {
+    "Name": "CanViewStockBalances",
+    "PoliceArabicName": "عرض أرصدة المخزون",
+    "PoliceEnglishNameEn": "View Stock Balances",
+    "ScreenArabicName": "أرصدة المخزون",
+    "ScreenEnglishName": "Stock Balances",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 121
+  },
+  {
+    "Name": "CanViewStockLedger",
+    "PoliceArabicName": "عرض سجل حركات المخزون",
+    "PoliceEnglishNameEn": "View Stock Ledger",
+    "ScreenArabicName": "سجل الحركات",
+    "ScreenEnglishName": "Stock Ledger",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 122
+  },
+  {
+    "Name": "CanViewSuppliers",
+    "PoliceArabicName": "عرض الموردين",
+    "PoliceEnglishNameEn": "View Suppliers",
+    "ScreenArabicName": "إدارة الموردين",
+    "ScreenEnglishName": "Suppliers Management",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 123
+  },
+  {
+    "Name": "CanManageSuppliers",
+    "PoliceArabicName": "إدارة الموردين",
+    "PoliceEnglishNameEn": "Manage Suppliers",
+    "ScreenArabicName": "إدارة الموردين",
+    "ScreenEnglishName": "Suppliers Management",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 124
+  },
+  {
+    "Name": "CanManageSupplierPrices",
+    "PoliceArabicName": "إدارة أسعار الموردين",
+    "PoliceEnglishNameEn": "Manage Supplier Prices",
+    "ScreenArabicName": "إدارة الموردين",
+    "ScreenEnglishName": "Suppliers Management",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 125
+  },
+  {
+    "Name": "CanViewSupplierAccounts",
+    "PoliceArabicName": "عرض كشوف حسابات الموردين",
+    "PoliceEnglishNameEn": "View Supplier Accounts",
+    "ScreenArabicName": "حسابات الموردين",
+    "ScreenEnglishName": "Supplier Accounts",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 126
+  },
+  {
+    "Name": "CanMakeSupplierPayment",
+    "PoliceArabicName": "تسجيل سند صرف لمورد",
+    "PoliceEnglishNameEn": "Make Supplier Payment",
+    "ScreenArabicName": "حسابات الموردين",
+    "ScreenEnglishName": "Supplier Accounts",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 127
+  },
+  {
+    "Name": "CanCreatePurchaseOrder",
+    "PoliceArabicName": "إنشاء أمر شراء",
+    "PoliceEnglishNameEn": "Create Purchase Order",
+    "ScreenArabicName": "أوامر الشراء",
+    "ScreenEnglishName": "Purchase Orders",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 128
+  },
+  {
+    "Name": "CanApprovePurchaseOrder",
+    "PoliceArabicName": "اعتماد أمر الشراء",
+    "PoliceEnglishNameEn": "Approve Purchase Order",
+    "ScreenArabicName": "أوامر الشراء",
+    "ScreenEnglishName": "Purchase Orders",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 129
+  },
+  {
+    "Name": "CanReceiveGRN",
+    "PoliceArabicName": "استلام بضائع وتوريد",
+    "PoliceEnglishNameEn": "Receive Goods (GRN)",
+    "ScreenArabicName": "استلام البضائع",
+    "ScreenEnglishName": "Goods Receipt",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 130
+  },
+  {
+    "Name": "CanViewBranchRequisitions",
+    "PoliceArabicName": "عرض طلبات الفروع",
+    "PoliceEnglishNameEn": "View Branch Requisitions",
+    "ScreenArabicName": "طلبات الفروع",
+    "ScreenEnglishName": "Branch Requisitions",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 131
+  },
+  {
+    "Name": "CanCreateBranchRequisition",
+    "PoliceArabicName": "إنشاء طلب فرع جديد",
+    "PoliceEnglishNameEn": "Create Branch Requisition",
+    "ScreenArabicName": "طلبات الفروع",
+    "ScreenEnglishName": "Branch Requisitions",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 132
+  },
+  {
+    "Name": "CanApproveBranchRequisitions",
+    "PoliceArabicName": "اعتماد وموافقة طلب الفرع",
+    "PoliceEnglishNameEn": "Approve Branch Requisitions",
+    "ScreenArabicName": "طلبات الفروع",
+    "ScreenEnglishName": "Branch Requisitions",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 133
+  },
+  {
+    "Name": "CanModifyBranchRequisition",
+    "PoliceArabicName": "تعديل كميات طلب الفرع",
+    "PoliceEnglishNameEn": "Modify Branch Requisitions",
+    "ScreenArabicName": "طلبات الفروع",
+    "ScreenEnglishName": "Branch Requisitions",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 134
+  },
+  {
+    "Name": "CanDispatchBranchRequisitions",
+    "PoliceArabicName": "صرف وشحن طلب الفرع",
+    "PoliceEnglishNameEn": "Dispatch Branch Requisitions",
+    "ScreenArabicName": "طلبات الفروع",
+    "ScreenEnglishName": "Branch Requisitions",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 135
+  },
+  {
+    "Name": "CanCreateStockTransfer",
+    "PoliceArabicName": "إنشاء تحويل مخزني",
+    "PoliceEnglishNameEn": "Create Stock Transfer",
+    "ScreenArabicName": "التحويلات المخزنية",
+    "ScreenEnglishName": "Stock Transfers",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 136
+  },
+  {
+    "Name": "CanApproveStockTransfer",
+    "PoliceArabicName": "اعتماد التحويل المخزني",
+    "PoliceEnglishNameEn": "Approve Stock Transfer",
+    "ScreenArabicName": "التحويلات المخزنية",
+    "ScreenEnglishName": "Stock Transfers",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 137
+  },
+  {
+    "Name": "CanReceiveStockTransfer",
+    "PoliceArabicName": "استلام التحويل المخزني في الفرع",
+    "PoliceEnglishNameEn": "Receive Stock Transfer",
+    "ScreenArabicName": "التحويلات المخزنية",
+    "ScreenEnglishName": "Stock Transfers",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 138
+  },
+  {
+    "Name": "CanCreateStockCount",
+    "PoliceArabicName": "إنشاء جلسة جرد مخزني",
+    "PoliceEnglishNameEn": "Create Stock Count",
+    "ScreenArabicName": "الجرد والتسويات",
+    "ScreenEnglishName": "Stocktaking & Adjustments",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 139
+  },
+  {
+    "Name": "CanPostStockAdjustment",
+    "PoliceArabicName": "تسوية فروقات الجرد",
+    "PoliceEnglishNameEn": "Post Stock Adjustment",
+    "ScreenArabicName": "الجرد والتسويات",
+    "ScreenEnglishName": "Stocktaking & Adjustments",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 140
+  },
+  {
+    "Name": "CanViewStockValuationReport",
+    "PoliceArabicName": "تقرير تقييم المخزون",
+    "PoliceEnglishNameEn": "View Stock Valuation Report",
+    "ScreenArabicName": "تقارير المخازن",
+    "ScreenEnglishName": "Warehouse Reports",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 141
+  },
+  {
+    "Name": "CanViewWarehouseReports",
+    "PoliceArabicName": "عرض تقارير المستودعات",
+    "PoliceEnglishNameEn": "View Warehouse Reports",
+    "ScreenArabicName": "تقارير المخازن",
+    "ScreenEnglishName": "Warehouse Reports",
+    "IsBackOffice": false,
+    "IsWarehouse": true,
+    "Id": 142
+  }
 ]

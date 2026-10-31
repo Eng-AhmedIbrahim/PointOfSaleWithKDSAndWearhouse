@@ -9,7 +9,7 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">أسعار الموردين</MudText>
+        <MudText MudBlazor.Typo="Typo.h5">أسعار الموردين</MudText>
         <MudButton StartIcon="@Icons.Material.Filled.Add" Class="wh-btn-primary" OnClick="OpenAddContractDialog">
             إضافة عقد سعر
         </MudButton>
@@ -129,7 +129,7 @@
     {
         <MudCard Class="wh-card mt-3">
             <MudCardContent>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2" Style="font-weight:bold">إضافة عقد سعر جديد</MudText>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2" Style="font-weight:bold">إضافة عقد سعر جديد</MudText>
                 <MudGrid>
                     <MudItem xs="12" sm="3">
                         <MudSelect @bind-Value="NewContract.SupplierId" Label="المورد" T="int">
@@ -308,3 +308,4 @@
         }
     }
 }
+

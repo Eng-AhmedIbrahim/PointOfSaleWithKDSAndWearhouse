@@ -6,7 +6,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">@(SupplierId == 0 ? "إضافة مورد جديد" : "تعديل بيانات المورد")</MudText>
+        <MudText MudBlazor.Typo="Typo.h6">@(SupplierId == 0 ? "إضافة مورد جديد" : "تعديل بيانات المورد")</MudText>
     </TitleContent>
     <DialogContent>
         <div dir="@(IsArabic ? "rtl" : "ltr")">
@@ -52,7 +52,7 @@
 
             <MudDivider Class="my-4" />
             <div class="d-flex align-center justify-space-between mb-2">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Style="font-weight:bold">عقود الأسعار</MudText>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Style="font-weight:bold">عقود الأسعار</MudText>
                 <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
                            OnClick="AddPriceContract">إضافة سعر</MudButton>
             </div>
@@ -74,7 +74,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
-                            <MudSelect @bind-Value="context.ProductId" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                            <MudSelect @bind-Value="context.ProductId" Dense="true" MudBlazor.Margin="Margin.Dense">
                                 @foreach (var p in Products)
                                 {
                                     <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
@@ -82,7 +82,7 @@
                             </MudSelect>
                         </MudTd>
                         <MudTd>
-                            <MudNumericField @bind-Value="context.UnitPrice" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Min="0" />
+                            <MudNumericField @bind-Value="context.UnitPrice" Dense="true" MudBlazor.Margin="Margin.Dense" Min="0" />
                         </MudTd>
                         <MudTd>
                             <MudDatePicker @bind-Date="context.StartDate" Dense="true" />
@@ -254,3 +254,4 @@
 
     private void Cancel() => MudDialog.Cancel();
 }
+

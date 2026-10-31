@@ -11,7 +11,7 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">
+        <MudText MudBlazor.Typo="Typo.h5">
             <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
             التحويلات المخزنية
         </MudText>
@@ -202,3 +202,4 @@
         int Id, string TransferNumber, string FromWarehouseName, string ToWarehouseName,
         DateTime TransferDate, string Status, int TotalItems, string CreatedBy);
 }
+

@@ -9,7 +9,7 @@
 
 <MudDialog Style="min-width:800px;">
     <TitleContent>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">
+        <MudText MudBlazor.Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
             تفاصيل طلب التوريد
             @if (_requisition is not null)
@@ -31,27 +31,27 @@
                 <!-- Header Info -->
                 <MudGrid Spacing="2" Class="mb-3">
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">رقم الطلب</MudText>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body1"><b>@_requisition.RequisitionNumber</b></MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">رقم الطلب</MudText>
+                        <MudText MudBlazor.Typo="Typo.body1"><b>@_requisition.RequisitionNumber</b></MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">الفرع الطالب</MudText>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body1">@_requisition.FromBranchName</MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">الفرع الطالب</MudText>
+                        <MudText MudBlazor.Typo="Typo.body1">@_requisition.FromBranchName</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">المخزن المورد</MudText>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body1">@_requisition.ToWarehouseName</MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">المخزن المورد</MudText>
+                        <MudText MudBlazor.Typo="Typo.body1">@_requisition.ToWarehouseName</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">تاريخ التسليم المطلوب</MudText>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body1">@_requisition.RequestedDeliveryDate?.ToString("yyyy-MM-dd")</MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">تاريخ التسليم المطلوب</MudText>
+                        <MudText MudBlazor.Typo="Typo.body1">@_requisition.RequestedDeliveryDate?.ToString("yyyy-MM-dd")</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">تاريخ الإرسال</MudText>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body1">@_requisition.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">تاريخ الإرسال</MudText>
+                        <MudText MudBlazor.Typo="Typo.body1">@_requisition.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption">الأولوية</MudText>
+                        <MudText MudBlazor.Typo="Typo.caption">الأولوية</MudText>
                         <MudChip T="string" Color="@(_requisition.Priority == "Urgent" ? MudBlazor.Color.Error : MudBlazor.Color.Default)" Size="MudBlazor.Size.Small">
                             @(_requisition.Priority == "Urgent" ? "عاجل" : "عادي")
                         </MudChip>
@@ -64,7 +64,7 @@
                 }
 
                 <!-- Lines Table -->
-                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2"><b>أصناف الطلب</b></MudText>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2"><b>أصناف الطلب</b></MudText>
                 <MudTable Items="_requisition.Lines" Dense="true" Bordered="true" Striped="true" Class="mb-4">
                     <HeaderContent>
                         <MudTh>المنتج</MudTh>
@@ -83,7 +83,7 @@
                             @if (_requisition.Status == "Submitted" || _requisition.Status == "UnderReview")
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.ApprovedQty"
-                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
                                                  Min="0m" Style="width:90px;" />
                             }
                             else
@@ -95,7 +95,7 @@
                             @if (_requisition.Status == "Approved")
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.DispatchedQty"
-                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
                                                  Min="0m" Style="width:90px;" />
                             }
                             else
@@ -107,7 +107,7 @@
                             @if (_requisition.Status == "Dispatched")
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.ReceivedQty"
-                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                                 Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
                                                  Min="0m" Style="width:90px;" />
                             }
                             else
@@ -123,7 +123,7 @@
                 @if (_showReroutePanel)
                 {
                     <MudPaper Class="pa-3 mb-3" Elevation="1">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">تحويل إلى مخزن آخر</MudText>
+                        <MudText MudBlazor.Typo="Typo.subtitle2" Class="mb-2">تحويل إلى مخزن آخر</MudText>
                         <MudSelect T="int?" Label="المخزن الجديد" @bind-Value="_newWarehouseId" Variant="MudBlazor.Variant.Outlined">
                             @foreach (var w in _warehouses)
                             {
@@ -139,7 +139,7 @@
                 @if (_showRejectPanel)
                 {
                     <MudPaper Class="pa-3 mb-3" Elevation="1">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">سبب الرفض</MudText>
+                        <MudText MudBlazor.Typo="Typo.subtitle2" Class="mb-2">سبب الرفض</MudText>
                         <MudTextField T="string" @bind-Value="_rejectReason" Lines="2" Variant="MudBlazor.Variant.Outlined" />
                         <MudButton Color="MudBlazor.Color.Error" Variant="MudBlazor.Variant.Filled" Class="mt-2"
                                    OnClick="ExecuteReject" Disabled="_acting">تأكيد الرفض</MudButton>
@@ -150,7 +150,7 @@
                 @if (_showDispatchNotesPanel)
                 {
                     <MudPaper Class="pa-3 mb-3" Elevation="1">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">ملاحظات الشحن</MudText>
+                        <MudText MudBlazor.Typo="Typo.subtitle2" Class="mb-2">ملاحظات الشحن</MudText>
                         <MudTextField T="string" @bind-Value="_dispatchNotes" Lines="2" Variant="MudBlazor.Variant.Outlined" />
                         <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="mt-2 wh-btn-primary"
                                    OnClick="ExecuteDispatch" Disabled="_acting">تأكيد الشحن</MudButton>
@@ -161,7 +161,7 @@
                 @if (_showReceiveNotesPanel)
                 {
                     <MudPaper Class="pa-3 mb-3" Elevation="1">
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">ملاحظات الاستلام</MudText>
+                        <MudText MudBlazor.Typo="Typo.subtitle2" Class="mb-2">ملاحظات الاستلام</MudText>
                         <MudTextField T="string" @bind-Value="_receiveNotes" Lines="2" Variant="MudBlazor.Variant.Outlined" />
                         <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" Class="mt-2"
                                    OnClick="ExecuteReceive" Disabled="_acting">تأكيد الاستلام</MudButton>
@@ -173,17 +173,17 @@
                 @if (_history.Any())
                 {
                     <MudDivider Class="my-3" />
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2"><b>سجل الحالات</b></MudText>
+                    <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2"><b>سجل الحالات</b></MudText>
                     <MudTimeline TimelinePosition="TimelinePosition.Start">
                         @foreach (var h in _history)
                         {
                             <MudTimelineItem Color="@GetStatusColor(h.ToStatus)" Size="MudBlazor.Size.Small">
                                 <ItemContent>
-                                    <MudText MudBlazor.Typo="MudBlazor.Typo.body2"><b>@GetStatusLabel(h.ToStatus)</b></MudText>
-                                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm") — @h.ChangedBy</MudText>
+                                    <MudText MudBlazor.Typo="Typo.body2"><b>@GetStatusLabel(h.ToStatus)</b></MudText>
+                                    <MudText MudBlazor.Typo="Typo.caption">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm") — @h.ChangedBy</MudText>
                                     @if (!string.IsNullOrWhiteSpace(h.Notes))
                                     {
-                                        <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">@h.Notes</MudText>
+                                        <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">@h.Notes</MudText>
                                     }
                                 </ItemContent>
                             </MudTimelineItem>
@@ -428,3 +428,4 @@
 
     private record StatusHistoryDto(string ToStatus, DateTime ChangedAt, string ChangedBy, string? Notes);
 }
+

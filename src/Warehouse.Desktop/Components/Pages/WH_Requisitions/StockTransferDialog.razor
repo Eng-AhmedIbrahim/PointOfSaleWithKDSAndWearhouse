@@ -9,7 +9,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">
+        <MudText MudBlazor.Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
             تحويل مخزني جديد
         </MudText>
@@ -48,7 +48,7 @@
             </MudGrid>
 
             <MudDivider Class="my-4" />
-            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2"><b>الأصناف المحولة</b></MudText>
+            <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2"><b>الأصناف المحولة</b></MudText>
 
             <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3">
                 <HeaderContent>
@@ -63,7 +63,7 @@
                 <RowTemplate>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.ProductId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
                             @foreach (var p in _products)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
@@ -72,7 +72,7 @@
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.UnitId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
                             @foreach (var u in _units)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.Name</MudSelectItem>
@@ -81,12 +81,12 @@
                     </MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.Qty"
-                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
                                          Min="0.01m" Style="width:90px;" />
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.FromLocationId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Placeholder="اختياري">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
                             @foreach (var l in _locations)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
@@ -95,7 +95,7 @@
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.ToLocationId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Placeholder="اختياري">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
                             @foreach (var l in _locations)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
@@ -104,7 +104,7 @@
                     </MudTd>
                     <MudTd>
                         <MudTextField T="string" @bind-Value="context.Notes"
-                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd>
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
@@ -261,3 +261,4 @@
         public string? Notes { get; set; }
     }
 }
+

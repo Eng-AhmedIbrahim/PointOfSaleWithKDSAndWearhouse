@@ -10,7 +10,7 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">أوامر الشراء</MudText>
+        <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">أوامر الشراء</MudText>
         <MudButton Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenCreateDialog">إضافة أمر شراء جديد</MudButton>
     </div>
@@ -203,3 +203,4 @@
         int Id, string PONumber, string SupplierName, DateTime OrderDate,
         DateTime? ExpectedDeliveryDate, decimal TotalAmount, string Status, int GRNsCount);
 }
+

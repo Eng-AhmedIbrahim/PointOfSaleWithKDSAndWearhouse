@@ -11,7 +11,7 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">
+        <MudText MudBlazor.Typo="Typo.h5">
             <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
             تقرير تقييم المخزون
         </MudText>
@@ -62,22 +62,22 @@
         <MudItem xs="12" sm="4">
             <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
                 <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">إجمالي القيمة</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Warning"><b>@_summary.TotalValue.ToString("N2")</b></MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">إجمالي القيمة</MudText>
+                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Warning"><b>@_summary.TotalValue.ToString("N2")</b></MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
                 <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">عدد الأصناف</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Primary"><b>@_summary.TotalItems</b></MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">عدد الأصناف</MudText>
+                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Primary"><b>@_summary.TotalItems</b></MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
                 <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">متوسط التكلفة</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Success"><b>@_summary.AvgCostPrice.ToString("N2")</b></MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">متوسط التكلفة</MudText>
+                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Success"><b>@_summary.AvgCostPrice.ToString("N2")</b></MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -213,3 +213,4 @@
         public decimal AvgCostPrice { get; set; }
     }
 }
+

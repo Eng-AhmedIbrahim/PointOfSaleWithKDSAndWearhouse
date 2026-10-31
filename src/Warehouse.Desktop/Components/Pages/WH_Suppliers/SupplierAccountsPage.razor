@@ -9,7 +9,7 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">كشف حساب الموردين</MudText>
+        <MudText MudBlazor.Typo="Typo.h5">كشف حساب الموردين</MudText>
         <MudButton StartIcon="@Icons.Material.Filled.Print" Class="wh-btn-primary" OnClick="Print">طباعة</MudButton>
     </div>
 
@@ -45,24 +45,24 @@
         <MudItem xs="12" sm="4">
             <MudCard Class="wh-card" Style="border-right: 4px solid #ff6600;">
                 <MudCardContent>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي المديونية</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="color:red;font-weight:bold">@TotalDebit.ToString("N2")</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي المديونية</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Style="color:red;font-weight:bold">@TotalDebit.ToString("N2")</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudCard Class="wh-card" Style="border-right: 4px solid green;">
                 <MudCardContent>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي السداد</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="color:green;font-weight:bold">@TotalCredit.ToString("N2")</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي السداد</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Style="color:green;font-weight:bold">@TotalCredit.ToString("N2")</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudCard Class="wh-card" Style="border-right: 4px solid #1976d2;">
                 <MudCardContent>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الرصيد الحالي</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="@(CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">الرصيد الحالي</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Style="@(CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
                         @CurrentBalance.ToString("N2")
                     </MudText>
                 </MudCardContent>
@@ -180,3 +180,4 @@
         Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info);
     }
 }
+

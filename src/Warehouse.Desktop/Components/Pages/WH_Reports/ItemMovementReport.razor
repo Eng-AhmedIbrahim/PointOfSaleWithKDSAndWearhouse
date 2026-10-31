@@ -9,8 +9,8 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header mb-4">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">تقرير حركة صنف تفصيلي (Item Movement)</MudText>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">تتبع دقيق لكافة حركات الوارد والمنصرف والتحويلات والتسويات لصنف معين عبر المخازن</MudText>
+        <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">تقرير حركة صنف تفصيلي (Item Movement)</MudText>
+        <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">تتبع دقيق لكافة حركات الوارد والمنصرف والتحويلات والتسويات لصنف معين عبر المخازن</MudText>
     </div>
 
     <MudCard Class="wh-card mb-4">
@@ -33,10 +33,10 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudDatePicker Label="من تاريخ" @bind-Date="_fromDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                    <MudDatePicker Label="من تاريخ" @bind-Date="_fromDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudDatePicker Label="إلى تاريخ" @bind-Date="_toDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                    <MudDatePicker Label="إلى تاريخ" @bind-Date="_toDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="1" Class="d-flex align-center">
                     <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Search"
@@ -51,20 +51,20 @@
         <!-- KPI Summary Cards -->
         <div class="d-flex gap-4 mb-4 flex-wrap">
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#047857;">إجمالي الوارد (+)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#065f46;">+@TotalIn.ToString("N2")</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#047857;">إجمالي الوارد (+)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#065f46;">+@TotalIn.ToString("N2")</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#b91c1c;">إجمالي المنصرف (-)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#991b1b;">-@TotalOut.ToString("N2")</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#b91c1c;">إجمالي المنصرف (-)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#991b1b;">-@TotalOut.ToString("N2")</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#fff7ed; border:1px solid #ea580c; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#c2410c;">صافي حركة الفترة</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#9a3412;">@((TotalIn - TotalOut).ToString("N2"))</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#c2410c;">صافي حركة الفترة</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#9a3412;">@((TotalIn - TotalOut).ToString("N2"))</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#f0f9ff; border:1px solid #0284c7; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#0369a1;">الرصيد الختامي</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#075985;">@FinalBalance.ToString("N2")</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#0369a1;">الرصيد الختامي</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#075985;">@FinalBalance.ToString("N2")</MudText>
             </MudPaper>
         </div>
     }
@@ -211,3 +211,4 @@
         decimal RunningBalance, decimal UnitCost, decimal TotalCost,
         string ReferenceDocumentType, string ReferenceDocumentNumber, string? WarehouseName);
 }
+

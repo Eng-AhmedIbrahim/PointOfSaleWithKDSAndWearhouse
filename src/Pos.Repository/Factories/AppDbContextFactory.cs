@@ -11,7 +11,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         
         // Plain connection string for migrations only
-        optionsBuilder.UseSqlServer("Server=.;Database=PointOfSale;Trusted_Connection=True;TrustServerCertificate=true");
+        optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=PointOfSaleDB;User Id=sa;Password=NewTechn0;TrustServerCertificate=true");
 
         return new AppDbContext(optionsBuilder.Options);
     }

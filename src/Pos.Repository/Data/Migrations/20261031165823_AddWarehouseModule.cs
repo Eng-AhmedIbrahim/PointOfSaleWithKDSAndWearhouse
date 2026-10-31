@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -24,25 +24,22 @@ namespace Pos.Repository.Data.Migrations
                 nullable: false,
                 defaultValue: false);
 
-            migrationBuilder.CreateTable(
-                name: "KdsScreens",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ScreenName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ScreenType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NumberFilter = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SelectedCategoryIds = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SelectedItemIds = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    BranchId = table.Column<int>(type: "int", nullable: false),
-                    DeviceName = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_KdsScreens", x => x.Id);
-                });
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'KdsScreens')
+BEGIN
+    CREATE TABLE [KdsScreens] (
+        [Id] int NOT NULL IDENTITY,
+        [ScreenName] nvarchar(max) NOT NULL,
+        [ScreenType] nvarchar(max) NOT NULL,
+        [NumberFilter] nvarchar(max) NOT NULL,
+        [SelectedCategoryIds] nvarchar(max) NULL,
+        [SelectedItemIds] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL,
+        [BranchId] int NOT NULL,
+        [DeviceName] nvarchar(max) NULL,
+        CONSTRAINT [PK_KdsScreens] PRIMARY KEY ([Id])
+    );
+END");
 
             migrationBuilder.CreateTable(
                 name: "Warehouses",
@@ -807,8 +804,11 @@ namespace Pos.Repository.Data.Migrations
             migrationBuilder.DropTable(
                 name: "GoodsReceiptNoteLines");
 
-            migrationBuilder.DropTable(
-                name: "KdsScreens");
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'KdsScreens')
+BEGIN
+    DROP TABLE [KdsScreens];
+END");
 
             migrationBuilder.DropTable(
                 name: "PurchaseOrderLines");
@@ -865,3 +865,4 @@ namespace Pos.Repository.Data.Migrations
         }
     }
 }
+

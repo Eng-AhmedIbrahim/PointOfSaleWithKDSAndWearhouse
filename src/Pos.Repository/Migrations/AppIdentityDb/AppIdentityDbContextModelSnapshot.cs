@@ -262,6 +262,9 @@ namespace Pos.Repository.Migrations.AppIdentityDb
                     b.Property<bool>("IsBackOffice")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsWarehouse")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -337,8 +340,7 @@ namespace Pos.Repository.Migrations.AppIdentityDb
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
-
+#pragma warning restore 612, 618
         }
     }
 }
-#pragma warning restore 612, 618

@@ -12,8 +12,8 @@
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
         <div>
-            <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">أذونات استلام البضائع (GRN)</MudText>
-            <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">سجل استلام بضائع الموردين وترحيلها المباشر لسجل المخزون</MudText>
+            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">أذونات استلام البضائع (GRN)</MudText>
+            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">سجل استلام بضائع الموردين وترحيلها المباشر لسجل المخزون</MudText>
         </div>
         <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.AddShoppingCart"
                    OnClick="OpenCreateGRNDialog">إذن استلام جديد</MudButton>
@@ -24,7 +24,7 @@
             <MudGrid>
                 <MudItem xs="12" sm="4">
                     <MudTextField @bind-Value="_search" Placeholder="بحث برقم الإذن أو المورد..." MudBlazor.Adornment="MudBlazor.Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudSelect T="int?" Label="المستودع" @bind-Value="_warehouseFilter" Variant="MudBlazor.Variant.Outlined" Dense="true" Clearable="true">
@@ -186,3 +186,4 @@
     public record GRNLineApiDto(decimal QuantityReceived, decimal UnitCost);
     public record WarehouseLookupDto(int Id, string NameAr);
 }
+

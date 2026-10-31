@@ -28,17 +28,17 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ التوريد المتوقع" @bind-Date="_model.ExpectedDeliveryDate"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="ملاحظات" @bind-Value="_model.Notes" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                    <MudTextField Label="ملاحظات" @bind-Value="_model.Notes" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
             </MudGrid>
 
             <MudDivider Class="my-4" />
 
             <div class="d-flex justify-space-between align-center mb-2">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="fw-bold">بنود أمر الشراء</MudText>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Class="fw-bold">بنود أمر الشراء</MudText>
                 <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary"
                            Size="MudBlazor.Size.Small" OnClick="AddLine">إضافة صنف</MudButton>
             </div>
@@ -55,7 +55,7 @@
                 <RowTemplate>
                     <MudTd>
                         <MudSelect T="int" Value="@context.ProductId" ValueChanged="@((int val) => OnProductChanged(context, val))"
-                                   Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined">
+                                   Dense="true" MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined">
                             @foreach (var p in _products)
                             {
                                 <MudSelectItem Value="@p.Id">@p.NameAr (@p.SKU)</MudSelectItem>
@@ -63,18 +63,18 @@
                         </MudSelect>
                     </MudTd>
                     <MudTd>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body2">@context.UnitName</MudText>
+                        <MudText MudBlazor.Typo="Typo.body2">@context.UnitName</MudText>
                     </MudTd>
                     <MudTd>
-                        <MudNumericField T="decimal" @bind-Value="@context.OrderedQuantity" Min="0.01m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                        <MudNumericField T="decimal" @bind-Value="@context.OrderedQuantity" Min="0.01m" MudBlazor.Margin="Margin.Dense"
                                          Variant="MudBlazor.Variant.Outlined" />
                     </MudTd>
                     <MudTd>
-                        <MudNumericField T="decimal" @bind-Value="@context.UnitPrice" Min="0m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                        <MudNumericField T="decimal" @bind-Value="@context.UnitPrice" Min="0m" MudBlazor.Margin="Margin.Dense"
                                          Variant="MudBlazor.Variant.Outlined" />
                     </MudTd>
                     <MudTd>
-                        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Class="fw-bold">@((context.OrderedQuantity * context.UnitPrice).ToString("N2"))</MudText>
+                        <MudText MudBlazor.Typo="Typo.body2" Class="fw-bold">@((context.OrderedQuantity * context.UnitPrice).ToString("N2"))</MudText>
                     </MudTd>
                     <MudTd>
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
@@ -85,17 +85,17 @@
 
             <div class="d-flex justify-end gap-6 mt-4 pa-3" style="background:#fef5ee; border-radius:8px;">
                 <div>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">المجموع قبل الضريبة</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold">@SubTotal.ToString("N2") ج.م</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">المجموع قبل الضريبة</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold">@SubTotal.ToString("N2") ج.م</MudText>
                 </div>
                 <div>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">ضريبة القيمة المضافة</MudText>
-                    <MudNumericField T="decimal" @bind-Value="_model.TaxAmount" Min="0m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">ضريبة القيمة المضافة</MudText>
+                    <MudNumericField T="decimal" @bind-Value="_model.TaxAmount" Min="0m" MudBlazor.Margin="Margin.Dense"
                                      Variant="MudBlazor.Variant.Outlined" Style="width:120px" />
                 </div>
                 <div>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الإجمالي النهائي</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold text-orange">@TotalAmount.ToString("N2") ج.م</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">الإجمالي النهائي</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold text-orange">@TotalAmount.ToString("N2") ج.م</MudText>
                 </div>
             </div>
         </div>
@@ -256,3 +256,4 @@
     public record WarehouseItem(int Id, string NameAr);
     public record ProductItem(int Id, string NameAr, string SKU, int BaseUnitId, string BaseUnitName, decimal CostPrice);
 }
+

@@ -19,21 +19,21 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField Label="رقم فاتورة المورد" @bind-Value="_model.SupplierInvoiceNumber"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ الاستلام" @bind-Date="_model.ReceiptDate"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField Label="ملاحظات الاستلام" @bind-Value="_model.Notes"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
             </MudGrid>
 
             <MudDivider Class="my-4" />
 
-            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="fw-bold mb-2">أصناف الاستلام والكميات الموردة</MudText>
+            <MudText MudBlazor.Typo="Typo.subtitle1" Class="fw-bold mb-2">أصناف الاستلام والكميات الموردة</MudText>
 
             @if (_loadingLines)
             {
@@ -59,14 +59,14 @@
                         <MudTd>
                             <MudNumericField T="decimal" @bind-Value="@context.QuantityReceived" Min="0m"
                                              Max="@(context.OrderedQuantity - context.PreviouslyReceivedQuantity)"
-                                             MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
+                                             MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
                         </MudTd>
                         <MudTd>
                             <MudNumericField T="decimal" @bind-Value="@context.UnitCost" Min="0m"
-                                             MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
+                                             MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
                         </MudTd>
                         <MudTd>
-                            <MudTextField T="string" @bind-Value="@context.BatchNumber" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                            <MudTextField T="string" @bind-Value="@context.BatchNumber" MudBlazor.Margin="Margin.Dense"
                                           Variant="MudBlazor.Variant.Outlined" Placeholder="اختياري" />
                         </MudTd>
                     </RowTemplate>
@@ -75,8 +75,8 @@
 
             <div class="d-flex justify-end mt-4 pa-3" style="background:#fef5ee; border-radius:8px;">
                 <div>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي تكلفة البضاعة المستلمة</MudText>
-                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold text-orange">
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي تكلفة البضاعة المستلمة</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold text-orange">
                         @(_lines.Sum(l => l.QuantityReceived * l.UnitCost).ToString("N2")) ج.م
                     </MudText>
                 </div>
@@ -252,3 +252,4 @@
     public record ProductShortDto(string NameAr, UnitShortDto? BaseUnit);
     public record UnitShortDto(string NameAr);
 }
+

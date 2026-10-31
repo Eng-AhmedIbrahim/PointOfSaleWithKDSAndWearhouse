@@ -9,32 +9,32 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header mb-4">
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">تقرير أعمار ديون الموردين (Supplier Aging Report)</MudText>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">متابعة الفواتير المستحقة للموردين وجدولة السداد حسب فترات الاستحقاق</MudText>
+        <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">تقرير أعمار ديون الموردين (Supplier Aging Report)</MudText>
+        <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">متابعة الفواتير المستحقة للموردين وجدولة السداد حسب فترات الاستحقاق</MudText>
     </div>
 
     @if (_invoices.Any())
     {
         <div class="d-flex gap-4 mb-4 flex-wrap">
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#047857;">فواتير جارية (أقل من 30 يوم)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#065f46;">@Current30.ToString("N2") ج.م</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#047857;">فواتير جارية (أقل من 30 يوم)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#065f46;">@Current30.ToString("N2") ج.م</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#fefce8; border:1px solid #eab308; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#a16207;">متأخرة (31 - 60 يوم)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#854d0e;">@Overdue60.ToString("N2") ج.م</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#a16207;">متأخرة (31 - 60 يوم)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#854d0e;">@Overdue60.ToString("N2") ج.م</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#fff7ed; border:1px solid #f97316; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#c2410c;">متأخرة (61 - 90 يوم)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#9a3412;">@Overdue90.ToString("N2") ج.م</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#c2410c;">متأخرة (61 - 90 يوم)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#9a3412;">@Overdue90.ToString("N2") ج.م</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#b91c1c;">حرجة (أكثر من 90 يوم)</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#991b1b;">@Overdue90Plus.ToString("N2") ج.م</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#b91c1c;">حرجة (أكثر من 90 يوم)</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#991b1b;">@Overdue90Plus.ToString("N2") ج.م</MudText>
             </MudPaper>
             <MudPaper Class="pa-4 flex-grow-1" Style="background:#1c0f08; color:#fff; border-radius:8px;">
-                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#fed7aa;">إجمالي الديون المستحقة</MudText>
-                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#fb923c;">@TotalOutstanding.ToString("N2") ج.م</MudText>
+                <MudText MudBlazor.Typo="Typo.caption" Style="color:#fed7aa;">إجمالي الديون المستحقة</MudText>
+                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#fb923c;">@TotalOutstanding.ToString("N2") ج.م</MudText>
             </MudPaper>
         </div>
     }
@@ -45,7 +45,7 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="_search" Placeholder="بحث باسم المورد أو رقم الفاتورة..."
                                   MudBlazor.Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                                  Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="6" Class="d-flex align-center justify-end">
                     <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAging">تحديث التقرير</MudButton>
@@ -166,3 +166,4 @@
         DateTime InvoiceDate, DateTime DueDate, decimal TotalAmount,
         decimal PaidAmount, decimal Outstanding, int DaysOverdue);
 }
+
