@@ -9,6 +9,7 @@ public class PermissionDto
     public string ScreenArabicName { get; set; } = string.Empty;
     public string ScreenEnglishName { get; set; } = string.Empty;
     public bool IsBackOffice { get; set; }
+    public bool IsWarehouse { get; set; }
 }
 
 public class RolePermissionDto

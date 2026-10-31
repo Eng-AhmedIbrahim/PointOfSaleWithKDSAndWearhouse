@@ -1,0 +1,232 @@
+﻿@page "/inventory/ledger"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-header-title">
+            <MudIcon Icon="@Icons.Material.Filled.MenuBook" Class="me-2" />
+            دفتر حركات المخزون
+        </MudText>
+    </div>
+
+    <MudCard Class="wh-card mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="3">
+                    <MudDatePicker @bind-Date="DateFrom" Label="من تاريخ" Variant="MudBlazor.Variant.Outlined"
+                                   DateFormat="yyyy/MM/dd" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudDatePicker @bind-Date="DateTo" Label="إلى تاريخ" Variant="MudBlazor.Variant.Outlined"
+                                   DateFormat="yyyy/MM/dd" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="int?" @bind-Value="SelectedWarehouseId" Label="المستودع"
+                               Variant="MudBlazor.Variant.Outlined" Clearable="true">
+                        @foreach (var wh in Warehouses)
+                        {
+                            <MudSelectItem T="int?" Value="wh.Id">@wh.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="int?" @bind-Value="SelectedProductId" Label="المنتج"
+                               Variant="MudBlazor.Variant.Outlined" Clearable="true">
+                        @foreach (var p in Products)
+                        {
+                            <MudSelectItem T="int?" Value="p.Id">@p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" @bind-Value="SelectedTransactionType" Label="نوع الحركة"
+                               Variant="MudBlazor.Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("All")">الكل</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("GRN")">استلام بضاعة (GRN)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("BranchDispatch")">صرف للفرع</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Transfer")">تحويل بين مستودعات</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Adjustment")">تسوية جرد</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Return")">مردودات</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="8" Class="d-flex align-center gap-2">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary" OnClick="LoadLedger"
+                               StartIcon="@Icons.Material.Filled.Search">بحث</MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" OnClick="ResetFilters"
+                               StartIcon="@Icons.Material.Filled.Clear">إعادة تعيين</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="mb-2" />
+    }
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            <MudTable Items="PagedItems" Dense="true" Hover="true" Striped="true"
+                      Loading="IsLoading" LoadingProgressColor="MudBlazor.Color.Warning">
+                <HeaderContent>
+                    <MudTh>التاريخ</MudTh>
+                    <MudTh>رقم المرجع</MudTh>
+                    <MudTh>نوع الحركة</MudTh>
+                    <MudTh>المنتج</MudTh>
+                    <MudTh>المستودع</MudTh>
+                    <MudTh>الكمية</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh>سعر التكلفة</MudTh>
+                    <MudTh>ملاحظات</MudTh>
+                    <MudTh>بواسطة</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="التاريخ">@context.Date.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                    <MudTd DataLabel="رقم المرجع">
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.TransactionRef</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="نوع الحركة">
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetTypeColor(context.TransactionType)">
+                            @GetTypeLabel(context.TransactionType)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="المنتج">@context.ProductName</MudTd>
+                    <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
+                    <MudTd DataLabel="الكمية">
+                        <MudText Color="@(context.Qty >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)"
+                                 Class="font-weight-bold">
+                            @(context.Qty >= 0 ? "+" : "")@context.Qty
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                    <MudTd DataLabel="سعر التكلفة">@context.CostPrice.ToString("N2")</MudTd>
+                    <MudTd DataLabel="ملاحظات">
+                        <MudTooltip Text="@context.Notes">
+                            <MudText Style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                @context.Notes
+                            </MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd DataLabel="بواسطة">@context.CreatedBy</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="5">
+                        <MudText Class="font-weight-bold pa-2">الإجمالي</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Color="@(NetQty >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Class="font-weight-bold pa-2">
+                            @(NetQty >= 0 ? "+" : "")@NetQty
+                        </MudText>
+                    </MudTd>
+                    <MudTd colspan="4"></MudTd>
+                </FooterContent>
+                <NoRecordsContent>
+                    <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="pa-4 mud-text-secondary">لا توجد حركات مخزون مطابقة</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            <div class="d-flex justify-center mt-4">
+                <MudPagination Count="TotalPages" @bind-Selected="CurrentPage" Color="MudBlazor.Color.Warning"
+                               BoundaryCount="2" MiddleCount="3" />
+            </div>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private record WarehouseDto(int Id, string Name);
+    private record ProductDto(int Id, string Name);
+    private record LedgerEntryDto(
+        DateTime Date, string TransactionRef, string TransactionType,
+        string ProductName, string WarehouseName, decimal Qty,
+        string UnitName, decimal CostPrice, string? Notes, string CreatedBy);
+
+    private List<WarehouseDto> Warehouses = new();
+    private List<ProductDto> Products = new();
+    private List<LedgerEntryDto> AllEntries = new();
+
+    private DateTime? DateFrom = DateTime.Today.AddMonths(-1);
+    private DateTime? DateTo = DateTime.Today;
+    private int? SelectedWarehouseId;
+    private int? SelectedProductId;
+    private string SelectedTransactionType = "All";
+    private bool IsLoading = false;
+    private bool IsArabic => true;
+    private int CurrentPage = 1;
+    private int PageSize = 20;
+    private int TotalPages => (int)Math.Ceiling((double)AllEntries.Count / PageSize);
+    private decimal NetQty => AllEntries.Sum(e => e.Qty);
+
+    private List<LedgerEntryDto> PagedItems =>
+        AllEntries.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var whs = await Http.GetFromJsonAsync<List<WarehouseDto>>("/api/warehouses");
+            Warehouses = whs ?? new();
+            var prods = await Http.GetFromJsonAsync<List<ProductDto>>("/api/warehouseproducts/summary");
+            Products = prods ?? new();
+        }
+        catch (Exception ex) { Snackbar.Add($"خطأ في التحميل: {ex.Message}", MudBlazor.Severity.Error); }
+        await LoadLedger();
+    }
+
+    private async Task LoadLedger()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var url = "/api/warehouseproducts/stock-ledger?";
+            if (DateFrom.HasValue) url += $"from={DateFrom:yyyy-MM-dd}&";
+            if (DateTo.HasValue) url += $"to={DateTo:yyyy-MM-dd}&";
+            if (SelectedWarehouseId.HasValue) url += $"warehouseId={SelectedWarehouseId}&";
+            if (SelectedProductId.HasValue) url += $"productId={SelectedProductId}&";
+            if (SelectedTransactionType != "All") url += $"type={SelectedTransactionType}&";
+
+            var data = await Http.GetFromJsonAsync<List<LedgerEntryDto>>(url.TrimEnd('&', '?'));
+            AllEntries = data ?? new();
+            CurrentPage = 1;
+        }
+        catch (Exception ex) { Snackbar.Add($"خطأ في تحميل الدفتر: {ex.Message}", MudBlazor.Severity.Error); }
+        finally { IsLoading = false; StateHasChanged(); }
+    }
+
+    private void ResetFilters()
+    {
+        DateFrom = DateTime.Today.AddMonths(-1);
+        DateTo = DateTime.Today;
+        SelectedWarehouseId = null;
+        SelectedProductId = null;
+        SelectedTransactionType = "All";
+        AllEntries = new();
+        StateHasChanged();
+    }
+
+    private Color GetTypeColor(string type) => type switch
+    {
+        "GRN" => MudBlazor.Color.Success,
+        "BranchDispatch" => MudBlazor.Color.Warning,
+        "Transfer" => MudBlazor.Color.Info,
+        "Adjustment" => MudBlazor.Color.Default,
+        "Return" => MudBlazor.Color.Secondary,
+        _ => MudBlazor.Color.Default
+    };
+
+    private string GetTypeLabel(string type) => type switch
+    {
+        "GRN" => "استلام بضاعة",
+        "BranchDispatch" => "صرف للفرع",
+        "Transfer" => "تحويل",
+        "Adjustment" => "تسوية جرد",
+        "Return" => "مردودات",
+        _ => type
+    };
+}

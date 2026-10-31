@@ -1,0 +1,188 @@
+﻿@page "/requisitions"
+@attribute [Authorize(Policy = "CanViewBranchRequisitions")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@implements IDisposable
+
+<PageTitle>طلبيات الفروع</PageTitle>
+
+<div class="wh-page-wrapper">
+    <div class="wh-page-header">
+        <div>
+            <h2 class="page-title"><MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Class="me-2"/>طلبيات الفروع</h2>
+            <p class="page-subtitle">إدارة ومتابعة جميع طلبيات التوريد من الفروع</p>
+        </div>
+        <div class="d-flex gap-2">
+            @if (_pendingCount > 0)
+            {
+                <MudBadge Content="@_pendingCount" Color="MudBlazor.Color.Error" Overlap="true">
+                    <MudChip T="string" Color="MudBlazor.Color.Warning" Icon="@Icons.Material.Rounded.Notifications">طلبيات معلقة</MudChip>
+                </MudBadge>
+            }
+            <AuthorizeView Policy="CanCreateBranchRequisition">
+                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Rounded.Add"
+                           OnClick="OpenNewDialog">طلبية جديدة</MudButton>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <MudPaper Class="wh-card mb-4 pa-2" Elevation="0">
+        <div class="d-flex gap-2 flex-wrap">
+            @foreach (var tab in _statusTabs)
+            {
+                <MudChip T="string" Color="@(_selectedStatus == tab.Key ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
+                         Variant="@(_selectedStatus == tab.Key ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                         OnClick="@(() => FilterByStatus(tab.Key))" Size="MudBlazor.Size.Small">
+                    @tab.Value (@GetStatusCount(tab.Key))
+                </MudChip>
+            }
+        </div>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <div class="text-center pa-8"><MudProgressCircular Color="MudBlazor.Color.Warning" Indeterminate="true" Size="MudBlazor.Size.Large" /></div>
+    }
+    else
+    {
+        <MudTable Items="FilteredRequisitions" Dense="true" Hover="true" Striped="true"
+                  RowClass="cursor-pointer" OnRowClick="@((MudBlazor.TableRowClickEventArgs<RequisitionDto> e) => OpenDetail(e.Item))"
+                  Class="wh-card" Elevation="0">
+            <HeaderContent>
+                <MudTh>رقم الطلب</MudTh>
+                <MudTh>الفرع</MudTh>
+                <MudTh>المخزن المستهدف</MudTh>
+                <MudTh>تاريخ الطلب</MudTh>
+                <MudTh>الحالة</MudTh>
+                <MudTh>الإجراءات</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong class="text-warning">@context.RequisitionNumber</strong></MudTd>
+                <MudTd>@context.BranchName</MudTd>
+                <MudTd>@context.WarehouseName</MudTd>
+                <MudTd>@context.RequestDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled">
+                        @GetStatusLabel(context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <div class="d-flex gap-1">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Visibility" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info"
+                                       OnClick="@(() => OpenDetail(context))" Title="تفاصيل" />
+                        @if (context.Status == "Submitted" || context.Status == "UnderReview")
+                        {
+                            <AuthorizeView Policy="CanApproveBranchRequisitions" Context="authContext">
+                                <MudIconButton Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
+                                               OnClick="@(() => QuickApprove(context))" Title="موافقة سريعة" />
+                            </AuthorizeView>
+                        }
+                    </div>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="text-center pa-6 text-muted">لا توجد طلبيات بهذه الحالة</div>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</div>
+
+@code {
+    private List<RequisitionDto> _requisitions = new();
+    private bool _loading = true;
+    private string? _selectedStatus;
+    private int _pendingCount;
+
+    private readonly Dictionary<string?, string> _statusTabs = new()
+    {
+        { null, "الكل" }, { "Submitted", "جديدة" }, { "UnderReview", "قيد المراجعة" },
+        { "ModificationProposed", "تعديل مقترح" }, { "Approved", "معتمدة" },
+        { "Preparing", "جاري التحضير" }, { "InTransit", "في الطريق" },
+        { "Received", "مستلمة" }, { "Rejected", "مرفوضة" }
+    };
+
+    private IEnumerable<RequisitionDto> FilteredRequisitions => string.IsNullOrEmpty(_selectedStatus)
+        ? _requisitions : _requisitions.Where(r => r.Status == _selectedStatus);
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _requisitions = await Http.GetFromJsonAsync<List<RequisitionDto>>("api/warehouse/requisitions") ?? new();
+            _pendingCount = _requisitions.Count(r => r.Status == "Submitted" || r.Status == "UnderReview");
+        }
+        catch { Snackbar.Add("خطأ في تحميل الطلبيات", MudBlazor.Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private int GetStatusCount(string? status) => status == null ? _requisitions.Count : _requisitions.Count(r => r.Status == status);
+    private void FilterByStatus(string? status) => _selectedStatus = status;
+
+    private async Task OpenDetail(RequisitionDto r)
+    {
+        var dlg = await DialogService.ShowAsync<RequisitionDetailDialog>(
+            $"طلبية {r.RequisitionNumber}",
+            new DialogParameters { ["RequisitionId"] = r.Id },
+            new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task OpenNewDialog()
+    {
+        var dlg = await DialogService.ShowAsync<RequisitionDialog>("طلبية جديدة",
+            new DialogParameters(), new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task QuickApprove(RequisitionDto r)
+    {
+        var res = await Http.PostAsJsonAsync($"api/warehouse/requisitions/{r.Id}/approve", new { });
+        if (res.IsSuccessStatusCode) { Snackbar.Add($"تمت الموافقة على {r.RequisitionNumber}", MudBlazor.Severity.Success); await LoadData(); }
+        else Snackbar.Add("حدث خطأ", MudBlazor.Severity.Error);
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Submitted" => MudBlazor.Color.Info,
+        "UnderReview" => MudBlazor.Color.Warning,
+        "ModificationProposed" => MudBlazor.Color.Secondary,
+        "Approved" => MudBlazor.Color.Success,
+        "Preparing" => MudBlazor.Color.Primary,
+        "InTransit" => MudBlazor.Color.Tertiary,
+        "Received" => MudBlazor.Color.Success,
+        "Rejected" => MudBlazor.Color.Error,
+        "Cancelled" => MudBlazor.Color.Default,
+        _ => MudBlazor.Color.Default
+    };
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Draft" => "مسودة", "Submitted" => "تم الإرسال", "UnderReview" => "قيد المراجعة",
+        "ModificationProposed" => "تعديل مقترح", "Approved" => "معتمدة", "Rerouted" => "محولة",
+        "Preparing" => "جاري التحضير", "InTransit" => "في الطريق", "Received" => "مستلمة",
+        "Rejected" => "مرفوضة", "Cancelled" => "ملغاة", _ => status
+    };
+
+    public void Dispose() { }
+
+    private record RequisitionDto
+    {
+        public int Id { get; set; }
+        public string RequisitionNumber { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime RequestDate { get; set; }
+        public DateTime? RequiredDate { get; set; }
+        public int RequestingBranchId { get; set; }
+        public string? BranchName { get; set; }
+        public int TargetWarehouseId { get; set; }
+        public string? WarehouseName { get; set; }
+        public int LineCount { get; set; }
+    }
+}

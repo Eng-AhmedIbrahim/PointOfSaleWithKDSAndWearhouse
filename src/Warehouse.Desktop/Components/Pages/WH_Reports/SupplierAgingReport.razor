@@ -1,0 +1,168 @@
+﻿@page "/reports/supplier-aging"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header mb-4">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">تقرير أعمار ديون الموردين (Supplier Aging Report)</MudText>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">متابعة الفواتير المستحقة للموردين وجدولة السداد حسب فترات الاستحقاق</MudText>
+    </div>
+
+    @if (_invoices.Any())
+    {
+        <div class="d-flex gap-4 mb-4 flex-wrap">
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#047857;">فواتير جارية (أقل من 30 يوم)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#065f46;">@Current30.ToString("N2") ج.م</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fefce8; border:1px solid #eab308; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#a16207;">متأخرة (31 - 60 يوم)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#854d0e;">@Overdue60.ToString("N2") ج.م</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fff7ed; border:1px solid #f97316; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#c2410c;">متأخرة (61 - 90 يوم)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#9a3412;">@Overdue90.ToString("N2") ج.م</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#b91c1c;">حرجة (أكثر من 90 يوم)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#991b1b;">@Overdue90Plus.ToString("N2") ج.م</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#1c0f08; color:#fff; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#fed7aa;">إجمالي الديون المستحقة</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#fb923c;">@TotalOutstanding.ToString("N2") ج.م</MudText>
+            </MudPaper>
+        </div>
+    }
+
+    <MudCard Class="wh-card mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_search" Placeholder="بحث باسم المورد أو رقم الفاتورة..."
+                                  MudBlazor.Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center justify-end">
+                    <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAging">تحديث التقرير</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            @if (_loading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+            }
+            else
+            {
+                <MudTable Items="FilteredInvoices" Hover="true" Striped="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>المورد</MudTh>
+                        <MudTh>رقم الفاتورة</MudTh>
+                        <MudTh>تاريخ الفاتورة</MudTh>
+                        <MudTh>تاريخ الاستحقاق</MudTh>
+                        <MudTh>أيام التأخير</MudTh>
+                        <MudTh>إجمالي الفاتورة</MudTh>
+                        <MudTh>المسدد</MudTh>
+                        <MudTh>المتبقي المستحق</MudTh>
+                        <MudTh>حالة الاستحقاق</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Class="fw-bold">@context.SupplierName</MudTd>
+                        <MudTd>@context.InvoiceNumber</MudTd>
+                        <MudTd>@context.InvoiceDate.ToString("yyyy/MM/dd")</MudTd>
+                        <MudTd>@context.DueDate.ToString("yyyy/MM/dd")</MudTd>
+                        <MudTd>
+                            <span class="@(context.DaysOverdue > 30 ? "text-error fw-bold" : "")">
+                                @(context.DaysOverdue > 0 ? $"{context.DaysOverdue} يوم" : "غير متأخرة")
+                            </span>
+                        </MudTd>
+                        <MudTd>@context.TotalAmount.ToString("N2")</MudTd>
+                        <MudTd Class="text-success">@context.PaidAmount.ToString("N2")</MudTd>
+                        <MudTd Class="fw-bold text-orange">@context.Outstanding.ToString("N2")</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetAgingColor(context.DaysOverdue)">
+                                @GetAgingLabel(context.DaysOverdue)
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="py-6" Color="MudBlazor.Color.Secondary">لا توجد فواتير موردين مستحقة حالياً</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading = true;
+    private string _search = "";
+
+    private List<AgingInvoiceDto> _invoices = new();
+
+    private IEnumerable<AgingInvoiceDto> FilteredInvoices => _invoices.Where(i =>
+        string.IsNullOrWhiteSpace(_search) ||
+        (i.SupplierName != null && i.SupplierName.Contains(_search, StringComparison.OrdinalIgnoreCase)) ||
+        i.InvoiceNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
+    );
+
+    private decimal Current30 => _invoices.Where(i => i.DaysOverdue <= 30).Sum(i => i.Outstanding);
+    private decimal Overdue60 => _invoices.Where(i => i.DaysOverdue > 30 && i.DaysOverdue <= 60).Sum(i => i.Outstanding);
+    private decimal Overdue90 => _invoices.Where(i => i.DaysOverdue > 60 && i.DaysOverdue <= 90).Sum(i => i.Outstanding);
+    private decimal Overdue90Plus => _invoices.Where(i => i.DaysOverdue > 90).Sum(i => i.Outstanding);
+    private decimal TotalOutstanding => _invoices.Sum(i => i.Outstanding);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAging();
+    }
+
+    private async Task LoadAging()
+    {
+        _loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<AgingInvoiceDto>>("api/warehouse/reports/supplier-aging");
+            _invoices = res ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في جلب تقرير أعمار الديون: {ex.Message}", MudBlazor.Severity.Warning);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetAgingColor(int days) => days switch
+    {
+        <= 0 => MudBlazor.Color.Success,
+        <= 30 => MudBlazor.Color.Info,
+        <= 60 => MudBlazor.Color.Warning,
+        _ => MudBlazor.Color.Error
+    };
+
+    private string GetAgingLabel(int days) => days switch
+    {
+        <= 0 => "جارية",
+        <= 30 => "1-30 يوم",
+        <= 60 => "31-60 يوم",
+        <= 90 => "61-90 يوم",
+        _ => "أكثر من 90 يوم"
+    };
+
+    public record AgingInvoiceDto(
+        int SupplierId, string? SupplierName, string InvoiceNumber,
+        DateTime InvoiceDate, DateTime DueDate, decimal TotalAmount,
+        decimal PaidAmount, decimal Outstanding, int DaysOverdue);
+}

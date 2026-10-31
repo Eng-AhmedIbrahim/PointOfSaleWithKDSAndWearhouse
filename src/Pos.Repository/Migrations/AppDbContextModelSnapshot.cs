@@ -109,9 +109,15 @@ namespace Pos.Repository.Migrations
                     b.Property<string>("Currency")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("DefaultWarehouseId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar");
+
+                    b.Property<bool>("HasCentralWarehouse")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ImagePath")
                         .IsRequired()
@@ -1194,6 +1200,46 @@ namespace Pos.Repository.Migrations
                     b.ToTable("Units");
                 });
 
+            modelBuilder.Entity("POS.Core.Entities.Kitchen.KdsScreen", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DeviceName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NumberFilter")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScreenName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScreenType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SelectedCategoryIds")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SelectedItemIds")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("KdsScreens");
+                });
+
             modelBuilder.Entity("POS.Core.Entities.Kitchen.KitchenPrinters", b =>
                 {
                     b.Property<int>("Id")
@@ -1384,6 +1430,10 @@ namespace Pos.Repository.Migrations
 
                     b.Property<bool?>("Discount")
                         .HasColumnType("bit");
+
+                    b.Property<string>("DiscountReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
                     b.Property<string>("HospitalityResponsibleName")
                         .HasColumnType("nvarchar(max)");
@@ -2664,6 +2714,811 @@ namespace Pos.Repository.Migrations
                     b.ToTable("StaffMealUsages");
                 });
 
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.BranchRequisition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DispatchedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DispatchedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReceivedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("RequestDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestingBranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RequiredDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RequisitionNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RerouteReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ReroutedToWarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetWarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestingBranchId");
+
+                    b.HasIndex("ReroutedToWarehouseId");
+
+                    b.HasIndex("TargetWarehouseId");
+
+                    b.ToTable("BranchRequisitions");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.BranchRequisitionLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ApprovedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DiscrepancyQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DispatchedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ModificationNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ProposedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReceivedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RequestedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RequisitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("RequisitionId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("BranchRequisitionLines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.GoodsReceiptNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("GrnNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReceiptDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReceivedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupplierInvoiceNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("GoodsReceiptNotes");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.GoodsReceiptNoteLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BatchNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GoodsReceiptNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("QuantityReceived")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptNoteId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("GoodsReceiptNoteLines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.PurchaseOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpectedDeliveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.PurchaseOrderLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("OrderedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ReceivedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("PurchaseOrderLines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.StockBalance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("QuantityInTransit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("QuantityOnHand")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("QuantityReserved")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("WeightedAverageCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("WarehouseId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("StockBalances");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.StockLedger", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BatchNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LocationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("MovementDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MovementType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("QuantityIn")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("QuantityOut")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ReferenceDocumentNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceDocumentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("RunningBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("StockLedger");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.Supplier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CommercialRegister")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CreditLimit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("DefaultPaymentTerm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Iban")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TaxNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WH_Suppliers");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierInvoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("GoodsReceiptNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptNoteId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierInvoices");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierPayment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaymentNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierPayments");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierPriceContract", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AgreedPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("SupplierPriceContracts");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.Warehouse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DefaultSupplyingWarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ManagerName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DefaultSupplyingWarehouseId");
+
+                    b.ToTable("Warehouses");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseLocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Bin")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Shelf")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Zone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("WarehouseLocations");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Barcode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("BaseUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CategoryName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("LastPurchaseCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinStockLevel")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ReorderPoint")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReorderQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SKU")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("WeightedAverageCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseUnitId");
+
+                    b.HasIndex("SKU")
+                        .IsUnique();
+
+                    b.ToTable("WarehouseProducts");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseProductUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ConversionFactorToBase")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDefaultPurchaseUnit")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefaultRequisitionUnit")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("WarehouseProductUnits");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsBaseUnit")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WarehouseUnits");
+                });
+
             modelBuilder.Entity("POS.Core.Entities.Categorie.Category", b =>
                 {
                     b.HasOne("POS.Core.Entities.Company.Branch", "Branch")
@@ -3082,6 +3937,318 @@ namespace Pos.Repository.Migrations
                     b.Navigation("Item");
                 });
 
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.BranchRequisition", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Company.Branch", "RequestingBranch")
+                        .WithMany()
+                        .HasForeignKey("RequestingBranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "ReroutedToWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ReroutedToWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "TargetWarehouse")
+                        .WithMany()
+                        .HasForeignKey("TargetWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RequestingBranch");
+
+                    b.Navigation("ReroutedToWarehouse");
+
+                    b.Navigation("TargetWarehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.BranchRequisitionLine", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.BranchRequisition", "Requisition")
+                        .WithMany("Lines")
+                        .HasForeignKey("RequisitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Requisition");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.GoodsReceiptNote", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("GoodsReceiptNotes")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.GoodsReceiptNoteLine", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.GoodsReceiptNote", "GoodsReceiptNote")
+                        .WithMany("Lines")
+                        .HasForeignKey("GoodsReceiptNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoodsReceiptNote");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.PurchaseOrder", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.StockBalance", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany("Balances")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "Warehouse")
+                        .WithMany("StockBalances")
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.StockLedger", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseLocation", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierInvoice", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.GoodsReceiptNote", "GoodsReceiptNote")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptNoteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Supplier", "Supplier")
+                        .WithMany("Invoices")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoodsReceiptNote");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierPayment", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.Supplier", "Supplier")
+                        .WithMany("Payments")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.SupplierPriceContract", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Supplier", "Supplier")
+                        .WithMany("PriceContracts")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.Warehouse", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Company.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "DefaultSupplyingWarehouse")
+                        .WithMany()
+                        .HasForeignKey("DefaultSupplyingWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("DefaultSupplyingWarehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseLocation", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.Warehouse", "Warehouse")
+                        .WithMany("Locations")
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseProduct", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "BaseUnit")
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BaseUnit");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseProductUnit", b =>
+                {
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseProduct", "Product")
+                        .WithMany("ProductUnits")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POS.Core.Entities.Warehouse.WarehouseUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Unit");
+                });
+
             modelBuilder.Entity("POS.Core.Entities.Categorie.Category", b =>
                 {
                     b.Navigation("MenuSalesItems");
@@ -3202,6 +4369,46 @@ namespace Pos.Repository.Migrations
             modelBuilder.Entity("POS.Core.Entities.StaffMealEntity.StaffMealGroup", b =>
                 {
                     b.Navigation("GroupItems");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.BranchRequisition", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.GoodsReceiptNote", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.PurchaseOrder", b =>
+                {
+                    b.Navigation("GoodsReceiptNotes");
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.Supplier", b =>
+                {
+                    b.Navigation("Invoices");
+
+                    b.Navigation("Payments");
+
+                    b.Navigation("PriceContracts");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.Warehouse", b =>
+                {
+                    b.Navigation("Locations");
+
+                    b.Navigation("StockBalances");
+                });
+
+            modelBuilder.Entity("POS.Core.Entities.Warehouse.WarehouseProduct", b =>
+                {
+                    b.Navigation("Balances");
+
+                    b.Navigation("ProductUnits");
                 });
 #pragma warning restore 612, 618
         }

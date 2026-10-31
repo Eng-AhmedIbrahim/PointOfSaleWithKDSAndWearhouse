@@ -1,0 +1,254 @@
+﻿@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<MudDialog DisableSidePadding="true">
+    <DialogContent>
+        <div class="pa-4" dir="@(IsArabic ? "rtl" : "ltr")">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="أمر الشراء المعتمد" Value="_selectedPOId" ValueChanged="OnPOSelected"
+                               Variant="MudBlazor.Variant.Outlined" Dense="true" Disabled="@(SelectedPOId > 0)">
+                        @foreach (var po in _approvedPOs)
+                        {
+                            <MudSelectItem Value="@po.Id">@po.OrderNumber - @po.SupplierName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="رقم فاتورة المورد" @bind-Value="_model.SupplierInvoiceNumber"
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="تاريخ الاستلام" @bind-Date="_model.ReceiptDate"
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="ملاحظات الاستلام" @bind-Value="_model.Notes"
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="fw-bold mb-2">أصناف الاستلام والكميات الموردة</MudText>
+
+            @if (_loadingLines)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+            }
+            else
+            {
+                <MudTable Items="_lines" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>الصنف</MudTh>
+                        <MudTh>الوحدة</MudTh>
+                        <MudTh>الكمية المطلوبة</MudTh>
+                        <MudTh>المستلم سابقاً</MudTh>
+                        <MudTh Style="width:130px">الكمية المستلمة الآن</MudTh>
+                        <MudTh Style="width:130px">تكلفة الوحدة (ج.م)</MudTh>
+                        <MudTh>رقم التشغيلة / Batch</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.ProductName</MudTd>
+                        <MudTd>@context.UnitName</MudTd>
+                        <MudTd>@context.OrderedQuantity</MudTd>
+                        <MudTd>@context.PreviouslyReceivedQuantity</MudTd>
+                        <MudTd>
+                            <MudNumericField T="decimal" @bind-Value="@context.QuantityReceived" Min="0m"
+                                             Max="@(context.OrderedQuantity - context.PreviouslyReceivedQuantity)"
+                                             MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
+                        </MudTd>
+                        <MudTd>
+                            <MudNumericField T="decimal" @bind-Value="@context.UnitCost" Min="0m"
+                                             MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
+                        </MudTd>
+                        <MudTd>
+                            <MudTextField T="string" @bind-Value="@context.BatchNumber" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                          Variant="MudBlazor.Variant.Outlined" Placeholder="اختياري" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            <div class="d-flex justify-end mt-4 pa-3" style="background:#fef5ee; border-radius:8px;">
+                <div>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي تكلفة البضاعة المستلمة</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold text-orange">
+                        @(_lines.Sum(l => l.QuantityReceived * l.UnitCost).ToString("N2")) ج.م
+                    </MudText>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">إلغاء</MudButton>
+        <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" OnClick="PostGRN" Disabled="_saving || _lines.Count == 0">
+            @if (_saving) { <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" /> }
+            ترحيل الاستلام لسجل المخزون
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int SelectedPOId { get; set; }
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loadingLines;
+    private bool _saving;
+    private int _selectedPOId;
+
+    private GRNModel _model = new();
+    private List<POHeaderItem> _approvedPOs = new();
+    private List<GRNLineModel> _lines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _selectedPOId = SelectedPOId;
+        await LoadApprovedPOs();
+        if (_selectedPOId > 0)
+        {
+            await LoadPODetails(_selectedPOId);
+        }
+    }
+
+    private async Task LoadApprovedPOs()
+    {
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<POHeaderItem>>("api/warehouse/purchase-orders");
+            if (res != null)
+            {
+                _approvedPOs = res.Where(p => p.Status == "Approved" || p.Status == "PartiallyReceived").ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في جلب أوامر الشراء: {ex.Message}", MudBlazor.Severity.Warning);
+        }
+    }
+
+    private async Task OnPOSelected(int poId)
+    {
+        _selectedPOId = poId;
+        await LoadPODetails(poId);
+    }
+
+    private async Task LoadPODetails(int poId)
+    {
+        _loadingLines = true;
+        try
+        {
+            var po = await Http.GetFromJsonAsync<PODetailDto>($"api/warehouse/purchase-orders/{poId}");
+            if (po != null)
+            {
+                _model.WarehouseId = po.WarehouseId;
+                _lines = po.Lines.Select(l => new GRNLineModel
+                {
+                    ProductId = l.ProductId,
+                    ProductName = l.Product?.NameAr ?? $"صنف #{l.ProductId}",
+                    UnitId = l.UnitId,
+                    UnitName = l.Unit?.NameAr ?? l.Product?.BaseUnit?.NameAr ?? "وحدة",
+                    OrderedQuantity = l.OrderedQuantity,
+                    PreviouslyReceivedQuantity = l.ReceivedQuantity,
+                    QuantityReceived = Math.Max(0, l.OrderedQuantity - l.ReceivedQuantity),
+                    UnitCost = l.UnitPrice
+                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل تفاصيل أمر الشراء: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loadingLines = false;
+        }
+    }
+
+    private async Task PostGRN()
+    {
+        if (_selectedPOId <= 0)
+        {
+            Snackbar.Add("يرجى اختيار أمر الشراء", MudBlazor.Severity.Warning);
+            return;
+        }
+        var receivedItems = _lines.Where(l => l.QuantityReceived > 0).ToList();
+        if (!receivedItems.Any())
+        {
+            Snackbar.Add("يرجى إدخال كمية مستلمة لصنف واحد على الأقل", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                WarehouseId = _model.WarehouseId,
+                ReceiptDate = _model.ReceiptDate ?? DateTime.UtcNow,
+                SupplierInvoiceNumber = _model.SupplierInvoiceNumber,
+                Notes = _model.Notes,
+                Lines = receivedItems.Select(l => new
+                {
+                    ProductId = l.ProductId,
+                    UnitId = l.UnitId,
+                    QuantityReceived = l.QuantityReceived,
+                    UnitCost = l.UnitCost,
+                    BatchNumber = l.BatchNumber
+                }).ToList()
+            };
+
+            var res = await Http.PostAsJsonAsync($"api/warehouse/purchase-orders/{_selectedPOId}/grn", payload);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم تسجيل إذن الاستلام وترحيل البضاعة للمخزون بنجاح", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("فشل تسجيل إذن الاستلام", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public class GRNModel
+    {
+        public int WarehouseId { get; set; }
+        public DateTime? ReceiptDate { get; set; } = DateTime.Today;
+        public string? SupplierInvoiceNumber { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class GRNLineModel
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public int UnitId { get; set; }
+        public string UnitName { get; set; } = "";
+        public decimal OrderedQuantity { get; set; }
+        public decimal PreviouslyReceivedQuantity { get; set; }
+        public decimal QuantityReceived { get; set; }
+        public decimal UnitCost { get; set; }
+        public string? BatchNumber { get; set; }
+    }
+
+    public record POHeaderItem(int Id, string OrderNumber, string? SupplierName, string Status);
+    public record PODetailDto(int Id, int WarehouseId, List<PODetailLineDto> Lines);
+    public record PODetailLineDto(int ProductId, int UnitId, decimal OrderedQuantity, decimal ReceivedQuantity, decimal UnitPrice, ProductShortDto? Product, UnitShortDto? Unit);
+    public record ProductShortDto(string NameAr, UnitShortDto? BaseUnit);
+    public record UnitShortDto(string NameAr);
+}

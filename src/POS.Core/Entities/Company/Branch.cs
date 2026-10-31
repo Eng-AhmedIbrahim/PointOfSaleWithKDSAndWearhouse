@@ -21,6 +21,10 @@ public class Branch : BaseEntity
     public int? CompanyId { get; set; }
     public Company? Company { get; set; }
 
+    // Warehouse Management Integration
+    public bool HasCentralWarehouse { get; set; } = false;
+    public int? DefaultWarehouseId { get; set; }
+
     public ICollection<CustomerAddress>? CustomerAddresses { get; set; }
     public ICollection<DeliveryZone>? DeliveryZones { get; set; }
 }

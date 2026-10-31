@@ -1,0 +1,256 @@
+﻿@using MudBlazor
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject LocalizationService LocalizerService
+
+<MudDialog>
+    <TitleContent>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">@(SupplierId == 0 ? "إضافة مورد جديد" : "تعديل بيانات المورد")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div dir="@(IsArabic ? "rtl" : "ltr")">
+            @if (IsLoading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="mb-2" />
+            }
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Code" Label="كود المورد" ReadOnly="@(SupplierId != 0)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Name" Label="اسم المورد" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.ContactPerson" Label="جهة الاتصال" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Phone" Label="الهاتف" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Email" Label="البريد الإلكتروني" InputType="InputType.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.City" Label="المدينة" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Address" Label="العنوان" Lines="2" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.TaxNumber" Label="الرقم الضريبي" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="Model.PaymentTermsDays" Label="أيام السداد" Min="0" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Notes" Label="ملاحظات" Lines="3" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="MudBlazor.Color.Warning" Label="نشط" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Style="font-weight:bold">عقود الأسعار</MudText>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+                           OnClick="AddPriceContract">إضافة سعر</MudButton>
+            </div>
+
+            @if (PriceContracts.Count == 0)
+            {
+                <MudText Color="MudBlazor.Color.Secondary" Class="mb-2">لا توجد عقود أسعار</MudText>
+            }
+            else
+            {
+                <MudTable Items="PriceContracts" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>المنتج</MudTh>
+                        <MudTh>سعر الوحدة</MudTh>
+                        <MudTh>تاريخ البداية</MudTh>
+                        <MudTh>تاريخ النهاية</MudTh>
+                        <MudTh>مفضل</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudSelect @bind-Value="context.ProductId" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                                @foreach (var p in Products)
+                                {
+                                    <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd>
+                            <MudNumericField @bind-Value="context.UnitPrice" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Min="0" />
+                        </MudTd>
+                        <MudTd>
+                            <MudDatePicker @bind-Date="context.StartDate" Dense="true" />
+                        </MudTd>
+                        <MudTd>
+                            <MudDatePicker @bind-Date="context.EndDate" Dense="true" />
+                        </MudTd>
+                        <MudTd>
+                            <MudSwitch T="bool" @bind-Value="context.IsPreferred" Color="MudBlazor.Color.Warning" />
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                           OnClick="@(() => PriceContracts.Remove(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">إلغاء</MudButton>
+        <MudButton Class="wh-btn-primary" OnClick="Save" Disabled="IsSaving">
+            @(IsSaving ? "جارٍ الحفظ..." : "حفظ")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int SupplierId { get; set; }
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool IsLoading = false;
+    private bool IsSaving = false;
+
+    private SupplierFormModel Model = new();
+    private List<PriceContractRow> PriceContracts = new();
+    private List<ProductLookup> Products = new();
+
+    record ProductLookup(int Id, string Name);
+
+    class SupplierFormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string ContactPerson { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Address { get; set; } = "";
+        public string City { get; set; } = "";
+        public string TaxNumber { get; set; } = "";
+        public int PaymentTermsDays { get; set; } = 30;
+        public string Notes { get; set; } = "";
+        public bool IsActive { get; set; } = true;
+    }
+
+    class PriceContractRow
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public decimal UnitPrice { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsPreferred { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup");
+            Products = products ?? new();
+
+            if (SupplierId != 0)
+            {
+                var supplier = await Http.GetFromJsonAsync<SupplierDetailDto>($"/api/suppliers/{SupplierId}");
+                if (supplier != null)
+                {
+                    Model = new SupplierFormModel
+                    {
+                        Code = supplier.Code,
+                        Name = supplier.Name,
+                        ContactPerson = supplier.ContactPerson,
+                        Phone = supplier.Phone,
+                        Email = supplier.Email,
+                        Address = supplier.Address,
+                        City = supplier.City,
+                        TaxNumber = supplier.TaxNumber,
+                        PaymentTermsDays = supplier.PaymentTermsDays,
+                        Notes = supplier.Notes,
+                        IsActive = supplier.IsActive
+                    };
+                    PriceContracts = supplier.PriceContracts.Select(pc => new PriceContractRow
+                    {
+                        Id = pc.Id,
+                        ProductId = pc.ProductId,
+                        UnitPrice = pc.UnitPrice,
+                        StartDate = pc.StartDate,
+                        EndDate = pc.EndDate,
+                        IsPreferred = pc.IsPreferred
+                    }).ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل البيانات: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { IsLoading = false; }
+    }
+
+    record SupplierDetailDto(int Id, string Code, string Name, string ContactPerson, string Phone,
+        string Email, string Address, string City, string TaxNumber, int PaymentTermsDays,
+        string Notes, bool IsActive, List<PriceContractDto> PriceContracts);
+
+    record PriceContractDto(int Id, int ProductId, decimal UnitPrice,
+        DateTime? StartDate, DateTime? EndDate, bool IsPreferred);
+
+    private void AddPriceContract()
+    {
+        PriceContracts.Add(new PriceContractRow { StartDate = DateTime.Today, IsPreferred = false });
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Model.Name))
+        {
+            Snackbar.Add("اسم المورد مطلوب", MudBlazor.Severity.Warning);
+            return;
+        }
+        IsSaving = true;
+        try
+        {
+            var payload = new
+            {
+                Model.Code, Model.Name, Model.ContactPerson, Model.Phone, Model.Email,
+                Model.Address, Model.City, Model.TaxNumber, Model.PaymentTermsDays,
+                Model.Notes, Model.IsActive,
+                PriceContracts = PriceContracts.Select(pc => new
+                {
+                    pc.Id, pc.ProductId, pc.UnitPrice, pc.StartDate, pc.EndDate, pc.IsPreferred
+                })
+            };
+
+            HttpResponseMessage response;
+            if (SupplierId == 0)
+                response = await Http.PostAsJsonAsync("/api/suppliers", payload);
+            else
+                response = await Http.PutAsJsonAsync($"/api/suppliers/{SupplierId}", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(SupplierId == 0 ? "تم إضافة المورد بنجاح" : "تم تعديل بيانات المورد بنجاح", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل في الحفظ: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { IsSaving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

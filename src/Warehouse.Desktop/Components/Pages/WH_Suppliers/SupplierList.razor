@@ -1,0 +1,173 @@
+﻿@page "/suppliers"
+@attribute [Authorize]
+@using MudBlazor
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">الموردون</MudText>
+        <MudButton Class="wh-btn-primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialog">إضافة مورد</MudButton>
+    </div>
+
+    <MudCard Class="wh-card mb-3">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="SearchName" Label="بحث بالاسم" MudBlazor.Adornment="MudBlazor.Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" @oninput="@(e => { SearchName = e.Value?.ToString() ?? ""; FilterSuppliers(); })" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="SearchPhone" Label="بحث بالهاتف" Immediate="true" @oninput="@(e => { SearchPhone = e.Value?.ToString() ?? ""; FilterSuppliers(); })" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="SearchCity" Label="بحث بالمدينة" Immediate="true" @oninput="@(e => { SearchCity = e.Value?.ToString() ?? ""; FilterSuppliers(); })" />
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            @if (IsLoading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
+            }
+            <MudTable Items="FilteredSuppliers" Hover="true" Striped="true" Dense="true" Bordered="true">
+                <HeaderContent>
+                    <MudTh>الكود</MudTh>
+                    <MudTh>الاسم</MudTh>
+                    <MudTh>جهة الاتصال</MudTh>
+                    <MudTh>الهاتف</MudTh>
+                    <MudTh>البريد الإلكتروني</MudTh>
+                    <MudTh>المدينة</MudTh>
+                    <MudTh>الرقم الضريبي</MudTh>
+                    <MudTh>الرصيد الحالي</MudTh>
+                    <MudTh>الحالة</MudTh>
+                    <MudTh>إجراءات</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Code</MudTd>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.ContactPerson</MudTd>
+                    <MudTd>@context.Phone</MudTd>
+                    <MudTd>@context.Email</MudTd>
+                    <MudTd>@context.City</MudTd>
+                    <MudTd>@context.TaxNumber</MudTd>
+                    <MudTd>
+                        <MudText Style="@(context.CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
+                            @context.CurrentBalance.ToString("N2")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Color="@(context.IsActive ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Size="MudBlazor.Size.Small">
+                            @(context.IsActive ? "نشط" : "غير نشط")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" Title="تعديل" />
+                        <MudIconButton Icon="@Icons.Material.Filled.AccountBalance" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => ViewAccount(context))" Title="كشف حساب" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => DeleteSupplier(context))" Title="حذف" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>لا توجد بيانات</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool IsLoading = false;
+    private string SearchName = "";
+    private string SearchPhone = "";
+    private string SearchCity = "";
+
+    private List<SupplierDto> Suppliers = new();
+    private List<SupplierDto> FilteredSuppliers = new();
+
+    record SupplierDto(int Id, string Code, string Name, string ContactPerson, string Phone,
+        string Email, string City, string TaxNumber, decimal CurrentBalance, bool IsActive);
+
+    protected override async Task OnInitializedAsync() => await LoadSuppliers();
+
+    private async Task LoadSuppliers()
+    {
+        IsLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<SupplierDto>>("/api/suppliers");
+            Suppliers = result ?? new();
+            FilterSuppliers();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل الموردين: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { IsLoading = false; }
+    }
+
+    private void FilterSuppliers()
+    {
+        FilteredSuppliers = Suppliers
+            .Where(s =>
+                (string.IsNullOrWhiteSpace(SearchName) || s.Name.Contains(SearchName, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(SearchPhone) || s.Phone.Contains(SearchPhone)) &&
+                (string.IsNullOrWhiteSpace(SearchCity) || s.City.Contains(SearchCity, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters { ["SupplierId"] = 0 };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("إضافة مورد جديد", parameters,
+            new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadSuppliers();
+    }
+
+    private async Task OpenEditDialog(SupplierDto supplier)
+    {
+        var parameters = new DialogParameters { ["SupplierId"] = supplier.Id };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>($"تعديل: {supplier.Name}", parameters,
+            new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadSuppliers();
+    }
+
+    private void ViewAccount(SupplierDto supplier)
+    {
+        NavigationManager.NavigateTo($"/suppliers/accounts?supplierId={supplier.Id}");
+    }
+
+    private async Task DeleteSupplier(SupplierDto supplier)
+    {
+        var confirmed = await DialogService.ShowMessageBox("تأكيد الحذف",
+            $"هل تريد حذف المورد '{supplier.Name}'؟", yesText: "حذف", cancelText: "إلغاء");
+        if (confirmed != true) return;
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/suppliers/{supplier.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حذف المورد بنجاح", MudBlazor.Severity.Success);
+                await LoadSuppliers();
+            }
+            else
+                Snackbar.Add("فشل في حذف المورد", MudBlazor.Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+}

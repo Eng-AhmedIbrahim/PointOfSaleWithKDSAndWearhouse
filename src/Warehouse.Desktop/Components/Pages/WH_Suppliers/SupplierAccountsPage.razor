@@ -1,0 +1,182 @@
+﻿@page "/suppliers/accounts"
+@attribute [Authorize]
+@using MudBlazor
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">كشف حساب الموردين</MudText>
+        <MudButton StartIcon="@Icons.Material.Filled.Print" Class="wh-btn-primary" OnClick="Print">طباعة</MudButton>
+    </div>
+
+    <MudCard Class="wh-card mb-3">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="SelectedSupplierId" Label="اختر المورد" T="int">
+                        <MudSelectItem Value="0">-- كل الموردين --</MudSelectItem>
+                        @foreach (var s in Suppliers)
+                        {
+                            <MudSelectItem Value="s.Id">@s.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker Date="DateFrom" Label="من تاريخ"
+                                   DateChanged="@((DateTime? d) => { DateFrom = d; _ = LoadAccounts(); })" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker Date="DateTo" Label="إلى تاريخ"
+                                   DateChanged="@((DateTime? d) => { DateTo = d; _ = LoadAccounts(); })" />
+                </MudItem>
+                <MudItem xs="12" sm="2" Class="d-flex align-center">
+                    <MudButton StartIcon="@Icons.Material.Filled.Search" Class="wh-btn-primary"
+                               OnClick="LoadAccounts" FullWidth="true">بحث</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudGrid Class="mb-3">
+        <MudItem xs="12" sm="4">
+            <MudCard Class="wh-card" Style="border-right: 4px solid #ff6600;">
+                <MudCardContent>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي المديونية</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="color:red;font-weight:bold">@TotalDebit.ToString("N2")</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudCard Class="wh-card" Style="border-right: 4px solid green;">
+                <MudCardContent>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي السداد</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="color:green;font-weight:bold">@TotalCredit.ToString("N2")</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudCard Class="wh-card" Style="border-right: 4px solid #1976d2;">
+                <MudCardContent>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الرصيد الحالي</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Style="@(CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
+                        @CurrentBalance.ToString("N2")
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            @if (IsLoading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
+            }
+            <MudTable Items="Transactions" Hover="true" Striped="true" Dense="true" Bordered="true">
+                <HeaderContent>
+                    <MudTh>التاريخ</MudTh>
+                    <MudTh>نوع الحركة</MudTh>
+                    <MudTh>المرجع</MudTh>
+                    <MudTh>مديونية</MudTh>
+                    <MudTh>سداد</MudTh>
+                    <MudTh>الرصيد التراكمي</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("yyyy/MM/dd")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Color="@(context.TransactionType == "فاتورة" ? MudBlazor.Color.Warning : MudBlazor.Color.Success)"
+                                 Size="MudBlazor.Size.Small">@context.TransactionType</MudChip>
+                    </MudTd>
+                    <MudTd>@context.Reference</MudTd>
+                    <MudTd>
+                        @if (context.Debit > 0)
+                        {
+                            <MudText Style="color:red">@context.Debit.ToString("N2")</MudText>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.Credit > 0)
+                        {
+                            <MudText Style="color:green">@context.Credit.ToString("N2")</MudText>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudText Style="@(context.RunningBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
+                            @context.RunningBalance.ToString("N2")
+                        </MudText>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>لا توجد حركات للعرض</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool IsLoading = false;
+    private int SelectedSupplierId = 0;
+    private DateTime? DateFrom = DateTime.Today.AddMonths(-1);
+    private DateTime? DateTo = DateTime.Today;
+
+    private List<SupplierLookup> Suppliers = new();
+    private List<AccountTransactionDto> Transactions = new();
+
+    private decimal TotalDebit => Transactions.Sum(t => t.Debit);
+    private decimal TotalCredit => Transactions.Sum(t => t.Credit);
+    private decimal CurrentBalance => TotalDebit - TotalCredit;
+
+    record SupplierLookup(int Id, string Name);
+    record AccountTransactionDto(DateTime Date, string TransactionType, string Reference,
+        decimal Debit, decimal Credit, decimal RunningBalance);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            if (int.TryParse(query["supplierId"], out var sid))
+                SelectedSupplierId = sid;
+
+            var result = await Http.GetFromJsonAsync<List<SupplierLookup>>("/api/suppliers/lookup");
+            Suppliers = result ?? new();
+
+            if (SelectedSupplierId != 0) await LoadAccounts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في التحميل: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task LoadAccounts()
+    {
+        if (SelectedSupplierId == 0) { Transactions = new(); return; }
+        IsLoading = true;
+        try
+        {
+            var from = DateFrom?.ToString("yyyy-MM-dd") ?? "";
+            var to = DateTo?.ToString("yyyy-MM-dd") ?? "";
+            var result = await Http.GetFromJsonAsync<List<AccountTransactionDto>>(
+                $"/api/suppliers/{SelectedSupplierId}/accounts?from={from}&to={to}");
+            Transactions = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل كشف الحساب: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { IsLoading = false; }
+    }
+
+    private void Print()
+    {
+        Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info);
+    }
+}

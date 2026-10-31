@@ -1,0 +1,204 @@
+﻿@page "/transfers"
+@attribute [Authorize]
+@using MudBlazor
+@using System.Net.Http.Json
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
+            التحويلات المخزنية
+        </MudText>
+        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="OpenNewTransferDialog">
+            تحويل مخزني جديد
+        </MudButton>
+    </div>
+
+    <!-- Filters -->
+    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int?" Label="المخزن" @bind-Value="_filterWarehouseId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    @foreach (var w in _warehouses)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudDatePicker Label="من تاريخ" @bind-Date="_filterFromDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudDatePicker Label="إلى تاريخ" @bind-Date="_filterToDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudSelect T="string?" Label="الحالة" @bind-Value="_filterStatus"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    <MudSelectItem T="string?" Value="@("Pending")">معلق</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Completed")">مكتمل</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Cancelled")">ملغي</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" Class="d-flex gap-2">
+                <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadTransfers">
+                    بحث
+                </MudButton>
+                <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.ClearAll"
+                           OnClick="ClearFilters">
+                    مسح الفلاتر
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Table -->
+    <MudPaper Class="wh-card" Elevation="1">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Warning" />
+        }
+        <MudTable Items="_transfers" Dense="true" Striped="true" Hover="true"
+                  Loading="_loading" LoadingProgressColor="MudBlazor.Color.Warning">
+            <HeaderContent>
+                <MudTh>رقم التحويل</MudTh>
+                <MudTh>من المخزن</MudTh>
+                <MudTh>إلى المخزن</MudTh>
+                <MudTh>التاريخ</MudTh>
+                <MudTh>الحالة</MudTh>
+                <MudTh>عدد الأصناف</MudTh>
+                <MudTh>أنشئ بواسطة</MudTh>
+                <MudTh>إجراءات</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><b>@context.TransferNumber</b></MudTd>
+                <MudTd>@context.FromWarehouseName</MudTd>
+                <MudTd>@context.ToWarehouseName</MudTd>
+                <MudTd>@context.TransferDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="MudBlazor.Size.Small">
+                        @GetStatusLabel(context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd>@context.TotalItems</MudTd>
+                <MudTd>@context.CreatedBy</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="MudBlazor.Color.Info"
+                                   Size="MudBlazor.Size.Small" Title="عرض التفاصيل"
+                                   OnClick="@(() => ViewDetails(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 text-center">لا توجد تحويلات مطابقة للفلاتر المحددة</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading;
+
+    private List<StockTransferDto> _transfers = new();
+    private List<WarehouseLookup> _warehouses = new();
+
+    private int? _filterWarehouseId;
+    private DateTime? _filterFromDate;
+    private DateTime? _filterToDate;
+    private string? _filterStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWarehouses();
+        await LoadTransfers();
+    }
+
+    private async Task LoadWarehouses()
+    {
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل المخازن", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task LoadTransfers()
+    {
+        _loading = true;
+        try
+        {
+            var query = new List<string>();
+            if (_filterWarehouseId.HasValue) query.Add($"warehouseId={_filterWarehouseId}");
+            if (_filterFromDate.HasValue) query.Add($"from={_filterFromDate:yyyy-MM-dd}");
+            if (_filterToDate.HasValue) query.Add($"to={_filterToDate:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(_filterStatus)) query.Add($"status={_filterStatus}");
+
+            var url = "/api/warehouseproducts/transfers" + (query.Any() ? "?" + string.Join("&", query) : "");
+            _transfers = await Http.GetFromJsonAsync<List<StockTransferDto>>(url) ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل التحويلات", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenNewTransferDialog()
+    {
+        var dialog = await DialogService.ShowAsync<StockTransferDialog>("تحويل مخزني جديد");
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            await LoadTransfers();
+    }
+
+    private void ViewDetails(int id)
+    {
+        NavigationManager.NavigateTo($"/transfers/{id}");
+    }
+
+    private void ClearFilters()
+    {
+        _filterWarehouseId = null;
+        _filterFromDate = null;
+        _filterToDate = null;
+        _filterStatus = null;
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Completed" => MudBlazor.Color.Success,
+        "Pending" => MudBlazor.Color.Warning,
+        "Cancelled" => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Default
+    };
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Completed" => "مكتمل",
+        "Pending" => "معلق",
+        "Cancelled" => "ملغي",
+        _ => status
+    };
+
+    // DTOs
+    private record WarehouseLookup(int Id, string Name);
+    private record StockTransferDto(
+        int Id, string TransferNumber, string FromWarehouseName, string ToWarehouseName,
+        DateTime TransferDate, string Status, int TotalItems, string CreatedBy);
+}

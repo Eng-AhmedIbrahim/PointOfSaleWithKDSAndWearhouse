@@ -1,0 +1,213 @@
+﻿@page "/reports/item-movements"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header mb-4">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-title">تقرير حركة صنف تفصيلي (Item Movement)</MudText>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">تتبع دقيق لكافة حركات الوارد والمنصرف والتحويلات والتسويات لصنف معين عبر المخازن</MudText>
+    </div>
+
+    <MudCard Class="wh-card mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int" Label="الصنف المطلوب *" @bind-Value="_selectedProductId" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                        @foreach (var p in _products)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.NameAr (@p.SKU)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="int?" Label="المستودع (اختياري)" @bind-Value="_selectedWarehouseId" Variant="MudBlazor.Variant.Outlined" Dense="true" Clearable="true">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem Value="@((int?)w.Id)">@w.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudDatePicker Label="من تاريخ" @bind-Date="_fromDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudDatePicker Label="إلى تاريخ" @bind-Date="_toDate" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="1" Class="d-flex align-center">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="SearchMovements">عرض</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (_movements.Any())
+    {
+        <!-- KPI Summary Cards -->
+        <div class="d-flex gap-4 mb-4 flex-wrap">
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#047857;">إجمالي الوارد (+)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#065f46;">+@TotalIn.ToString("N2")</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#b91c1c;">إجمالي المنصرف (-)</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#991b1b;">-@TotalOut.ToString("N2")</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fff7ed; border:1px solid #ea580c; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#c2410c;">صافي حركة الفترة</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#9a3412;">@((TotalIn - TotalOut).ToString("N2"))</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-4 flex-grow-1" Style="background:#f0f9ff; border:1px solid #0284c7; border-radius:8px;">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Style="color:#0369a1;">الرصيد الختامي</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold" Style="color:#075985;">@FinalBalance.ToString("N2")</MudText>
+            </MudPaper>
+        </div>
+    }
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            @if (_loading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+            }
+            else
+            {
+                <MudTable Items="_movements" Hover="true" Striped="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>التاريخ</MudTh>
+                        <MudTh>نوع الحركة</MudTh>
+                        <MudTh>المستند المرجعي</MudTh>
+                        <MudTh>المستودع</MudTh>
+                        <MudTh>وارد (+)</MudTh>
+                        <MudTh>صادر (-)</MudTh>
+                        <MudTh>الرصيد التراكمي</MudTh>
+                        <MudTh>تكلفة الوحدة</MudTh>
+                        <MudTh>إجمالي القيمة</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.MovementDate.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetMovementColor(context.MovementType)">
+                                @GetMovementLabel(context.MovementType)
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <span class="fw-bold">@context.ReferenceDocumentType</span> - @context.ReferenceDocumentNumber
+                        </MudTd>
+                        <MudTd>@context.WarehouseName</MudTd>
+                        <MudTd Class="fw-bold text-success">
+                            @(context.QuantityIn > 0 ? $"+{context.QuantityIn:N2}" : "-")
+                        </MudTd>
+                        <MudTd Class="fw-bold text-error">
+                            @(context.QuantityOut > 0 ? $"-{context.QuantityOut:N2}" : "-")
+                        </MudTd>
+                        <MudTd Class="fw-bold">@context.RunningBalance.ToString("N2")</MudTd>
+                        <MudTd>@context.UnitCost.ToString("N2") ج.م</MudTd>
+                        <MudTd>@context.TotalCost.ToString("N2") ج.م</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="py-6" Color="MudBlazor.Color.Secondary">
+                            @(_selectedProductId <= 0 ? "يرجى اختيار صنف لعرض سجل الحركات" : "لا توجد حركات مسجلة لهذا الصنف")
+                        </MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading;
+    private int _selectedProductId;
+    private int? _selectedWarehouseId;
+    private DateTime? _fromDate = DateTime.Today.AddMonths(-1);
+    private DateTime? _toDate = DateTime.Today;
+
+    private List<ProductLookupDto> _products = new();
+    private List<WarehouseLookupDto> _warehouses = new();
+    private List<MovementRowDto> _movements = new();
+
+    private decimal TotalIn => _movements.Sum(m => m.QuantityIn);
+    private decimal TotalOut => _movements.Sum(m => m.QuantityOut);
+    private decimal FinalBalance => _movements.LastOrDefault()?.RunningBalance ?? 0m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            var pRes = await Http.GetFromJsonAsync<List<ProductLookupDto>>("api/warehouse/products");
+            if (pRes != null) _products = pRes;
+
+            var wRes = await Http.GetFromJsonAsync<List<WarehouseLookupDto>>("api/warehouse/warehouses");
+            if (wRes != null) _warehouses = wRes;
+        }
+        catch { }
+    }
+
+    private async Task SearchMovements()
+    {
+        if (_selectedProductId <= 0)
+        {
+            Snackbar.Add("يرجى اختيار صنف أولاً", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var url = $"api/warehouse/reports/item-movements?productId={_selectedProductId}";
+            if (_selectedWarehouseId.HasValue) url += $"&warehouseId={_selectedWarehouseId.Value}";
+            if (_fromDate.HasValue) url += $"&from={_fromDate.Value:yyyy-MM-dd}";
+            if (_toDate.HasValue) url += $"&to={_toDate.Value:yyyy-MM-dd}";
+
+            var res = await Http.GetFromJsonAsync<List<MovementRowDto>>(url);
+            _movements = res ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء جلب حركات الصنف: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetMovementColor(int movementType) => movementType switch
+    {
+        1 => MudBlazor.Color.Success,  // GoodsReceipt
+        2 => MudBlazor.Color.Warning,  // BranchDispatch
+        3 => MudBlazor.Color.Info,     // TransferIn
+        4 => MudBlazor.Color.Primary,  // TransferOut
+        5 => MudBlazor.Color.Dark,     // Adjustment
+        _ => MudBlazor.Color.Default
+    };
+
+    private string GetMovementLabel(int movementType) => movementType switch
+    {
+        1 => "استلام مورد (GRN)",
+        2 => "صرف لفرع",
+        3 => "تحويل وارد",
+        4 => "تحويل صادر",
+        5 => "تسوية مخزنية",
+        _ => "حركة مخزن"
+    };
+
+    public record ProductLookupDto(int Id, string NameAr, string SKU);
+    public record WarehouseLookupDto(int Id, string NameAr);
+    public record MovementRowDto(
+        DateTime MovementDate, int MovementType, decimal QuantityIn, decimal QuantityOut,
+        decimal RunningBalance, decimal UnitCost, decimal TotalCost,
+        string ReferenceDocumentType, string ReferenceDocumentNumber, string? WarehouseName);
+}

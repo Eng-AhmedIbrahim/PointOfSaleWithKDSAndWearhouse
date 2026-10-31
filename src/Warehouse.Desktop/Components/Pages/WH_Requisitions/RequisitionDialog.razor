@@ -1,0 +1,235 @@
+﻿@using MudBlazor
+@using System.Net.Http.Json
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<MudDialog>
+    <TitleContent>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Class="mr-2" />
+            طلب توريد جديد من الفرع
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div dir="@(IsArabic ? "rtl" : "ltr")">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="الفرع الطالب" @bind-Value="Model.FromBranchId"
+                               Required="true" Variant="MudBlazor.Variant.Outlined"
+                               For="@(() => Model.FromBranchId)">
+                        @foreach (var b in _branches)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="المخزن المورد" @bind-Value="Model.ToWarehouseId"
+                               Variant="MudBlazor.Variant.Outlined"
+                               HelperText="سيتم اختيار المخزن الأنسب تلقائياً إذا كان المخزن المختار غير قادر على التوريد">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="تاريخ التسليم المطلوب" @bind-Date="Model.RequestedDeliveryDate"
+                                   Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Class="mb-1">الأولوية</MudText>
+                    <MudToggleGroup T="string" @bind-Value="Model.Priority" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Medium">
+                        <MudToggleItem Value="@("Normal")">عادي</MudToggleItem>
+                        <MudToggleItem Value="@("Urgent")">عاجل</MudToggleItem>
+                    </MudToggleGroup>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="ملاحظات" @bind-Value="Model.Notes"
+                                  Lines="2" Variant="MudBlazor.Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2"><b>أصناف الطلب</b></MudText>
+
+            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3">
+                <HeaderContent>
+                    <MudTh>المنتج</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh>الكمية المطلوبة</MudTh>
+                    <MudTh>ملاحظات</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.ProductId" Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                            @foreach (var p in _products)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.UnitId" Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                            @foreach (var u in _units)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.RequestedQty"
+                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Min="0.01m" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField T="string" @bind-Value="context.Notes"
+                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
+                                       Size="MudBlazor.Size.Small" OnClick="@(() => RemoveLine(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+                       Variant="MudBlazor.Variant.Outlined" Size="MudBlazor.Size.Small" OnClick="AddLine">
+                إضافة صنف
+            </MudButton>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
+                   Class="wh-btn-primary" OnClick="Submit" Disabled="_submitting">
+            @if (_submitting)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            إرسال الطلب
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _submitting;
+
+    private RequisitionCreateDto Model = new() { Priority = "Normal" };
+    private List<RequisitionLineDto> _lines = new();
+
+    private List<BranchLookup> _branches = new();
+    private List<WarehouseLookup> _warehouses = new();
+    private List<ProductLookup> _products = new();
+    private List<UnitLookup> _units = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        AddLine();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _branches = await Http.GetFromJsonAsync<List<BranchLookup>>("/api/account/branches") ?? new();
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup") ?? new();
+            _units = await Http.GetFromJsonAsync<List<UnitLookup>>("/api/units/lookup") ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل البيانات", MudBlazor.Severity.Error);
+        }
+    }
+
+    private void AddLine() => _lines.Add(new RequisitionLineDto());
+    private void RemoveLine(RequisitionLineDto line) => _lines.Remove(line);
+
+    private async Task Submit()
+    {
+        if (Model.FromBranchId is null)
+        {
+            Snackbar.Add("يرجى اختيار الفرع الطالب", MudBlazor.Severity.Warning);
+            return;
+        }
+        if (!_lines.Any() || _lines.All(l => l.ProductId is null))
+        {
+            Snackbar.Add("يرجى إضافة صنف واحد على الأقل", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var payload = new
+            {
+                Model.FromBranchId,
+                Model.ToWarehouseId,
+                RequestedDeliveryDate = Model.RequestedDeliveryDate?.ToString("yyyy-MM-dd"),
+                Model.Priority,
+                Model.Notes,
+                Lines = _lines.Where(l => l.ProductId.HasValue).Select(l => new
+                {
+                    l.ProductId,
+                    l.UnitId,
+                    l.RequestedQty,
+                    l.Notes
+                }).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/branchrequisitions", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم إرسال الطلبية بنجاح وجاري مراجعتها من قِبَل المخزن", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل إرسال الطلب: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في الاتصال: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // DTOs
+    private record BranchLookup(int Id, string Name);
+    private record WarehouseLookup(int Id, string Name);
+    private record ProductLookup(int Id, string Name);
+    private record UnitLookup(int Id, string Name);
+
+    private class RequisitionCreateDto
+    {
+        public int? FromBranchId { get; set; }
+        public int? ToWarehouseId { get; set; }
+        public DateTime? RequestedDeliveryDate { get; set; }
+        public string Priority { get; set; } = "Normal";
+        public string? Notes { get; set; }
+    }
+
+    private class RequisitionLineDto
+    {
+        public int? ProductId { get; set; }
+        public int? UnitId { get; set; }
+        public decimal RequestedQty { get; set; } = 1;
+        public string? Notes { get; set; }
+    }
+}

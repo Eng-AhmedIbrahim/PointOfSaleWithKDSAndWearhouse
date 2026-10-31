@@ -1,0 +1,215 @@
+﻿@page "/reports/stock-valuation"
+@attribute [Authorize]
+@using MudBlazor
+@using System.Net.Http.Json
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">
+            <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
+            تقرير تقييم المخزون
+        </MudText>
+        <div class="d-flex gap-2">
+            <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="@(() => Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info))">طباعة</MudButton>
+            <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="@(() => Snackbar.Add("جارٍ تجهيز التصدير...", MudBlazor.Severity.Info))">تصدير</MudButton>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="Center">
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int?" Label="المخزن" @bind-Value="_filterWarehouseId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    @foreach (var w in _warehouses)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int?" Label="الفئة" @bind-Value="_filterCategoryId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    @foreach (var c in _categories)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudDatePicker Label="بتاريخ" @bind-Date="_filterAsOfDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+            </MudItem>
+            <MudItem xs="12" sm="1">
+                <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadReport">
+                    بحث
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Summary Cards -->
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
+                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large" />
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">إجمالي القيمة</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Warning"><b>@_summary.TotalValue.ToString("N2")</b></MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">عدد الأصناف</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Primary"><b>@_summary.TotalItems</b></MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
+                <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
+                <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Class="d-block">متوسط التكلفة</MudText>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Color="MudBlazor.Color.Success"><b>@_summary.AvgCostPrice.ToString("N2")</b></MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Table -->
+    <MudPaper Class="wh-card" Elevation="1">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Warning" />
+        }
+        <MudTable Items="_items.OrderByDescending(x => x.TotalValue)" Dense="true" Striped="true" Hover="true"
+                  Loading="_loading" LoadingProgressColor="MudBlazor.Color.Warning" FixedHeader="true" Height="450px">
+            <HeaderContent>
+                <MudTh>كود الصنف</MudTh>
+                <MudTh>اسم الصنف</MudTh>
+                <MudTh>الفئة</MudTh>
+                <MudTh>المخزن</MudTh>
+                <MudTh>الكمية المتاحة</MudTh>
+                <MudTh>الوحدة</MudTh>
+                <MudTh>متوسط التكلفة</MudTh>
+                <MudTh>إجمالي القيمة</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.ProductCode
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15); font-weight:bold;" : "")">
+                    @context.ProductName
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.Category
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.WarehouseName
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.OnHandQty.ToString("N2")
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.UnitName
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
+                    @context.AvgCostPrice.ToString("N2")
+                </MudTd>
+                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15); color:#E65100; font-weight:bold;" : "font-weight:bold;")">
+                    @context.TotalValue.ToString("N2")
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd colspan="7" Style="font-weight:bold; text-align:end;">الإجمالي الكلي</MudTd>
+                <MudTd Style="font-weight:bold; color:var(--mud-palette-warning);">
+                    @_items.Sum(x => x.TotalValue).ToString("N2")
+                </MudTd>
+            </FooterContent>
+            <NoRecordsContent>
+                <MudText Class="pa-4 text-center">لا توجد بيانات مخزون</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading;
+
+    private List<StockValuationItemDto> _items = new();
+    private StockValuationSummary _summary = new();
+    private List<WarehouseLookup> _warehouses = new();
+    private List<CategoryLookup> _categories = new();
+
+    private int? _filterWarehouseId;
+    private int? _filterCategoryId;
+    private DateTime? _filterAsOfDate = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        await LoadReport();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            _categories = await Http.GetFromJsonAsync<List<CategoryLookup>>("/api/categories/lookup") ?? new();
+        }
+        catch { }
+    }
+
+    private async Task LoadReport()
+    {
+        _loading = true;
+        try
+        {
+            var query = new List<string>();
+            if (_filterWarehouseId.HasValue) query.Add($"warehouseId={_filterWarehouseId}");
+            if (_filterCategoryId.HasValue) query.Add($"categoryId={_filterCategoryId}");
+            if (_filterAsOfDate.HasValue) query.Add($"asOfDate={_filterAsOfDate:yyyy-MM-dd}");
+
+            var url = "/api/warehousereports/stock-valuation" + (query.Any() ? "?" + string.Join("&", query) : "");
+            _items = await Http.GetFromJsonAsync<List<StockValuationItemDto>>(url) ?? new();
+
+            _summary = new StockValuationSummary
+            {
+                TotalValue = _items.Sum(x => x.TotalValue),
+                TotalItems = _items.Count,
+                AvgCostPrice = _items.Any() ? _items.Average(x => x.AvgCostPrice) : 0
+            };
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل تقرير تقييم المخزون", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // DTOs
+    private record WarehouseLookup(int Id, string Name);
+    private record CategoryLookup(int Id, string Name);
+
+    private record StockValuationItemDto(
+        string ProductCode, string ProductName, string Category, string WarehouseName,
+        decimal OnHandQty, string UnitName, decimal AvgCostPrice, decimal TotalValue);
+
+    private class StockValuationSummary
+    {
+        public decimal TotalValue { get; set; }
+        public int TotalItems { get; set; }
+        public decimal AvgCostPrice { get; set; }
+    }
+}

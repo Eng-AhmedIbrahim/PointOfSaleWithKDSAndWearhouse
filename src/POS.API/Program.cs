@@ -1,4 +1,4 @@
-﻿using POS.API.Hubs;
+using POS.API.Hubs;
 QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -333,6 +333,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<DeliveryHub>("/callcenterhub");
+app.MapHub<WarehouseHub>("/hubs/warehouse");
 #endregion
 
 await app.RunAsync();

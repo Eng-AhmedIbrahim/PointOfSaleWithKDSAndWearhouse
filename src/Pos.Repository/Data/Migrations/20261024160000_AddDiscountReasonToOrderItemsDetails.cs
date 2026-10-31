@@ -10,12 +10,10 @@ namespace Pos.Repository.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "DiscountReason",
-                table: "OrdersDetails",
-                type: "nvarchar(250)",
-                maxLength: 250,
-                nullable: true);
+            migrationBuilder.Sql(@"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[OrdersDetails]') AND name = 'DiscountReason')
+BEGIN
+    ALTER TABLE [OrdersDetails] ADD [DiscountReason] nvarchar(250) NULL;
+END");
         }
 
         /// <inheritdoc />

@@ -1,0 +1,310 @@
+﻿@page "/suppliers/prices"
+@attribute [Authorize]
+@using MudBlazor
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">أسعار الموردين</MudText>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Class="wh-btn-primary" OnClick="OpenAddContractDialog">
+            إضافة عقد سعر
+        </MudButton>
+    </div>
+
+    <MudCard Class="wh-card mb-3">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="3">
+                    <MudSelect Value="FilterSupplierId" Label="المورد" T="int" ValueChanged="@((int v) => { FilterSupplierId = v; ApplyFilter(); })">
+                        <MudSelectItem Value="0">-- كل الموردين --</MudSelectItem>
+                        @foreach (var s in Suppliers)
+                        {
+                            <MudSelectItem Value="s.Id">@s.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect @bind-Value="FilterProductId" Label="المنتج" T="int">
+                        <MudSelectItem Value="0">-- كل المنتجات --</MudSelectItem>
+                        @foreach (var p in Products)
+                        {
+                            <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect @bind-Value="FilterIsPreferred" Label="مفضل" T="int">
+                        <MudSelectItem Value="0">الكل</MudSelectItem>
+                        <MudSelectItem Value="1">مفضل فقط</MudSelectItem>
+                        <MudSelectItem Value="2">غير مفضل</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect @bind-Value="FilterIsActive" Label="الحالة" T="int">
+                        <MudSelectItem Value="0">الكل</MudSelectItem>
+                        <MudSelectItem Value="1">نشط</MudSelectItem>
+                        <MudSelectItem Value="2">غير نشط</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Class="wh-card">
+        <MudCardContent>
+            @if (IsLoading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
+            }
+            <MudTable Items="FilteredContracts" Hover="true" Striped="true" Dense="true" Bordered="true">
+                <HeaderContent>
+                    <MudTh>المورد</MudTh>
+                    <MudTh>المنتج</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh>سعر الوحدة</MudTh>
+                    <MudTh>من</MudTh>
+                    <MudTh>إلى</MudTh>
+                    <MudTh>مفضل</MudTh>
+                    <MudTh>الحالة</MudTh>
+                    <MudTh>أفضل سعر</MudTh>
+                    <MudTh>إجراءات</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Style="@(context.IsPreferred ? "color:#ff6600;font-weight:bold" : "")">
+                            @context.SupplierName
+                        </MudText>
+                    </MudTd>
+                    <MudTd>@context.ProductName</MudTd>
+                    <MudTd>@context.UnitName</MudTd>
+                    <MudTd>
+                        <MudText Style="@(context.IsPreferred ? "color:#ff6600;font-weight:bold" : "")">
+                            @context.UnitPrice.ToString("N2")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>@context.StartDate?.ToString("yyyy/MM/dd")</MudTd>
+                    <MudTd>@context.EndDate?.ToString("yyyy/MM/dd")</MudTd>
+                    <MudTd>
+                        @if (context.IsPreferred)
+                        {
+                            <MudChip T="string" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small" Icon="@Icons.Material.Filled.Star">مفضل</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="MudBlazor.Color.Default" Size="MudBlazor.Size.Small">عادي</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Color="@(context.IsActive ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Size="MudBlazor.Size.Small">
+                            @(context.IsActive ? "نشط" : "منتهي")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (BestPriceByProduct.TryGetValue(context.ProductId, out var bp) && bp == context.UnitPrice)
+                        {
+                            <MudChip T="string" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small" Icon="@Icons.Material.Filled.TrendingDown">
+                                أفضل سعر
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@(context.IsPreferred ? Icons.Material.Filled.StarBorder : Icons.Material.Filled.Star)"
+                                       Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => TogglePreferred(context))"
+                                       Title="@(context.IsPreferred ? "إلغاء التفضيل" : "تعيين مفضل")" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>لا توجد عقود أسعار</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+
+    @if (ShowAddForm)
+    {
+        <MudCard Class="wh-card mt-3">
+            <MudCardContent>
+                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2" Style="font-weight:bold">إضافة عقد سعر جديد</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="3">
+                        <MudSelect @bind-Value="NewContract.SupplierId" Label="المورد" T="int">
+                            @foreach (var s in Suppliers)
+                            {
+                                <MudSelectItem Value="s.Id">@s.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudSelect @bind-Value="NewContract.ProductId" Label="المنتج" T="int">
+                            @foreach (var p in Products)
+                            {
+                                <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="2">
+                        <MudNumericField @bind-Value="NewContract.UnitPrice" Label="سعر الوحدة" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="2">
+                        <MudDatePicker @bind-Date="NewContract.StartDate" Label="من" />
+                    </MudItem>
+                    <MudItem xs="12" sm="2">
+                        <MudDatePicker @bind-Date="NewContract.EndDate" Label="إلى" />
+                    </MudItem>
+                    <MudItem xs="12" sm="2">
+                        <MudSwitch T="bool" @bind-Value="NewContract.IsPreferred" Color="MudBlazor.Color.Warning" Label="مفضل" />
+                    </MudItem>
+                    <MudItem xs="12" Class="d-flex gap-2">
+                        <MudButton Class="wh-btn-primary" OnClick="SaveNewContract">حفظ</MudButton>
+                        <MudButton OnClick="@(() => ShowAddForm = false)">إلغاء</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    }
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool IsLoading = false;
+    private bool ShowAddForm = false;
+
+    private int FilterSupplierId = 0;
+    private int FilterProductId = 0;
+    private int FilterIsPreferred = 0;
+    private int FilterIsActive = 0;
+
+    private List<SupplierLookup> Suppliers = new();
+    private List<ProductLookup> Products = new();
+    private List<PriceContractDto> AllContracts = new();
+    private List<PriceContractDto> FilteredContracts = new();
+    private Dictionary<int, decimal> BestPriceByProduct = new();
+
+    private NewContractModel NewContract = new();
+
+    record SupplierLookup(int Id, string Name);
+    record ProductLookup(int Id, string Name);
+    record PriceContractDto(int Id, int SupplierId, string SupplierName, int ProductId,
+        string ProductName, string UnitName, decimal UnitPrice,
+        DateTime? StartDate, DateTime? EndDate, bool IsPreferred, bool IsActive);
+
+    class NewContractModel
+    {
+        public int SupplierId { get; set; }
+        public int ProductId { get; set; }
+        public decimal UnitPrice { get; set; }
+        public DateTime? StartDate { get; set; } = DateTime.Today;
+        public DateTime? EndDate { get; set; }
+        public bool IsPreferred { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var suppliers = await Http.GetFromJsonAsync<List<SupplierLookup>>("/api/suppliers/lookup");
+            Suppliers = suppliers ?? new();
+
+            var products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup");
+            Products = products ?? new();
+
+            var contracts = await Http.GetFromJsonAsync<List<PriceContractDto>>("/api/suppliers/price-contracts");
+            AllContracts = contracts ?? new();
+
+            ComputeBestPrices();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل البيانات: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { IsLoading = false; }
+    }
+
+    private void ComputeBestPrices()
+    {
+        BestPriceByProduct = AllContracts
+            .Where(c => c.IsActive)
+            .GroupBy(c => c.ProductId)
+            .ToDictionary(g => g.Key, g => g.Min(c => c.UnitPrice));
+    }
+
+    private void ApplyFilter()
+    {
+        FilteredContracts = AllContracts
+            .Where(c =>
+                (FilterSupplierId == 0 || c.SupplierId == FilterSupplierId) &&
+                (FilterProductId == 0 || c.ProductId == FilterProductId) &&
+                (FilterIsPreferred == 0 || (FilterIsPreferred == 1 && c.IsPreferred) || (FilterIsPreferred == 2 && !c.IsPreferred)) &&
+                (FilterIsActive == 0 || (FilterIsActive == 1 && c.IsActive) || (FilterIsActive == 2 && !c.IsActive)))
+            .ToList();
+    }
+
+    private void OpenAddContractDialog()
+    {
+        NewContract = new NewContractModel();
+        ShowAddForm = true;
+    }
+
+    private async Task TogglePreferred(PriceContractDto contract)
+    {
+        try
+        {
+            var payload = new { IsPreferred = !contract.IsPreferred };
+            var response = await Http.PatchAsJsonAsync($"/api/suppliers/price-contracts/{contract.Id}/preferred", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(contract.IsPreferred ? "تم إلغاء التفضيل" : "تم تعيين كمفضل", MudBlazor.Severity.Success);
+                var contracts = await Http.GetFromJsonAsync<List<PriceContractDto>>("/api/suppliers/price-contracts");
+                AllContracts = contracts ?? new();
+                ComputeBestPrices();
+                ApplyFilter();
+            }
+            else
+                Snackbar.Add("فشل في تحديث التفضيل", MudBlazor.Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task SaveNewContract()
+    {
+        if (NewContract.SupplierId == 0 || NewContract.ProductId == 0)
+        {
+            Snackbar.Add("يرجى اختيار المورد والمنتج", MudBlazor.Severity.Warning);
+            return;
+        }
+        try
+        {
+            var payload = new
+            {
+                NewContract.SupplierId, NewContract.ProductId, NewContract.UnitPrice,
+                NewContract.StartDate, NewContract.EndDate, NewContract.IsPreferred
+            };
+            var response = await Http.PostAsJsonAsync("/api/suppliers/price-contracts", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم إضافة عقد السعر بنجاح", MudBlazor.Severity.Success);
+                ShowAddForm = false;
+                var contracts = await Http.GetFromJsonAsync<List<PriceContractDto>>("/api/suppliers/price-contracts");
+                AllContracts = contracts ?? new();
+                ComputeBestPrices();
+                ApplyFilter();
+            }
+            else
+                Snackbar.Add("فشل في إضافة عقد السعر", MudBlazor.Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,166 @@
+﻿@page "/warehouses"
+@attribute [Authorize(Policy = "CanViewWarehouses")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject BlazorBase.Services.LocalizationService L
+
+<PageTitle>إدارة المستودعات</PageTitle>
+
+<div class="wh-page-wrapper">
+    <div class="wh-page-header">
+        <div>
+            <h2 class="page-title"><MudIcon Icon="@Icons.Material.Rounded.Warehouse" Class="me-2" />إدارة المستودعات والمواقع</h2>
+            <p class="page-subtitle">عرض وإدارة جميع المستودعات الرئيسية والفرعية</p>
+        </div>
+        <AuthorizeView Policy="CanManageWarehouses">
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Rounded.Add"
+                       OnClick="OpenAddDialog" Class="wh-btn-primary">مستودع جديد</MudButton>
+        </AuthorizeView>
+    </div>
+
+    <MudPaper Class="wh-card mb-4" Elevation="0">
+        <div class="d-flex align-center gap-3 pa-3">
+            <MudTextField @bind-Value="_search" Placeholder="بحث..." MudBlazor.Adornment="MudBlazor.Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Rounded.Search" Variant="MudBlazor.Variant.Outlined"
+                          Class="flex-grow-1" Immediate="true" OnKeyUp="@(_ => StateHasChanged())" />
+            <MudSelect @bind-Value="_filterType" Label="النوع" Variant="MudBlazor.Variant.Outlined" Style="min-width:150px">
+                <MudSelectItem Value="@((string?)null)">الكل</MudSelectItem>
+                <MudSelectItem Value="@("Main")">رئيسي</MudSelectItem>
+                <MudSelectItem Value="@("Branch")">فرعي</MudSelectItem>
+            </MudSelect>
+        </div>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <div class="text-center pa-8"><MudProgressCircular Color="MudBlazor.Color.Warning" Indeterminate="true" Size="MudBlazor.Size.Large" /></div>
+    }
+    else
+    {
+        <div class="wh-grid">
+            @foreach (var w in FilteredWarehouses)
+            {
+                <div class="wh-warehouse-card @(w.Type == "Main" ? "main-warehouse" : "branch-warehouse")">
+                    <div class="wh-card-header">
+                        <div class="wh-card-icon">
+                            <MudIcon Icon="@(w.Type == "Main" ? Icons.Material.Rounded.Domain : Icons.Material.Rounded.Store)" Size="MudBlazor.Size.Large" />
+                        </div>
+                        <div class="wh-card-meta">
+                            <span class="wh-type-badge @(w.Type == "Main" ? "badge-main" : "badge-branch")">
+                                @(w.Type == "Main" ? "مستودع رئيسي" : "مستودع فرعي")
+                            </span>
+                            <span class="wh-code">@w.Code</span>
+                        </div>
+                        <div class="wh-card-actions">
+                            <MudIconButton Icon="@Icons.Material.Rounded.LocationOn" Size="MudBlazor.Size.Small"
+                                           OnClick="@(() => ShowLocations(w))" Color="MudBlazor.Color.Warning" Title="المواقع" />
+                            <AuthorizeView Policy="CanManageWarehouses">
+                                <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="MudBlazor.Size.Small"
+                                               OnClick="@(() => OpenEditDialog(w))" Color="MudBlazor.Color.Info" />
+                            </AuthorizeView>
+                        </div>
+                    </div>
+                    <div class="wh-card-body">
+                        <h3 class="wh-name">@w.NameAr</h3>
+                        @if (!string.IsNullOrEmpty(w.NameEn)) { <p class="wh-name-en">@w.NameEn</p> }
+                        <div class="wh-info-row">
+                            <MudIcon Icon="@Icons.Material.Rounded.Person" Size="MudBlazor.Size.Small" />
+                            <span>@(w.ManagerName ?? "—")</span>
+                        </div>
+                        <div class="wh-info-row">
+                            <MudIcon Icon="@Icons.Material.Rounded.Phone" Size="MudBlazor.Size.Small" />
+                            <span>@(w.Phone ?? "—")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(w.BranchName))
+                        {
+                            <div class="wh-info-row">
+                                <MudIcon Icon="@Icons.Material.Rounded.AccountBalance" Size="MudBlazor.Size.Small" />
+                                <span>@w.BranchName</span>
+                            </div>
+                        }
+                        <div class="wh-card-footer">
+                            <span class="wh-locations-count">
+                                <MudIcon Icon="@Icons.Material.Rounded.GridView" Size="MudBlazor.Size.Small" />
+                                @w.LocationCount موقع
+                            </span>
+                            <MudChip T="string" Color="@(w.IsActive ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Size="MudBlazor.Size.Small">
+                                @(w.IsActive ? "نشط" : "غير نشط")
+                            </MudChip>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (!FilteredWarehouses.Any())
+        {
+            <div class="text-center pa-8 text-muted">
+                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Style="font-size:4rem;opacity:0.3" />
+                <p>لا توجد مستودعات</p>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<WarehouseDto> _warehouses = new();
+    private bool _loading = true;
+    private string? _search;
+    private string? _filterType;
+
+    private IEnumerable<WarehouseDto> FilteredWarehouses => _warehouses.Where(w =>
+        (string.IsNullOrEmpty(_search) || w.NameAr.Contains(_search, StringComparison.OrdinalIgnoreCase) || w.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_filterType) || w.Type == _filterType));
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseDto>>("api/warehouse/warehouses") ?? new();
+        }
+        catch { Snackbar.Add("خطأ في تحميل البيانات", MudBlazor.Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("مستودع جديد", new DialogParameters { ["Warehouse"] = new WarehouseDialog.WarehouseModel() });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(WarehouseDto w)
+    {
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("تعديل مستودع", new DialogParameters { ["Warehouse"] = new WarehouseDialog.WarehouseModel { Id = w.Id, Code = w.Code, NameAr = w.NameAr, NameEn = w.NameEn, Type = w.Type, Phone = w.Phone, ManagerName = w.ManagerName, Address = w.Address, IsActive = w.IsActive } });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task ShowLocations(WarehouseDto w)
+    {
+        await DialogService.ShowAsync<WarehouseLocationsDialog>(
+            $"مواقع {w.NameAr}",
+            new DialogParameters { ["WarehouseId"] = w.Id, ["WarehouseName"] = w.NameAr },
+            new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
+    }
+
+    private record WarehouseDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string Type { get; set; } = "Branch";
+        public string? Address { get; set; }
+        public string? Phone { get; set; }
+        public string? ManagerName { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public int? DefaultSupplyingWarehouseId { get; set; }
+        public int LocationCount { get; set; }
+    }
+}

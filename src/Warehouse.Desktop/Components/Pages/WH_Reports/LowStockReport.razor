@@ -1,0 +1,175 @@
+﻿@page "/reports/reorder-alerts"
+@attribute [Authorize]
+@using MudBlazor
+@using System.Net.Http.Json
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" Color="MudBlazor.Color.Error" />
+            تقرير المخزون المنخفض وتنبيهات إعادة الطلب
+        </MudText>
+        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                   StartIcon="@Icons.Material.Filled.ShoppingCart"
+                   OnClick="@(() => Snackbar.Add("قيد التطوير", MudBlazor.Severity.Info))"
+                   Disabled="!_selectedItems.Any()">
+            إنشاء أمر شراء تلقائي (@_selectedItems.Count)
+        </MudButton>
+    </div>
+
+    <!-- Filters -->
+    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="Center">
+            <MudItem xs="12" sm="5">
+                <MudSelect T="int?" Label="المخزن" @bind-Value="_filterWarehouseId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    @foreach (var w in _warehouses)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="string?" Label="درجة الإلحاح" @bind-Value="_filterUrgency"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                    <MudSelectItem T="string?" Value="@("Critical")">حرج</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Warning")">تحذير</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("All")">الكل</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadReport" FullWidth="true">
+                    بحث
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Table -->
+    <MudPaper Class="wh-card" Elevation="1">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Warning" />
+        }
+        <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading"
+                  LoadingProgressColor="MudBlazor.Color.Warning"
+                  MultiSelection="true" @bind-SelectedItems="_selectedItems"
+                  FixedHeader="true" Height="500px">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>كود الصنف</MudTh>
+                <MudTh>اسم الصنف</MudTh>
+                <MudTh>المخزن</MudTh>
+                <MudTh>الكمية الحالية</MudTh>
+                <MudTh>حد إعادة الطلب</MudTh>
+                <MudTh>النقص</MudTh>
+                <MudTh>الوحدة</MudTh>
+                <MudTh>الكمية المقترحة</MudTh>
+                <MudTh>آخر مورد</MudTh>
+                <MudTh>آخر سعر شراء</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @{
+                    bool isCritical = context.CurrentQty <= 0;
+                    bool isWarning = !isCritical && context.CurrentQty < context.ReorderLevel;
+                    string rowStyle = isCritical
+                        ? "background-color: rgba(244,67,54,0.12);"
+                        : (isWarning ? "background-color: rgba(255,152,0,0.12);" : "");
+                }
+                <MudTd Style="@rowStyle">
+                    @if (isCritical)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                    }
+                    else if (isWarning)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small" />
+                    }
+                </MudTd>
+                <MudTd Style="@rowStyle">@context.ProductCode</MudTd>
+                <MudTd Style="@(rowStyle + (isCritical ? "font-weight:bold;color:#c62828;" : isWarning ? "font-weight:bold;color:#E65100;" : ""))">
+                    @context.ProductName
+                </MudTd>
+                <MudTd Style="@rowStyle">@context.WarehouseName</MudTd>
+                <MudTd Style="@rowStyle">@context.CurrentQty.ToString("N2")</MudTd>
+                <MudTd Style="@rowStyle">@context.ReorderLevel.ToString("N2")</MudTd>
+                <MudTd Style="@(rowStyle + "color:#c62828;font-weight:bold;")">
+                    @context.Shortage.ToString("N2")
+                </MudTd>
+                <MudTd Style="@rowStyle">@context.UnitName</MudTd>
+                <MudTd Style="@rowStyle">@context.SuggestedOrderQty.ToString("N2")</MudTd>
+                <MudTd Style="@rowStyle">@context.LastSupplierName</MudTd>
+                <MudTd Style="@rowStyle">@context.LastPurchasePrice.ToString("N2")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 text-center">لا توجد أصناف تحتاج إلى إعادة طلب</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading;
+
+    private List<LowStockItemDto> _items = new();
+    private HashSet<LowStockItemDto> _selectedItems = new();
+    private List<WarehouseLookup> _warehouses = new();
+
+    private int? _filterWarehouseId;
+    private string? _filterUrgency;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWarehouses();
+        await LoadReport();
+    }
+
+    private async Task LoadWarehouses()
+    {
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+        }
+        catch { }
+    }
+
+    private async Task LoadReport()
+    {
+        _loading = true;
+        _selectedItems.Clear();
+        try
+        {
+            var query = new List<string>();
+            if (_filterWarehouseId.HasValue) query.Add($"warehouseId={_filterWarehouseId}");
+            if (!string.IsNullOrWhiteSpace(_filterUrgency) && _filterUrgency != "All")
+                query.Add($"urgency={_filterUrgency}");
+
+            var url = "/api/warehousereports/low-stock" + (query.Any() ? "?" + string.Join("&", query) : "");
+            _items = await Http.GetFromJsonAsync<List<LowStockItemDto>>(url) ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل تقرير المخزون المنخفض", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // DTOs
+    private record WarehouseLookup(int Id, string Name);
+    private record LowStockItemDto(
+        string ProductCode, string ProductName, string WarehouseName,
+        decimal CurrentQty, decimal ReorderLevel, decimal Shortage,
+        string UnitName, decimal SuggestedOrderQty,
+        string LastSupplierName, decimal LastPurchasePrice);
+}

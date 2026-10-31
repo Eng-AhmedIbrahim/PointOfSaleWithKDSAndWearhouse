@@ -1,0 +1,263 @@
+﻿@using MudBlazor
+@using System.Net.Http.Json
+@using BlazorBase.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizerService
+
+<MudDialog>
+    <TitleContent>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
+            تحويل مخزني جديد
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div dir="@(IsArabic ? "rtl" : "ltr")">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="من المخزن" @bind-Value="Model.FromWarehouseId"
+                               Required="true" Variant="MudBlazor.Variant.Outlined"
+                               For="@(() => Model.FromWarehouseId)">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="إلى المخزن" @bind-Value="Model.ToWarehouseId"
+                               Required="true" Variant="MudBlazor.Variant.Outlined"
+                               For="@(() => Model.ToWarehouseId)">
+                        @foreach (var w in _warehouses.Where(w => w.Id != (Model.FromWarehouseId ?? -1)))
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="تاريخ التحويل" @bind-Date="Model.TransferDate"
+                                   Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="ملاحظات عامة" @bind-Value="Model.Notes"
+                                  Lines="2" Variant="MudBlazor.Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="mb-2"><b>الأصناف المحولة</b></MudText>
+
+            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3">
+                <HeaderContent>
+                    <MudTh>المنتج</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh>الكمية</MudTh>
+                    <MudTh>الموقع (من)</MudTh>
+                    <MudTh>الموقع (إلى)</MudTh>
+                    <MudTh>ملاحظات</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.ProductId"
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                            @foreach (var p in _products)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.UnitId"
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense">
+                            @foreach (var u in _units)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.Qty"
+                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                         Min="0.01m" Style="width:90px;" />
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.FromLocationId"
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Placeholder="اختياري">
+                            @foreach (var l in _locations)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="int?" @bind-Value="context.ToLocationId"
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Placeholder="اختياري">
+                            @foreach (var l in _locations)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField T="string" @bind-Value="context.Notes"
+                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
+                                       Size="MudBlazor.Size.Small" OnClick="@(() => RemoveLine(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+                       Variant="MudBlazor.Variant.Outlined" Size="MudBlazor.Size.Small" OnClick="AddLine">
+                إضافة صنف
+            </MudButton>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
+                   Class="wh-btn-primary" OnClick="Execute" Disabled="_executing">
+            @if (_executing)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            تنفيذ التحويل
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _executing;
+
+    private StockTransferCreateDto Model = new();
+    private List<TransferLineDto> _lines = new();
+
+    private List<WarehouseLookup> _warehouses = new();
+    private List<ProductLookup> _products = new();
+    private List<UnitLookup> _units = new();
+    private List<LocationLookup> _locations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        AddLine();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup") ?? new();
+            _units = await Http.GetFromJsonAsync<List<UnitLookup>>("/api/units/lookup") ?? new();
+            _locations = await Http.GetFromJsonAsync<List<LocationLookup>>("/api/warehouses/locations") ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("حدث خطأ أثناء تحميل البيانات", MudBlazor.Severity.Error);
+        }
+    }
+
+    private void AddLine() => _lines.Add(new TransferLineDto());
+    private void RemoveLine(TransferLineDto line) => _lines.Remove(line);
+
+    private async Task Execute()
+    {
+        if (Model.FromWarehouseId is null || Model.ToWarehouseId is null)
+        {
+            Snackbar.Add("يرجى تحديد المخزنين", MudBlazor.Severity.Warning);
+            return;
+        }
+        if (Model.FromWarehouseId == Model.ToWarehouseId)
+        {
+            Snackbar.Add("يجب أن يختلف المخزن المصدر عن المخزن المستهدف", MudBlazor.Severity.Warning);
+            return;
+        }
+        if (!_lines.Any(l => l.ProductId.HasValue))
+        {
+            Snackbar.Add("يرجى إضافة صنف واحد على الأقل", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _executing = true;
+        try
+        {
+            var payload = new
+            {
+                Model.FromWarehouseId,
+                Model.ToWarehouseId,
+                TransferDate = Model.TransferDate?.ToString("yyyy-MM-dd"),
+                Model.Notes,
+                Lines = _lines.Where(l => l.ProductId.HasValue).Select(l => new
+                {
+                    l.ProductId,
+                    l.UnitId,
+                    l.Qty,
+                    l.FromLocationId,
+                    l.ToLocationId,
+                    l.Notes
+                }).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/warehouseproducts/transfer", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم تنفيذ التحويل المخزني بنجاح", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                     response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
+            {
+                Snackbar.Add("قيد التطوير", MudBlazor.Severity.Info);
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل تنفيذ التحويل: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("قيد التطوير", MudBlazor.Severity.Info);
+        }
+        finally
+        {
+            _executing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // DTOs
+    private record WarehouseLookup(int Id, string Name);
+    private record ProductLookup(int Id, string Name);
+    private record UnitLookup(int Id, string Name);
+    private record LocationLookup(int Id, string Name);
+
+    private class StockTransferCreateDto
+    {
+        public int? FromWarehouseId { get; set; }
+        public int? ToWarehouseId { get; set; }
+        public DateTime? TransferDate { get; set; } = DateTime.Today;
+        public string? Notes { get; set; }
+    }
+
+    private class TransferLineDto
+    {
+        public int? ProductId { get; set; }
+        public int? UnitId { get; set; }
+        public decimal Qty { get; set; } = 1;
+        public int? FromLocationId { get; set; }
+        public int? ToLocationId { get; set; }
+        public string? Notes { get; set; }
+    }
+}

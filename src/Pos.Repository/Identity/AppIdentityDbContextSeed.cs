@@ -1,4 +1,4 @@
-﻿namespace Pos.Repository.Identity;
+namespace Pos.Repository.Identity;
 
 public static class AppIdentityDbContextSeed
 {
@@ -39,6 +39,7 @@ public static class AppIdentityDbContextSeed
                 existing.ScreenArabicName = perm.ScreenArabicName;
                 existing.ScreenEnglishName = perm.ScreenEnglishName;
                 existing.IsBackOffice = perm.IsBackOffice;
+                existing.IsWarehouse = perm.IsWarehouse;
                 context.Permissions.Update(existing);
             }
         }

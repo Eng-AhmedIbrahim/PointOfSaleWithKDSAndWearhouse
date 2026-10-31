@@ -1,4 +1,4 @@
-﻿namespace POS.Core.Entities.UserSettings;
+namespace POS.Core.Entities.UserSettings;
 
 public class ApplicationRole : IdentityRole
 {
@@ -14,4 +14,5 @@ public class Permission
     public string ScreenArabicName { get; set; } = string.Empty;
     public string ScreenEnglishName { get; set; } = string.Empty;
     public bool IsBackOffice { get; set; } = false;
+    public bool IsWarehouse { get; set; } = false;
 }

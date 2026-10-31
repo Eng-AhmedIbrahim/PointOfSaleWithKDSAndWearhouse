@@ -1,0 +1,258 @@
+﻿@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<MudDialog DisableSidePadding="true">
+    <DialogContent>
+        <div class="pa-4" dir="@(IsArabic ? "rtl" : "ltr")">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="المورد" @bind-Value="_model.SupplierId" Required="true"
+                               AnchorOrigin="MudBlazor.Origin.BottomCenter" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                        @foreach (var s in _suppliers)
+                        {
+                            <MudSelectItem Value="@s.Id">@s.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="المستودع المستلم" @bind-Value="_model.WarehouseId" Required="true"
+                               AnchorOrigin="MudBlazor.Origin.BottomCenter" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem Value="@w.Id">@w.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="تاريخ التوريد المتوقع" @bind-Date="_model.ExpectedDeliveryDate"
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="ملاحظات" @bind-Value="_model.Notes" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <div class="d-flex justify-space-between align-center mb-2">
+                <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle1" Class="fw-bold">بنود أمر الشراء</MudText>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary"
+                           Size="MudBlazor.Size.Small" OnClick="AddLine">إضافة صنف</MudButton>
+            </div>
+
+            <MudTable Items="_model.Lines" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>الصنف</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh Style="width:110px">الكمية المطلوبة</MudTh>
+                    <MudTh Style="width:110px">سعر الوحدة</MudTh>
+                    <MudTh Style="width:110px">الإجمالي</MudTh>
+                    <MudTh Style="width:50px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudSelect T="int" Value="@context.ProductId" ValueChanged="@((int val) => OnProductChanged(context, val))"
+                                   Dense="true" MudBlazor.Margin="MudBlazor.Margin.Dense" Variant="MudBlazor.Variant.Outlined">
+                            @foreach (var p in _products)
+                            {
+                                <MudSelectItem Value="@p.Id">@p.NameAr (@p.SKU)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudText MudBlazor.Typo="MudBlazor.Typo.body2">@context.UnitName</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="@context.OrderedQuantity" Min="0.01m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                         Variant="MudBlazor.Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="@context.UnitPrice" Min="0m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                         Variant="MudBlazor.Variant.Outlined" />
+                    </MudTd>
+                    <MudTd>
+                        <MudText MudBlazor.Typo="MudBlazor.Typo.body2" Class="fw-bold">@((context.OrderedQuantity * context.UnitPrice).ToString("N2"))</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => RemoveLine(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="d-flex justify-end gap-6 mt-4 pa-3" style="background:#fef5ee; border-radius:8px;">
+                <div>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">المجموع قبل الضريبة</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold">@SubTotal.ToString("N2") ج.م</MudText>
+                </div>
+                <div>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">ضريبة القيمة المضافة</MudText>
+                    <MudNumericField T="decimal" @bind-Value="_model.TaxAmount" Min="0m" MudBlazor.Margin="MudBlazor.Margin.Dense"
+                                     Variant="MudBlazor.Variant.Outlined" Style="width:120px" />
+                </div>
+                <div>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الإجمالي النهائي</MudText>
+                    <MudText MudBlazor.Typo="MudBlazor.Typo.h6" Class="fw-bold text-orange">@TotalAmount.ToString("N2") ج.م</MudText>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">إلغاء</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="SaveOrder" Disabled="_saving">
+            @if (_saving) { <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" /> }
+            حفظ أمر الشراء
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _saving;
+
+    private POModel _model = new() { Lines = new List<POLineModel>() };
+    private List<SupplierItem> _suppliers = new();
+    private List<WarehouseItem> _warehouses = new();
+    private List<ProductItem> _products = new();
+
+    private decimal SubTotal => _model.Lines.Sum(l => l.OrderedQuantity * l.UnitPrice);
+    private decimal TotalAmount => SubTotal + _model.TaxAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        if (_model.Lines.Count == 0) AddLine();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            var supRes = await Http.GetFromJsonAsync<List<SupplierItem>>("api/warehouse/suppliers");
+            if (supRes != null) _suppliers = supRes;
+
+            var whRes = await Http.GetFromJsonAsync<List<WarehouseItem>>("api/warehouse/warehouses");
+            if (whRes != null) _warehouses = whRes;
+
+            var prodRes = await Http.GetFromJsonAsync<List<ProductItem>>("api/warehouse/products");
+            if (prodRes != null) _products = prodRes;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء تحميل البيانات: {ex.Message}", MudBlazor.Severity.Warning);
+        }
+    }
+
+    private void AddLine()
+    {
+        _model.Lines.Add(new POLineModel { OrderedQuantity = 1, UnitPrice = 0 });
+    }
+
+    private void RemoveLine(POLineModel line)
+    {
+        if (_model.Lines.Count > 1)
+        {
+            _model.Lines.Remove(line);
+        }
+    }
+
+    private void OnProductChanged(POLineModel line, int prodId)
+    {
+        line.ProductId = prodId;
+        var prod = _products.FirstOrDefault(p => p.Id == prodId);
+        if (prod != null)
+        {
+            line.UnitId = prod.BaseUnitId;
+            line.UnitName = prod.BaseUnitName ?? "وحدة";
+            line.UnitPrice = prod.CostPrice;
+        }
+    }
+
+    private async Task SaveOrder()
+    {
+        if (_model.SupplierId <= 0)
+        {
+            Snackbar.Add("يرجى اختيار المورد", MudBlazor.Severity.Warning);
+            return;
+        }
+        if (_model.WarehouseId <= 0)
+        {
+            Snackbar.Add("يرجى اختيار المستودع", MudBlazor.Severity.Warning);
+            return;
+        }
+        if (_model.Lines.Any(l => l.ProductId <= 0 || l.OrderedQuantity <= 0))
+        {
+            Snackbar.Add("يرجى التأكد من اختيار الأصناف وتحديد كميات صحيحة", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = new
+            {
+                SupplierId = _model.SupplierId,
+                WarehouseId = _model.WarehouseId,
+                ExpectedDeliveryDate = _model.ExpectedDeliveryDate,
+                Notes = _model.Notes,
+                TaxAmount = _model.TaxAmount,
+                Lines = _model.Lines.Select(l => new
+                {
+                    ProductId = l.ProductId,
+                    UnitId = l.UnitId,
+                    OrderedQuantity = l.OrderedQuantity,
+                    UnitPrice = l.UnitPrice
+                }).ToList()
+            };
+
+            var res = await Http.PostAsJsonAsync("api/warehouse/purchase-orders", payload);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حفظ أمر الشراء بنجاح", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("حدث خطأ أثناء حفظ أمر الشراء", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public class POModel
+    {
+        public int SupplierId { get; set; }
+        public int WarehouseId { get; set; }
+        public DateTime? ExpectedDeliveryDate { get; set; } = DateTime.Today.AddDays(7);
+        public string? Notes { get; set; }
+        public decimal TaxAmount { get; set; }
+        public List<POLineModel> Lines { get; set; } = new();
+    }
+
+    public class POLineModel
+    {
+        public int ProductId { get; set; }
+        public int UnitId { get; set; }
+        public string UnitName { get; set; } = "";
+        public decimal OrderedQuantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+
+    public record SupplierItem(int Id, string NameAr);
+    public record WarehouseItem(int Id, string NameAr);
+    public record ProductItem(int Id, string NameAr, string SKU, int BaseUnitId, string BaseUnitName, decimal CostPrice);
+}

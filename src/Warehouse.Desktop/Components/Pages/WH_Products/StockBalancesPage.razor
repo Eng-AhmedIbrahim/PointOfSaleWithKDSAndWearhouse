@@ -1,0 +1,199 @@
+﻿@page "/inventory/balances"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header">
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h5" Class="wh-header-title">
+            <MudIcon Icon="@Icons.Material.Filled.Warehouse" Class="me-2" />
+            أرصدة المخزون
+        </MudText>
+        <MudSpacer />
+        <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Warning"
+                   StartIcon="@Icons.Material.Filled.Download" OnClick="Export">
+            تصدير
+        </MudButton>
+    </div>
+
+    <MudCard Class="wh-card mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="int?" @bind-Value="SelectedWarehouseId" Label="المستودع"
+                               Variant="MudBlazor.Variant.Outlined" Clearable="true"
+                               AdornmentIcon="@Icons.Material.Filled.Warehouse">
+                        @foreach (var wh in Warehouses)
+                        {
+                            <MudSelectItem T="int?" Value="wh.Id">@wh.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="SearchText" Label="بحث بالمنتج"
+                                  MudBlazor.Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true" Variant="MudBlazor.Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-center gap-2">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary" OnClick="LoadBalances"
+                               StartIcon="@Icons.Material.Filled.Search">بحث</MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" OnClick="ResetFilters"
+                               StartIcon="@Icons.Material.Filled.Clear">إعادة تعيين</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudTabs Elevation="2" Rounded="true" Class="wh-card">
+        <MudTabPanel Text="جميع الأصناف" Icon="@Icons.Material.Filled.List">
+            @if (IsLoading)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
+            }
+            <MudTable Items="FilteredBalances" Dense="true" Hover="true" Striped="true"
+                      RowClassFunc="RowClass">
+                <HeaderContent>
+                    <MudTh>كود المنتج</MudTh>
+                    <MudTh>اسم المنتج</MudTh>
+                    <MudTh>المستودع</MudTh>
+                    <MudTh>الموقع</MudTh>
+                    <MudTh>الكمية الفعلية</MudTh>
+                    <MudTh>المحجوز</MudTh>
+                    <MudTh>المتاح</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                    <MudTh>آخر تحديث</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="كود المنتج">
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.ProductCode</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="اسم المنتج">@context.ProductName</MudTd>
+                    <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
+                    <MudTd DataLabel="الموقع">@context.LocationName</MudTd>
+                    <MudTd DataLabel="الكمية الفعلية">
+                        <MudText Color="@(context.OnHandQty <= context.ReorderLevel ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
+                                 Class="font-weight-bold">
+                            @context.OnHandQty
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="المحجوز">@context.ReservedQty</MudTd>
+                    <MudTd DataLabel="المتاح">
+                        <MudText Color="MudBlazor.Color.Success" Class="font-weight-bold">
+                            @(context.OnHandQty - context.ReservedQty)
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                    <MudTd DataLabel="آخر تحديث">@context.LastUpdated.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="pa-4 mud-text-secondary">لا توجد بيانات مخزون</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="تنبيهات المخزون المنخفض" Icon="@Icons.Material.Filled.Warning"
+                     BadgeData="@LowStockCount" BadgeColor="MudBlazor.Color.Error">
+            <MudTable Items="LowStockItems" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>كود المنتج</MudTh>
+                    <MudTh>اسم المنتج</MudTh>
+                    <MudTh>المستودع</MudTh>
+                    <MudTh>الكمية الفعلية</MudTh>
+                    <MudTh>حد إعادة الطلب</MudTh>
+                    <MudTh>المتاح</MudTh>
+                    <MudTh>الوحدة</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="كود المنتج">
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">@context.ProductCode</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="اسم المنتج">@context.ProductName</MudTd>
+                    <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
+                    <MudTd DataLabel="الكمية الفعلية">
+                        <MudText Color="MudBlazor.Color.Error" Class="font-weight-bold">@context.OnHandQty</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="حد إعادة الطلب">@context.ReorderLevel</MudTd>
+                    <MudTd DataLabel="المتاح">@(context.OnHandQty - context.ReservedQty)</MudTd>
+                    <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="pa-4 mud-text-secondary" Color="MudBlazor.Color.Success">
+                        لا توجد منتجات تحت حد إعادة الطلب
+                    </MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+</div>
+
+@code {
+    private record WarehouseDto(int Id, string Name);
+    private record StockBalanceDto(
+        string ProductCode, string ProductName, string WarehouseName,
+        string LocationName, decimal OnHandQty, decimal ReservedQty,
+        decimal ReorderLevel, string UnitName, DateTime LastUpdated);
+
+    private List<WarehouseDto> Warehouses = new();
+    private List<StockBalanceDto> AllBalances = new();
+    private List<StockBalanceDto> FilteredBalances = new();
+    private List<StockBalanceDto> LowStockItems = new();
+    private int LowStockCount => LowStockItems.Count;
+
+    private int? SelectedWarehouseId;
+    private string SearchText = string.Empty;
+    private bool IsLoading = false;
+    private bool IsArabic => true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var whs = await Http.GetFromJsonAsync<List<WarehouseDto>>("/api/warehouses");
+            Warehouses = whs ?? new();
+        }
+        catch (Exception ex) { Snackbar.Add($"خطأ في تحميل المستودعات: {ex.Message}", MudBlazor.Severity.Error); }
+        await LoadBalances();
+    }
+
+    private async Task LoadBalances()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var url = "/api/warehouseproducts/stock-balances";
+            if (SelectedWarehouseId.HasValue) url += $"?warehouseId={SelectedWarehouseId}";
+            var data = await Http.GetFromJsonAsync<List<StockBalanceDto>>(url);
+            AllBalances = data ?? new();
+            ApplyFilter();
+        }
+        catch (Exception ex) { Snackbar.Add($"خطأ في تحميل الأرصدة: {ex.Message}", MudBlazor.Severity.Error); }
+        finally { IsLoading = false; StateHasChanged(); }
+    }
+
+    private void ApplyFilter()
+    {
+        FilteredBalances = AllBalances.Where(b =>
+            string.IsNullOrWhiteSpace(SearchText) ||
+            b.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+            b.ProductCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+        LowStockItems = FilteredBalances.Where(b => b.OnHandQty <= b.ReorderLevel).ToList();
+        StateHasChanged();
+    }
+
+    private void ResetFilters()
+    {
+        SearchText = string.Empty;
+        SelectedWarehouseId = null;
+        ApplyFilter();
+    }
+
+    private string RowClass(StockBalanceDto row, int _)
+        => row.OnHandQty <= row.ReorderLevel ? "low-stock-row" : string.Empty;
+
+    private void Export() => Snackbar.Add("جاري التصدير...", MudBlazor.Severity.Info);
+}

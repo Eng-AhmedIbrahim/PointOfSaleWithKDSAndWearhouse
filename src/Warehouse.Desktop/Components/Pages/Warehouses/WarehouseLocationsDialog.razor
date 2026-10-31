@@ -1,0 +1,83 @@
+﻿@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText MudBlazor.Typo="MudBlazor.Typo.h6"><MudIcon Icon="@Icons.Material.Rounded.LocationOn" Class="me-2"/>مواقع مستودع: @WarehouseName</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTable Items="_locations" Dense="true" Hover="true" Striped="true" Class="mb-3">
+            <HeaderContent>
+                <MudTh>الكود</MudTh><MudTh>الاسم</MudTh><MudTh>القطاع</MudTh><MudTh>الرف</MudTh><MudTh>الخانة</MudTh><MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Code</MudTd>
+                <MudTd>@context.NameAr</MudTd>
+                <MudTd>@(context.Zone ?? "—")</MudTd>
+                <MudTd>@(context.Shelf ?? "—")</MudTd>
+                <MudTd>@(context.Bin ?? "—")</MudTd>
+                <MudTd><MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => DeleteLocation(context))" /></MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudPaper Class="pa-3" Elevation="0" Style="border:1px dashed var(--wh-accent); border-radius:12px;">
+            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">إضافة موقع جديد</MudText>
+            <MudGrid>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Code" Label="الكود" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+                <MudItem xs="8"><MudTextField @bind-Value="_newLoc.NameAr" Label="الاسم" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Zone" Label="القطاع" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Shelf" Label="الرف" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Bin" Label="الخانة" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+            </MudGrid>
+            <MudButton Class="mt-2" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" OnClick="AddLocation" StartIcon="@Icons.Material.Rounded.Add">إضافة</MudButton>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog!.Close())">إغلاق</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public int WarehouseId { get; set; }
+    [Parameter] public string? WarehouseName { get; set; }
+
+    private List<LocationDto> _locations = new();
+    private LocationDto _newLoc = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Http.GetFromJsonAsync<List<LocationDto>>($"api/warehouse/warehouses/{WarehouseId}/locations");
+        _locations = result ?? new();
+    }
+
+    private async Task AddLocation()
+    {
+        if (string.IsNullOrWhiteSpace(_newLoc.Code) || string.IsNullOrWhiteSpace(_newLoc.NameAr)) return;
+        var res = await Http.PostAsJsonAsync($"api/warehouse/warehouses/{WarehouseId}/locations", _newLoc);
+        if (res.IsSuccessStatusCode)
+        {
+            var added = await res.Content.ReadFromJsonAsync<LocationDto>();
+            if (added != null) _locations.Add(added);
+            _newLoc = new();
+            Snackbar.Add("تمت الإضافة", MudBlazor.Severity.Success);
+        }
+    }
+
+    private async Task DeleteLocation(LocationDto loc)
+    {
+        var res = await Http.DeleteAsync($"api/warehouse/warehouses/locations/{loc.Id}");
+        if (res.IsSuccessStatusCode) { _locations.Remove(loc); Snackbar.Add("تم الحذف", MudBlazor.Severity.Info); }
+    }
+
+    private record LocationDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string? Zone { get; set; }
+        public string? Shelf { get; set; }
+        public string? Bin { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+}
