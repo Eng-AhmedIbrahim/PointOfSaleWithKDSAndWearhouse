@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/17/2026" ReportInfo.Modified="03/17/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Orders" ReferenceName="ReportData.Orders" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderType" DataType="System.String"/>
+      <Column Name="TotalDiscount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Total Name="TotalSum" Expression="[Orders.TotalDiscount]" Evaluator="Data1"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="TextTitle" Width="718.2" Height="45" Text="تقرير الخصومات على الطلبات" HorzAlign="Center" VertAlign="Center" Font="Arial, 22pt, style=Bold" TextFill.Color="Maroon"/>
+      <TextObject Name="TextDate" Top="50" Width="718.2" Height="25" Text="تقرير الفترة من: [FromDate] إلى: [ToDate]" HorzAlign="Center" Font="Arial, 11pt"/>
+      <TextObject Name="TextBranch" Top="75" Width="718.2" Height="25" Text="[BranchName] :الفرع" HorzAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="30, 58, 95" RTL="true"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="40" Fill.Color="30, 58, 95">
+      <TextObject Name="H1" Left="568.2" Width="150" Height="40" Text="النوع" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H2" Left="418.2" Width="150" Height="40" Text="التاريخ" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H3" Left="318.2" Width="100" Height="40" Text="رقم الطلب" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H4" Left="150" Width="168.2" Height="40" Text="إجمالي الطلب" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H5" Left="0" Width="150" Height="40" Text="قيمة الخصم" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="148.2" Width="718.2" Height="35" DataSource="Orders">
+      <TextObject Name="B1" Left="568.2" Width="150" Height="35" Text="[Orders.OrderType]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10.5pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B2" Left="418.2" Width="150" Height="35" Text="[Orders.OrderDate]" Format="Custom" Format.Format="yyyy-MM-dd HH:mm" HorzAlign="Center" VertAlign="Center" Font="Arial, 10.5pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B3" Left="318.2" Width="100" Height="35" Text="[Orders.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10.5pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B4" Left="150" Width="168.2" Height="35" Text="[Orders.GrandTotal]" Format="Number" HorzAlign="Right" VertAlign="Center" Font="Arial, 10.5pt" Padding="0,0,10,0" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B5" Left="0" Width="150" Height="35" Text="[Orders.TotalDiscount]" Format="Number" HorzAlign="Right" VertAlign="Center" Font="Arial, 10.5pt, style=Bold" TextFill.Color="Red" Padding="0,0,10,0" Border.Lines="All" Border.Color="Silver"/>
+    </DataBand>
+    <ReportSummaryBand Name="Summary" Top="187.4" Width="718.2" Height="40">
+       <TextObject Name="TotalLabel" Left="0" Width="150" Height="35" Text="إجمالي الخصومات:" HorzAlign="Right" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+       <TextObject Name="TotalValue" Left="150" Width="150" Height="35" Text="[TotalSum]" Format="Number" HorzAlign="Right" VertAlign="Center" Font="Arial, 14pt, style=Bold" TextFill.Color="Red" Padding="0,0,10,0"/>
+    </ReportSummaryBand>
+  </ReportPage>
+</Report>

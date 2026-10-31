@@ -1,0 +1,11 @@
+﻿@inject LocalizationService Localizer
+
+@foreach (var category in _categories ?? new List<CategoryToReturnDto>())
+{
+    <MudButton Variant="Variant.Filled"
+               FullWidth="true"
+               Style="@($"padding: {20}px; font-size: {20}px;")"
+               OnClick="()=>GetItemsByCatId(category.Id)">
+        @(Localizer.GetCurrentLanguage() == "ar" ? category.ArabicName : (category.EnglishName ?? category.ArabicName))
+    </MudButton>
+}

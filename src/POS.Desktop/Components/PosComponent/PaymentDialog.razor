@@ -1,0 +1,68 @@
+@using POS.Contract.Models
+@using BlazorBase
+@using MudBlazor
+@inject CommonProperties _commonProperties
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Small">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Payment & Customer Details</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="SelectedMethod" Label="Payment Method" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@(global::POS.Contract.Models.PaymentMethod.Cash)">Cash</MudSelectItem>
+                    <MudSelectItem Value="@(global::POS.Contract.Models.PaymentMethod.Visa)">Visa</MudSelectItem>
+                    <MudSelectItem Value="@(global::POS.Contract.Models.PaymentMethod.InstaPay)">InstaPay</MudSelectItem>
+                    <MudSelectItem Value="@(global::POS.Contract.Models.PaymentMethod.Wallet)">Wallet</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="CustomerName" Label="Customer Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="CustomerPhone" Label="Customer Phone" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                 <MudTextField @bind-Value="_commonProperties.OrderNote" Label="Order Note / Comments" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Variant="Variant.Filled">Confirm & Print</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private global::POS.Contract.Models.PaymentMethod SelectedMethod { get; set; } = global::POS.Contract.Models.PaymentMethod.Cash;
+    private string CustomerName { get; set; } = "";
+    private string CustomerPhone { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        CustomerName = _commonProperties.OrderDto?.TakeAwayCustomerName ?? "";
+        CustomerPhone = _commonProperties.OrderDto?.TakeawayCustomerPhone ?? "";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new PaymentInfo 
+        { 
+            Method = SelectedMethod, 
+            Name = CustomerName, 
+            Phone = CustomerPhone 
+        }));
+    }
+
+    public class PaymentInfo
+    {
+        public PaymentMethod Method { get; set; }
+        public string Name { get; set; } = "";
+        public string Phone { get; set; } = "";
+    }
+}

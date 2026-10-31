@@ -1,0 +1,275 @@
+@using POS.Contract
+@using POS.Contract.Dtos.OrderDtos
+@using BlazorBase.ERPFrontServices.CartServices
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@using BlazorBase.ERPFrontServices.DistributionServices
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+@inject IAppDateService _appDateService
+@inject IDistributionErpService _distributionErpService
+@inject IPrintOrderService _printOrderService
+@inject LocalizationService Localizer
+
+<MudDialog Class="modern-dialog" Style="border-radius: 20px; overflow: hidden;">
+    <TitleContent>
+        <div class="dialog-header py-4 px-6 d-flex align-center gap-3" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+            <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Color="Color.Surface" Size="Size.Large" />
+            <MudText Typo="Typo.h5" Style="color: white; font-weight: 800; font-family: 'Tajawal', sans-serif;">
+                @Localizer["Distribution_AssignOrderToDriverTitle"]
+            </MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
+            <MudStack Spacing="5">
+                <!-- Driver Selection Section -->
+                <div class="selection-section pa-4 rounded-xl border-1 border-dashed border-primary bg-blue-50">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3 text-primary fw-bold d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Small" />
+                        @Localizer["Distribution_SelectAvailableDriver"]
+                    </MudText>
+                    <MudSelect T="string"
+                               Label="@Localizer["Distribution_DriversList"]"
+                               @bind-Value="SelectedDriverId"
+                               FullWidth="true"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Class="modern-select bg-white"
+                               Style="font-family: 'Tajawal', sans-serif; font-weight: 600;"
+                               AdornmentIcon="@Icons.Material.Filled.SportsMotorsports"
+                               AdornmentColor="Color.Primary"
+                               PopoverClass="modern-popover"
+                               dir="rtl">
+                        <MudSelectItem Value="@(string.Empty)" Class="text-right">
+                            <span class="text-gray-400">@Localizer["Distribution_SelectDriverPlaceholder"]</span>
+                        </MudSelectItem>
+                        @foreach (var driver in _commonProperties.Drivers.Keys)
+                        {
+                            <MudSelectItem Value="@driver.Id" Class="text-right">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Size="Size.Small" Color="Color.Primary" />
+                                    <span>@(!string.IsNullOrEmpty(driver.ArabicName) ? driver.ArabicName : driver.DisplayName)</span>
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+
+                <!-- Order Details Section -->
+                <div class="details-section">
+                    <div class="d-flex align-center gap-2 mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.ListAlt" Color="Color.Info" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold text-gray-700" Style="font-family: 'Tajawal', sans-serif;">
+                           @Localizer["Distribution_OrderDetails"]
+                        </MudText>
+                    </div>
+
+                    <MudPaper Elevation="0" Class="details-card pa-5 rounded-xl border border-gray-200">
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12">
+                                <div class="info-row d-flex align-center gap-3">
+                                    <div class="icon-wrapper pa-2 rounded-lg bg-indigo-50">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" Size="Size.Small" />
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <span class="label text-gray-500" style="font-size: 12px;">@Localizer["CustomerName"]</span>
+                                        <span class="value fw-bold text-gray-800" style="font-size: 15px;">@OrderClientName</span>
+                                    </div>
+                                </div>
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="8">
+                                <div class="info-row d-flex align-center gap-3">
+                                    <div class="icon-wrapper pa-2 rounded-lg bg-orange-50">
+                                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Warning" Size="Size.Small" />
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <span class="label text-gray-500" style="font-size: 12px;">@Localizer["Distribution_DeliveryAddress"]</span>
+                                        <span class="value fw-bold text-gray-800" style="font-size: 14px;">@OrderAddress</span>
+                                    </div>
+                                </div>
+                            </MudItem>
+
+                            <MudItem xs="12" sm="4">
+                                <div class="info-row d-flex align-center gap-3">
+                                    <div class="icon-wrapper pa-2 rounded-lg bg-green-50">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccessTime" Color="Color.Success" Size="Size.Small" />
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <span class="label text-gray-500" style="font-size: 12px;">@Localizer["Distribution_OrderTime"]</span>
+                                        <span class="value fw-bold text-gray-800" style="font-size: 14px;">@OrderTime</span>
+                                    </div>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </div>
+            </MudStack>
+        </MudContainer>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="pa-4 d-flex justify-end gap-3 w-100 border-t border-gray-100">
+            <MudButton OnClick="CloseDialog"
+                       Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Class="rounded-xl px-8 fw-bold"
+                       Style="font-family: 'Tajawal', sans-serif; height: 48px; border-width: 2px;">
+                @Localizer["Back"]
+            </MudButton>
+
+            <MudButton OnClick="Assign"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Disabled="@(string.IsNullOrEmpty(SelectedDriverId))"
+                       Class="rounded-xl px-10 fw-bold shadow-soft"
+                       Style="font-family: 'Tajawal', sans-serif; height: 48px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+                @Localizer["Distribution_ConfirmAssignment"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string? OrderClientName { get; set; }
+    [Parameter] public string? OrderAddress { get; set; }
+    [Parameter] public string? OrderTime { get; set; }
+    [Parameter] public OrderDto? CurrentDeliveryOrder { get; set; }
+
+    public UserToReturnDto? currentDriver { get; set; }
+
+    private string? SelectedDriverId { get; set; }
+
+
+    private void CloseDialog()
+    {
+        MudDialog?.Cancel();
+        _commonProperties.ChoiceDriverDialogReference?.Close();
+    }
+
+    private void ConfirmAndClose()
+    {
+        MudDialog?.Close(DialogResult.Ok(true));
+        _commonProperties.ChoiceDriverDialogReference?.Close();
+    }
+
+
+
+    private async Task Assign()
+    {
+        if (CurrentDeliveryOrder == null)
+        {
+            Serilog.Log.Warning("[Dispatcher] Assign() called but CurrentDeliveryOrder is null");
+            return;
+        }
+        
+        var orderId = CurrentDeliveryOrder.Id;
+        Serilog.Log.Information("[Dispatcher] Assign() called for OrderId={OrderId}, BranchId={BranchId}", orderId, CurrentDeliveryOrder.BranchId);
+
+        var driver = _commonProperties.Drivers.Keys.FirstOrDefault(d => d.Id == SelectedDriverId);
+        
+        if (driver == null)
+        {
+            Serilog.Log.Warning("[Dispatcher] No driver selected. SelectedDriverId={DriverId}, TotalDrivers={Count}", SelectedDriverId, _commonProperties.Drivers.Count);
+            _snackbar.Add(Localizer["Distribution_SelectValidDriverError"], Severity.Warning);
+            return;
+        }
+
+        Serilog.Log.Information("[Dispatcher] Driver selected: DriverId={DriverId}, DriverName={Name}", driver.Id, driver.DisplayName);
+
+        var appDateToReturnDto = await _appDateService.GetAppDate();
+
+        CurrentDeliveryOrder.DriverID = SelectedDriverId;
+        var driverName = !string.IsNullOrEmpty(driver.ArabicName)
+            ? driver.ArabicName
+            : (!string.IsNullOrEmpty(driver.DisplayName) ? driver.DisplayName : driver.UserName);
+        CurrentDeliveryOrder.DriverName = driverName;
+        CurrentDeliveryOrder.OrderState = OrderStates.Dispatched.ToString();
+        CurrentDeliveryOrder.AssignTime = appDateToReturnDto.PosDate.Date.Add(DateTime.Now.TimeOfDay);
+        CurrentDeliveryOrder.DispatchID = _commonProperties.CurrentUserId;
+        CurrentDeliveryOrder.OrderSettings = _commonProperties.OrderSettings;
+        CurrentDeliveryOrder.SkipPrintingOnServer = true;
+
+        Serilog.Log.Information("[Dispatcher] Calling DispatchOrder API for OrderId={OrderId}", orderId);
+
+        try
+        {
+            var result = await _distributionErpService.DispatchOrder(CurrentDeliveryOrder);
+
+            if (result is not null)
+            {
+                Serilog.Log.Information("[Dispatcher] DispatchOrder succeeded for OrderId={OrderId}. Printing...", orderId);
+                await _printOrderService.PrintDispatchOrderAsync(CurrentDeliveryOrder);
+                ConfirmAndClose();
+                return;
+            }
+
+            Serilog.Log.Error("[Dispatcher] DispatchOrder returned null for OrderId={OrderId} — API call failed or returned error", orderId);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[Dispatcher] Exception during DispatchOrder for OrderId={OrderId}", orderId);
+        }
+
+        _snackbar.Add(Localizer["Distribution_AssignmentError"], Severity.Error);
+    }
+}
+
+<style>
+    .modern-dialog {
+        direction: rtl !important;
+    }
+
+    .details-card {
+        background-color: #fcfcfc;
+        transition: all 0.3s ease;
+    }
+
+    .details-card:hover {
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .shadow-soft {
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
+    }
+
+    .bg-blue-50 { background-color: #eff6ff; }
+    .bg-indigo-50 { background-color: #eef2ff; }
+    .bg-orange-50 { background-color: #fff7ed; }
+    .bg-green-50 { background-color: #f0fdf4; }
+    
+    .text-gray-500 { color: #6b7280; }
+    .text-gray-700 { color: #374151; }
+    .text-gray-800 { color: #1f2937; }
+    
+    .border-gray-100 { border-color: #f3f4f6; }
+    .border-gray-200 { border-color: #e5e7eb; }
+
+    .modern-popover {
+        direction: rtl !important;
+        font-family: 'Tajawal', sans-serif !important;
+        border-radius: 12px !important;
+        margin-top: 4px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .modern-popover .mud-list-item {
+        text-align: right !important;
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+    }
+
+    .modern-popover .mud-list-item-text {
+        text-align: right !important;
+    }
+
+    .modern-select .mud-select-input {
+        text-align: right !important;
+        padding-right: 12px !important;
+    }
+</style>

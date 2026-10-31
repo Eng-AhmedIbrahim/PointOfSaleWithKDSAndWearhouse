@@ -1,0 +1,315 @@
+@using POS.Contract.Dtos.AccountDtos
+@using BlazorBase.ERPFrontServices.AccountServices
+@using POS.Core.Services.Contract
+@using System.Threading
+@inject LocalizationService Localizer
+@inject IAccountService AccountService
+@inject IStaffMealService StaffMealService
+@inject ICategoryServices CategoryService
+@inject IItemService ItemService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="staff-meal-dialog-modern">
+    <TitleContent>
+        <div class="d-flex align-center w-100 pa-2">
+            <div class="d-flex align-center gap-3">
+                <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5" Style="font-weight:800;">@Localizer["StaffMeals"]</MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-6" style="direction:rtl; min-height:400px;">
+            <div class="search-section mb-8">
+                <MudAutocomplete T="UserDto" 
+                               Label="@Localizer["SelectEmployee"]"
+                               Value="_selectedUser" 
+                               SearchFunc="SearchUsers"
+                               ToStringFunc="@(u => u?.ArabicName ?? u?.UserName ?? "")"
+                               Variant="Variant.Filled"
+                               ResetValueOnEmptyText="true"
+                               ValueChanged="OnUserSelected"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
+                               PopOverClass="rtl-autocomplete-popover"
+                               Class="rtl-autocomplete-input"
+                               Style="font-size: 1.1rem; height: 50px; text-align: right; direction: rtl;"/>
+            </div>
+
+            @if (_loading)
+            {
+                <div class="d-flex flex-column align-center justify-center pa-10">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                    <MudText Typo="Typo.h6" Class="mt-4">@Localizer["LoadingUserStatus"]...</MudText>
+                </div>
+            }
+            else if (Status.Config != null)
+            {
+                <div class="welcome-box mb-8 pa-5 rounded-xl d-flex align-center gap-4">
+                    <div class="user-avatar shadow-sm">
+                         <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Primary" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.h5" Style="font-weight:900; color:#0f172a;">@Localizer["WelcomeBack"], @Status.Config.UserName</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">@Localizer["SelectYourMealItemsFromPOS"]</MudText>
+                    </div>
+                </div>
+
+                <MudGrid Spacing="4">
+                    <MudItem xs="12" md="@(Status.Config.DailyAmountLimit > 0 ? 6 : 6)">
+                         <MudCard Elevation="0" Class="stat-card pa-5">
+                            <MudText Typo="Typo.overline" Color="Color.Secondary" Style="font-size: 0.8rem; letter-spacing: 1px;">@Localizer["YourMealContent"]</MudText>
+                            <div class="d-flex align-center gap-3 mt-2">
+                                <div class="icon-circle">
+                                    <MudIcon Icon="@(Status.Config.IsAllItemsAllowed ? Icons.Material.Filled.Fastfood : (Status.Config.CategoryId.HasValue ? Icons.Material.Filled.Category : (Status.Config.GroupId.HasValue ? Icons.Material.Filled.Groups : Icons.Material.Filled.Fastfood)))" Size="Size.Medium" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="font-weight:700;">
+                                    @(Status.Config.IsAllItemsAllowed ? (Localizer.GetCurrentLanguage()=="ar"?"كافة المنيو":"Full Menu") : (Status.Config.GroupName ?? Status.Config.CategoryName ?? Status.Config.ItemName ?? "General Menu"))
+                                </MudText>
+                            </div>
+                         </MudCard>
+                    </MudItem>
+
+                    @if (Status.Config.DailyAmountLimit > 0)
+                    {
+                        @* AMOUNT MODE PRIORITY *@
+                        <MudItem xs="12" md="6">
+                             <MudCard Elevation="0" Class="@($"stat-card pa-5 {(Status.RemainingAmountToday > 0 ? "stat-info" : "stat-error")}")">
+                                <MudText Typo="Typo.overline" Style="font-size: 0.8rem; letter-spacing: 1px;">الرصيد المتبقي اليوم</MudText>
+                                <div class="d-flex align-center justify-space-between mt-2">
+                                    <MudText Typo="Typo.h4" Style="font-weight:900;">@Status.RemainingAmountToday.ToString("0.##") / @Status.Config.DailyAmountLimit.ToString("0.##")</MudText>
+                                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" />
+                                </div>
+                             </MudCard>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        @* COUNT MODE *@
+                        <MudItem xs="12" md="6">
+                             <MudCard Elevation="0" Class="@($"stat-card pa-5 {(Status.RemainingToday > 0 ? "stat-success" : "stat-error")}")">
+                                <MudText Typo="Typo.overline" Style="font-size: 0.8rem; letter-spacing: 1px;">@Localizer["AllowedToday"]</MudText>
+                                <div class="d-flex align-center justify-space-between mt-2">
+                                    <MudText Typo="Typo.h4" Style="font-weight:900;">@Status.RemainingToday / @Status.Config.DailyLimit</MudText>
+                                    <MudIcon Icon="@(Status.RemainingToday > 0 ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Block)" Size="Size.Large" />
+                                </div>
+                             </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                @if (!Status.IsEligible)
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-8 rounded-xl py-3" Elevation="2">
+                        <MudText Typo="Typo.h6" Style="font-weight:700;">
+                            @(Status.Config.DailyAmountLimit > 0 ? (Localizer.GetCurrentLanguage() == "ar" ? "نعتذر، لقد نفذ رصيدك المالي لليوم" : "Sorry, you have exhausted your daily balance") : Localizer["DailyLimitReached"])
+                        </MudText>
+                        <MudText Typo="Typo.body2">@Localizer["ComeBackTomorrowForMore"]</MudText>
+                    </MudAlert>
+                }
+                else 
+                {
+                    <div class="mt-12 d-flex justify-center">
+                        <MudButton OnClick="Confirm" 
+                                   Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   Size="Size.Large"
+                                   FullWidth="true"
+                                   Class="py-5 rounded-xl shadow-lg action-btn"
+                                   Style="font-weight: 900; font-size: 1.3rem; letter-spacing: 1.5px;">
+                            <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Class="mr-3" />
+                            @Localizer["StartMyOrder"]
+                        </MudButton>
+                    </div>
+                }
+            }
+            else if (_selectedUser != null)
+            {
+                <div class="d-flex flex-row align-center justify-center pa-12 mt-4 rounded-xl border-dashed" style="border-color: #fca5a5; background: #fffaf0;">
+                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Style="font-size: 4.5rem;" Class="mr-4"/>
+                    <div>
+                        <MudText Typo="Typo.h5" Style="font-weight:900; color: #991b1b;">@Localizer["NoConfigFound"]</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">@Localizer["ContactAdminToSetupMeal"]</MudText>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state d-flex flex-column align-center justify-center pa-16 text-center">
+                    <div class="pulse-icon mb-6">
+                        <div class="icon-bg-circle">
+                             <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Style="font-size:7rem; color: #cbd5e1;"/>
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.h5" Style="color: #94a3b8; font-weight:700;">@Localizer["PleaseSelectEmployeeToViewMeal"]</MudText>
+                    <MudText Typo="Typo.body1" Style="color: #cbd5e1;">@Localizer["ScanBadgeOrSearchByName"]</MudText>
+                </div>
+            }
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .staff-meal-dialog-modern { border-radius: 32px !important; overflow: hidden; min-width: 750px; background: #f8fafc; }
+    .rtl-autocomplete-input { text-align: right !important; direction: rtl !important; }
+    .rtl-autocomplete-input button { left: 8px !important; right: auto !important; } /* Move arrow to left if using MudBlazor default */
+    .rtl-autocomplete-popover .mud-list-item-text { text-align: right !important; direction: rtl !important; }
+    .welcome-box { background: white; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+    .stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+    .stat-success { background: #f0fdf4; border-color: #bcf0da; color: #166534; }
+    .stat-info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .stat-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .user-avatar { width: 64px; height: 64px; background: #f1f5f9; border-radius: 20px; display:flex; align-items:center; justify-content:center; }
+    .icon-circle { width: 40px; height: 40px; background: #f1f5f9; border-radius: 12px; display:flex; align-items:center; justify-content:center; color: #64748b; }
+    .icon-bg-circle { width: 140px; height: 140px; background: white; border-radius: 100%; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .pulse-icon { animation: pulse 3s infinite; }
+    .action-btn { transition: all 0.3s ease; }
+    .action-btn:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+    @@keyframes pulse { 0% { transform: scale(0.98); opacity: 0.9; } 50% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(0.98); opacity: 0.9; } }
+</style>
+
+@using BlazorBase.ERPFrontServices.ItemServices
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public StaffMealStatusDto Status { get; set; } = new();
+
+    private UserDto? _selectedUser;
+    private IEnumerable<UserDto>? _users;
+    private bool _loading = false;
+
+    private List<int> _allowedIds = new();
+    private List<int> _allowedCategoryIds = new();
+    private List<MenuSalesItemsToReturnDto> _allowedStaffItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await AccountService.GetUsers();
+        if (Status.Config != null) 
+        {
+            _selectedUser = _users?.FirstOrDefault(u => u.UserId == Status.Config.UserId);
+            await LoadCategoryItems();
+        }
+    }
+
+    private async Task<IEnumerable<UserDto>> SearchUsers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _users ?? Array.Empty<UserDto>();
+        return _users?.Where(u => (u.UserName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase) || 
+                                 (u.ArabicName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)) ?? Array.Empty<UserDto>();
+    }
+
+    private async Task OnUserSelected(UserDto user)
+    {
+        _selectedUser = user;
+        await LoadUserStatus();
+    }
+
+    private async Task LoadUserStatus()
+    {
+        if (_selectedUser == null) return;
+        _loading = true;
+        Status = await StaffMealService.GetStatusByUserIdAsync(_selectedUser.UserId!);
+        await LoadCategoryItems();
+        _loading = false;
+    }
+
+    private async Task LoadCategoryItems()
+    {
+        _allowedIds.Clear();
+        _allowedCategoryIds.Clear();
+        _allowedStaffItems.Clear();
+        if (Status.Config == null) return;
+
+        if (Status.Config.IsAllItemsAllowed)
+        {
+            var itemsResp = await ItemService.GetAllItemsAsync();
+            if (itemsResp.Success && itemsResp.Data != null)
+            {
+                _allowedStaffItems = itemsResp.Data.ToList();
+                _allowedIds = _allowedStaffItems.Select(i => i.Id).ToList();
+                _allowedCategoryIds = _allowedStaffItems.Select(i => i.CategoryId).Distinct().ToList();
+            }
+            else Snackbar.Add("Error loading items from API", Severity.Error);
+        }
+        else if (Status.Config.CategoryId.HasValue)
+        {
+            _allowedCategoryIds.Add(Status.Config.CategoryId.Value);
+            var items = await CategoryService.GetItemsByCategoryIdAsync(Status.Config.CategoryId.Value);
+            _allowedStaffItems = items.ToList();
+            _allowedIds = items.Select(i => i.Id).ToList();
+        }
+        else if (Status.Config.GroupId.HasValue)
+        {
+            var group = await StaffMealService.GetGroupByIdAsync(Status.Config.GroupId.Value);
+            if (group != null)
+            {
+                _allowedIds = group.Items.Select(i => i.ItemId).ToList();
+                _allowedCategoryIds = group.Items.Select(i => i.CategoryId).Distinct().ToList();
+                
+                if (_allowedIds.Any())
+                {
+                    // Fetch each item manually to get the DTO
+                    var itemsResp = await ItemService.GetAllItemsAsync();
+                    if (itemsResp.Success && itemsResp.Data != null)
+                    {
+                        _allowedStaffItems = itemsResp.Data.Where(i => _allowedIds.Contains(i.Id)).ToList();
+                        Console.WriteLine($"Found {_allowedStaffItems.Count} staff items for IDs: {string.Join(",", _allowedIds)}");
+                        if (!_allowedStaffItems.Any())
+                            Snackbar.Add($"IDs: {string.Join(",", _allowedIds)} Not Found in POS", Severity.Warning);
+                    }
+                    else Snackbar.Add("Error loading items from API", Severity.Error);
+                }
+            }
+        }
+        else if (Status.Config.ItemId != null && int.TryParse(Status.Config.ItemId, out var mid))
+        {
+            _allowedIds.Add(mid);
+            // Even if category ID is not in Config table, we should have it from Service mapping now
+            if (Status.Config.CategoryId.HasValue) 
+                _allowedCategoryIds.Add(Status.Config.CategoryId.Value);
+
+            var itemsResp = await ItemService.GetAllItemsAsync();
+            if (itemsResp.Success && itemsResp.Data != null)
+            {
+                var specificItem = itemsResp.Data.FirstOrDefault(i => i.Id == mid);
+                if (specificItem != null) _allowedStaffItems.Add(specificItem);
+                else Snackbar.Add($"Item {mid} not found in Sales Items", Severity.Warning);
+            }
+            else Snackbar.Add("Error loading items from API", Severity.Error);
+        }
+
+        // Apply Monetary Limit Filter
+        if ((Status.Config.DailyAmountLimit > 0 || Status.RemainingAmountToday > 0) && _allowedStaffItems.Any())
+        {
+            // If the user has a monetary limit, ONLY show items that they can afford today
+            var beforeCount = _allowedStaffItems.Count;
+            _allowedStaffItems = _allowedStaffItems.Where(i => (i.Price ?? 0) <= Status.RemainingAmountToday).ToList();
+            _allowedIds = _allowedStaffItems.Select(i => i.Id).ToList();
+            
+            if (beforeCount > _allowedStaffItems.Count && !_allowedStaffItems.Any())
+            {
+                Snackbar.Add("لقد تجاوزت الحد المالي اليومي. لا توجد أصناف متاحة ضمن ميزانيتك المتبقية.", Severity.Warning);
+            }
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    
+    private void Confirm()
+    {
+        // Filter allowed items based on configuration AND remaining amount
+        _allowedStaffItems = _allowedStaffItems.Where(i => 
+            (Status.Config.IsAllItemsAllowed || _allowedIds.Contains(i.Id) || _allowedCategoryIds.Contains(i.CategoryId)) &&
+            (Status.RemainingAmountToday <= 0 || (i.Price ?? 0) <= Status.RemainingAmountToday) &&
+            (Status.Config.DailyAmountLimit <= 0 || (i.Price ?? 0) <= Status.Config.DailyAmountLimit) // Single item price check
+        ).ToList();
+        
+        if (Status.Config == null) return;
+        MudDialog.Close(DialogResult.Ok((Status.Config, 
+            _allowedIds,
+            _allowedCategoryIds, 
+            Status.RemainingToday, 
+            Status.RemainingAmountToday,
+            _allowedStaffItems)));
+    }
+}

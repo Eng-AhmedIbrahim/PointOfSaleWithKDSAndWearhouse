@@ -1,0 +1,372 @@
+@page "/delivery-branch-orders"
+@layout MainLayout
+@inject IReportingErpService ReportingService
+@inject IBranchService BranchService
+@inject IAppDateService AppDateService
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager _navigationManager
+@attribute [Authorize(Policy = "CanAccessDeliveryBranchManagementBtn")]
+
+<MudRTLProvider RightToLeft="@_isArabic" Style="width: 100%; height: 100%;">
+<div class="branch-orders-container fade-in" dir="@(_isArabic ? "rtl" : "ltr")">
+
+    @* ═══════════════════════ HEADER BAR ═══════════════════════ *@
+    <div class="branch-orders-header">
+        <div class="header-left d-flex align-center gap-3">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Color="Color.Default"
+                           Size="Size.Medium"
+                           OnClick="GoBack"
+                           Class="back-btn" />
+            <div class="header-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.StoreMallDirectory"
+                         Color="Color.Primary" Size="Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight:900; color:#1e293b;">
+                    @(_isArabic ? "أوردرات الفروع" : "Branch Delivery Orders")
+                </MudText>
+                <MudText Typo="Typo.caption" Style="color:#64748b;">
+                    @SelectedDate.ToString("dd/MM/yyyy")
+                </MudText>
+            </div>
+        </div>
+
+        <div class="header-controls d-flex align-center flex-wrap gap-3">
+
+            @* ── Branch Selector ── *@
+            <MudSelect T="BranchToReturnDto"
+                       Value="_selectedBranch"
+                       ValueChanged="OnBranchChanged"
+                       Label="@(_isArabic ? "الفرع" : "Branch")"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Class="branch-select"
+                       ToStringFunc="@(b => b?.Name ?? string.Empty)"
+                       AnchorOrigin="Origin.BottomLeft"
+                       Style="min-width:220px; background:white;">
+                @foreach (var b in _branches)
+                {
+                    <MudSelectItem T="BranchToReturnDto" Value="b">@b.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            @* ── Date Picker ── *@
+            <MudDatePicker Date="_selectedDateNullable"
+                           DateChanged="OnDateChanged"
+                           Label="@(_isArabic ? "التاريخ" : "Date")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           DateFormat="dd/MM/yyyy"
+                           Class="date-picker"
+                           Style="min-width:160px; background:white;"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+
+            @* ── Search ── *@
+            <MudTextField @bind-Value="_searchText"
+                          Placeholder="@(_isArabic ? "بحث..." : "Search...")"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Class="search-field"
+                          Immediate="true"
+                          Style="background:white;" />
+
+            @* ── Refresh ── *@
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadOrders"
+                       Class="rounded-lg px-5 py-2 shadow-sm">
+                @(_isArabic ? "تحديث" : "Refresh")
+            </MudButton>
+        </div>
+    </div>
+
+    @* ═══════════════════════ SUMMARY CHIPS ═══════════════════════ *@
+    <div class="summary-bar">
+        <div class="summary-chip">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Small" Color="Color.Primary" />
+            <span class="chip-label">@(_isArabic ? "الكل" : "All")</span>
+            <span class="chip-value">@FilteredOrders.Count()</span>
+        </div>
+        <div class="summary-chip chip-pending">
+            <MudIcon Icon="@Icons.Material.Filled.HourglassBottom" Size="Size.Small" />
+            <span class="chip-label">@(_isArabic ? "قيد التنفيذ" : "Pending")</span>
+            <span class="chip-value">@FilteredOrders.Count(o => o.OrderState == "Pending")</span>
+        </div>
+        <div class="summary-chip chip-dispatched">
+            <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Size="Size.Small" />
+            <span class="chip-label">@(_isArabic ? "مُرسل" : "Dispatched")</span>
+            <span class="chip-value">@FilteredOrders.Count(o => o.OrderState == "Dispatched")</span>
+        </div>
+        <div class="summary-chip chip-completed">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+            <span class="chip-label">@(_isArabic ? "مكتمل" : "Completed")</span>
+            <span class="chip-value">@FilteredOrders.Count(o => o.OrderState == "Completed")</span>
+        </div>
+        <div class="summary-chip chip-voided">
+            <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" />
+            <span class="chip-label">@(_isArabic ? "ملغي" : "Voided")</span>
+            <span class="chip-value">@FilteredOrders.Count(o => o.OrderState == "Voided")</span>
+        </div>
+        <div class="summary-chip chip-amount">
+            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" />
+            <span class="chip-label">@(_isArabic ? "المبيعات" : "Sales")</span>
+            <span class="chip-value">@FilteredOrders.Where(o => o.OrderState != "Voided").Sum(o => o.GrandTotal ?? 0).ToString("N2")</span>
+        </div>
+    </div>
+
+    @* ═══════════════════════ TABLE ═══════════════════════ *@
+    <div class="orders-content">
+        <MudTable Items="@FilteredOrders"
+                  Hover="true"
+                  Dense="true"
+                  Loading="@_isLoading"
+                  Elevation="0"
+                  Height="calc(100vh - 220px)"
+                  FixedHeader="true"
+                  Class="custom-table"
+                  RowClassFunc="@((item, _) => item.OrderState == "Voided" ? "row-voided" : "table-row")">
+            <HeaderContent>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "رقم الأوردر" : "Order #")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "رقم الهاتف" : "Phone")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "العميل" : "Customer")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "المنطقة" : "Zone")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "الوقت" : "Time")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "أُرسل للفرع" : "Sent to Branch")</MudTh>
+                <MudTh Style="text-align:center; background:#f8fafc; font-weight:800;">@(_isArabic ? "الحالة" : "Status")</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@(_isArabic ? "الإجمالي" : "Total")</MudTh>
+                <MudTh Style="text-align:center; background:#f8fafc; font-weight:800;">@(_isArabic ? "إجراءات" : "Actions")</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd Style="text-align:right;">
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text"
+                             Size="Size.Small" Style="font-weight:900; font-family:'Outfit',sans-serif;">
+                        #@context.OrderId
+                    </MudChip>
+                </MudTd>
+                <MudTd Style="text-align:right; font-family:'Outfit',sans-serif; color:#475569; font-size:0.9rem; font-weight:700;">
+                    @context.Phone1
+                </MudTd>
+                <MudTd Style="text-align:right; font-weight:700; font-size:0.9rem;">
+                    @(context.CustomerName ?? "–")
+                </MudTd>
+                <MudTd Style="text-align:right; font-size:0.85rem; color:#475569;">
+                    @(context.ZoneName ?? "–")
+                </MudTd>
+                <MudTd Style="text-align:right; font-family:'Outfit',sans-serif; color:#475569;">
+                    @context.OrderDate?.ToString("hh:mm tt")
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    @if (context.AssignTime.HasValue)
+                    {
+                        <div class="d-flex flex-column">
+                            <span style="font-size:0.82rem; color:#0ea5e9; font-weight:700;">
+                                @context.AssignTime?.ToString("hh:mm tt")
+                            </span>
+                            <span style="font-size:0.72rem; color:#94a3b8;">
+                                @context.AssignTime?.ToString("dd/MM/yyyy")
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <span style="color:#cbd5e1; font-size:0.8rem;">–</span>
+                    }
+                </MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudChip T="string"
+                             Color="@GetStatusColor(context.OrderState)"
+                             Size="Size.Small"
+                             Variant="Variant.Text"
+                             Style="font-weight:800;">
+                        @(_isArabic ? GetStatusAr(context.OrderState) : (context.OrderState ?? ""))
+                    </MudChip>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <b style="font-weight:950; font-family:'Outfit',sans-serif; color:#1e293b;">
+                        @context.GrandTotal?.ToString("N2")
+                    </b>
+                </MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudMenu TransformOrigin="Origin.TopRight"
+                             AnchorOrigin="Origin.BottomRight"
+                             Dense="true">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                           Color="Color.Default"
+                                           Size="Size.Small" />
+                        </ActivatorContent>
+                        <ChildContent>
+                            @if (_canViewOrder)
+                            {
+                                <MudMenuItem OnClick="@(() => ViewOrder(context))"
+                                             Icon="@Icons.Material.Filled.Visibility"
+                                             IconColor="Color.Info">
+                                    @(_isArabic ? "عرض التفاصيل" : "View Details")
+                                </MudMenuItem>
+                            }
+                            @if (_canPrintCustomer)
+                            {
+                                <MudMenuItem OnClick="@(() => PrintCustomerReceipt(context))"
+                                             Icon="@Icons.Material.Filled.Receipt"
+                                             IconColor="Color.Primary">
+                                    @(_isArabic ? "نسخة العميل" : "Customer Copy")
+                                </MudMenuItem>
+                            }
+                            @if (_canPrintDelivery)
+                            {
+                                <MudMenuItem OnClick="@(() => PrintDeliveryReceipt(context))"
+                                             Icon="@Icons.Material.Filled.DeliveryDining"
+                                             IconColor="Color.Warning">
+                                    @(_isArabic ? "نسخة الدليفري" : "Delivery Copy")
+                                </MudMenuItem>
+                            }
+                            @if (_canVoidOrder && context.OrderState != "Voided")
+                            {
+                                <MudDivider />
+                                <MudMenuItem OnClick="@(() => VoidOrder(context))"
+                                             Icon="@Icons.Material.Filled.Block"
+                                             IconColor="Color.Error">
+                                    @(_isArabic ? "إلغاء الأوردر" : "Void Order")
+                                </MudMenuItem>
+                            }
+                        </ChildContent>
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="empty-state pa-12 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2"
+                             Size="Size.Large"
+                             Style="opacity:0.2; font-size:4rem; color:#94a3b8;" />
+                    <MudText Typo="Typo.h6" Style="color:#94a3b8; margin-top:16px;">
+                        @(_isArabic ? "لا توجد أوردرات" : "No orders found")
+                    </MudText>
+                    @if (_selectedBranch == null)
+                    {
+                        <MudText Typo="Typo.body2" Style="color:#cbd5e1; margin-top:6px;">
+                            @(_isArabic ? "اختر الفرع أولاً لعرض الأوردرات" : "Select a branch above to view its orders")
+                        </MudText>
+                    }
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>
+</MudRTLProvider>
+
+<style>
+    .branch-orders-container {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 10px 14px;
+        gap: 8px;
+        background: #f1f5f9;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .branch-orders-header {
+        flex-shrink: 0;
+        background: white;
+        padding: 10px 18px;
+        border-radius: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.06);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .header-icon-wrap {
+        width: 42px; height: 42px;
+        background: #eff6ff;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .header-controls { flex-wrap: wrap; }
+    .search-field    { width: 200px; }
+
+    ::deep .branch-select, ::deep .date-picker {
+        background: white !important;
+        border-radius: 8px;
+    }
+    ::deep .mud-input-label-outlined {
+        font-weight: 700 !important;
+    }
+
+    .summary-bar {
+        flex-shrink: 0;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .summary-chip {
+        display: flex; align-items: center; gap: 6px;
+        background: white;
+        padding: 5px 14px;
+        border-radius: 30px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        font-size: 0.82rem;
+    }
+
+    .chip-label { color: #64748b; font-weight: 600; }
+    .chip-value { font-weight: 900; color: #1e293b; font-family: 'Outfit', sans-serif; font-size: 0.95rem; }
+
+    .chip-pending    { border-color: #fde68a; } .chip-pending    .chip-value { color: #d97706; }
+    .chip-dispatched { border-color: #bae6fd; } .chip-dispatched .chip-value { color: #0284c7; }
+    .chip-completed  { border-color: #bbf7d0; } .chip-completed  .chip-value { color: #15803d; }
+    .chip-voided     { border-color: #fecaca; } .chip-voided     .chip-value { color: #dc2626; }
+    .chip-amount     { border-color: #c7d2fe; } .chip-amount     .chip-value { color: #4338ca; }
+
+    .orders-content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: white !important;
+        border-radius: 14px;
+        padding: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    ::deep .custom-table { height: 100% !important; background: transparent !important; }
+    ::deep .mud-table-container { height: 100% !important; overflow-y: auto !important; scrollbar-width: thin; }
+    ::deep .mud-table-head .mud-table-cell {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 800 !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    ::deep .table-row:hover td { background: #f8fafc !important; }
+    ::deep .row-voided td { opacity: 0.5; }
+
+    .fade-in { animation: fadeInUp 0.35s ease-out; }
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @@media (max-width: 1024px) {
+        .branch-orders-header { flex-direction: column; align-items: stretch; }
+        .header-controls      { justify-content: flex-start; }
+        .search-field         { width: 100%; order: 3; }
+    }
+</style>

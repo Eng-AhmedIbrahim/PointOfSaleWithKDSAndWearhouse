@@ -1,0 +1,170 @@
+@page "/inventory/raw-materials"
+@using BackOffice.Desktop.Components.Pages.BasicData.Items
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@using Radzen
+@using Radzen.Blazor
+@using BackOffice.Desktop.Components.Pages.BasicData.Inventory
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+@inject NotificationService NotificationService
+@inject NavigationManager NavManager
+@inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+
+<style>
+    .raw-materials-page { font-family: 'Outfit', 'Noto Sans Arabic', sans-serif; background: #f4f6f9; min-height: 100vh; padding: 2rem; }
+    .header-card { background: white; padding: 1.5rem 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); margin-bottom: 2rem; border: 1px solid #edf2f7; }
+    .header-content { display: flex; align-items: center; justify-content: space-between; }
+    .title-box { display: flex; align-items: center; gap: 1rem; }
+    .icon-wrap { background: #3b82f6; color: white; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .title-text h1 { margin: 0; font-size: 1.6rem; font-weight: 800; color: #1e293b; }
+    .title-text p { margin: 0; color: #64748b; font-size: 0.85rem; }
+
+    .grid-container { background: white; border-radius: 20px; box-shadow: 0 4px 25px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid #edf2f7; }
+    .toolbar { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+    
+    .rz-datagrid { border: none !important; }
+    .rz-datagrid-header { background: #f8fafc !important; border-bottom: 2px solid #edf2f7 !important; }
+    .rz-column-title { color: #475569 !important; font-weight: 700 !important; font-size: 0.82rem !important; }
+    
+    .item-info { display: flex; align-items: center; gap: 0.75rem; }
+    .avatar-circle { width: 38px; height: 38px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid #dbeafe; }
+</style>
+
+<div class="raw-materials-page" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+    @if (!IsInventoryEnabled)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
+            <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ميزة المخازن غير مفعلة" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "يرجى تفعيل 'تتبع المخزون' من إعدادات الخصائص أولاً." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الرجوع للرئيسية" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+        </div>
+    }
+    else
+    {
+        <div class="header-card">
+            <div class="header-content">
+                <div class="title-box">
+                    <div class="icon-wrap">
+                        <RadzenIcon Icon="kitchen" />
+                    </div>
+                    <div class="title-text">
+                        <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "إدارة المواد الخام" : "Raw Materials Inventory")</h1>
+                        <p>@(Localizer.GetCurrentLanguage() == "ar" ? "مكونات الطهي، التوابل، والمستلزمات الأساسية" : "Cooking ingredients, spices, and base supplies")</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <RadzenButton Click="@InitializeAll" Icon="sync" Text="@(Localizer.GetCurrentLanguage() == "ar" ? "تحديث الأصناف" : "Sync Items")" ButtonStyle="ButtonStyle.Info" Style="border-radius: 10px; font-weight: 700;" />
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <div class="toolbar">
+                <div class="search-box">
+                    <RadzenTextBox Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "بحث عن مادة خام..." : "Search ingredients...")" 
+                                   @bind-Value="SearchString" 
+                                   Style="width: 320px; border-radius: 12px; height: 45px; border: 1.5px solid #e2e8f0;" />
+                </div>
+                <div class="stats d-flex gap-4">
+                     <div class="stat-mini">
+                         <span style="color: #64748b; font-size: 0.8rem; font-weight: 600;">@(Localizer.GetCurrentLanguage() == "ar" ? "إجمالي المواد:" : "Total:")</span>
+                         <span style="font-weight: 800; color: #1e293b; margin-inline-start: 5px;">@RawMaterialsItems.Count</span>
+                     </div>
+                </div>
+            </div>
+
+        <RadzenDataGrid AllowFiltering="true" FilterMode="FilterMode.Simple" AllowPaging="true" PageSize="12"
+                        AllowSorting="true" Data="@FilteredItems" TItem="InventoryItemDto" 
+                        EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد مواد خام مسجلة" : "No raw materials found")"
+                        ColumnWidth="200px" Density="Density.Default">
+            <Columns>
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "المادة الخام" : "Ingredient")" Width="280px">
+                    <Template Context="item">
+                        <div class="item-info">
+                            <div class="avatar-circle">RM</div>
+                            <div class="names">
+                                <div style="font-weight: 800; color: #1e293b;">@item.ItemNameAr</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">@item.ItemNameEn</div>
+                            </div>
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Property="Unit" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "وحدة القياس" : "Unit")" Width="140px">
+                    <Template Context="item">
+                        <span style="font-weight: 700; color: #64748b; background: #f8fafc; padding: 4px 10px; border-radius: 8px;">@(Localizer.GetCurrentLanguage() == "ar" ? item.UnitNameAr : item.UnitNameEn)</span>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Property="CurrentQuantity" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الرصيد الحالي" : "Current Stock")" Width="140px" TextAlign="TextAlign.Center">
+                    <Template Context="item">
+                        <span style="font-size: 1.1rem; font-weight: 900; color: @(item.CurrentQuantity <= item.MinimumQuantity ? "#ef4444" : "#10b981")">
+                            @item.CurrentQuantity.ToString("N2")
+                        </span>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Property="MinimumQuantity" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "حد الطلب" : "Min")" Width="100px" TextAlign="TextAlign.Center" />
+
+                <RadzenDataGridColumn TItem="InventoryItemDto" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "إجراءات" : "Actions")" Width="140px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                    <Template Context="item">
+                        <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenHistory(item))" Style="border-radius: 8px;" />
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenAdjustment(item))" Style="border-radius: 8px; margin-right: 5px;" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+            </RadzenDataGrid>
+        </div>
+    }
+</div>
+
+@code {
+    private List<InventoryItemDto> RawMaterialsItems = new();
+    private string SearchString = "";
+    private bool IsInventoryEnabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        if (!IsInventoryEnabled) return;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await InventoryService.GetAllInventoryAsync();
+        if (response.Success)
+        {
+            RawMaterialsItems = response.Data?.Where(x => x.ItemTypeCode == "RawMaterial").ToList() ?? new();
+        }
+    }
+
+    private IEnumerable<InventoryItemDto> FilteredItems => string.IsNullOrWhiteSpace(SearchString)
+        ? RawMaterialsItems
+        : RawMaterialsItems.Where(i => i.ItemNameAr!.Contains(SearchString, StringComparison.OrdinalIgnoreCase) || 
+                                  i.ItemNameEn!.Contains(SearchString, StringComparison.OrdinalIgnoreCase));
+
+    private async Task InitializeAll()
+    {
+        await InventoryService.InitializeAllItemsAsync();
+        await LoadData();
+        Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم تحديث البيانات" : "Data synced", Severity.Info);
+    }
+
+    private async Task OpenHistory(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        await DialogService.ShowAsync<StockHistoryDialog>("", parameters, new MudBlazor.DialogOptions { NoHeader = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+    }
+
+    private async Task OpenAdjustment(InventoryItemDto item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item, ["Mode"] = InventoryDialog.DialogMode.Adjustment };
+        var dialog = await DialogService.ShowAsync<InventoryDialog>("", parameters, new MudBlazor.DialogOptions { NoHeader = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (!(await dialog!.Result!).Canceled) await LoadData();
+    }
+}

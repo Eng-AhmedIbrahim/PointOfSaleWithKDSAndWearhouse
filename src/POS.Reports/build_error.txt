@@ -1,0 +1,18 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  POS.Contract -> f:\PointOfSaleProject\src\Contract.Common\bin\Debug\net8.0\POS.Contract.dll
+  POS.Core -> f:\PointOfSaleProject\src\POS.Core\bin\Debug\net8.0\POS.Core.dll
+f:\PointOfSaleProject\src\POS.Reports\ReportsManager.cs(155,167): warning CS8602: Dereference of a possibly null reference. [f:\PointOfSaleProject\src\POS.Reports\POS.Reports.csproj]
+f:\PointOfSaleProject\src\POS.Reports\ReportsManager.cs(191,42): warning CS8600: Converting null literal or possible null value to non-nullable type. [f:\PointOfSaleProject\src\POS.Reports\POS.Reports.csproj]
+  POS.Reports -> f:\PointOfSaleProject\src\POS.Reports\bin\Debug\net8.0\POS.Reports.dll
+
+Build succeeded.
+
+f:\PointOfSaleProject\src\POS.Reports\ReportsManager.cs(155,167): warning CS8602: Dereference of a possibly null reference. [f:\PointOfSaleProject\src\POS.Reports\POS.Reports.csproj]
+f:\PointOfSaleProject\src\POS.Reports\ReportsManager.cs(191,42): warning CS8600: Converting null literal or possible null value to non-nullable type. [f:\PointOfSaleProject\src\POS.Reports\POS.Reports.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.74
+
+Workload updates are available. Run `dotnet workload list` for more information.

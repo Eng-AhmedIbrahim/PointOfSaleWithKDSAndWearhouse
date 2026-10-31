@@ -1,0 +1,254 @@
+@page "/transactions/expenses"
+@using BlazorBase.ERPFrontServices.ExpenseServices
+@using POS.Contract.Dtos.ReportingDtos
+@inject IExpenseFrontService ExpenseService
+@inject Radzen.NotificationService NotificationService
+@inject Radzen.DialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid py-4" dir="rtl">
+    <RadzenText TextStyle="TextStyle.H4" TextAlign="TextAlign.Center" class="mb-2" style="font-weight: 700; color: #1a237e;">
+        إدارة المصروفات والمدفوعات النقديّة
+    </RadzenText>
+    <RadzenText TextStyle="TextStyle.Subtitle1" TextAlign="TextAlign.Center" class="mb-5" style="color: #5c6bc0;">
+        تسجيل مشتريات أو سحب نقدية من الدرج مع كامل تفاصيل المسئول
+    </RadzenText>
+
+    <div class="row">
+        <!-- Form Section -->
+        <div class="col-md-4 mb-4">
+            <RadzenCard style="border-radius: 12px; border-top: 5px solid #1a237e;" class="rz-shadow-4">
+                <RadzenText TextStyle="TextStyle.H6" class="mb-4">إضافة إذن صرف جديد</RadzenText>
+                
+                <div class="rz-p-sm-4 rz-text-align-center">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <RadzenLabel Text="المبلغ (EGP)" Component="Amount" class="mb-2 d-block text-end" />
+                            <RadzenNumeric TValue="decimal" @bind-Value="_newExpense.Amount" Format="N2" class="w-100" Name="Amount" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <RadzenLabel Text="الفئة" Component="Category" class="mb-2 d-block text-end" />
+                            <RadzenDropDown @bind-Value="_newExpense.Category" Data="@_categories" class="w-100" Name="Category" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <RadzenLabel Text="المستلم (الجهة / الشخص)" Component="SpentBy" class="mb-2 d-block text-end" />
+                            <RadzenTextBox @bind-Value="_newExpense.SpentBy" class="w-100" Name="SpentBy" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <RadzenLabel Text="بيان الصرف / الملاحظات" Component="Description" class="mb-2 d-block text-end" />
+                            <RadzenTextArea @bind-Value="_newExpense.Description" Rows="3" class="w-100" Name="Description" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12 text-end">
+                            <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Radzen.Variant.Flat" Shade="Shade.Lighter" Size="AlertSize.Small" class="rz-text-right">
+                                المسئول الحالي: @_cashierName
+                            </RadzenAlert>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <RadzenButton Text="@(_isSaving ? "جاري الحفظ..." : "حفظ إذن الصرف")" Icon="save" 
+                                          ButtonStyle="ButtonStyle.Primary" class="w-100" 
+                                          Disabled="@_isSaving" Click="SaveExpense" />
+                        </div>
+                    </div>
+                </div>
+            </RadzenCard>
+        </div>
+
+        <!-- History Table Section -->
+        <div class="col-md-8">
+            <RadzenCard style="border-radius: 12px;" class="rz-shadow-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+                    <RadzenText TextStyle="TextStyle.H6" class="m-0 mb-2">سجل حركة المصروفات</RadzenText>
+                    
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <RadzenText TextStyle="TextStyle.Body2" class="m-0">من:</RadzenText>
+                        <RadzenDatePicker @bind-Value="_fromDate" DateFormat="yyyy-MM-dd" style="width: 130px;" />
+                        <RadzenText TextStyle="TextStyle.Body2" class="m-0">إلى:</RadzenText>
+                        <RadzenDatePicker @bind-Value="_toDate" DateFormat="yyyy-MM-dd" style="width: 130px;" />
+                        <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="LoadExpenses" />
+                    </div>
+                </div>
+
+                <RadzenDataGrid Data="@_expenses" TItem="ExpenseDto" IsLoading="@_isLoading" 
+                                AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="10"
+                                Density="Density.Compact" class="rz-border-radius-2">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Date" Title="التاريخ" Width="140px">
+                            <Template Context="data">
+                                @data.Date.ToString("yyyy-MM-dd HH:mm")
+                            </Template>
+                        </RadzenDataGridColumn>
+                        
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Category" Title="الفئة" Width="130px">
+                            <Template Context="data">
+                                <RadzenBadge BadgeStyle="BadgeStyle.Primary" IsPill="true" Text="@data.Category" />
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="CreatedByName" Title="المسئول (الكاشير)" Width="130px">
+                            <Template Context="data">
+                                <span title="ID: @data.CreatedById">@data.CreatedByName</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        
+                        <RadzenDataGridColumn TItem="ExpenseDto" Title="البيان / المستلم">
+                            <Template Context="data">
+                                <div style="white-space:normal">
+                                    <strong>@data.SpentBy</strong><br/>
+                                    <span style="font-size: 0.85em; color: #666;">@data.Description</span>
+                                </div>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Amount" Title="المبلغ" Width="100px">
+                            <Template Context="data">
+                                <strong style="color: #d32f2f;">@data.Amount.ToString("N2")</strong>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="ExpenseDto" Title="حذف" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
+                            <Template Context="data">
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" 
+                                              Click="@(() => ConfirmDelete(data.Id))" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+
+                <div class="mt-4 p-3" style="background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" class="m-0">إجمالي مصروفات الفترة المحددة:</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H6" class="m-0" style="color: #d32f2f; font-weight: 800;">
+                            @_expenses.Sum(e => e.Amount).ToString("N2") EGP
+                        </RadzenText>
+                    </div>
+                </div>
+            </RadzenCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ExpenseDto> _expenses = new();
+    private ExpenseDto _newExpense = new() { Category = "مشتريات خامات", Date = DateTime.Now };
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    
+    private DateTime? _fromDate = DateTime.Today;
+    private DateTime? _toDate = DateTime.Today;
+    
+    private string _cashierId = "-";
+    private string _cashierName = "Unknown";
+
+    private List<string> _categories = new()
+    {
+        "مشتريات خامات",
+        "نثريات / صيانة",
+        "مرتبات / سلف",
+        "فواتير / غاز / كهرباء",
+        "أخرى"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserInfo();
+        await LoadExpenses();
+    }
+
+    private async Task LoadUserInfo()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            _cashierId = user.Claims.FirstOrDefault(c => c.Type == "sub")?.Value 
+                         ?? user.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "-";
+            _cashierName = user.Identity.Name ?? "System";
+        }
+    }
+
+    private async Task LoadExpenses()
+    {
+        _isLoading = true;
+        try
+        {
+            var from = _fromDate ?? DateTime.Today;
+            var to = _toDate ?? DateTime.Today;
+            _expenses = await ExpenseService.GetExpenses(from, to);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "خطأ", "فشل في تحميل المصروفات");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveExpense()
+    {
+        if (_newExpense.Amount <= 0)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى إدخال مبلغ صحيح");
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            _newExpense.CreatedById = _cashierId;
+            _newExpense.CreatedByName = _cashierName;
+            _newExpense.Date = DateTime.Now;
+            _newExpense.IsPayoutFromDrawer = true;
+
+            await ExpenseService.AddExpense(_newExpense);
+            
+            NotificationService.Notify(NotificationSeverity.Success, "نجاح", "تم حفظ إذن الصرف بنجاح");
+            _newExpense = new ExpenseDto { Category = "مشتريات خامات", Date = DateTime.Now };
+            await LoadExpenses();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "خطأ", "خطأ في الحفظ");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ConfirmDelete(int id)
+    {
+        var result = await DialogService.Confirm("هل أنت متأكد من حذف إذن الصرف هذا؟", "تأكيد الحذف", new ConfirmOptions() { OkButtonText = "حذف", CancelButtonText = "إلغاء" });
+
+        if (result == true)
+        {
+            bool success = await ExpenseService.DeleteExpense(id);
+            if (success)
+            {
+                NotificationService.Notify(NotificationSeverity.Info, "نجاح", "تم الحذف بنجاح");
+                await LoadExpenses();
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "خطأ", "فشل الحذف");
+            }
+        }
+    }
+}

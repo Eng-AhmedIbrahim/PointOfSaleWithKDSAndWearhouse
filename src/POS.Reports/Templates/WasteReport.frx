@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/16/2026" ReportInfo.Modified="03/16/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Styles>
+    <Style Name="Header" Fill.Color="30, 58, 95" TextFill.Color="White" Font="Arial, 11pt, style=Bold"/>
+    <Style Name="EvenRow" Fill.Color="245, 246, 250" Font="Arial, 10pt"/>
+  </Styles>
+  <Dictionary>
+    <TableDataSource Name="Transactions" ReferenceName="ReportData.Transactions" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Date" DataType="System.DateTime"/>
+      <Column Name="DateOnly" DataType="System.String"/>
+      <Column Name="TimeDisplay" DataType="System.String"/>
+      <Column Name="Type" DataType="System.String"/>
+      <Column Name="QtyChange" DataType="System.Decimal"/>
+      <Column Name="ResultQty" DataType="System.Decimal"/>
+      <Column Name="Reference" DataType="System.String"/>
+      <Column Name="Reason" DataType="System.String"/>
+      <Column Name="CreatedBy" DataType="System.String"/>
+      <Column Name="Notes" DataType="System.String"/>
+      <Column Name="Image" DataType="System.Byte[]"/>
+      <Column Name="HasImage" DataType="System.Boolean"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="110">
+      <TextObject Name="TextTitle" Width="718.2" Height="45" Text="تقرير الهوالك والتالف" HorzAlign="Center" VertAlign="Center" Font="Arial, 22pt, style=Bold" TextFill.Color="Red"/>
+      <TextObject Name="TextDate" Top="50" Width="718.2" Height="25" Text="الفترة من: [FromDate] إلى: [ToDate]" HorzAlign="Center" Font="Arial, 11pt" TextFill.Color="64, 64, 64"/>
+      <TextObject Name="TextBranch" Top="75" Width="718.2" Height="25" Text="الفرع: [BranchName]" HorzAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="30, 58, 95" RTL="true"/>
+      <LineObject Name="Line1" Top="105" Width="718.2" Border.Color="Red" Border.Width="2"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="114.2" Width="718.2" Height="40" Fill.Color="30, 58, 95" Style="Header">
+      <TextObject Name="H6" Width="148.2" Height="40" Style="Header" Text="السبب/الملاحظات" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H5" Left="148.2" Width="90" Height="40" Style="Header" Text="المسئول" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H4" Left="238.2" Width="70" Height="40" Style="Header" Text="الكمية" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H3" Left="308.2" Width="120" Height="40" Style="Header" Text="التاريخ والوقت" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H2" Left="428.2" Width="100" Height="40" Style="Header" Text="نوع الحركة" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H1" Left="528.2" Width="190" Height="40" Style="Header" Text="الصنف" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Border.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="158.2" Width="718.2" Height="145" DataSource="Transactions" EvenStyle="EvenRow">
+      <TextObject Name="B6" Width="148.2" Height="40" Text="[Transactions.Reason] [Transactions.Notes]" HorzAlign="Right" VertAlign="Center" Font="Arial, 9.5pt" Border.Lines="All" Border.Color="224, 224, 224" Padding="0,2,5,2" CanGrow="true" RTL="true"/>
+      <TextObject Name="B5" Left="148.2" Width="90" Height="40" Text="[Transactions.CreatedBy]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="224, 224, 224"/>
+      <TextObject Name="B4" Left="238.2" Width="70" Height="40" Text="[Abs([Transactions.QtyChange])]" Format="Number" HorzAlign="Center" VertAlign="Center" Font="Arial, 10.5pt, style=Bold" TextFill.Color="Red" Border.Lines="All" Border.Color="224, 224, 224"/>
+      <TextObject Name="B3Date" Left="308.2" Width="120" Height="20" Text="[Transactions.DateOnly]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt" Border.Lines="Left, Right, Top" Border.Color="224, 224, 224"/>
+      <TextObject Name="B3Time" Left="308.2" Top="20" Width="120" Height="20" Text="[Transactions.TimeDisplay]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt, style=Bold" Border.Lines="Left, Right, Bottom" Border.Color="224, 224, 224"/>
+      <TextObject Name="B2" Left="428.2" Width="100" Height="40" Text="[Transactions.Type]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="224, 224, 224"/>
+      <TextObject Name="B1" Left="528.2" Width="190" Height="40" Text="[Transactions.ItemName]" HorzAlign="Right" VertAlign="Center" Font="Arial, 10.5pt, style=Bold" Border.Lines="All" Border.Color="224, 224, 224" Padding="0,0,5,0" RTL="true"/>
+      <PictureObject Name="Pic1" Left="528.2" Top="45" Width="180" Height="90" DataColumn="Transactions.Image" SizeMode="Zoom"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="301.2" Width="718.2" Height="25">
+      <LineObject Name="Line2" Width="718.2" Border.Color="Silver"/>
+      <TextObject Name="Footer" Top="5" Width="718.2" Height="20" Text="صفحة [Page] من [TotalPages#] - [DateTime.Now.ToString(&quot;yyyy-MM-dd HH:mm tt&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

@@ -1,0 +1,598 @@
+@using MudBlazor
+@using BlazorBase.ERPFrontServices.AccountServices
+@using POS.Contract.Dtos.AccountDtos
+@inject IAccountService AccountService
+@inject LocalizationService Localizer
+
+<MudDialog Class="hd-modern-container">
+    <TitleContent>
+        <div class="hd-header @(IsRtl ? "rtl" : "ltr")" dir="@(IsRtl ? "rtl" : "ltr")">
+            <div class="hd-header-main">
+                <div class="hd-icon-badge">
+                    <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" Size="Size.Large" Class="hd-badge-icon" />
+                </div>
+                <div class="hd-title-block">
+                    <div class="hd-title-row">
+                        <MudText Typo="Typo.h5" Class="hd-main-title">@Localizer["ConfirmHospitality"]</MudText>
+                        <span class="hd-chip-discount">100% OFF</span>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="hd-subtitle">@Localizer["HospitalityInstructions"]</MudText>
+                </div>
+            </div>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                           Color="Color.Inherit" 
+                           OnClick="Cancel" 
+                           Class="hd-close-btn" 
+                           Size="Size.Medium" />
+        </div>
+    </TitleContent>
+    
+    <DialogContent>
+        <div class="hd-body-wrapper @(IsRtl ? "rtl" : "ltr")" dir="@(IsRtl ? "rtl" : "ltr")">
+            
+            <!-- Quick Notice Banner -->
+            <div class="hd-notice-banner">
+                <div class="hd-notice-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                </div>
+                <div class="hd-notice-text">
+                    <span class="hd-notice-title">@Localizer["HospitalityBadge"]</span>
+                    <span class="hd-notice-desc">@Localizer["HospitalityBannerHint"]</span>
+                </div>
+            </div>
+
+            <MudForm @ref="_form" @bind-IsValid="_isValid">
+                
+                <!-- Field 1: Responsible Person -->
+                <div class="hd-form-group">
+                    <div class="hd-field-label">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small" Class="hd-label-icon" />
+                        <span class="hd-label-text">@Localizer["ResponsiblePerson"]</span>
+                        <span class="hd-required-star">*</span>
+                    </div>
+
+                    <MudAutocomplete T="UserDto" 
+                                     Value="_selectedUser" 
+                                     SearchFunc="SearchUsers"
+                                     Required="true"
+                                     RequiredError="@Localizer["ResponsibleRequired"]"
+                                     ToStringFunc="@(u => u?.ArabicName ?? u?.UserName ?? "")"
+                                     Variant="Variant.Outlined"
+                                     ResetValueOnEmptyText="true"
+                                     ValueChanged="OnUserSelected"
+                                     Placeholder="@Localizer["ResponsiblePersonPlaceholder"]"
+                                     Adornment="Adornment.End"
+                                     AdornmentIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                                     AdornmentColor="Color.Primary"
+                                     PopOverClass="@(IsRtl ? "hd-autocomplete-popover rtl" : "hd-autocomplete-popover ltr")"
+                                     Class="hd-modern-input"
+                                     Strict="false"
+                                     CoerceText="true"
+                                     CoerceValue="true">
+                        <ItemTemplate Context="user">
+                            <div class="hd-user-row">
+                                <div class="hd-user-avatar">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                                </div>
+                                <div class="hd-user-info">
+                                    <div class="hd-user-name">@(user.ArabicName ?? user.UserName)</div>
+                                    @if (!string.IsNullOrEmpty(user.UserName) && user.UserName != user.ArabicName)
+                                    {
+                                        <div class="hd-user-login">@user.UserName</div>
+                                    }
+                                </div>
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </div>
+                
+                <!-- Field 2: Hospitality Reason -->
+                <div class="hd-form-group mt-5">
+                    <div class="hd-field-label">
+                        <MudIcon Icon="@Icons.Material.Filled.EditNote" Size="Size.Small" Class="hd-label-icon" />
+                        <span class="hd-label-text">@Localizer["HospitalityReason"]</span>
+                        <span class="hd-required-star">*</span>
+                    </div>
+
+                    <!-- Quick Reason Chips -->
+                    <div class="hd-quick-chips">
+                        <button type="button" class="hd-chip-btn @(_reason == Localizer["Reason_VIP"] ? "active" : "")" @onclick='() => SelectQuickReason("Reason_VIP")'>
+                            @Localizer["Reason_VIP"]
+                        </button>
+                        <button type="button" class="hd-chip-btn @(_reason == Localizer["Reason_Management"] ? "active" : "")" @onclick='() => SelectQuickReason("Reason_Management")'>
+                            @Localizer["Reason_Management"]
+                        </button>
+                        <button type="button" class="hd-chip-btn @(_reason == Localizer["Reason_PR"] ? "active" : "")" @onclick='() => SelectQuickReason("Reason_PR")'>
+                            @Localizer["Reason_PR"]
+                        </button>
+                        <button type="button" class="hd-chip-btn @(_reason == Localizer["Reason_QualityCheck"] ? "active" : "")" @onclick='() => SelectQuickReason("Reason_QualityCheck")'>
+                            @Localizer["Reason_QualityCheck"]
+                        </button>
+                        <button type="button" class="hd-chip-btn @(_reason == Localizer["Reason_Courtesy"] ? "active" : "")" @onclick='() => SelectQuickReason("Reason_Courtesy")'>
+                            @Localizer["Reason_Courtesy"]
+                        </button>
+                    </div>
+
+                    <MudTextField @bind-Value="_reason" 
+                                  Variant="Variant.Outlined" 
+                                  Lines="3" 
+                                  Required="true"
+                                  RequiredError="@Localizer["ReasonRequired"]"
+                                  Placeholder="@Localizer["EnterReasonPlaceholder"]"
+                                  Class="hd-modern-input hd-textarea" />
+                </div>
+            </MudForm>
+
+            @if (_showError)
+            {
+                <div class="hd-alert-box mt-4">
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" Class="hd-alert-icon" />
+                    <span>@Localizer["PleaseCheckInputData"]</span>
+                </div>
+            }
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="hd-footer @(IsRtl ? "rtl" : "ltr")" dir="@(IsRtl ? "rtl" : "ltr")">
+            <MudButton OnClick="Cancel" 
+                       Variant="Variant.Outlined" 
+                       StartIcon="@Icons.Material.Filled.Close"
+                       Class="hd-btn-cancel">
+                @Localizer["Cancel"]
+            </MudButton>
+            
+            <MudButton OnClick="Confirm" 
+                       Variant="Variant.Filled" 
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Check"
+                       Disabled="@_isSubmitting"
+                       Class="hd-btn-confirm">
+                @if (_isSubmitting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                @Localizer["Confirm"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    /* Dialog Container */
+    .hd-modern-container {
+        border-radius: 20px !important;
+        overflow: hidden;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        background: #ffffff !important;
+    }
+
+    /* Header */
+    .hd-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+        color: #ffffff;
+        position: relative;
+    }
+
+    .hd-header-main {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .hd-icon-badge {
+        width: 52px;
+        height: 52px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(6px);
+    }
+
+    .hd-badge-icon {
+        color: #fbcfe8 !important; /* Soft rose heart */
+    }
+
+    .hd-title-block {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .hd-title-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hd-main-title {
+        font-weight: 800 !important;
+        font-size: 1.35rem !important;
+        color: #ffffff !important;
+        line-height: 1.2;
+    }
+
+    .hd-chip-discount {
+        background: rgba(244, 63, 94, 0.25);
+        color: #ffe4e6;
+        border: 1px solid rgba(244, 63, 94, 0.5);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .hd-subtitle {
+        color: #cbd5e1 !important;
+        font-size: 0.875rem !important;
+        line-height: 1.3;
+        font-weight: 400;
+    }
+
+    .hd-close-btn {
+        color: #e2e8f0 !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .hd-close-btn:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+
+    /* Content Body */
+    .hd-body-wrapper {
+        padding: 24px;
+        background: #f8fafc;
+    }
+
+    /* Notice Banner */
+    .hd-notice-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+    }
+
+    .hd-notice-icon {
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .hd-notice-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .hd-notice-title {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #1e40af;
+    }
+
+    .hd-notice-desc {
+        font-size: 0.8rem;
+        color: #3b82f6;
+        line-height: 1.3;
+    }
+
+    /* Form Fields */
+    .hd-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .hd-field-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .hd-label-icon {
+        color: #4338ca !important;
+    }
+
+    .hd-required-star {
+        color: #ef4444;
+        font-weight: 900;
+    }
+
+    /* Modern Inputs */
+    .hd-modern-input .mud-input-outlined-border {
+        border-radius: 12px !important;
+        border-color: #cbd5e1 !important;
+        border-width: 1.5px !important;
+        background-color: #ffffff !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .hd-modern-input.mud-input-focus .mud-input-outlined-border {
+        border-color: #4338ca !important;
+        border-width: 2px !important;
+        box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12) !important;
+    }
+
+    .hd-modern-input input, 
+    .hd-modern-input textarea {
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        color: #0f172a !important;
+        padding: 12px 14px !important;
+    }
+
+    .hd-textarea textarea {
+        line-height: 1.5 !important;
+    }
+
+    /* Quick Preset Chips */
+    .hd-quick-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .hd-chip-btn {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 4px 10px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        display: inline-flex;
+        align-items: center;
+        user-select: none;
+    }
+
+    .hd-chip-btn:hover {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+        color: #4338ca;
+    }
+
+    .hd-chip-btn.active {
+        background: #4338ca;
+        border-color: #4338ca;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(67, 56, 202, 0.25);
+    }
+
+    /* Autocomplete Popover */
+    .hd-autocomplete-popover {
+        border-radius: 14px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 6px !important;
+    }
+
+    .hd-autocomplete-popover.rtl {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+
+    .hd-autocomplete-popover.ltr {
+        direction: ltr !important;
+        text-align: left !important;
+    }
+
+    .hd-user-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        transition: background 0.15s ease;
+        width: 100%;
+    }
+
+    .hd-user-row:hover {
+        background: #f1f5f9;
+    }
+
+    .hd-user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #e0e7ff;
+        color: #4338ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .hd-user-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.25;
+    }
+
+    .hd-user-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #1e293b;
+    }
+
+    .hd-user-login {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    /* Alert */
+    .hd-alert-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .hd-alert-icon {
+        color: #dc2626 !important;
+        flex-shrink: 0;
+    }
+
+    /* Footer Actions */
+    .hd-footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 24px 20px 24px;
+        width: 100%;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .hd-btn-cancel {
+        flex: 1;
+        height: 48px !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        color: #64748b !important;
+        border: 1.5px solid #cbd5e1 !important;
+        background: #ffffff !important;
+        text-transform: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .hd-btn-cancel:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+        color: #334155 !important;
+    }
+
+    .hd-btn-confirm {
+        flex: 2;
+        height: 48px !important;
+        border-radius: 12px !important;
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+        background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(67, 56, 202, 0.35) !important;
+        text-transform: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .hd-btn-confirm:hover:not(:disabled) {
+        box-shadow: 0 6px 18px rgba(67, 56, 202, 0.45) !important;
+        transform: translateY(-1px);
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private UserDto? _selectedUser;
+    private string? _reason;
+    private bool _showError = false;
+    private bool _isSubmitting = false;
+    private List<UserDto> _users = new();
+    private MudForm _form = default!;
+    private bool _isValid;
+
+    private bool IsRtl => (Localizer.GetCurrentLanguage() ?? "ar").StartsWith("ar", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userList = await AccountService.GetUsers();
+            _users = userList?.ToList() ?? new List<UserDto>();
+        }
+        catch (Exception)
+        {
+            _users = new List<UserDto>();
+        }
+    }
+
+    private void OnUserSelected(UserDto user)
+    {
+        _selectedUser = user;
+        _showError = false;
+    }
+
+    private void SelectQuickReason(string key)
+    {
+        var localizedReason = Localizer[key];
+        if (!string.IsNullOrEmpty(localizedReason))
+        {
+            _reason = localizedReason;
+            _showError = false;
+        }
+    }
+
+    private Task<IEnumerable<UserDto>> SearchUsers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value)) 
+            return Task.FromResult<IEnumerable<UserDto>>(_users);
+
+        var filtered = _users.Where(u => 
+            (u.UserName?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (u.ArabicName?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false));
+
+        return Task.FromResult(filtered);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirm()
+    {
+        if (_isSubmitting) return;
+
+        await _form.Validate();
+        if (!_isValid || _selectedUser == null || string.IsNullOrWhiteSpace(_reason))
+        {
+            _showError = true;
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            MudDialog.Close(DialogResult.Ok((_selectedUser, _reason)));
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

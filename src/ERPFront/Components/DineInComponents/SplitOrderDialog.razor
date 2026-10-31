@@ -1,0 +1,200 @@
+@using MudBlazor
+@using BlazorBase.Models
+@using BlazorBase.ERPFrontServices.DineInOrderServices
+@inject IDineInOrderFrontService _dineInOrderService
+@inject MudBlazor.ISnackbar _snackbar
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.ExtraLarge">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Split Check - Order #@OrderToSplit?.BasicOrderDetails?.OrderId</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="split-container">
+            <table class="split-table">
+                <thead>
+                    <tr>
+                        <th class="item-name-col">Item Name</th>
+                        <th class="qty-col">Qty</th>
+                        <th class="price-col">Price</th>
+                        @for (int i = 1; i <= 8; i++)
+                        {
+                            <th class="split-col">Split @i</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in SourceItems)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-right">@(item.Price?.ToString("N2") ?? "0.00")</td>
+                            @for (int j = 0; j < 8; j++)
+                            {
+                                var splitIndex = j;
+                                <td>
+                                    <MudNumericField T="decimal"
+                                                     Value="@GetSplitQty(item.DatabaseId, splitIndex)" 
+                                                    ValueChanged="@(val => SetSplitQty(item.DatabaseId, splitIndex, val, item?.Quantity ?? 0))"
+                                                    Min="0" Max="@item.Quantity" 
+                                                    Variant="Variant.Outlined" 
+                                                    Margin="Margin.Dense" 
+                                                    Class="split-input" />
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-end gap-2 pa-4 w-100">
+            <MudButton OnClick="Cancel" Variant="Variant.Outlined">CANCEL</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="PerformSplit" Style="background-color: #7c4dff">SAVE</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .split-container {
+        overflow-x: auto;
+        max-height: 60vh;
+    }
+    .split-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: sans-serif;
+    }
+    .split-table th, .split-table td {
+        border: 1px solid #e0e0e0;
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+    .split-table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+        text-align: left;
+    }
+    .item-name-col { width: 250px; }
+    .qty-col { width: 60px; text-align: center; }
+    .price-col { width: 100px; text-align: right; }
+    .split-col { width: 80px; text-align: center; }
+    
+    .split-input {
+        width: 70px;
+        margin: 0 auto;
+    }
+    .split-input input {
+        text-align: center !important;
+        padding: 4px !important;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DineInOrderDetails OrderToSplit { get; set; } = default!;
+
+    private List<TableItem> SourceItems = new();
+    private Dictionary<int, decimal[]> SplitQuantities = new(); // DatabaseId -> Quantity for each of 8 splits
+
+    protected override void OnInitialized()
+    {
+        if (OrderToSplit?.BasicOrderDetails?.Items != null)
+        {
+            SourceItems = OrderToSplit.BasicOrderDetails.Items.ToList();
+            foreach (var item in SourceItems)
+            {
+                SplitQuantities[item.DatabaseId] = new decimal[8];
+            }
+        }
+    }
+
+    private decimal GetSplitQty(int itemId, int splitIndex) 
+    {
+        if (SplitQuantities.TryGetValue(itemId, out var qtys))
+            return qtys[splitIndex];
+        return 0;
+    }
+
+    private void SetSplitQty(int itemId, int splitIndex, decimal val, decimal maxQty)
+    {
+        if (!SplitQuantities.ContainsKey(itemId)) return;
+        
+        var qtys = SplitQuantities[itemId];
+        
+        // Calculate total allocated for this item across all splits except current one
+        decimal otherSplitsTotal = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            if (i != splitIndex) otherSplitsTotal += qtys[i];
+        }
+
+        // Ensure we don't exceed available quantity
+        if (otherSplitsTotal + val > maxQty)
+        {
+            val = maxQty - otherSplitsTotal;
+        }
+
+        qtys[splitIndex] = val;
+        StateHasChanged();
+    }
+
+    private async Task PerformSplit()
+    {
+        try
+        {
+            var targets = new List<SplitTargetDto>();
+
+            for (int splitIndex = 0; splitIndex < 8; splitIndex++)
+            {
+                var target = new SplitTargetDto
+                {
+                    TargetTableId = OrderToSplit.RelatedTableId ?? 0,
+                    Label = $"Split{splitIndex + 1}",
+                    ItemsToMove = new List<OrderItemSplitDto>()
+                };
+
+                foreach (var item in SourceItems)
+                {
+                    decimal qty = GetSplitQty(item.DatabaseId, splitIndex);
+                    if (qty > 0)
+                    {
+                        target.ItemsToMove.Add(new OrderItemSplitDto(item.DatabaseId, qty));
+                    }
+                }
+
+                if (target.ItemsToMove.Any())
+                {
+                    targets.Add(target);
+                }
+            }
+
+            if (!targets.Any())
+            {
+                _snackbar.Add("No items selected for splitting", Severity.Warning);
+                return;
+            }
+
+            bool success = await _dineInOrderService.SplitDineInOrderAsync(OrderToSplit.DatabaseId, targets);
+            
+            if (success)
+            {
+                _snackbar.Add("Split applied and suborders created.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _snackbar.Add("Failed to split order", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

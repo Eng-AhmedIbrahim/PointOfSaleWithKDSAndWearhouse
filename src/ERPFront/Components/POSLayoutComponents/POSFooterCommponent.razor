@@ -1,0 +1,207 @@
+@using BlazorBase.Services
+@inject NavigationManager navigationManager
+@inject CommonProperties commonProperties
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject IAuthorizationService AuthorizationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CartService _cartService
+@inject LocalizationService Localizer
+
+<MudStack Spacing="0" StretchItems="StretchItems.All" Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center">
+
+    @* @if (canAccessDiscount) *@
+    @* { *@
+    <MudButton Variant="Variant.Text"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Discount"
+               class="button-color-footer"
+               OnClick="@(() => OpenDrawer(Anchor.Bottom))">
+        @Localizer["Discount"]
+    </MudButton>
+    @* } *@
+    <MudDrawer @bind-Open="@_open" MaxWidth="100%" MaxHeight="100vh" Anchor="@_anchor" Elevation="3" Variant="@DrawerVariant.Temporary">
+        <!-- Drawer Header with Close Button -->
+        <MudDrawerHeader Class="drawer-header">
+            <MudText Typo="Typo.h5" Class="drawer-title">Add Discount</MudText>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CloseDrawer"
+                       StartIcon="@Icons.Material.Filled.Close" Class="close-btn">
+                @Localizer["Close"]
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Surface" OnClick='()=>_cartService.ResetDiscount()'
+                       StartIcon="@Icons.Material.Filled.Close" Class="close-btn">
+                @Localizer["RemoveDiscount"]
+            </MudButton>
+        </MudDrawerHeader>
+
+
+        <MudPaper Class="drawer-content p-4">
+            <!-- Discount Type Selection -->
+            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.Star" Class="mr-2" /> Select Discount Type
+            </MudText>
+
+            <MudStack Row="true" Justify="Justify.Center" Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="@(discountType == "percentage" ? Color.Primary : Color.Secondary)"
+                           OnClick='() => discountType = "percentage"'
+                           StartIcon="@Icons.Material.Filled.Percent"
+                           Class="discount-btn">
+                    @Localizer["Percentage"]
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="@(discountType == "value" ? Color.Primary : Color.Secondary)"
+                           OnClick='() => discountType = "value"'
+                           StartIcon="@Icons.Material.Filled.AttachMoney"
+                           Class="discount-btn">
+                    @Localizer["FixedAmount"]
+                </MudButton>
+            </MudStack>
+
+            @if (discountType == "percentage")
+            {
+                <MudSlider @bind-Value="@commonProperties.DiscountPercentage" Min="1" Max="100" Step="1" ShowTicks ShowValueLabel Color="Color.Primary"
+                           Class="mt-3" />
+
+                <MudText Typo="Typo.h6" Class="mt-2 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Percent" Class="mr-1" /> Selected Percentage <strong>@commonProperties.DiscountPercentage%</strong>
+                </MudText>
+            }
+
+            @if (discountType == "value")
+            {
+                <div class="input-container text-center mt-3">
+                    <MudTextField T="decimal" @bind-Value="@commonProperties.DiscountValue" Placeholder="Enter Discount Amount"
+                                  Variant="Variant.Filled" Color="Color.Primary"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                  Class="discount-input" />
+                </div>
+            }
+
+            <MudText Typo="Typo.subtitle1" Class="mt-4">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" /> Select Discount Reason
+            </MudText>
+
+            <MudSelect @bind-Value="SelectedReason" Variant="Variant.Filled" Color="Color.Primary" Class="reason-select">
+                @foreach (var reason in Enum.GetValues(typeof(DiscountReason)).Cast<DiscountReason>())
+                {
+                    <MudSelectItem Value="@(reason)" Class="my-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Label" Class="mr-2" /> @reason
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Class="apply-btn mt-4 w-100" OnClick="ApplyDiscount"
+                       StartIcon="@Icons.Material.Filled.CheckCircle">
+                Apply Discount
+            </MudButton>
+        </MudPaper>
+    </MudDrawer>
+
+
+
+    @* @if (canAccessMeals) *@
+    @* { *@
+    <MudButton Variant="Variant.Text"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.SetMeal"
+               class="button-color-footer">
+        الوجبات
+    </MudButton>
+    @* } *@
+
+    @* @if (canAccessWaiting) *@
+    @* { *@
+    <MudButton Variant="Variant.Text"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Alarm"
+               class="button-color-footer"
+               OnClick="()=>GotoWaitingPage()">
+        الانتظار
+    </MudButton>
+    @* } *@
+
+    @* @if (canAccessSettings) *@
+    @* { *@
+    <MudButton Variant="Variant.Text"
+               Size="Size.Large"
+               OnClick="ToggleDrawer"
+               StartIcon="@Icons.Material.Filled.Settings"
+               class="button-color-footer">
+        اعدادات
+    </MudButton>
+    @* } *@
+</MudStack>
+
+<SettingsDrawer @bind-Open="_drawerOpen">
+</SettingsDrawer>
+
+
+<style>
+    .button-color-footer {
+        color: #114484 !important;
+    }
+
+    .drawer-header {
+        background: linear-gradient(45deg, #1E3A8A, #ebf0ea);
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+    }
+
+    .drawer-title {
+        font-weight: bold;
+        font-size: 22px;
+    }
+
+    .drawer-content {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .discount-btn {
+        min-width: 160px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+    }
+
+    .input-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .discount-input {
+        width: 100%;
+        max-width: 280px;
+        text-align: center;
+    }
+
+    .reason-select {
+        width: 100%;
+        max-width: 300px;
+        margin: auto;
+    }
+
+    .apply-btn {
+        width: 100%;
+        max-width: 260px;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .close-btn {
+        font-size: 14px;
+        font-weight: bold;
+        border-radius: 6px;
+    }
+
+</style>

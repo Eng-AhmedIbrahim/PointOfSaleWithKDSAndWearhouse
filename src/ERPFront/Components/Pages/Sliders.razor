@@ -1,0 +1,226 @@
+﻿@page "/slider"
+@using BlazorBase
+@using MudBlazor
+@using System.Globalization
+@inject CommonProperties _slider
+@inject IHttpClientFactory _clientFactory
+@inject NavigationManager _navigationManager
+
+@layout PosScreenLayout
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Style="padding:0">
+    <MudGrid Spacing="0" Justify="Justify.Center">
+        <!-- Section 1 -->
+        <MudItem xs="2" Class="full-height">
+            <MudText Typo="Typo.h6" Class="section-label">Categories</MudText>
+            <MudPaper Elevation="1" Class="overflow-y-auto overflow-x-hidden section-height hidden">
+                <!-- Add content for Section 1 here -->
+                <MudStack Spacing="0">
+                    @foreach (var category in _categories ?? new List<CategoryToReturnDto>())
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Class="mt-1"
+                                   Style="@($"padding: {_slider.CategoryPadding}px; font-size: {_slider.CategoryFontSize}px;font-weight:800")">
+                            @category.ArabicName
+                        </MudButton>
+
+                    }
+
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        @* Style="@($"padding: {_slider.Padding}px; font-size: {_slider.FontSize}px;font-weight:800")"> *@
+
+
+        <!-- Section 2 -->
+        <MudItem xs="4" Class="full-height">
+            <MudText Typo="Typo.h6" Class="section-label">Sales Items</MudText>
+            <MudPaper Elevation="1" Class="overflow-y-auto overflow-x-hidden section-height hidden">
+                <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" StretchItems="StretchItems.All" Spacing="0">
+                    @foreach (var item in _itemByCatId)
+                    {
+                        <MudButton Size="Size.Large" Variant="Variant.Filled"
+                                   Class="same-width"
+                                   Style="@($"padding:{_slider.SalesItemsHorizontalSlider * 4}px;font-size:{_slider.SalesItemsVerticalSlider * 4}px;width:{_slider.SalesItemsHorizontalSlider * 20}px;font-weight: bolder;")">
+                            @item.ArabicName
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+
+        <!-- Section 3 -->
+        <MudItem xs="2">
+            <MudPaper Elevation="1" Height="100%">
+                <MudText Typo="Typo.h6" Class="section-label">Sliders</MudText>
+                <div class="slider-style category-slider">
+                    <MudSlider @bind-Value="_slider.CategorySpacing"
+                               Vertical="true"
+                               Min="4"
+                               Max="10"
+                               Step="0.1">
+
+                        CategorySlider: @_slider.CategorySpacing.ToString(CultureInfo.InvariantCulture)
+                    </MudSlider>
+                </div>
+
+                @* <div class="slider-style H-SalesItems-Slider"> *@
+                @*     <MudSlider @bind-Value="_slider._salesItemsHorizontalSider" *@
+                @*                Min="1" *@
+                @*                Max="40" *@
+                @*                Color="Color.Info" *@
+                @*                Step="0.1"> *@
+                @*         H-SalesItems: @_slider._salesItemsHorizontalSider.ToString(CultureInfo.InvariantCulture) *@
+                @*     </MudSlider> *@
+                @* </div> *@
+
+                @* <div class="slider-style V-SalesItems-Slider"> *@
+                @*     <MudSlider @bind-Value="_slider._salesItemsVerticalSlider" *@
+                @*                Vertical="true" *@
+                @*                Min="4" *@
+                @*                Max="10" *@
+                @*                Step="0.1"> *@
+
+                @*         V-SalesItems: @_slider._salesItemsVerticalSlider.ToString(CultureInfo.InvariantCulture) *@
+                @*     </MudSlider> *@
+                @* </div> *@
+
+                <div class="slider-style H-SalesItems-Slider">
+                    <MudSlider @bind-Value="_slider.SalesItemsHorizontalSlider"
+                               Min="1"
+                               Max="40"
+                               Color="Color.Info"
+                               Step="0.1">
+                        H-SalesItems: @_slider.SalesItemsHorizontalSlider.ToString(CultureInfo.InvariantCulture)
+                    </MudSlider>
+                </div>
+
+                <div class="slider-style V-SalesItems-Slider">
+                    <MudSlider @bind-Value="_slider.SalesItemsVerticalSlider"
+                               Vertical="true"
+                               Min="4"
+                               Max="10"
+                               Step="0.1">
+                        V-SalesItems: @_slider.SalesItemsVerticalSlider.ToString(CultureInfo.InvariantCulture)
+                    </MudSlider>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Section 4 -->
+        <MudItem xs="4">
+            <MudPaper Elevation="1" Height="100%">
+                <MudText Typo="Typo.h6" Class="section-label">Save Changes</MudText>
+                <!-- Add content for Section 4 here -->
+                <div class=" d-flex align-items-center h-100">
+
+                    <div class="save-changes-btn">
+                        <button class="btn btn-primary custom-btn" @onclick="SaveChanges">
+                            Save
+                        </button>
+                        <button class="btn btn-danger custom-btn" @onclick='()=>_navigationManager.NavigateTo("/pos")'>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+
+    .full-height {
+        height: calc(100vh - 96px) !important;
+    }
+
+    .section-label {
+        background-color: #022e66 !important;
+        color: var(--mud-palette-primary-text);
+        padding: 8px;
+        text-align: center;
+        font-size: 1rem;
+        border-bottom: 1px solid var(--mud-palette-primary-light);
+    }
+
+    .slider-style {
+        position: relative;
+        left: 0;
+    }
+
+    body {
+        overflow: hidden;
+    }
+
+    .section3 {
+        width: 100%;
+    }
+
+    .button-full-height {
+        height: 100%;
+        flex-grow: 1;
+    }
+
+    .button-row {
+        display: flex;
+        gap: 0;
+        width: 100%;
+    }
+
+        .button-row .mud-icon-button {
+            margin: 0 !important;
+            width: 100%;
+        }
+
+    .section-height {
+        height: calc(100vh - 138px) !important;
+    }
+
+    .same-width {
+        width: 120px;
+        min-width: 120px;
+        text-align: center;
+    }
+
+
+    .hidden {
+        pointer-events: none;
+        opacity: 0.6;
+        filter: grayscale(50%)
+    }
+
+    .category-slider {
+        position: relative;
+        top: 60px;
+    }
+
+    .save-changes-btn {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        width: 100%
+    }
+
+    .save-changes-img {
+        width: 50px;
+        height: 150px;
+        align-items: center;
+    }
+
+    .H-SalesItems-Slider {
+        position: relative;
+        top: 155px;
+    }
+
+    .V-SalesItems-Slider {
+        position: relative;
+        top: 255px;
+    }
+
+    .mud-slider > .mud-typography {
+        margin-top: 10px;
+        margin-left: 10px;
+    }
+</style>

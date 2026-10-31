@@ -1,0 +1,317 @@
+@page "/basicdata/category/printerassignment"
+@using POS.Contract.Dtos.CategoryDtos
+@using POS.Contract.Dtos.KitchenDtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.CategoryServices
+@using BlazorBase.ERPFrontServices.OrderServices
+@using Radzen
+@using Radzen.Blazor
+@inject ICategoryServices CategoryService
+@inject IOrderSettingsService OrderSettingsService
+@inject ISnackbar Snackbar
+@inject LocalizationService LocalizerService
+@inject NavigationManager NavigationManager
+
+<div class="printer-assignment-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <div class="icon-circle me-3">
+                <MudIcon Icon="@Icons.Material.Filled.Category" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
+            </div>
+            <div>
+                <h2 class="m-0 page-title">@(IsArabic ? "ربط الفئات بالطابعات" : "Category Printer Assignment")</h2>
+                <span class="page-subtitle">@(IsArabic ? "تحديد المطبخ الافتراضي وخيارات الطباعة لكل فئة" : "Set default kitchen and printing options for each category")</span>
+            </div>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+            <div class="search-box-premium d-flex align-items-center">
+                <RadzenIcon Icon="search" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث بالفئات..." : "Search categories...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 250px; border: none; background: transparent;" />
+            </div>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
+            <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
+        </div>
+    }
+    else
+    {
+        <div class="px-3 content-area">
+            <div class="category-section mb-5 animate-slide-up">
+                <div class="category-header d-flex justify-content-between align-items-center px-4 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="category-color-bar" style="background: var(--rz-primary);"></span>
+                        <span class="category-name">@(IsArabic ? "قائمة الفئات" : "Categories List")</span>
+                        <span class="item-count">(@_filteredCategories.Count)</span>
+                    </div>
+                </div>
+                
+                <div class="category-body">
+                    <table class="assignment-table">
+                        <thead>
+                            <tr>
+                                <th width="300">@(IsArabic ? "اسم الفئة" : "Category Name")</th>
+                                <th width="250">@(IsArabic ? "المطبخ الافتراضي" : "Default Kitchen")</th>
+                                <th width="150" class="text-center">@(IsArabic ? "طباعة نسخة احتياطية" : "Print Backup")</th>
+                                <th width="100"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var category in _filteredCategories)
+                            {
+                                <tr class="@(_savingCategories.Contains(category.Id) ? "row-saving" : "")">
+                                    <td class="item-name-cell">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="item-id">#@category.Id</div>
+                                            <span class="item-name">@(IsArabic ? category.ArabicName : category.EnglishName)</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <RadzenDropDown TValue="int?" @bind-Value="category.KitchenTypeId" 
+                                                      Data="@_kitchens" TextProperty="KitchenName" ValueProperty="Id" 
+                                                      Placeholder="@(IsArabic ? "اختر المطبخ..." : "Select kitchen...")" 
+                                                      Class="w-100 assignment-dropdown" 
+                                                      Change="@(args => SaveCategoryChange(category))" />
+                                    </td>
+                                    <td class="text-center">
+                                        <MudCheckBox T="bool?" Value="@category.PrintInBackupReceipt" 
+                                                     ValueChanged="@(v => { category.PrintInBackupReceipt = v; SaveCategoryChange(category); })"
+                                                     Color="MudBlazor.Color.Primary" 
+                                                     UnCheckedColor="MudBlazor.Color.Default" 
+                                                     Dense="true" />
+                                    </td>
+                                    <td class="text-center">
+                                        @if (_savingCategories.Contains(category.Id))
+                                        {
+                                            <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Primary" />
+                                        }
+                                        else if (_savedStatus.ContainsKey(category.Id) && _savedStatus[category.Id])
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small" class="animate-pop" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .printer-assignment-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f8fafc;
+        min-height: 100vh;
+    }
+
+    .page-title { font-weight: 800; color: #1e293b; font-size: 1.5rem; letter-spacing: -0.5px; }
+    .page-subtitle { color: #64748b; font-size: 0.9rem; }
+
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+        background: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    .search-box-premium {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 5px 15px;
+        transition: all 0.3s ease;
+    }
+    .search-box-premium:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    .search-box-premium .rz-icon { color: #94a3b8; margin-inline-end: 10px; }
+
+    .category-section {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .category-header {
+        background: #fdfdfd;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .category-color-bar { width: 4px; height: 18px; border-radius: 2px; }
+    .category-name { font-weight: 800; color: #1e293b; font-size: 1.1rem; }
+    .item-count { color: #94a3b8; font-weight: 600; font-size: 0.9rem; }
+
+    .assignment-table { width: 100%; border-collapse: collapse; }
+    .assignment-table th {
+        background: #f8fafc;
+        padding: 12px 20px;
+        text-align: right;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    [dir="ltr"] .assignment-table th { text-align: left; }
+
+    .assignment-table td {
+        padding: 10px 20px;
+        border-bottom: 1px solid #f8fafc;
+        vertical-align: middle;
+    }
+
+    .item-id {
+        background: #eff6ff;
+        color: #3b82f6;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    .item-name { font-weight: 700; color: #334155; }
+
+    .assignment-dropdown {
+        border-radius: 10px !important;
+        border-color: #e2e8f0 !important;
+        font-weight: 600 !important;
+    }
+
+    .row-saving { background-color: #fbfcfe; opacity: 0.8; }
+
+    .animate-slide-up { animation: slideUp 0.5s ease-out; }
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @@keyframes popIn {
+        from { transform: scale(0); }
+        to { transform: scale(1); }
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private List<CategoryToReturnDto> _allCategories = new();
+    private List<CategoryToReturnDto> _filteredCategories = new();
+    private List<KitchenTypeToReturnDto> _kitchens = new();
+    private string _searchTerm = "";
+    private HashSet<int> _savingCategories = new();
+    private Dictionary<int, bool> _savedStatus = new();
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {
+            var catResponse = await CategoryService.GetAllCategories();
+            var kitchenResponse = await OrderSettingsService.GetAllKitchenTypesAsync();
+
+            _allCategories = catResponse?.Data?.ToList() ?? new();
+            _kitchens = kitchenResponse?.ToList() ?? new();
+
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات" : "Failed to load data", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OnSearch(ChangeEventArgs args)
+    {
+        _searchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _filteredCategories = _allCategories;
+        }
+        else
+        {
+            var term = _searchTerm.ToLower().Trim();
+            _filteredCategories = _allCategories.Where(c => 
+                (c.ArabicName?.ToLower().Contains(term) ?? false) || 
+                (c.EnglishName?.ToLower().Contains(term) ?? false) ||
+                c.Id.ToString().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private async Task SaveCategoryChange(CategoryToReturnDto category)
+    {
+        _savingCategories.Add(category.Id);
+        StateHasChanged();
+
+        try
+        {
+            var updateModel = new UpdatedCategoryDto
+            {
+                Id = category.Id,
+                ArabicName = category.ArabicName,
+                EnglishName = category.EnglishName,
+                ItemsFont = category.ItemsFont,
+                Invisible = category.Invisible,
+                KitchenTypeId = category.KitchenTypeId,
+                PrintInBackupReceipt = category.PrintInBackupReceipt
+            };
+
+            var response = await CategoryService.UpdateCategory(updateModel);
+            if (response != null && response.Success)
+            {
+                _savedStatus[category.Id] = true;
+                _ = Task.Delay(2000).ContinueWith(_ => {
+                    _savedStatus.Remove(category.Id);
+                    InvokeAsync(StateHasChanged);
+                });
+            }
+            else
+            {
+                Snackbar.Add(IsArabic ? "فشل حفظ التعديلات" : "Failed to save changes", Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "حدث خطأ أثناء الحفظ" : "Error saving category", Severity.Error);
+        }
+        finally
+        {
+            _savingCategories.Remove(category.Id);
+            StateHasChanged();
+        }
+    }
+}

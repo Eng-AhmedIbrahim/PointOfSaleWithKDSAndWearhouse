@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="ItemSales" ReferenceName="ReportData.ItemSales" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemTitle" DataType="System.String"/>
+      <Column Name="Category" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="40" Text="تقرير الأصناف الأكثر مبيعاً" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="718.2" Height="25" Text="الفترة من: [FromDate] إلى: [ToDate]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="65" Width="718.2" Height="20" Text="[BranchName] :الفرع" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="30" Fill.Color="30, 58, 95">
+      <TextObject Name="Text10" Width="180" Height="30" Border.Lines="All" Border.Color="White" Text="إجمالي المبيعات" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text6" Left="180" Width="100" Height="30" Border.Lines="All" Border.Color="White" Text="الكمية" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text5" Left="280" Width="150" Height="30" Border.Lines="All" Border.Color="White" Text="الفئة" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text4" Left="430" Width="288.2" Height="30" Border.Lines="All" Border.Color="White" Text="إسم الصنف" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="138.2" Width="718.2" Height="30" DataSource="ItemSales">
+      <Sort>
+        <Sort Expression="[ItemSales.Qty]" Descending="true"/>
+      </Sort>
+      <TextObject Name="Text11" Width="180" Height="30" Border.Lines="All" Border.Color="Silver" Text="[ItemSales.Total]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text9" Left="180" Width="100" Height="30" Border.Lines="All" Border.Color="Silver" Text="[ItemSales.Qty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="DarkGreen"/>
+      <TextObject Name="Text8" Left="280" Width="150" Height="30" Border.Lines="All" Border.Color="Silver" Text="[ItemSales.Category]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text7" Left="430" Width="288.2" Height="30" Border.Lines="All" Border.Color="Silver" Text="[ItemSales.ItemTitle]" Padding="0, 0, 5, 0" VertAlign="Center" HorzAlign="Right" Font="Arial, 10pt"/>
+    </DataBand>
+  </ReportPage>
+</Report>

@@ -1,0 +1,249 @@
+@namespace POS.Desktop.Components.DeliveryComponent
+@using BlazorBase.Models.DeliveryModels
+@using MudBlazor
+@using global::POS.Contract.Dtos.DeliveryDtos.DeliveryCustomerInfo
+@using global::POS.Core.Entities.Delivery
+@inject LocalizationService Localizer
+@inject IDialogService DialogService
+@inject CommonProperties _commonProperties
+@inject IDeliveryServices _deliveryServices
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject IBranchService _branchService
+@inject ISnackbar _snackbar
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Small" Class="add-address-dialog">
+    <TitleContent>
+        <div class="aad-header">
+            <div class="aad-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.AddLocationAlt" Style="font-size:1.6rem; color:#fff;" />
+            </div>
+            <div>
+                <div class="aad-header-title">@Localizer["AddNewAddress"]</div>
+                @if (!string.IsNullOrWhiteSpace(_handelDeliveryInvocation.CustomerDetails?.CustomerName))
+                {
+                    <div class="aad-header-sub">@_handelDeliveryInvocation.CustomerDetails.CustomerName</div>
+                }
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm Style="width: 100%" Class="pt-2">
+            <MudGrid Spacing="3">
+                <!-- Phone Number -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_handelDeliveryInvocation.CustomerDetails!.FirstPhoneNumber"
+                                  Label="@Localizer["PhoneNumber"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Phone"
+                                  AdornmentColor="Color.Primary"
+                                  ReadOnly="true"
+                                  Class="aad-field" />
+                </MudItem>
+
+                <!-- Branch -->
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string"
+                               Label="@Localizer["Branch"]"
+                               Variant="Variant.Outlined"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Store"
+                               AdornmentColor="Color.Primary"
+                               Placeholder="@Localizer["Branch"]"
+                               FullWidth="true"
+                               Value="_commonProperties.CustomerDetails!.BranchName"
+                               ValueChanged="OnValueChanged"
+                               ValueExpression="@(() => _commonProperties.CustomerDetails.BranchName)"
+                               Class="aad-field">
+                        @foreach (var branch in Branches ?? [])
+                        {
+                            <MudSelectItem Value="@branch.Name">@branch.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Zone -->
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="string"
+                                     Label="@Localizer["Zone"]"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Map"
+                                     AdornmentColor="Color.Primary"
+                                     Placeholder="@Localizer["Zone"]"
+                                     FullWidth="true"
+                                     @bind-Value="_commonProperties.CustomerDetails!.ZoneName"
+                                     SearchFunc="SearchZones"
+                                     Immediate="true"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true"
+                                     Strict="true"
+                                     Disabled="!IsBranchSelected"
+                                     Class="aad-field" />
+                </MudItem>
+
+                <!-- Home, Floor, Flat Numbers -->
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties.CustomerDetails!.HomeNumber"
+                                  Label="@Localizer["HomeNumber"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Home"
+                                  AdornmentColor="Color.Primary"
+                                  Class="aad-field" />
+                </MudItem>
+
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties.CustomerDetails!.FloorNumber"
+                                  Label="@Localizer["FloorNumber"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Layers"
+                                  AdornmentColor="Color.Primary"
+                                  Class="aad-field" />
+                </MudItem>
+
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties.CustomerDetails!.FlatNumber"
+                                  Label="@Localizer["FlatNumber"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Apartment"
+                                  AdornmentColor="Color.Primary"
+                                  Class="aad-field" />
+                </MudItem>
+
+                <!-- Street / Client Address -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_commonProperties.CustomerDetails!.ClientAddress"
+                                  Label="@Localizer["StreetName"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Signpost"
+                                  AdornmentColor="Color.Primary"
+                                  Class="aad-field" />
+                </MudItem>
+
+                <!-- Address Note -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_commonProperties.CustomerDetails!.AddressNote"
+                                  Label="@Localizer["AddressNote"]"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Notes"
+                                  AdornmentColor="Color.Primary"
+                                  Class="aad-field" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="aad-actions w-100 px-6 pb-6 pt-2 d-flex gap-3">
+            <MudButton Color="Color.Default" Variant="Variant.Outlined" OnClick="Cancel" 
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       Class="aad-cancel-btn">
+                @Localizer["Cancel"]
+            </MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Class="aad-submit-btn">
+                @Localizer["Save"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .add-address-dialog {
+        border-radius: 24px !important;
+        overflow: hidden;
+    }
+
+    .aad-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 4px;
+    }
+
+    .aad-header-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #447cad, #3b82f6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .aad-header-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #1e293b;
+        letter-spacing: -0.02em;
+    }
+
+    .aad-header-sub {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .aad-field .mud-input-outlined-border {
+        border-color: #e2e8f0 !important;
+        border-radius: 12px !important;
+        transition: all 0.2s ease;
+    }
+
+    .aad-field:hover .mud-input-outlined-border {
+        border-color: #94a3b8 !important;
+    }
+
+    .aad-field.mud-input-control-focused .mud-input-outlined-border {
+        border-color: #3b82f6 !important;
+        border-width: 2px !important;
+    }
+
+    .aad-field .mud-input-slot {
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .aad-field .mud-input-label {
+        font-weight: 600;
+    }
+
+    .aad-cancel-btn {
+        flex: 1;
+        height: 48px;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        border: 1.5px solid #cbd5e1 !important;
+        color: #64748b !important;
+        text-transform: none !important;
+    }
+
+    .aad-cancel-btn:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .aad-submit-btn {
+        flex: 2;
+        height: 48px;
+        border-radius: 12px !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem !important;
+        background: linear-gradient(135deg, #447cad, #2563eb) !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+        text-transform: none !important;
+    }
+
+    .aad-submit-btn:hover {
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+    }
+</style>

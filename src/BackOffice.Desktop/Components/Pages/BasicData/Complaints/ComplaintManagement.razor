@@ -1,0 +1,214 @@
+@page "/basicdata/complaints"
+@using POS.Contract.Dtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.ComplaintServices
+@using BackOffice.Desktop.Components.Pages.BasicData.Complaints
+@using Radzen
+@using Radzen.Blazor
+@inject IComplaintServices ComplaintService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<link href="basicdata/complaintmanagement.css" rel="stylesheet" />
+
+<div class="complaint-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة الشكاوى" : "Complaints Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudChipSet T="string" SelectedValue="@StatusFilter" SelectedValueChanged="OnStatusFilterChanged" CheckMark Variant="MudBlazor.Variant.Text" Color="MudBlazor.Color.Primary">
+                <MudChip Value="@("All")">@(IsArabic ? "الكل" : "All")</MudChip>
+                <MudChip Value="@("Open")" Color="MudBlazor.Color.Error">@(IsArabic ? "مفتوحة" : "Open")</MudChip>
+                <MudChip Value="@("InProgress")" Color="MudBlazor.Color.Warning">@(IsArabic ? "قيد التنفيذ" : "In Progress")</MudChip>
+                <MudChip Value="@("Resolved")" Color="MudBlazor.Color.Success">@(IsArabic ? "تم الحل" : "Resolved")</MudChip>
+            </MudChipSet>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3 gy-2">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث بالاسم، رقم الهاتف أو رقم الشكوى..." : "Search by name, phone or complaint #...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredComplaints" 
+                            TItem="ComplaintDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="ComplaintDto" Property="ComplaintNumber" Title="@(IsArabic ? "رقم الشكوى" : "Complaint #")" Width="140px">
+                        <Template Context="comp">
+                            <span style="font-weight: 900; color: #3b82f6;">@comp.ComplaintNumber</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ComplaintDto" Title="@(IsArabic ? "العميل" : "Customer")" Width="200px">
+                        <Template Context="comp">
+                            <div class="customer-info-cell">
+                                <span class="customer-name">@comp.CustomerName</span>
+                                <span class="customer-phone">@comp.CustomerPhone</span>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="ComplaintDto" Property="ComplaintDate" Title="@(IsArabic ? "التاريخ" : "Date")" Width="160px">
+                        <Template Context="comp">
+                            <span style="font-weight: 600;">@comp.ComplaintDate.ToString("yyyy-MM-dd HH:mm")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ComplaintDto" Title="@(IsArabic ? "نص الشكوى" : "Complaint Text")" Width="250px">
+                        <Template Context="comp">
+                            <div class="complaint-text-truncate" title="@comp.ComplaintText">
+                                @comp.ComplaintText
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ComplaintDto" Property="Status" Title="@(IsArabic ? "الحالة" : "Status")" Width="130px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="comp">
+                            @if (comp.Status?.ToLower() == "open")
+                            {
+                                <span class="status-badge status-open">
+                                    <RadzenIcon Icon="error_outline" Style="font-size: 1rem;" />
+                                    @(IsArabic ? "مفتوحة" : "Open")
+                                </span>
+                            }
+                            else if (comp.Status?.ToLower() == "inprogress")
+                            {
+                                <span class="status-badge status-inprogress">
+                                    <RadzenIcon Icon="sync" Style="font-size: 1rem;" />
+                                    @(IsArabic ? "قيد التنفيذ" : "In Progress")
+                                </span>
+                            }
+                            else if (comp.Status?.ToLower() == "resolved")
+                            {
+                                <span class="status-badge status-resolved">
+                                    <RadzenIcon Icon="check_circle_outline" Style="font-size: 1rem;" />
+                                    @(IsArabic ? "تم الحل" : "Resolved")
+                                </span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ComplaintDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="100px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="comp">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                           Color="MudBlazor.Color.Primary" 
+                                           Size="MudBlazor.Size.Small" 
+                                           OnClick="@(() => OpenDetailsDialog(comp))" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ComplaintDto> Complaints = new();
+    private List<ComplaintDto> FilteredComplaints = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<ComplaintDto>? grid;
+    private string SearchTerm = "";
+    private string StatusFilter = "All";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await ComplaintService.GetAllComplaintsAsync();
+            Complaints = response.ToList();
+            ApplyFilter();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل الشكاوى..." : "Failed to load complaints...", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private async Task OnStatusFilterChanged(string val)
+    {
+        StatusFilter = val;
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        var query = Complaints.AsEnumerable();
+
+        if (StatusFilter != "All")
+        {
+            query = query.Where(x => x.Status?.Equals(StatusFilter, StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.ToLower().Trim();
+            query = query.Where(x => 
+                (x.CustomerName != null && x.CustomerName.ToLower().Contains(term)) ||
+                (x.CustomerPhone != null && x.CustomerPhone.Contains(term)) ||
+                (x.ComplaintNumber != null && x.ComplaintNumber.ToLower().Contains(term))
+            );
+        }
+
+        FilteredComplaints = query.OrderByDescending(x => x.ComplaintDate).ToList();
+    }
+
+    private async Task OpenDetailsDialog(ComplaintDto complaint)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["Complaint"] = complaint
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<ComplaintDetailsDialog>(IsArabic ? "تفاصيل الشكوى" : "Complaint Details", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+}

@@ -1,0 +1,71 @@
+@using POS.Contract.Dtos
+@using BlazorBase.ERPFrontServices.ComplaintServices
+@inject IComplaintServices ComplaintService
+@inject ISnackbar Snackbar
+@inject LocalizationService Localizer
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="@Localizer["CustomerName"]" @bind-Value="ComplaintDto.CustomerName" ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="@Localizer["CustomerPhone"]" @bind-Value="ComplaintDto.CustomerPhone" ReadOnly="true" />
+                </MudItem>
+                @if (ComplaintDto.OrderId.HasValue)
+                {
+                    <MudItem xs="12">
+                        <MudTextField T="int?" Label="@Localizer["OrderId"]" @bind-Value="ComplaintDto.OrderId" ReadOnly="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="@Localizer["ComplaintText"]" 
+                                  @bind-Value="ComplaintDto.ComplaintText" 
+                                  AutoGrow Lines="3" 
+                                  Required="true" 
+                                  RequiredError="@Localizer["ComplaintRequired"]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="@Localizer["Note"]" @bind-Value="ComplaintDto.Note" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!success)">@Localizer["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ComplaintDto ComplaintDto { get; set; } = new();
+
+    MudForm form = default!;
+    bool success;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            // Generate Complaint Number
+            ComplaintDto.ComplaintNumber = $"C-{DateTime.Now:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+            
+            var result = await ComplaintService.CreateComplaintAsync(ComplaintDto);
+            if (result.Id > 0)
+            {
+                Snackbar.Add($"{Localizer["ComplaintSaved"]} - {result.ComplaintNumber}", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(Localizer["ComplaintSaveFailed"], Severity.Error);
+            }
+        }
+    }
+}

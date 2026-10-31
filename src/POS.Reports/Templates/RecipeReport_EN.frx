@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Recipes" ReferenceName="ReportData.Recipes" DataType="System.Int32" Enabled="true">
+      <Column Name="ProductName" DataType="System.String"/>
+      <Column Name="RecipeName" DataType="System.String"/>
+      <Column Name="IngredientName" DataType="System.String"/>
+      <Column Name="Quantity" DataType="System.Decimal"/>
+      <Column Name="Unit" DataType="System.String"/>
+    </TableDataSource>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="TextTitle" Width="718.2" Height="40" Text="Recipe Report" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="TextBranch" Top="65" Width="718.2" Height="20" Text="Branch: [BranchName]" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <GroupHeaderBand Name="GroupHeader1" Top="104.2" Width="718.2" Height="40" Condition="[Recipes.ProductName] + [Recipes.RecipeName]" KeepWithData="true">
+      <TextObject Name="TextProd" Width="718.2" Height="40" Fill.Color="240, 240, 240" Text="Product: [Recipes.ProductName]" HorzAlign="Left" VertAlign="Center" Font="Arial, 12pt, style=Bold" Border.Lines="All" Border.Color="30, 58, 95" Padding="10,0,0,0"/>
+      <DataHeaderBand Name="DataHeader1" Top="148.2" Width="718.2" Height="25" Fill.Color="30, 58, 95">
+        <TextObject Name="H1" Left="0" Width="518.2" Height="25" Text="Component" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+        <TextObject Name="H3" Left="518.2" Width="100" Height="25" Text="Unit" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+        <TextObject Name="H2" Left="618.2" Width="100" Height="25" Text="Qty" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      </DataHeaderBand>
+      <DataBand Name="Data1" Top="177.2" Width="718.2" Height="25" DataSource="Recipes">
+        <TextObject Name="B1" Left="0" Width="518.2" Height="25" Text="[Recipes.IngredientName]" HorzAlign="Left" VertAlign="Center" Font="Arial, 9pt" Border.Lines="All" Border.Color="Silver" Padding="5,0,0,0"/>
+        <TextObject Name="B3" Left="518.2" Width="100" Height="25" Text="[Recipes.Unit]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt" Border.Lines="All" Border.Color="Silver"/>
+        <TextObject Name="B2" Left="618.2" Width="100" Height="25" Text="[Recipes.Quantity]" Format="Number" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" Border.Lines="All" Border.Color="Silver"/>
+      </DataBand>
+      <GroupFooterBand Name="GroupFooter1" Top="206.2" Width="718.2" Height="10"/>
+    </GroupHeaderBand>
+    <PageFooterBand Name="PageFooter1" Top="220.2" Width="718.2" Height="20">
+      <TextObject Name="Footer" Width="718.2" Height="20" Text="Page [Page] of [TotalPages#] - [DateTime.Now]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

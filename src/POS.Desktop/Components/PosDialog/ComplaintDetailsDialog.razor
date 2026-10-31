@@ -1,0 +1,132 @@
+@inject LocalizationService Localizer
+<MudDialog Class="complaint-dialog-custom">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Style="font-weight:800;">@Localizer["ComplaintDetails"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="dialog-scroll-content" style="direction:rtl;">
+            <MudGrid>
+                @* ── Basic Info Cards ── *@
+                <MudItem xs="12" sm="6">
+                    <div class="info-card">
+                        <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Size="Size.Small" Class="info-icon" />
+                        <div class="info-text">
+                            <span class="info-label">@Localizer["ComplaintNumber"]</span>
+                            <span class="info-value">@ComplaintDto.ComplaintNumber</span>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <div class="info-card">
+                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" Class="info-icon" />
+                        <div class="info-text">
+                            <span class="info-label">@Localizer["Order#"]</span>
+                            <span class="info-value">#@ComplaintDto.OrderId</span>
+                        </div>
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <div class="info-card">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="info-icon" />
+                        <div class="info-text">
+                            <span class="info-label">@Localizer["Customer"]</span>
+                            <span class="info-value">@ComplaintDto.CustomerName</span>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <div class="info-card">
+                        <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="info-icon" />
+                        <div class="info-text">
+                            <span class="info-label">@Localizer["Phone"]</span>
+                            <span class="info-value" style="font-family:'Outfit',sans-serif;">@ComplaintDto.CustomerPhone</span>
+                        </div>
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-2"/>
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:800;">@Localizer["ComplaintText"]</MudText>
+                        </div>
+                        <div class="section-body">
+                            @ComplaintDto.ComplaintText
+                        </div>
+                        <div class="section-footer">
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Style="font-size:0.8rem; margin-left:4px;"/>
+                            @ComplaintDto.ComplaintDate.ToString("yyyy-MM-dd HH:mm")
+                        </div>
+                    </div>
+                </MudItem>
+
+                @if (!string.IsNullOrEmpty(ComplaintDto.Resolution))
+                {
+                    <MudItem xs="12">
+                        <div class="resolution-section">
+                            <div class="section-header success-text">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-2"/>
+                                <MudText Typo="Typo.subtitle2" Style="font-weight:800;">@Localizer["Resolution"]</MudText>
+                            </div>
+                            <div class="section-body">
+                                @ComplaintDto.Resolution
+                            </div>
+                            <div class="section-footer">
+                                @ComplaintDto.ResolutionDate?.ToString("yyyy-MM-dd HH:mm")
+                            </div>
+                        </div>
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Filled" Color="Color.Primary" Class="px-8 rounded-pill">
+            @Localizer["Close"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .complaint-dialog-custom { border-radius: 20px !important; }
+    .dialog-scroll-content { padding: 10px; }
+    
+    .info-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    .info-icon { color: #3b82f6; }
+    .info-text { display: flex; flex-direction: column; }
+    .info-label { font-size: 0.72rem; color: #64748b; font-weight: 600; }
+    .info-value { font-size: 0.95rem; color: #1e293b; font-weight: 700; }
+
+    .content-section, .resolution-section {
+        padding: 16px;
+        border-radius: 14px;
+        margin-top: 8px;
+    }
+    .content-section { background: #fff7ed; border: 1px solid #ffedd5; }
+    .resolution-section { background: #f0fdf4; border: 1px solid #dcfce7; }
+
+    .section-header { display: flex; align-items: center; margin-bottom: 8px; color: #1e293b; }
+    .section-body { font-size: 0.95rem; color: #334155; line-height: 1.6; white-space: pre-line; }
+    .section-footer { margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; justify-content: flex-end; }
+    
+    .success-text { color: #15803d !important; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ComplaintDto ComplaintDto { get; set; } = new();
+
+    private void Close() => MudDialog.Close();
+}

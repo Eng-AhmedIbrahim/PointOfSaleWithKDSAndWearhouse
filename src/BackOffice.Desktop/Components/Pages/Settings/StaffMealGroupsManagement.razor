@@ -1,0 +1,96 @@
+@page "/basicdata/workers-meals-groups"
+@using POS.Core.Services.Contract
+@using BackOffice.Desktop.Components.Pages.Settings
+@inject IStaffMealService StaffMealService
+@inject LocalizationService Localizer
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-4">@Localizer["StaffMealGroupManagement"]</MudText>
+    <MudText Typo="Typo.body2" Class="mb-6 text-muted">@Localizer["StaffMealGroupManagementDesc"]</MudText>
+
+    <MudTable Items="@_groups" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info" Class="elevation-1">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => OpenDialog(new StaffMealGroupDto())">
+                @(Localizer.GetCurrentLanguage() == "ar" ? "إضافة مجموعة" : "Add Group")
+            </MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>@(Localizer.GetCurrentLanguage() == "ar" ? "الاسم" : "Name")</MudTh>
+            <MudTh>@(Localizer.GetCurrentLanguage() == "ar" ? "الإسم العربي" : "Arabic Name")</MudTh>
+            <MudTh>@(Localizer.GetCurrentLanguage() == "ar" ? "عدد الأصناف" : "Items Count")</MudTh>
+            <MudTh Style="text-align:center;">@(Localizer.GetCurrentLanguage() == "ar" ? "إجراءات" : "Actions")</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Name">@context.ArabicName</MudTd>
+            <MudTd DataLabel="Arabic Name">@context.ArabicName</MudTd>
+            <MudTd DataLabel="Items Count">@(context.Items?.Count ?? 0)</MudTd>
+            <MudTd DataLabel="Actions" Style="text-align:center;">
+                <MudTooltip Text="@Localizer["Edit"]">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="() => OpenDialog(context)" />
+                </MudTooltip>
+                <MudTooltip Text="@Localizer["Delete"]">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => DeleteGroup(context.Id)" />
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@Localizer["NoStaffMealsFound"]</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private IEnumerable<StaffMealGroupDto> _groups = new List<StaffMealGroupDto>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _groups = await StaffMealService.GetAllGroupsAsync() ?? new List<StaffMealGroupDto>();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenDialog(StaffMealGroupDto group)
+    {
+        var parameters = new MudBlazor.DialogParameters { ["Group"] = group };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<StaffMealGroupDialog>(group.Id == 0 ? (Localizer.GetCurrentLanguage() == "ar" ? "إضافة مجموعة" : "Add Group") : (Localizer.GetCurrentLanguage() == "ar" ? "تعديل مجموعة" : "Edit Group"), parameters, options);
+        var result = await dialog.Result;
+
+        
+        if (!result!.Canceled)
+        {
+            await LoadData();
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم الحفظ بنجاح" : "Saved successfully", Severity.Success);
+        }
+    }
+
+    private async Task DeleteGroup(int id)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            Localizer.GetCurrentLanguage() == "ar" ? "تأكيد الحذف" : "Confirm Delete",
+            Localizer.GetCurrentLanguage() == "ar" ? "هل أنت متأكد من حذف هذه المجموعة؟" : "Are you sure you want to delete this group?",
+            yesText: Localizer["Delete"], cancelText: Localizer["Cancel"]);
+
+        if (result == true)
+        {
+            var success = await StaffMealService.DeleteGroupAsync(id);
+            if (success)
+            {
+                await LoadData();
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+            }
+        }
+    }
+}

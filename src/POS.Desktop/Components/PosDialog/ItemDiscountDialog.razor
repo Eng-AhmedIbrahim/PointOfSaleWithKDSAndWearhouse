@@ -1,0 +1,130 @@
+﻿@using BlazorBase.Services
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+@inject LocalizationService Localizer
+
+<MudDialog FullWidth="true" Class="premium-item-discount-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: 1px;">@Localizer["ItemDiscount"]</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="6" Class="pa-6">
+            <div class="mode-selector-wrapper">
+                <MudText Typo="Typo.subtitle2" Class="mb-3 grey-text" Style="font-weight: 700;">@Localizer["ChooseMode"]</MudText>
+                <div class="custom-toggle-container">
+                    <button type="button" class="toggle-btn @(DiscountType == "Percentage" ? "active" : "")" @onclick="@(() => OnModeChanged("Percentage"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Small" Class="mr-2" />
+                        @Localizer["Percent"]
+                    </button>
+                    <button type="button" class="toggle-btn @(DiscountType == "Value" ? "active" : "")" @onclick="@(() => OnModeChanged("Value"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-2" />
+                        @Localizer["Amount"]
+                    </button>
+                </div>
+            </div>
+
+            <MudCard Elevation="0" Class="input-card-premium pa-6">
+                <div class="text-center mb-4">
+                    <MudText Typo="Typo.caption" Class="grey-text" Style="letter-spacing: 1px;">@(DiscountType == "Percentage" ? "REDUCTION PERCENTAGE" : "REDUCTION AMOUNT")</MudText>
+                </div>
+                
+                <MudTextField T="decimal" 
+                              Label="@(DiscountType == "Percentage" ? "Percentage" : "Amount")"
+                              @bind-Value="DiscountAmount"
+                              Adornment="Adornment.End"
+                              AdornmentText="@(DiscountType == "Percentage" ? "%" : "EGP")"
+                              AdornmentColor="Color.Primary"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              FullWidth="true"
+                              Class="premium-field-input" />
+
+                @if (DiscountType == "Percentage")
+                {
+                    <MudSlider Value="@DiscountAmount" ValueChanged="@((decimal v) => DiscountAmount = v)" Min="0" Max="100" Color="Color.Primary" Class="mt-4" />
+                }
+            </MudCard>
+
+            <div class="reason-selector">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 grey-text" Style="font-weight: 700;">@Localizer["DiscountReason"]</MudText>
+                <MudTextField T="string" @bind-Value="DiscountReasonText"
+                              Label="@Localizer["DiscountReason"]"
+                              Variant="Variant.Outlined"
+                              FullWidth="true"
+                              Class="premium-field-input" />
+            </div>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="px-8 pb-8 w-100 d-flex gap-2">
+            <MudButton OnClick="RemoveDiscount" Color="Color.Error" Variant="Variant.Outlined" FullWidth="true" Style="height: 52px; border-radius: 14px; font-weight: 700;">@Localizer["RemoveDiscount"]</MudButton>
+            <MudButton OnClick="ApplyDiscount" Color="Color.Primary" Variant="Variant.Filled" 
+                       Disabled="@IsApplyDisabled" FullWidth="true"
+                       StartIcon="@Icons.Material.Filled.AddCircle"
+                       Style="height: 52px; border-radius: 14px; font-weight: 800;">
+                @Localizer["Apply"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-item-discount-dialog {
+        border-radius: 24px !important;
+        max-width: 450px;
+    }
+
+    .input-card-premium {
+        background-color: #f1f5f9 !important;
+        border-radius: 18px !important;
+        border: 1px solid #e2e8f0;
+    }
+
+    .custom-toggle-container {
+        display: flex;
+        background: #f1f5f9;
+        padding: 5px;
+        border-radius: 16px;
+        gap: 5px;
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-center: center;
+        justify-content: center;
+        color: #64748b;
+        background: transparent;
+    }
+
+    .toggle-btn.active {
+        background: white;
+        color: #594ae2;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .toggle-btn:not(.active):hover {
+        background: rgba(255,255,255,0.5);
+    }
+
+    .premium-field-input .mud-input-outlined-border {
+        border-width: 2px !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    .grey-text {
+        color: #64748b;
+    }
+</style>

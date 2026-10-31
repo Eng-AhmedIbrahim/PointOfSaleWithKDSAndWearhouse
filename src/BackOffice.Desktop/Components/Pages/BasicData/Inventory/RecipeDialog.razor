@@ -1,0 +1,376 @@
+@inject IRecipeFrontService RecipeService
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject LocalizationService Localizer
+
+<MudDialog Class="premium-recipe-dialog">
+    <DialogContent>
+        <div class="dialog-content-wrapper" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+            
+            <!-- Modern Header -->
+            <div class="recipe-header">
+                <div class="header-icon-box">
+                    <RadzenIcon Icon="restaurant_menu" Style="color: #6366f1; font-size: 1.8rem;" />
+                </div>
+                <div class="header-text-info">
+                    <h2 class="main-title">@(Localizer.GetCurrentLanguage() == "ar" ? "تحليل مكونات الصنف (ريسيبي)" : "Recipe Analysis")</h2>
+                    <div class="target-item-info">
+                        <span class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "لصنف:" : "For Item:")</span>
+                        <span class="value">@(Localizer.GetCurrentLanguage() == "ar" ? Item?.ItemNameAr : Item?.ItemNameEn)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recipe-body p-4">
+                <!-- Add New Ingredient Card -->
+                <div class="add-ingredient-card mb-4">
+                    <div class="card-label">@(Localizer.GetCurrentLanguage() == "ar" ? "إضافة مكون جديد" : "Add New Ingredient")</div>
+                    <div class="d-flex flex-wrap align-items-end gap-3">
+                        <div class="flex-grow-1">
+                            <label class="field-label-small">@(Localizer.GetCurrentLanguage() == "ar" ? "اختر المكون" : "Select Ingredient")</label>
+                            <RadzenDropDown TValue="InventoryItemDto" Data="@AllInventoryItems" 
+                                            TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ItemNameAr" : "ItemNameEn")"
+                                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterOperator="StringFilterOperator.Contains" AllowFiltering="true"
+                                            @bind-Value="SelectedIngredient"
+                                            Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "ابحث عن مكون..." : "Search ingredient...")"
+                                            Style="width: 100%; border-radius: 12px; height: 48px; border: 2px solid #e2e8f0; font-weight: 700;" />
+                        </div>
+                        <div style="width: 120px;">
+                            <label class="field-label-small">@(Localizer.GetCurrentLanguage() == "ar" ? "الكمية" : "Qty")</label>
+                            <RadzenNumeric @bind-Value="NewIngredientQty" TValue="decimal" 
+                                           Style="width: 100%; border-radius: 12px; height: 48px; border: 2px solid #e2e8f0; font-weight: 800; text-align: center;" />
+                        </div>
+                        <RadzenButton Click="AddIngredient" ButtonStyle="ButtonStyle.Primary" 
+                                      Style="border-radius: 12px; height: 48px; font-weight: 900; background: #6366f1; border: none; padding: 0 25px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <RadzenIcon Icon="add" Style="font-size: 1.1rem;" />
+                                <span>@(Localizer.GetCurrentLanguage() == "ar" ? "إضافة" : "Add")</span>
+                            </div>
+                        </RadzenButton>
+                    </div>
+                </div>
+
+                <!-- Ingredients Table Header -->
+                <div class="table-header-row d-flex justify-content-between align-items-center mb-2 px-2">
+                    <span class="table-title">@(Localizer.GetCurrentLanguage() == "ar" ? "المكونات الحالية" : "Current Ingredients")</span>
+                    <span class="count-badge">@CurrentIngredients.Count @(Localizer.GetCurrentLanguage() == "ar" ? "مكونات" : "items")</span>
+                </div>
+
+                <!-- Premium Ingredients Table -->
+                <div class="ingredients-table-wrapper">
+                    @if (IsLoading)
+                    {
+                        <div class="pa-8 d-flex flex-column align-center gap-2">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                            <span class="text-muted">@(Localizer.GetCurrentLanguage() == "ar" ? "جاري التحميل..." : "Loading ingredients...")</span>
+                        </div>
+                    }
+                    else if (!CurrentIngredients.Any())
+                    {
+                        <div class="empty-state pa-10">
+                            <RadzenIcon Icon="receipt_long" Style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;" />
+                            <p>@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد مكونات بعد لهذا الصنف" : "No ingredients defined yet")</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="premium-recipe-table">
+                            <thead>
+                                <tr>
+                                    <th>@(Localizer.GetCurrentLanguage() == "ar" ? "المكون" : "Ingredient")</th>
+                                    <th style="width: 120px; text-align: center;">@(Localizer.GetCurrentLanguage() == "ar" ? "الكمية" : "Qty")</th>
+                                    <th style="width: 150px;">@(Localizer.GetCurrentLanguage() == "ar" ? "الوحدة" : "Unit")</th>
+                                    <th style="width: 80px; text-align: center;">@(Localizer.GetCurrentLanguage() == "ar" ? "حذف" : "Del")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ingredient in CurrentIngredients)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="item-char-box">@(ingredient.IngredientName?[0].ToString().ToUpper())</div>
+                                                <span class="ingredient-name">@ingredient.IngredientName</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <RadzenNumeric @bind-Value="ingredient.Quantity" TValue="decimal" 
+                                                           Style="width: 100%; border: none; background: #f8fafc; border-radius: 8px; font-weight: 800; text-align: center; height: 36px;" />
+                                        </td>
+                                        <td>
+                                            <RadzenDropDown TValue="int?" Data="@AllUnits" @bind-Value="ingredient.UnitId"
+                                                            TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" ValueProperty="Id"
+                                                            Style="width: 100%; border: none; background: #f8fafc; border-radius: 8px; font-weight: 700; height: 36px;" />
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <RadzenButton Icon="delete" Click="@(() => RemoveIngredient(ingredient))"
+                                                          ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                                          Style="color: #ef4444; background: #fef2f2; border-radius: 8px;" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-content-end p-4 gap-3 border-top w-100" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+            <RadzenButton Click="Cancel" Text="@(Localizer.GetCurrentLanguage() == "ar" ? "إهمال" : "Dismiss")" 
+                          ButtonStyle="ButtonStyle.Light" Style="border-radius: 12px; font-weight: 800; height: 46px; padding: 0 25px;" />
+            
+            <RadzenButton Click="SaveRecipe" ButtonStyle="ButtonStyle.Success" Disabled="@IsSaving"
+                          Style="background: #10b981; border: none; border-radius: 12px; font-weight: 950; height: 46px; min-width: 160px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                @if (IsSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" Class="me-2" />
+                    <span>@(Localizer.GetCurrentLanguage() == "ar" ? "جاري الحفظ..." : "Saving...")</span>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <RadzenIcon Icon="check_circle" Style="font-size: 1.1rem;" />
+                        <span>@(Localizer.GetCurrentLanguage() == "ar" ? "حفظ المكونات" : "Save Settings")</span>
+                    </div>
+                }
+            </RadzenButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-recipe-dialog .mud-dialog-title { display: none; }
+    .premium-recipe-dialog .mud-dialog-content { padding: 0 !important; overflow: hidden; }
+    .units-page { 
+        font-family: 'Tajawal', sans-serif; 
+        background: #f8fafc; 
+        height: 100%; 
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    .recipes-mgmt-page { 
+        font-family: 'Tajawal', sans-serif; 
+        background: #f8fafc; 
+        height: 100%; 
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    .recipe-header {
+        background: white;
+        padding: 1.5rem 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    .header-icon-box {
+        width: 56px;
+        height: 56px;
+        background: #f5f3ff;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #ddd6fe;
+    }
+    .main-title { font-weight: 900; font-size: 1.4rem; color: #1e293b; margin: 0; }
+    .target-item-info { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-top: 2px; }
+    .target-item-info .label { color: #64748b; font-weight: 600; }
+    .target-item-info .value { color: #6366f1; font-weight: 850; }
+
+    .add-ingredient-card {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 1.25rem;
+    }
+    .card-label { font-weight: 900; color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1rem; }
+    .field-label-small { font-weight: 700; color: #475569; font-size: 0.75rem; margin-bottom: 6px; display: block; }
+
+    .table-title { font-weight: 900; color: #1e293b; font-size: 1rem; }
+    .count-badge { background: #eff6ff; color: #3b82f6; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 20px; }
+
+    .ingredients-table-wrapper {
+        border: 1px solid #f1f5f9;
+        border-radius: 16px;
+        overflow: hidden;
+        background: white;
+    }
+
+    .premium-recipe-table { width: 100%; border-collapse: collapse; }
+    .premium-recipe-table thead { background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
+    .premium-recipe-table th { padding: 14px; text-align: inherit; color: #64748b; font-weight: 800; font-size: 0.85rem; }
+    .premium-recipe-table td { padding: 12px 14px; border-bottom: 1px solid #f8fafc; }
+    .premium-recipe-table tr:last-child td { border-bottom: none; }
+
+    .ingredient-name { font-weight: 800; color: #334155; }
+    .item-char-box {
+        width: 32px;
+        height: 32px;
+        background: #f1f5f9;
+        color: #6366f1;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 0.85rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .empty-state { text-align: center; color: #94a3b8; font-weight: 700; }
+
+    /* Radzen Fixes */
+    .rz-dropdown { --rz-dropdown-trigger-icon-width: 24px; font-family: 'Tajawal', sans-serif !important; }
+    .rz-dropdown-label { display: flex; align-items: center; padding-inline-start: 12px !important; font-weight: 850 !important; }
+    .rz-dropdown-panel { direction: rtl !important; font-family: 'Tajawal', sans-serif !important; }
+    .rz-dropdown-item { font-weight: 800 !important; text-align: right !important; padding: 10px 15px !important; }
+    .rz-numeric-input input { padding: 0 !important; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public InventoryItemDto? Item { get; set; }
+
+    private List<RecipeIngredientDto> CurrentIngredients = new();
+    private List<InventoryItemDto> AllInventoryItems = new();
+    private List<UnitDto> AllUnits = new();
+    [Inject] public IUnitFrontService UnitFrontService { get; set; } = default!;
+    
+    private InventoryItemDto? SelectedIngredient;
+    private decimal NewIngredientQty = 1;
+    
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private int? CurrentRecipeId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnits();
+        await LoadData();
+    }
+
+    private async Task LoadUnits()
+    {
+        var response = await UnitFrontService.GetAllUnitsAsync();
+        if (response.Success) AllUnits = response.Data.ToList();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var invResponse = await InventoryService.GetAllInventoryAsync();
+            if (invResponse.Success && invResponse.Data != null)
+            {
+                AllInventoryItems = invResponse.Data
+                    .Where(i => i.MenuSalesItemId != Item?.MenuSalesItemId && 
+                               (i.ItemTypeCode == "RawMaterial" || i.ItemTypeCode == "SemiFinished" || i.ItemTypeCode == "SaleItem"))
+                    .ToList();
+            }
+
+            if (Item != null)
+            {
+                var recipeResponse = await RecipeService.GetRecipeByItemIdAsync(Item.MenuSalesItemId);
+                if (recipeResponse.Success && recipeResponse.Data != null)
+                {
+                    CurrentRecipeId = recipeResponse.Data.Id;
+                    CurrentIngredients = recipeResponse.Data.Ingredients.ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error loading recipe: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void AddIngredient()
+    {
+        if (SelectedIngredient == null)
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى اختيار مكون أولاً" : "Please select an ingredient first", Severity.Warning);
+            return;
+        }
+
+        if (CurrentIngredients.Any(i => i.MenuSalesIngredientId == SelectedIngredient.MenuSalesItemId))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "هذا المكون مضاف بالفعل" : "Ingredient already added", Severity.Warning);
+            return;
+        }
+
+        CurrentIngredients.Add(new RecipeIngredientDto
+        {
+            MenuSalesIngredientId = SelectedIngredient.MenuSalesItemId,
+            IngredientName = Localizer.GetCurrentLanguage() == "ar" ? SelectedIngredient.ItemNameAr : SelectedIngredient.ItemNameEn,
+            Quantity = NewIngredientQty,
+            UnitId = SelectedIngredient.UnitId,
+            Unit = Localizer.GetCurrentLanguage() == "ar" ? SelectedIngredient.UnitNameAr : SelectedIngredient.UnitNameEn
+        });
+
+        SelectedIngredient = null;
+        NewIngredientQty = 1;
+    }
+
+    private void RemoveIngredient(RecipeIngredientDto ingredient)
+    {
+        CurrentIngredients.Remove(ingredient);
+    }
+
+    private async Task SaveRecipe()
+    {
+        if (Item == null) return;
+        IsSaving = true;
+
+        try
+        {
+            var recipeDto = new RecipeDto
+            {
+                Id = CurrentRecipeId ?? 0,
+                MenuSalesItemId = Item.MenuSalesItemId,
+                RecipeName = (Localizer.GetCurrentLanguage() == "ar" ? Item.ItemNameAr : Item.ItemNameEn) + " Recipe",
+                IsActive = true,
+                Ingredients = CurrentIngredients
+            };
+
+            ServiceResponse<bool> response;
+            if (CurrentRecipeId.HasValue && CurrentRecipeId.Value > 0)
+                response = await RecipeService.UpdateRecipeAsync(recipeDto);
+            else
+                response = await RecipeService.CreateRecipeAsync(recipeDto);
+
+            if (response.Success)
+            {
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم حفظ الريسيبي بنجاح" : "Recipe saved successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(response.Message, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error saving recipe: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,74 @@
+@inject LocalizationService Localizer
+
+<MudButton OnClick="OnExpandCollapseClick"
+           Class="settings-section-btn"
+           EndIcon="@(_expanded ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)">
+    <MudText Class="section-btn-label">@Localizer["Section3"]</MudText>
+</MudButton>
+<MudCollapse Class="pa-4" Expanded="_expanded">
+    <MudStack Spacing="3">
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.SmartButton" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@(Localizer.GetCurrentLanguage() == "ar" ? "تغيير حجم زراير الشاشة" : "Resize Screen Buttons")</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await IncreaseSize(ScreenButtons)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await DecreaseSize(ScreenButtons)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.GridOn" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@Localizer["ResizeKeypad"]</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await IncreaseSize(SpecialKeypadButton)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await DecreaseSize(SpecialKeypadButton)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@Localizer["ResizeIcons"]</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await IncreaseSize(SpecialIconBtn)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await DecreaseSize(SpecialIconBtn)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <MudButton StartIcon="@Icons.Material.Filled.RestartAlt"
+                   OnClick="Reset"
+                   Variant="Variant.Outlined"
+                   Class="settings-reset-btn">
+            @Localizer["ResetDefaults"]
+        </MudButton>
+    </MudStack>
+</MudCollapse>
+
+@code {
+    bool _expanded = false;
+
+    private void OnExpandCollapseClick()
+    {
+        _expanded = !_expanded;
+    }
+}

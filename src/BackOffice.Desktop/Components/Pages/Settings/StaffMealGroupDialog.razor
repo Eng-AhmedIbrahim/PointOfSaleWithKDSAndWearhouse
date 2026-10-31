@@ -1,0 +1,251 @@
+@using POS.Contract.Dtos.AccountDtos
+@using POS.Core.Services.Contract
+@using BlazorBase.ERPFrontServices.ItemServices
+@using POS.Core.Entities.Item
+@inject IStaffMealService StaffMealService
+@inject IItemService ItemService
+@inject LocalizationService Localizer
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Groups" Style="color:#7c4dff;" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Style="font-weight:800; color:#1a1a2e;">
+                @(Group.Id > 0
+                    ? (Localizer.GetCurrentLanguage() == "ar" ? "تعديل مجموعة" : "Edit Group")
+                    : (Localizer.GetCurrentLanguage() == "ar" ? "مجموعة جديدة" : "New Group"))
+            </MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudRTLProvider RightToLeft="true">
+            <div class="pa-3">
+                <MudGrid Spacing="3">
+
+                    @* ── Names ── *@
+                    <MudItem xs="6">
+                        <MudTextField @bind-Value="Group.Name"
+                                      Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الإسم" : "Name")"
+                                      Variant="MudBlazor.Variant.Outlined"
+                                      Required="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Label"
+                                      Style="direction: rtl; text-align: right;" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField @bind-Value="Group.ArabicName"
+                                      Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الإسم العربي" : "Arabic Name")"
+                                      Variant="MudBlazor.Variant.Outlined"
+                                      Required="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Translate"
+                                      Style="direction: rtl; text-align: right;" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="Group.DailyLimit" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "عدد الوجبات اليومي" : "Daily Meals Count")" 
+                                         Min="1" Variant="MudBlazor.Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="Group.MealLimit" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف الوجبة الواحدة" : "Items per Meal")" 
+                                         Min="1" Variant="MudBlazor.Variant.Outlined" />
+                    </MudItem>
+
+                    @* ── Amount Limit ── *@
+                    <MudItem xs="12">
+                        <div class="pa-3 rounded-lg" style="background: linear-gradient(135deg,#f3e5f5,#ede7f6); border: 1.5px solid #ce93d8;">
+                            <div class="d-flex align-center mb-2 gap-1">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color:#7c4dff;" Size="Size.Small" />
+                                <MudText Typo="Typo.subtitle2" Style="color:#4a148c; font-weight:700;">
+                                    @(Localizer.GetCurrentLanguage() == "ar" ? "الحد المالي اليومي" : "Daily Amount Limit")
+                                </MudText>
+                            </div>
+                            <MudNumericField @bind-Value="Group.DailyAmountLimit"
+                                             Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الحد اليومي (0 = غير محدود بالمبلغ)" : "Daily Limit (0 = count-based only)")"
+                                             Variant="MudBlazor.Variant.Outlined"
+                                             Min="0"
+                                             Adornment="Adornment.Start"
+                                             AdornmentText="EGP"
+                                             FullWidth="true" />
+                            <MudText Typo="Typo.caption" Style="color:#7c4dff; margin-top:4px; display:block;">
+                                @(Group.DailyAmountLimit > 0
+                                    ? $"✅ وضع المبلغ: الموظف يصرف حتى {Group.DailyAmountLimit:0.##} EGP يومياً"
+                                    : "ℹ️ وضع العدد: سيتم الاعتماد على عدد الوجبات فقط")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    @* ── Allow All Items Toggle ── *@
+                    <MudItem xs="12">
+                        <div class="pa-3 rounded-lg d-flex align-center justify-space-between"
+                             style="background: @(Group.IsAllItemsAllowed ? "linear-gradient(135deg,#e8f5e9,#f1f8e9)" : "linear-gradient(135deg,#fce4ec,#fff3e0)");
+                                    border: 1.5px solid @(Group.IsAllItemsAllowed ? "#81c784" : "#ffb74d");">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@(Group.IsAllItemsAllowed ? Icons.Material.Filled.LockOpen : Icons.Material.Filled.Lock)"
+                                         Style="@($"color:{(Group.IsAllItemsAllowed ? "#2e7d32" : "#e65100")}")"
+                                         Size="Size.Small" />
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Style="@($"font-weight:700; color:{(Group.IsAllItemsAllowed ? "#1b5e20" : "#bf360c")}")">
+                                        @(Localizer.GetCurrentLanguage() == "ar" ? "السماح بكافة الأصناف" : "Allow All Menu Items")
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#757575;">
+                                        @(Group.IsAllItemsAllowed
+                                            ? "✅ الموظف يختار من كل المنيو (بحد المبلغ)"
+                                            : "🔒 الموظف مقيد بالأصناف المحددة أدناه")
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudSwitch @bind-Value="Group.IsAllItemsAllowed"
+                                       Color="Color.Success"
+                                       UncheckedColor="Color.Warning"
+                                       Size="Size.Medium" />
+                        </div>
+                    </MudItem>
+
+                    @* ── Specific Items (only shown when NOT IsAllItemsAllowed) ── *@
+                    @if (!Group.IsAllItemsAllowed)
+                    {
+                        <MudItem xs="12">
+                            <div class="pa-3 rounded-lg" style="background:#f8f9fa; border: 1.5px solid #e0e0e0;">
+                                <div class="d-flex align-center mb-2 gap-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Style="color:#1976d2;" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2" Style="color:#0d47a1; font-weight:700;">
+                                        @(Localizer.GetCurrentLanguage() == "ar" ? "الأصناف المسموح بها" : "Allowed Items")
+                                    </MudText>
+                                </div>
+
+                                <MudSelect T="int"
+                                           Label="@(Localizer.GetCurrentLanguage() == "ar" ? "اختر الأصناف للإضافة" : "Select items to add")"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="_selectedItemIds"
+                                           Variant="MudBlazor.Variant.Outlined"
+                                           Adornment="Adornment.End"
+                                           Style="direction: rtl; text-align: right;"
+                                           ToStringFunc="@(id => _items?.FirstOrDefault(i => i.Id == id)?.ArabicName ?? id.ToString())">
+                                    @if (_items != null)
+                                    {
+                                        @foreach (var item in _items)
+                                        {
+                                            <MudSelectItem T="int" Value="@item.Id" Style="direction: rtl; text-align: right;">@item.ArabicName</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+
+                                <MudDivider Class="my-2" />
+
+                                <MudTable Items="@Group.Items" Dense="true" Hover="true" Elevation="0"
+                                          Style="background:transparent;">
+                                    <HeaderContent>
+                                        <MudTh Style="font-weight:700; color:#1565c0;">ID</MudTh>
+                                        <MudTh Style="font-weight:700; color:#1565c0;">@(Localizer.GetCurrentLanguage() == "ar" ? "اسم الصنف" : "Item Name")</MudTh>
+                                        <MudTh Style="font-weight:700; color:#c62828;">@(Localizer.GetCurrentLanguage() == "ar" ? "مسح" : "Remove")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd Style="text-align: right;">@context.ItemId</MudTd>
+                                        <MudTd Style="text-align: right; font-weight:500;">@(_items?.FirstOrDefault(i => i.Id == context.ItemId)?.ArabicName ?? context.ItemName)</MudTd>
+                                        <MudTd Style="text-align: right;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => RemoveItem(context)" />
+                                        </MudTd>
+                                    </RowTemplate>
+                                    <NoRecordsContent>
+                                        <MudText Typo="Typo.body2" Class="text-muted pa-2">
+                                            @(Localizer.GetCurrentLanguage() == "ar" ? "⚠️ لا توجد أصناف — اختر أصنافاً من القائمة أعلاه" : "⚠️ No items — select from list above")
+                                        </MudText>
+                                    </NoRecordsContent>
+                                </MudTable>
+                            </div>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Dense="true">
+                                @(Localizer.GetCurrentLanguage() == "ar"
+                                    ? "الموظفون في هذه المجموعة يمكنهم اختيار أي صنف من المنيو الكامل، مقيدين فقط بالحد المالي اليومي."
+                                    : "Employees in this group can pick any item from the full menu, limited only by the daily amount limit.")
+                            </MudAlert>
+                        </MudItem>
+                    }
+
+                </MudGrid>
+            </div>
+        </MudRTLProvider>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined" Color="Color.Default">
+            @(Localizer.GetCurrentLanguage() == "ar" ? "إلغاء" : "Cancel")
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="Save" Class="px-8"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @(Localizer.GetCurrentLanguage() == "ar" ? "حفظ" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public StaffMealGroupDto Group { get; set; } = new();
+
+    private IReadOnlyList<MenuSalesItemsToReturnDto>? _items;
+    private IEnumerable<int> _selectedItemIds { get; set; } = new HashSet<int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var itemResp = await ItemService.GetAllItemsAsync();
+        _items = itemResp?.Data;
+        Group.Items ??= new List<StaffMealGroupItemDto>();
+
+        if (Group.Items.Any())
+            _selectedItemIds = new HashSet<int>(Group.Items.Select(i => i.ItemId));
+    }
+
+    private void RemoveItem(StaffMealGroupItemDto item)
+    {
+        Group.Items.Remove(item);
+        _selectedItemIds = _selectedItemIds.Where(id => id != item.ItemId).ToList();
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Group.Name) || string.IsNullOrWhiteSpace(Group.ArabicName))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الاسم مطلوب" : "Name is required", Severity.Warning);
+            return;
+        }
+
+        if (!Group.IsAllItemsAllowed)
+        {
+            // Sync items from selection
+            Group.Items = _selectedItemIds.Select(id => {
+                var item = _items?.FirstOrDefault(i => i.Id == id);
+                return new StaffMealGroupItemDto
+                {
+                    ItemId = id,
+                    ItemName = item?.ArabicName ?? item?.EnglishName
+                };
+            }).ToList();
+
+            if (!Group.Items.Any())
+            {
+                Snackbar.Add(
+                    Localizer.GetCurrentLanguage() == "ar"
+                        ? "يجب إضافة صنف واحد على الأقل، أو فعّل خيار السماح بكافة الأصناف"
+                        : "Add at least one item, or enable 'Allow All Items'",
+                    Severity.Warning);
+                return;
+            }
+        }
+        else
+        {
+            Group.Items = new List<StaffMealGroupItemDto>(); // clear items when all allowed
+        }
+
+        var success = await StaffMealService.UpsertGroupAsync(Group);
+        if (success) MudDialog.Close(DialogResult.Ok(true));
+        else Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "فشل الحفظ" : "Failed to save", Severity.Error);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

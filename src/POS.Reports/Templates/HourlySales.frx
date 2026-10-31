@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="HourlySales" ReferenceName="ReportData.HourlySales" DataType="System.Int32" Enabled="true">
+      <Column Name="HourLabel" DataType="System.String"/>
+      <Column Name="Amount" DataType="System.Decimal"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+      <Column Name="DineInAmount" DataType="System.Decimal"/>
+      <Column Name="DineInCount" DataType="System.Int32"/>
+      <Column Name="TakeAwayAmount" DataType="System.Decimal"/>
+      <Column Name="TakeAwayCount" DataType="System.Int32"/>
+      <Column Name="DeliveryAmount" DataType="System.Decimal"/>
+      <Column Name="DeliveryCount" DataType="System.Int32"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+    <Parameter Name="MaxAmount" DataType="System.String"/>
+    <Parameter Name="MaxAmountHour" DataType="System.String"/>
+    <Parameter Name="MaxCount" DataType="System.String"/>
+    <Parameter Name="MaxCountHour" DataType="System.String"/>
+    <Total Name="TotalSales" Expression="[HourlySales.Amount]" Evaluator="Data1"/>
+    <Total Name="TotalOrders" Expression="[HourlySales.OrderCount]" Evaluator="Data1"/>
+    <Total Name="TotalDIAmt" Expression="[HourlySales.DineInAmount]" Evaluator="Data1"/>
+    <Total Name="TotalDICnt" Expression="[HourlySales.DineInCount]" Evaluator="Data1"/>
+    <Total Name="TotalTAAmt" Expression="[HourlySales.TakeAwayAmount]" Evaluator="Data1"/>
+    <Total Name="TotalTACnt" Expression="[HourlySales.TakeAwayCount]" Evaluator="Data1"/>
+    <Total Name="TotalDEAmt" Expression="[HourlySales.DeliveryAmount]" Evaluator="Data1"/>
+    <Total Name="TotalDECnt" Expression="[HourlySales.DeliveryCount]" Evaluator="Data1"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Landscape="true" PaperWidth="297" PaperHeight="210" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="1047.06" Height="100">
+      <TextObject Name="Text1" Width="1047.06" Height="40" Text="تقرير توزيع المبيعات بالساعة - تفصيلي" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="1047.06" Height="25" Text="الفترة من: [FromDate] إلى: [ToDate]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="65" Width="1047.06" Height="20" Text="[BranchName] :الفرع" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104" Width="1047.06" Height="50" Fill.Color="30, 58, 95">
+      <TextObject Name="Text12" Width="100" Height="50" Border.Lines="All" Border.Color="White" Text="عدد الطلبات" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text13" Left="100" Width="120" Height="50" Border.Lines="All" Border.Color="White" Text="إجمالي المبيعات" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <LineObject Name="Line1" Left="220" Height="50" Border.Color="White" Border.Width="1.5"/>
+      <TextObject Name="Text14" Left="220" Width="80" Height="50" Border.Lines="All" Border.Color="White" Text="طبات دليفري" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text15" Left="300" Width="100" Height="50" Border.Lines="All" Border.Color="White" Text="مبيعات دليفري" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text16" Left="400" Width="80" Height="50" Border.Lines="All" Border.Color="White" Text="طلبات تيكأواي" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text17" Left="480" Width="100" Height="50" Border.Lines="All" Border.Color="White" Text="مبيعات تيكأواي" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text18" Left="580" Width="80" Height="50" Border.Lines="All" Border.Color="White" Text="طلبات صالة" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text19" Left="660" Width="110" Height="50" Border.Lines="All" Border.Color="White" Text="مبيعات صالة" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text4" Left="770" Width="277.06" Height="50" Border.Lines="All" Border.Color="White" Text="الفترة الزمنية - الساعة" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="158" Width="1047.06" Height="30" DataSource="HourlySales">
+      <TextObject Name="Text9" Width="100" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.OrderCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text8" Left="100" Width="120" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.Amount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text20" Left="220" Width="80" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.DeliveryCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text21" Left="300" Width="100" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.DeliveryAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text22" Left="400" Width="80" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.TakeAwayCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text23" Left="480" Width="100" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.TakeAwayAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text24" Left="580" Width="80" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.DineInCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text25" Left="660" Width="110" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.DineInAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text7" Left="770" Width="277.06" Height="30" Border.Lines="All" Border.Color="Silver" Text="[HourlySales.HourLabel]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+    </DataBand>
+    <ReportSummaryBand Name="ReportSummary1" Top="192" Width="1047.06" Height="280">
+      <TextObject Name="Text10" Left="100" Width="120" Height="40" Border.Lines="All" Fill.Color="WhiteSmoke" Text="[TotalSales]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="Text11" Left="770" Width="277.06" Height="40" Border.Lines="All" Fill.Color="ControlLight" Text="الإجمالي الكلي" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text36" Width="100" Height="40" Border.Lines="All" Fill.Color="WhiteSmoke" Text="[TotalOrders]" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+
+      <TableObject Name="Table1" Top="60" Width="700" Height="105" Left="170">
+        <TableColumn Name="Column1" Width="150"/>
+        <TableColumn Name="Column2" Width="150"/>
+        <TableColumn Name="Column3" Width="150"/>
+        <TableColumn Name="Column4" Width="150"/>
+        <TableRow Name="Row1" Height="30">
+          <TableCell Name="Cell1" Border.Lines="All" Fill.Color="30, 58, 95" Text="متوسط الطلب" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="Cell2" Border.Lines="All" Fill.Color="30, 58, 95" Text="إجمالي المبيعات" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="Cell3" Border.Lines="All" Fill.Color="30, 58, 95" Text="إجمالي الطلبات" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="Cell4" Border.Lines="All" Fill.Color="30, 58, 95" Text="النوع" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+        </TableRow>
+        <TableRow Name="Row2" Height="25">
+          <TableCell Name="Cell5" Border.Lines="All" Text="[[TotalDIAmt]/([TotalDICnt] > 0 ? [TotalDICnt] : 1)]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell6" Border.Lines="All" Text="[TotalDIAmt]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell7" Border.Lines="All" Text="[TotalDICnt]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell8" Border.Lines="All" Text="صالة" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Name="Row3" Height="25">
+          <TableCell Name="Cell9" Border.Lines="All" Text="[[TotalTAAmt]/([TotalTACnt] > 0 ? [TotalTACnt] : 1)]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell10" Border.Lines="All" Text="[TotalTAAmt]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell11" Border.Lines="All" Text="[TotalTACnt]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell12" Border.Lines="All" Text="تيك أواي" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Name="Row4" Height="25">
+          <TableCell Name="Cell13" Border.Lines="All" Text="[[TotalDEAmt]/([TotalDECnt] > 0 ? [TotalDECnt] : 1)]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell14" Border.Lines="All" Text="[TotalDEAmt]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell15" Border.Lines="All" Text="[TotalDECnt]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          <TableCell Name="Cell16" Border.Lines="All" Text="دليفري" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+        </TableRow>
+      </TableObject>
+
+      <TextObject Name="RushBox" Left="250" Top="180" Width="550" Height="80" Border.Lines="All" Border.Color="30, 58, 95" Fill.Color="240, 245, 250" />
+      <TextObject Name="RushTitle" Left="250" Top="185" Width="550" Height="25" Text="المؤشرات التحليلية - فترات الذروة Rush Hour" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="30, 58, 95"/>
+      <TextObject Name="MaxAmtTxt" Left="260" Top="215" Width="530" Height="20" Text="أعلى مبيعات بمبلغ - [MaxAmount] - ج.م في تمام الساعة - [MaxAmountHour]" HorzAlign="Center" Font="Arial, 9pt, style=Bold"/>
+      <TextObject Name="MaxCntTxt" Left="260" Top="235" Width="530" Height="20" Text="أعلى زحام بعدد - [MaxCount] - طلب في تمام الساعة - [MaxCountHour]" HorzAlign="Center" Font="Arial, 9pt, style=Bold"/>
+    </ReportSummaryBand>
+  </ReportPage>
+</Report>

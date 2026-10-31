@@ -1,0 +1,95 @@
+﻿@page "/pos"
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@layout PosScreenLayout
+@inject CommonProperties _commonProperties
+@inject ICategoryServices _categoryServices
+@inject IJSRuntime JsRuntime
+@inject ICustomizationSettingsService CustomizationSettingsService
+@inject Section4ButtonsServices _section4ButtonsServices
+@inject CartService _cartService
+@inject AppDateService _appDate
+@inject OrderSettingsService _orderSettingsService
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject BranchService _branchService
+@inject PrintOrderService _printOrderService
+@inject Section4ButtonsServices _services
+@implements IDisposable
+
+<MudGrid Spacing="0" Justify="Justify.Center" Class="overflow-hidden" tabindex="0">
+    <!-- Section 1 -->
+    <MudItem xs="2">
+        <MudText Typo="Typo.h6" Class="section-label">Categories</MudText>
+        <MudPaper Elevation="1" Height="100%" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+            <MudGrid Spacing="0">
+                @foreach (var category in _categories ?? [])
+                {
+                    <MudButton Variant="Variant.Filled"
+                               FullWidth="true"
+                               Style="@($"font-size: {22}px;font-weight: bold;margin-bottom: 3px;")"
+                               OnClick="async () => await InvokeItems(category.Id)"
+                               Class="liner-grid-buttons">
+                        @category.ArabicName
+                    </MudButton>
+                }
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+    <!-- Section 2 -->
+
+    <MudItem xs="4" Class="full-height">
+        <MudText Typo="Typo.h6" Class="section-label">Sales Items</MudText>
+        <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+            <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" StretchItems="StretchItems.None"
+                      Spacing="1" Class="sales-items-container">
+                @foreach (var item in _itemByCatId)
+                {
+                    <MudTooltip Color="Color.Tertiary" Placement="Placement.Bottom" Arrow="true" Text="@($"Price: {item.Price} $")"
+                                Class="tooltip-container">
+                        <MudButton Size="Size.Large" Variant="Variant.Filled"
+                                   DisableElevation="true"
+                                   Class="same-width liner-grid-buttons item-button"
+                                   Style="@($"padding:{_commonProperties!.SalesItemsHorizontalSlider * 4}px;font-size:{_commonProperties!.SalesItemsVerticalSlider * 4}px; width:{_commonProperties!.SalesItemsHorizontalSlider * 20}px;font-weight: bolder;margin: 1px;")"
+                                   OnClick="@(() => AddItemToSection4(item))">
+                            @item.ArabicName
+                        </MudButton>
+                    </MudTooltip>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+
+    <!-- Section 3 -->
+    <MudItem xs="1">
+        <MudText Typo="Typo.h6" Class="section-label">Actions</MudText>
+        <MudPaper Elevation="1" Height="100%" Class="rounded-0 overflow-hidden full-height border-r border-b border-solid custom-border-color">
+            <Section3 />
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 4 -->
+    <MudItem xs="5">
+        <MudText Typo="Typo.h6" Class="section4-label">@_commonProperties.CurrentPosMode Order @_handelDeliveryInvocation.DeliveryDetails </MudText>
+        <MudPaper Elevation="1" Height="100%"
+                  Class="rounded-0 full-height overflow-y-auto overflow-x-hidden border-r border-b border-solid custom-border-color">
+            <!-- Add content for Section 4 here -->
+            <MudPaper Style="@($"height: {CustomizationSettingsService.TableMaxHeight};")"
+                      Class="rounded-0 overflow-y-auto change-height">
+                <Section4Table Items="_commonProperties.TableItems" OnItemsChanged="OnSection4ItemsChanged" />
+            </MudPaper>
+            <MudPaper MaxHeight="15%"
+                      Class="rounded-0 overflow-y-auto change-height">
+                <MudTextField ShrinkLabel="true"
+                              @bind-Value="_commonProperties.OrderNote"
+                              Immediate="true"
+                              Lines="1"
+                              Margin="Margin.Dense"
+                              Placeholder="Notes"
+                              Variant="Variant.Outlined"
+                              Class="liner-grid-buttons" />
+            </MudPaper>
+            <Section4Buttons />
+            <FinanceComponent Settings="_commonProperties._financeSettingsList" />
+        </MudPaper>
+    </MudItem>
+</MudGrid>

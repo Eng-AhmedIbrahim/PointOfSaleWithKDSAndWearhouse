@@ -1,0 +1,387 @@
+@inject IReportingErpService ReportingService
+@inject IDesktopPrintingService PrintingService
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject BlazorBase.Services.LocalizationService LocalizerService
+@implements IAsyncDisposable
+
+<MudDialog Class="report-viewer-dialog rounded-3xl overflow-hidden" Style="min-height: 90vh;">
+    <TitleContent>
+        <div class="d-flex align-center justify-space-between w-100 px-4 py-2 bg-slate-50 border-b">
+            <div class="d-flex align-center gap-3">
+                <div class="header-icon-box">
+                    <MudIcon Icon="@Icons.Material.Rounded.PictureAsPdf" Color="Color.Primary" />
+                </div>
+                <div>
+                    <h2 class="dialog-title">@ReportName</h2>
+                    <p class="dialog-subtitle">@FromDate.ToString("yyyy-MM-dd") - @ToDate.ToString("yyyy-MM-dd")</p>
+                </div>
+            </div>
+            
+            <div class="d-flex align-center gap-2 flex-wrap">
+
+                <!-- Language Toggle -->
+                <div class="lang-selector bg-white border rounded-pill px-2 d-flex align-center shadow-sm">
+                    <MudIcon Icon="@Icons.Material.Rounded.Translate" Size="Size.Small" Color="Color.Default" Class="mx-1 opacity-50" />
+                    <MudToggleGroup T="string" Value="@_reportLang" ValueChanged="OnLangChanged"
+                                    Dense="true" Rounded="true" Color="Color.Secondary"
+                                    UnselectedColor="Color.Default" Outline="false" Delimiters="false">
+                        <MudToggleItem Value="@("ar")">عربي</MudToggleItem>
+                        <MudToggleItem Value="@("en")">EN</MudToggleItem>
+                    </MudToggleGroup>
+                </div>
+
+                <!-- Printer Type Toggle -->
+                <div class="printer-selector bg-white border rounded-pill px-2 d-flex align-center shadow-sm">
+                    <MudIcon Icon="@Icons.Material.Rounded.Settings" Size="Size.Small" Color="Color.Default" Class="mx-1 opacity-50" />
+                    <MudToggleGroup T="string" Value="@_printerType" ValueChanged="OnPrinterTypeChanged"
+                                    Dense="true" Rounded="true" Color="Color.Primary"
+                                    UnselectedColor="Color.Default" Outline="false" Delimiters="false">
+                        <MudToggleItem Value="@("A4")">A4</MudToggleItem>
+                        <MudToggleItem Value="@("Thermal")">كاشير</MudToggleItem>
+                    </MudToggleGroup>
+                </div>
+
+                <!-- Action Buttons: Print & Save -->
+                <div class="d-flex align-center gap-2">
+                    <!-- Print Menu -->
+                    <MudMenu StartIcon="@Icons.Material.Rounded.Print" Label="طباعة"
+                             Variant="MudBlazor.Variant.Filled" Color="Color.Primary"
+                             Class="rounded-pill" AnchorOrigin="Origin.BottomRight">
+                        <MudMenuItem Icon="@Icons.Material.Rounded.FlashOn" OnClick="() => PrintQuick()">طباعة سريعة - الافتراضية</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Rounded.Receipt" OnClick="() => PrintCashier()">طابعة الكاشير</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Rounded.Settings" OnClick="() => PrintChoose()">إعدادات الطابعة...</MudMenuItem>
+                    </MudMenu>
+
+                    <!-- Save Menu -->
+                    <MudMenu Label="حفظ" StartIcon="@Icons.Material.Rounded.SaveAlt"
+                             Variant="MudBlazor.Variant.Outlined" Color="Color.Primary"
+                             Class="rounded-pill" AnchorOrigin="Origin.BottomRight">
+                        <MudMenuItem OnClick='() => DownloadFile("PDF")' Icon="@Icons.Material.Rounded.PictureAsPdf">حفظ بصيغة PDF</MudMenuItem>
+                        <MudMenuItem OnClick='() => DownloadFile("EXCEL")' Icon="@Icons.Material.Rounded.TableChart">حفظ بصيغة Excel (.xlsx)</MudMenuItem>
+                    </MudMenu>
+                </div>
+
+                <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="Cancel" Class="ms-1" />
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="preview-container">
+            @if (_isLoading)
+            {
+                <div class="loading-state">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                    <p class="mt-4 animate-pulse">جاري تجهيز التقرير...</p>
+                </div>
+            }
+            else if (_blobUrl != null)
+            {
+                <object data="@($"{_blobUrl}#toolbar=0&navpanes=0")" type="application/pdf" class="report-iframe">
+                    <iframe src="@($"{_blobUrl}#toolbar=0&navpanes=0")" frameborder="0"></iframe>
+                </object>
+            }
+            else
+            {
+                <div class="error-state">
+                    <MudIcon Icon="@Icons.Material.Rounded.ErrorOutline" Color="Color.Error" Size="Size.Large" />
+                    <p>فشل تحميل المعاينة. حاول مرة أخرى.</p>
+                </div>
+            }
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Inject] private BlazorBase.CommonProperties CommonProperties { get; set; } = default!;
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string ReportId { get; set; } = "";
+    [Parameter] public string ReportName { get; set; } = "";
+    [Parameter] public DateTime FromDate { get; set; }
+    [Parameter] public DateTime ToDate { get; set; }
+    [Parameter] public Dictionary<string, string>? AdditionalFilters { get; set; }
+
+    private byte[]? _pdfBytes;
+    private string? _blobUrl;
+    private bool _isLoading = true;
+    private string _printerType = "Thermal";
+    private string _reportLang = "ar";
+    private string? _cashierPrinterName;
+
+    private async Task OnPrinterTypeChanged(string value)
+    {
+        if (_printerType == value) return;
+        _printerType = value;
+        await LoadPreview();
+    }
+
+    private async Task OnLangChanged(string value)
+    {
+        if (_reportLang == value) return;
+        _reportLang = value;
+        await LoadPreview();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reportLang = LocalizerService.GetCurrentLanguage() == "en" ? "en" : "ar";
+        _cashierPrinterName = await LocalStorage.GetItemAsync<string>("cashier_printer_name");
+        await LoadPreview();
+    }
+
+    private async Task LoadPreview()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var filters = new Dictionary<string, string>
+            {
+                ["BranchName"] = CommonProperties.BranchDetails?.Name ?? "",
+                ["PrinterType"] = _printerType,
+                ["Lang"] = _reportLang
+            };
+
+            if (AdditionalFilters != null)
+            {
+                foreach (var f in AdditionalFilters) filters[f.Key] = f.Value;
+            }
+
+            var request = new ReportRequestDto
+            {
+                ReportId = ReportId,
+                FromDate = FromDate,
+                ToDate = ToDate,
+                Format = "PDF",
+                Language = _reportLang,
+                Filters = filters
+            };
+
+            var response = await ReportingService.GenerateReport(request);
+            if (response?.Content != null)
+            {
+                _pdfBytes = response.Content;
+                if (!string.IsNullOrEmpty(_blobUrl))
+                {
+                    try { await JSRuntime.InvokeVoidAsync("revokeBlobUrl", _blobUrl); } catch { }
+                }
+                
+                // Direct byte array transfer is much faster than base64
+                _blobUrl = await JSRuntime.InvokeAsync<string>("createBlobFromUint8Array", _pdfBytes, "application/pdf");
+            }
+        }
+        catch
+        {
+            Snackbar.Add("فشل تحميل التقرير.", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // --- Print Actions ---
+
+    private void PrintQuick()
+    {
+        if (_pdfBytes == null || _isLoading) { Snackbar.Add("يرجى الانتظار حتى اكتمال تحميل التقرير.", Severity.Info); return; }
+        try
+        {
+            PrintingService.PrintPdf(_pdfBytes); // Default printer
+            Snackbar.Add("تم الإرسال للطابعة الافتراضية.", Severity.Success);
+        }
+        catch { Snackbar.Add("فشلت الطباعة.", Severity.Error); }
+    }
+
+    private async Task PrintCashier()
+    {
+        if (_pdfBytes == null || _isLoading) { Snackbar.Add("يرجى الانتظار حتى اكتمال تحميل التقرير.", Severity.Info); return; }
+        
+        if (!string.IsNullOrEmpty(_cashierPrinterName))
+        {
+            try 
+            {
+                PrintingService.PrintPdf(_pdfBytes, _cashierPrinterName);
+                Snackbar.Add($"تم الإرسال إلى {_cashierPrinterName}", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"خطأ عند الطباعة على {_cashierPrinterName}: {ex.Message}", Severity.Error);
+                _cashierPrinterName = null; // Force selection next time
+                await PrintChoose();
+            }
+        }
+        else
+        {
+            await PrintChoose();
+        }
+    }
+
+    private async Task PrintChoose()
+    {
+        if (_pdfBytes == null || _isLoading) { Snackbar.Add("يرجى الانتظار حتى اكتمال تحميل التقرير.", Severity.Info); return; }
+
+        // Fetch installed printers
+        var printers = PrintingService.GetInstalledPrinters();
+        
+        var parameters = new DialogParameters<PrinterSelectionDialog>
+        {
+            { x => x.Printers, printers },
+            { x => x.SelectedPrinter, _cashierPrinterName ?? printers.FirstOrDefault() }
+        };
+
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        var dialog = await DialogService.ShowAsync<PrinterSelectionDialog>("طابعة الكاشير", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is string printer)
+        {
+            _cashierPrinterName = printer;
+            await LocalStorage.SetItemAsync("cashier_printer_name", _cashierPrinterName);
+            
+            try 
+            {
+                PrintingService.PrintPdf(_pdfBytes, _cashierPrinterName);
+                Snackbar.Add($"تم الحفظ والطباعة على {_cashierPrinterName}", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"خطأ عند الطباعة: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    // --- Save / Download ---
+
+    private async Task DownloadFile(string format)
+    {
+        if (_pdfBytes == null || _isLoading) { Snackbar.Add("يرجى الانتظار حتى اكتمال تحميل التقرير.", Severity.Info); return; }
+        try
+        {
+            var filters = new Dictionary<string, string>
+            {
+                ["BranchName"] = CommonProperties.BranchDetails?.Name ?? "",
+                ["PrinterType"] = _printerType,
+                ["Lang"] = _reportLang
+            };
+
+            if (AdditionalFilters != null)
+            {
+                foreach (var f in AdditionalFilters) filters[f.Key] = f.Value;
+            }
+
+            var request = new ReportRequestDto
+            {
+                ReportId = ReportId,
+                FromDate = FromDate,
+                ToDate = ToDate,
+                Format = format,
+                Language = _reportLang,
+                Filters = filters
+            };
+
+            var response = await ReportingService.GenerateReport(request);
+            if (response?.Content != null)
+            {
+                string filter = format.ToUpper() switch
+                {
+                    "EXCEL" => "Excel files (*.xlsx)|*.xlsx",
+                    "WORD" => "Word files (*.docx)|*.docx",
+                    _ => "PDF files (*.pdf)|*.pdf"
+                };
+                
+                string title = format.ToUpper() switch
+                {
+                    "EXCEL" => "حفظ ملف Excel",
+                    "WORD" => "حفظ ملف Word",
+                    _ => "حفظ ملف PDF"
+                };
+
+                PrintingService.SaveFileWithDialog(response.Content, response.FileName, filter, title);
+                Snackbar.Add("تم الحفظ بنجاح.", Severity.Success);
+            }
+        }
+        catch { Snackbar.Add("فشل حفظ الملف.", Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!string.IsNullOrEmpty(_blobUrl))
+        {
+            try { await JSRuntime.InvokeVoidAsync("revokeBlobUrl", _blobUrl); } catch { }
+        }
+    }
+}
+
+
+<style>
+    .report-viewer-dialog {
+        background: #f1f5f9;
+        height: 100%;
+    }
+
+    .header-icon-box {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #dcfce7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dialog-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .dialog-subtitle {
+        font-size: 0.78rem;
+        color: #64748b;
+    }
+
+    .preview-container {
+        height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    .report-iframe {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        background: white;
+    }
+
+    .loading-state, .error-state {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 12px;
+    }
+
+    .printer-selector, .lang-selector {
+        height: 42px;
+        display: flex;
+        align-items: center;
+        border: 1.5px solid #e2e8f0 !important;
+    }
+
+    .printer-selector .mud-toggle-group,
+    .lang-selector .mud-toggle-group {
+        border: none !important;
+    }
+</style>

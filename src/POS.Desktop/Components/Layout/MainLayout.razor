@@ -1,0 +1,99 @@
+@inherits LayoutComponentBase
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+@inject CommonProperties _commonProperties
+@inject ISnackbar _snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+
+@* <NavigationLock ConfirmExternalNavigation='_commonProperties.TableItems?.Any() == true' 
+                OnBeforeInternalNavigation="HandleInternalNavigation" /> *@
+
+@implements IDisposable
+
+@inject IPosFeatureSettingsService _featureSettingsService
+
+@inject BlazorBase.HandelDeliveryInvocation _deliveryInvocation
+@using Serilog
+@inject CallCenterNotificationService _callCenterService
+
+@code {
+    private Action? _stateChangedHandler;
+
+    protected override void OnInitialized()
+    {
+        _stateChangedHandler = async () => 
+        {
+            try { await InvokeAsync(StateHasChanged); } catch { }
+        };
+
+        _commonProperties.OnChange += _stateChangedHandler;
+        _deliveryInvocation.OnShowNotification += ShowNotification;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var isCallCenter = await _featureSettingsService.IsFeatureEnabledAsync("IsCallCenter", Environment.MachineName);
+                if (isCallCenter)
+                {
+                    await _callCenterService.InitializeAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[MainLayout] Error initializing CallCenterNotificationService");
+            }
+        }
+    }
+
+    private async void ShowNotification(string message, Severity severity)
+    {
+        await InvokeAsync(() => _snackbar.Add(message, severity));
+    }
+
+    private void HandleInternalNavigation(LocationChangingContext context)
+    {
+        if (context.TargetLocation.Contains("/pos", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (_commonProperties.TableItems?.Any() == true)
+        {
+            _snackbar.Add(Localizer["PleaseCompleteOrder"], Severity.Warning);
+            context.PreventNavigation();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_stateChangedHandler != null)
+            _commonProperties.OnChange -= _stateChangedHandler;
+        _deliveryInvocation.OnShowNotification -= ShowNotification;
+    }
+}
+
+<div class="page">
+    @* <main> *@
+        @* <NavBar /> *@
+
+        @* <article class="content px-4"> *@
+            @Body
+        @* </article> *@
+    @* </main> *@
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

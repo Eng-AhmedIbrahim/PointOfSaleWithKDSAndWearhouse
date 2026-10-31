@@ -1,0 +1,159 @@
+@using MudBlazor
+@using global::POS.Contract.Dtos.DeliveryDtos.DeliveryCustomerInfo
+@using global::POS.Core.Entities.Delivery
+@inject IDialogService DialogService
+@inject CommonProperties _commonProperties
+@inject IDeliveryServices _deliveryServices
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject LocalizationService Localizer
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Medium" Class="address-dialog-container">
+    <DialogContent>
+        <div class="customer-info-banner mb-4">
+            <MudText Typo="Typo.h6" Class="customer-name"><b>@Localizer["CustomerName"]:</b> @CustomerName</MudText>
+            <MudText Typo="Typo.subtitle1" Class="customer-phone"><b>@Localizer["PhoneNumber"]:</b> @PhoneNumber</MudText>
+        </div>
+
+        <MudDivider Class="mb-4" />
+
+        <MudGrid Class="pa-2" Spacing="4">
+            @foreach (var address in Addresses)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="0" Class="address-card-premium d-flex flex-column" Style="height: 100%; min-height: 220px;" @onclick="@(() => SelectAddress(address))">
+                        <div class="card-glow"></div>
+                        <div class="card-content flex-grow-1">
+                            <div class="address-header">
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Primary" Class="mr-2" />
+                                <MudText Typo="Typo.subtitle1"><b>@Localizer["Address"]</b></MudText>
+                            </div>
+                            
+                            <div class="address-details mt-2">
+                                <div class="detail-row">
+                                    <span class="label">@Localizer["Branch"]:</span>
+                                    <span class="value">@address.BranchName</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">@Localizer["Zone"]:</span>
+                                    <span class="value highlighting">@address.ZoneName</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">@Localizer["Address"]:</span>
+                                    <span class="value">@address.ClientAddress</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(address.AddressNote))
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">@Localizer["Note"]:</span>
+                                        <span class="value italic">@address.AddressNote</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="card-action mt-auto">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Check" Size="Size.Small" OnClick="@(() => SelectAddress(address))">
+                                @Localizer["Select"]
+                            </MudButton>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="d-flex justify-space-between w-100 px-4">
+            <MudButton Color="Color.Primary" Variant="Variant.Outlined" OnClick="AddNew" StartIcon="@Icons.Material.Filled.Add">@Localizer["AddNewAddress"]</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">@Localizer["Cancel"]</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .address-dialog-container .mud-dialog-content {
+        background: #f8fafc;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .customer-info-banner {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        padding: 20px;
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .address-card-premium {
+        position: relative;
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .address-card-premium:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border-color: var(--mud-palette-primary-light);
+    }
+
+    .card-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 100% 0%, rgba(89, 74, 225, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .address-header {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+
+    .detail-row {
+        display: flex;
+        margin-bottom: 8px;
+        align-items: flex-start;
+    }
+
+    .detail-row .label {
+        font-weight: 600;
+        color: #64748b;
+        min-width: 80px;
+        font-size: 0.9rem;
+    }
+
+    .detail-row .value {
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .highlighting {
+        color: #594ae1 !important;
+        font-weight: 700;
+        background: #f0f0ff;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    .italic {
+        font-style: italic;
+        color: #94a3b8 !important;
+    }
+
+    .card-action {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 15px;
+    }
+</style>

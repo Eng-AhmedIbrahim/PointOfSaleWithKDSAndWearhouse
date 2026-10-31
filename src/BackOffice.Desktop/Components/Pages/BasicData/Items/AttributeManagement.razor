@@ -1,0 +1,204 @@
+@page "/basicdata/attributes"
+@using POS.Core.Entities.Item
+@using POS.Core.Services.Contract.ItemServices
+@using Radzen
+@using Radzen.Blazor
+@inject IAttributeService AttributeService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+@inject IDialogService DialogService
+
+<div class="page-container @(IsArabic ? "rtl-mode" : "")" dir="@(IsArabic ? "rtl" : "ltr")">
+    <!-- Header -->
+    <div class="header-section d-flex align-center justify-space-between mb-6">
+        <div class="title-group">
+            <h1 class="page-title d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Rounded.ListAlt" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
+                @(IsArabic ? "إدارة الخصائص (Attributes)" : "Attribute Management")
+            </h1>
+            <p class="page-subtitle">@(IsArabic ? "تعديل وإضافة الخصائص والمجموعات برؤية متطورة" : "Manage item attributes and groups with modern UI")</p>
+        </div>
+        <MudButton Variant="MudBlazor.Variant.Filled" 
+                   Color="MudBlazor.Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add" 
+                   OnClick="OpenAddAttributeDialog"
+                   Class="add-btn-premium">
+            @(IsArabic ? "إضافة خاصية جديدة" : "Add New Attribute")
+        </MudButton>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid-card-container">
+        <MudTable Items="@Attributes" Dense="true" Hover="true" Bordered="false" Striped="true" 
+                  Class="premium-table" Loading="@IsLoading" Elevation="0">
+            <HeaderContent>
+                <MudTh>@(IsArabic ? "الكود" : "ID")</MudTh>
+                <MudTh>@(IsArabic ? "الاسم بالعربي" : "Arabic Name")</MudTh>
+                <MudTh>@(IsArabic ? "الاسم بالإنجليزي" : "English Name")</MudTh>
+                <MudTh>@(IsArabic ? "Groups" : "Groups")</MudTh>
+                <MudTh>@(IsArabic ? "Items Count" : "Items Count")</MudTh>
+                <MudTh Style="width: 120px; text-align: center;">@(IsArabic ? "Actions" : "Actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="attrContext">
+                <MudTd DataLabel="ID"><span style="font-weight: bold;">#@attrContext.Id</span></MudTd>
+                <MudTd DataLabel="Arabic Name"><span style="font-weight: bold;">@attrContext.ArabicName</span></MudTd>
+                <MudTd DataLabel="English Name"><span style="font-weight: bold;">@attrContext.EnglishName</span></MudTd>
+                <MudTd DataLabel="Groups">
+                    <div class="d-flex gap-1 flex-wrap">
+                        @foreach (var group in attrContext.AttributeGroups.OrderBy(x => x.DisplayOrder))
+                        {
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Info" Class="group-chip">
+                                @(IsArabic ? group.ArabicName : group.EnglishName)
+                            </MudChip>
+                        }
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Items Count"><span style="font-weight: bold;">@attrContext.AttributeItems.Count</span></MudTd>
+                <MudTd Style="text-align: center;">
+                    <div class="d-flex justify-center gap-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" 
+                                       OnClick="@(() => OpenEditAttributeDialog(attrContext))" Class="action-icon-btn edit" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" 
+                                       OnClick="@(() => ConfirmDelete(attrContext))" Class="action-icon-btn delete" />
+                    </div>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="empty-state py-8 text-center w-100">
+                    <MudIcon Icon="@Icons.Material.Rounded.Inbox" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Default" Class="mb-3" />
+                    <MudText Typo="Typo.h6">@(IsArabic ? "لا يوجد بيانات" : "No attributes found")</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>
+
+<style>
+    .page-container { padding: 24px; background: #f8fafc; min-height: calc(100vh - 80px); }
+    .page-title { font-weight: 900; color: #1e293b; font-size: 1.75rem; }
+    .page-subtitle { color: #64748b; font-weight: 600; font-size: 0.95rem; margin-top: 4px; }
+    
+    .add-btn-premium {
+        border-radius: 12px;
+        font-weight: 800;
+        padding: 10px 24px;
+        text-transform: none;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .grid-card-container {
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .premium-table { border-radius: 0; }
+    .premium-table ::deep .mud-table-head { background: #f1f5f9; }
+    .premium-table ::deep .mud-table-head .mud-table-cell { 
+        font-weight: 900; 
+        color: #475569; 
+        text-transform: uppercase; 
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 16px;
+    }
+    .premium-table ::deep .mud-table-body .mud-table-cell { 
+        padding: 16px; 
+        font-weight: 700; 
+        color: #1e293b;
+    }
+
+    .group-chip { font-weight: 800 !important; border-radius: 8px !important; }
+    
+    .action-icon-btn {
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    .action-icon-btn.edit { background: rgba(37, 99, 235, 0.1); }
+    .action-icon-btn.edit:hover { background: #2563eb; color: white !important; transform: translateY(-2px); }
+    .action-icon-btn.delete { background: rgba(239, 68, 68, 0.1); }
+    .action-icon-btn.delete:hover { background: #ef4444; color: white !important; transform: translateY(-2px); }
+
+    .rtl-mode { font-family: 'Cairo', sans-serif; }
+</style>
+
+@code {
+    private List<Attributes> Attributes = new();
+    private bool IsLoading = true;
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try 
+        {
+            var result = await AttributeService.GetAllAttributeAsync();
+            Attributes = result?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(IsArabic ? "خطأ في تحميل البيانات" : "Error loading attributes", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OpenAddAttributeDialog()
+    {
+        var parameters = new DialogParameters { ["IsArabic"] = IsArabic };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        
+        var dialog = await DialogService.ShowAsync<AttributeDialog>(IsArabic ? "إضافة خاصية" : "Add Attribute", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEditAttributeDialog(Attributes attribute)
+    {
+        var parameters = new DialogParameters { ["IsArabic"] = IsArabic, ["AttributeToEdit"] = attribute };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        
+        var dialog = await DialogService.ShowAsync<AttributeDialog>(IsArabic ? "تعديل خاصية" : "Edit Attribute", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task ConfirmDelete(Attributes attribute)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            IsArabic ? "تأكيد الحذف" : "Confirm Delete",
+            IsArabic ? $"هل أنت متأكد من حذف {attribute.ArabicName}؟" : $"Are you sure you want to delete {attribute.EnglishName}?",
+            yesText: IsArabic ? "حذف" : "Delete", cancelText: IsArabic ? "إلغاء" : "Cancel");
+
+        if (confirmed == true)
+        {
+            var success = await AttributeService.DeleteAttribute(attribute);
+            if (success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add(IsArabic ? "فشل الحذف" : "Delete failed", Severity.Error);
+            }
+        }
+    }
+}

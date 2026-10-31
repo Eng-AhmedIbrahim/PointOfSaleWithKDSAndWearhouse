@@ -1,0 +1,22 @@
+[
+    {
+        "NameAr": "نقدي",
+        "NameEn": "Cash",
+        "IsActive": true
+    },
+    {
+        "NameAr": "فيزا",
+        "NameEn": "Visa",
+        "IsActive": true
+    },
+    {
+        "NameAr": "انستا باي",
+        "NameEn": "InstaPay",
+        "IsActive": true
+    },
+    {
+        "NameAr": "فودافون كاش",
+        "NameEn": "Vodafone Cash",
+        "IsActive": true
+    }
+]

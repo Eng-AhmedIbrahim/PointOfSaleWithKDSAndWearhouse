@@ -1,0 +1,111 @@
+﻿@page "/create-category"
+@using Blazored.FluentValidation
+@using POS.Contract.Dtos.CategoryDtos
+@inject IStringLocalizer<Resource> Localizer
+@inject ICategoryServices categoryService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Add New Category</PageTitle>
+
+<EditForm Model="@_createCategoryDto" OnValidSubmit="@(async () => await OnValidSubmit())">
+    <FluentValidationValidator /> 
+    <MudGrid>
+        <MudItem xs="12" sm="7">
+            <MudCard>
+                <MudCardContent>
+                    <MudTextField Class="my-2" @bind-Value="_createCategoryDto.ArabicName"
+                                  For="@(() => _createCategoryDto.ArabicName)"
+                                  Label=@Localizer["ArabicName"]
+                                  Immediate="true" />
+
+                    <MudTextField Class="my-2" @bind-Value="_createCategoryDto.EnglishName"
+                                  For="@(() => _createCategoryDto.EnglishName)"
+                                  Label=@Localizer["EnglishName"]
+                                  Immediate="true" />
+
+                    <MudSelect Class="my-2"
+                               Label="@Localizer["ItemsFont"]"
+                               For="@(() => _createCategoryDto.ItemsFont)"
+                               @bind-Value="_createCategoryDto.ItemsFont">
+                        <MudSelectItem Value="@("regular")" T="string">@Localizer["regular"]</MudSelectItem>
+                        <MudSelectItem Value="@("semiBold")" T="string">@Localizer["semiBold"]</MudSelectItem>
+                        <MudSelectItem Value="@("bold")" T="string">@Localizer["bold"]</MudSelectItem>
+                    </MudSelect>
+
+                    <MudRadioGroup Class="my-2" T="bool" @bind-Value="_createCategoryDto.Invisible">
+                        <MudRadio Placement="Placement.End"
+                                  Size="Size.Medium"
+                                  Color="Color.Primary"
+                                  Value="false">
+                            @Localizer["VisibleCategory"]
+                        </MudRadio>
+                        <MudRadio Placement="Placement.End"
+                                  Size="Size.Medium"
+                                  Color="Color.Error"
+                                  Value="true">
+                            @Localizer["InvisibleCategory"]
+                        </MudRadio>
+                    </MudRadioGroup>
+
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-end">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Class="mx-1">
+                        @Localizer["Submit"]
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="5">
+            <MudPaper Class="pa-4 mud-height-full">
+                <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                @if (Success)
+                {
+                    <MudText Color="Color.Success">Success</MudText>
+                }
+                else
+                {
+                    <MudText Color="@Color.Error">
+                        <ValidationSummary />
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Fill out the form correctly to see the success message.
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+    private bool Success = false;
+    private CreateCategoryDto _createCategoryDto = new();
+
+    private async Task OnValidSubmit()
+    {
+        _createCategoryDto.CreationDate = DateTime.Now;
+        if (string.IsNullOrEmpty(_createCategoryDto.EnglishName))
+            _createCategoryDto.EnglishName = _createCategoryDto.ArabicName;
+
+        var request = await categoryService.CreateCategory(_createCategoryDto);
+
+        switch (request.Success)
+        {
+            case true:
+                Snackbar.Add(request.Message, MudBlazor.Severity.Success);
+                Success = true;
+                _createCategoryDto = new();
+                // NavigationManager.NavigateTo("/Categories");
+                break;
+
+            case false:
+                Snackbar.Add(request.Message, MudBlazor.Severity.Error);
+                break;
+        }
+    }
+}

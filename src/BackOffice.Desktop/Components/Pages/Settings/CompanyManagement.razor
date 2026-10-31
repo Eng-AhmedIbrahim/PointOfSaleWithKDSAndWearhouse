@@ -1,0 +1,287 @@
+@page "/settings/company"
+@using Radzen
+@using Radzen.Blazor
+@using POS.Contract.Dtos.CompanyDtos
+@using BlazorBase.ERPFrontServices.CompanyServices
+@using System.IO
+@inject ICompanyService CompanyService
+@inject NotificationService NotificationService
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<div class="company-page-wrapper" dir="rtl">
+    <!-- Header -->
+    <div class="d-flex justify-space-between align-center company-header">
+        <div>
+            <RadzenText TextStyle="TextStyle.H5" Class="rz-m-0 premium-title">@Localizer["CompanyManagement"]</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-m-0 text-muted">@Localizer["ManageCompanyDesc"]</RadzenText>
+        </div>
+        <div class="d-flex align-center gap-4">
+            <InputFile id="companyLogoUpload" OnChange="UploadLogo" accept=".png,.jpg,.jpeg" style="display:none" />
+            <RadzenButton Text="@Localizer["Logo"]" Icon="cloud_upload" ButtonStyle="ButtonStyle.Light"
+                          Click="@TriggerLogoUpload" />
+            @if (!string.IsNullOrEmpty(LogoPath))
+            {
+                <div class="logo-container">
+                    <img src="@GetImageSrc()" width="72" height="72" style="object-fit:contain; border-radius:12px;" />
+                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
+                                  Style="position:absolute;top:-12px;right:-12px;border-radius:50%;min-width:26px;width:26px;height:26px;padding:0;"
+                                  Click="DeleteLogo" />
+                </div>
+            }
+            else
+            {
+                <div class="company-logo-placeholder">
+                    <RadzenIcon Icon="account_balance" IconColor="var(--rz-primary)" Style="font-size:2rem;" />
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (_company == null)
+    {
+        <div class="d-flex justify-center rz-mt-10">
+            <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        </div>
+    }
+    else
+    {
+        <div class="premium-form-card">
+            <!-- Section: Basic Info -->
+            <div class="section-header">
+                <RadzenIcon Icon="badge" IconColor="var(--rz-primary)" />
+                <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-m-0 section-title">البيانات الأساسية</RadzenText>
+            </div>
+            <RadzenDivider Style="margin:0 0 16px;" />
+            <RadzenRow Gap="1rem" Class="rz-mb-4">
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["ArabicName"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.ArabicName" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["EnglishName"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.EnglishName" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- Section: Contact -->
+            <div class="section-header">
+                <RadzenIcon Icon="contact_phone" IconColor="var(--rz-primary)" />
+                <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-m-0 section-title">بيانات التواصل</RadzenText>
+            </div>
+            <RadzenDivider Style="margin:0 0 16px;" />
+            <RadzenRow Gap="1rem" Class="rz-mb-4">
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["PhoneNumber"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.PhoneNumber" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["MobileNumber"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.MobileNumber" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["Email"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.Email" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn SizeMD="6" Size="12">
+                    <RadzenFormField Text="@Localizer["Website"]" Variant="Radzen.Variant.Outlined" Style="width:100%">
+                        <RadzenTextBox @bind-Value="_company.Website" Style="width:100%" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- Section: Address -->
+            <div class="section-header">
+                <RadzenIcon Icon="location_on" IconColor="var(--rz-primary)" />
+                <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-m-0 section-title">العنوان</RadzenText>
+            </div>
+            <RadzenDivider Style="margin:0 0 16px;" />
+            <RadzenFormField Text="@Localizer["Address"]" Variant="Radzen.Variant.Outlined" Style="width:100%" Class="rz-mb-6">
+                <RadzenTextBox @bind-Value="_company.Address" Style="width:100%" />
+            </RadzenFormField>
+
+            <!-- Save Button -->
+            <div class="d-flex justify-end">
+                <RadzenButton Text="@Localizer["Save"]" Icon="check_circle" ButtonStyle="ButtonStyle.Primary"
+                              Size="ButtonSize.Large" Click="UpdateCompany" Class="premium-save-btn" />
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .company-page-wrapper { padding: 24px 32px; height: 100%; overflow-y: auto; background: #f8fafc; }
+    .company-header { margin-bottom: 24px; }
+
+    .premium-title {
+        font-weight: 900;
+        background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .text-muted { color: #64748b; }
+
+    .logo-container {
+        position: relative; width: 72px; height: 72px;
+        border-radius: 12px; background: white;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .company-logo-placeholder {
+        width: 72px; height: 72px; border-radius: 20px;
+        background: #f8fafc; border: 2px dashed #cbd5e1;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .premium-form-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.06);
+        padding: 28px;
+    }
+
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .section-title { color: #334155; font-weight: 700; }
+
+    .premium-save-btn {
+        border-radius: 14px !important;
+        font-weight: 700;
+        box-shadow: 0 4px 15px -3px rgba(59,130,246,0.4);
+        transition: all 0.3s;
+        padding: 0 40px;
+    }
+    .premium-save-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59,130,246,0.6); }
+</style>
+
+@code {
+    private CreateCompanyDto? _company;
+
+    private string LogoPath
+    {
+        get
+        {
+            try
+            {
+                var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo");
+                if (!Directory.Exists(folderPath))
+                    folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo");
+                if (Directory.Exists(folderPath))
+                {
+                    return Directory.GetFiles(folderPath, "*.*")
+                        .FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                             f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                             f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)) ?? "";
+                }
+            }
+            catch { }
+            return "";
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        var companies = await CompanyService.GetCompanies();
+        _company = companies.FirstOrDefault() ?? new CreateCompanyDto();
+    }
+
+    private string GetImageSrc()
+    {
+        try
+        {
+            var path = LogoPath;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                var bytes = File.ReadAllBytes(path);
+                var ext = Path.GetExtension(path).ToLower();
+                return $"data:{(ext == ".png" ? "image/png" : "image/jpeg")};base64,{Convert.ToBase64String(bytes)}";
+            }
+        }
+        catch { }
+        return "";
+    }
+
+    private void TriggerLogoUpload() { /* JS interop handled via label */ }
+
+    private async Task UploadLogo(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var folder1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo");
+                var folder2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo");
+                ClearImagesInFolder(folder1);
+                ClearImagesInFolder(folder2);
+                if (!Directory.Exists(folder2)) Directory.CreateDirectory(folder2);
+                var filePath = Path.Combine(folder2, file.Name);
+                using var stream = file.OpenReadStream(1024 * 1024 * 5);
+                using var fs = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fs);
+                StateHasChanged();
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = Localizer["SavedSuccessfully"] });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = Localizer["ErrorSaving"] + ": " + ex.Message });
+        }
+    }
+
+    private void ClearImagesInFolder(string folder)
+    {
+        if (!Directory.Exists(folder)) return;
+        foreach (var f in Directory.GetFiles(folder, "*.*"))
+        {
+            if (f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
+                File.Delete(f);
+        }
+    }
+
+    private void DeleteLogo()
+    {
+        try
+        {
+            ClearImagesInFolder(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo"));
+            ClearImagesInFolder(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo"));
+            StateHasChanged();
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = Localizer["SavedSuccessfully"] });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = Localizer["ErrorSaving"] + ": " + ex.Message });
+        }
+    }
+
+    private async Task UpdateCompany()
+    {
+        if (_company == null) return;
+        var updatedCompany = new UpdatedCompanyDto
+        {
+            CompanyId = 1,
+            ArabicName = _company.ArabicName,
+            EnglishName = _company.EnglishName,
+            PhoneNumber = _company.PhoneNumber,
+            MobileNumber = _company.MobileNumber,
+            Email = _company.Email,
+            Website = _company.Website,
+            Address = _company.Address
+        };
+        var result = await CompanyService.UpdateCompany(updatedCompany);
+        NotificationService.Notify(new NotificationMessage
+        {
+            Severity = result != null ? NotificationSeverity.Success : NotificationSeverity.Error,
+            Summary = result != null ? Localizer["SavedSuccessfully"] : Localizer["ErrorSaving"]
+        });
+    }
+}

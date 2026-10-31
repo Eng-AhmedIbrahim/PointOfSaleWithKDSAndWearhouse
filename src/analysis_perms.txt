@@ -1,0 +1,67 @@
+--- Permissions REVIEW ---
+Total Defined in Permissions.cs: 60
+Total Used in POS.Desktop: 51
+
+UNUSED Permissions (Defined but not found in POS.Desktop):
+ - CanAccessAccountsPrintBtn
+ - CanAccessAccountsViewBtn
+ - CanAccessAllOrdersPrintBtn
+ - CanAccessAllOrdersViewBtn
+ - CanAccessAllOrdersVoidBtn
+ - CanAccessPrintReceipt
+ - CanAccessSummaryPrintBtn
+ - CanAccessSummaryViewDetailsBtn
+ - CanAccessVoidOrder
+
+USED Permissions and where:
+ - CanAccessAccounts: AccountsPage.razor, POSNavbarCommponent.razor.cs
+ - CanAccessDelivery: DeliveryButtons.razor.cs, POSNavbarCommponent.razor.cs
+ - CanAccessDeliveryAddNewBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryBranchManagementBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryClearBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryComplaintsBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryDistributionBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryOrderBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliverySearchBtn: DeliveryButtons.razor.cs
+ - CanAccessDeliveryToggleDirectionBtn: DeliveryButtons.razor.cs
+ - CanAccessDineInCloseTableBtn: MenuButtons.razor.cs
+ - CanAccessDineInGuestCountBtn: MenuButtons.razor.cs
+ - CanAccessDineInMergeTableBtn: MenuButtons.razor.cs
+ - CanAccessDineInOrderBtn: MenuButtons.razor.cs
+ - CanAccessDineInReceiptBtn: MenuButtons.razor.cs
+ - CanAccessDineInSplitOrderBtn: MenuButtons.razor.cs
+ - CanAccessDineInTransferBtn: MenuButtons.razor.cs
+ - CanAccessDineInVoidBtn: MenuButtons.razor.cs
+ - CanAccessDistribution: Distribution.razor.cs, POSNavbarCommponent.razor.cs
+ - CanAccessDistributionAssignBtn: Distribution.razor.cs
+ - CanAccessDistributionCollectBtn: Distribution.razor.cs
+ - CanAccessDistributionDriverSettlementBtn: Distribution.razor.cs
+ - CanAccessDistributionPrintBtn: Distribution.razor.cs
+ - CanAccessDistributionUnDispatchBtn: Distribution.razor.cs
+ - CanAccessDistributionViewBtn: Distribution.razor.cs
+ - CanAccessDistributionViewDriversBtn: Distribution.razor.cs
+ - CanAccessDistributionVoidBtn: Distribution.razor.cs
+ - CanAccessDistributionVoidHistoryBtn: Distribution.razor.cs
+ - CanAccessFooterCustomerDataBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterDiscountBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterMealsBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterPaymentMethodBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterQuickPaymentBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterSettingsBtn: POSFooterCommponent.razor.cs
+ - CanAccessFooterWaitingBtn: POSFooterCommponent.razor.cs
+ - CanAccessOrders: POSNavbarCommponent.razor.cs, AllOrdersPage.razor
+ - CanAccessPosSettings: POSFooterCommponent.razor.cs, Distribution.razor.cs
+ - CanAccessPosSettingsFeature: POSFooterCommponent.razor.cs, Distribution.razor.cs
+ - CanAccessSummary: SummaryPage.razor, POSNavbarCommponent.razor.cs
+ - CanAccessTables: POSNavbarCommponent.razor.cs
+ - CanAccessTakeAway: POSNavbarCommponent.razor.cs
+ - CanAccessWaiting: WaitingPage.razor
+ - CanApplyItemDiscount: Section3.razor.cs
+ - CanCancelOrder: Section4Buttons.razor.cs
+ - CanDecrementQuantity: Section3.razor.cs
+ - CanDeleteItem: Section3.razor.cs
+ - CanEditItemComment: Section3.razor.cs
+ - CanIncrementQuantity: Section3.razor.cs
+ - CanPrintOrder: Section4Buttons.razor.cs, AllOrdersPage.razor.cs
+ - CanUseKeypad: Section3.razor.cs
+ - CanWaitingOrder: Section4Buttons.razor.cs

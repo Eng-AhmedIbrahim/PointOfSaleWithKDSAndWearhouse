@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/10/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Inventory" ReferenceName="ReportData.Inventory" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Category" DataType="System.String"/>
+      <Column Name="CurrentQty" DataType="System.Decimal"/>
+      <Column Name="MinQty" DataType="System.Decimal"/>
+      <Column Name="Unit" DataType="System.String"/>
+      <Column Name="IsTracked" DataType="System.Boolean"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="ReportTitle" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="40" Text="تقرير حالة المخزون" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="718.2" Height="25" Text="حالة المخزون بتاريخ: [DateTime.Now]" Format="Date" Format.Format="yyyy-MM-dd HH:mm" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="65" Width="718.2" Height="20" Text="الفرع: [BranchName]" HorzAlign="Center" Font="Arial, 10pt" RTL="true"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="35" Fill.Color="30, 58, 95">
+      <TextObject Name="TextHeader1" Left="518.2" Width="200" Height="35" Border.Lines="All" Border.Color="White" Text="الصنف" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader2" Left="388.2" Width="130" Height="35" Border.Lines="All" Border.Color="White" Text="القسم" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader3" Left="288.2" Width="100" Height="35" Border.Lines="All" Border.Color="White" Text="الرصيد الحالي" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeaderUnit" Left="208.2" Width="80" Height="35" Border.Lines="All" Border.Color="White" Text="الوحدة" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader4" Left="118.2" Width="90" Height="35" Border.Lines="All" Border.Color="White" Text="الحد الأدنى" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeaderTrack" Left="0" Width="118.2" Height="35" Border.Lines="All" Border.Color="White" Text="تتبع المخزن" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="143.2" Width="718.2" Height="30" DataSource="Inventory">
+      <TextObject Name="TextBody1" Left="518.2" Width="200" Height="30" Border.Lines="All" Border.Color="Silver" Text="[Inventory.ItemName]" VertAlign="Center" Font="Arial, 10pt" Padding="5,0,0,0"/>
+      <TextObject Name="TextBody2" Left="388.2" Width="130" Height="30" Border.Lines="All" Border.Color="Silver" Text="[Inventory.Category]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="TextBody3" Left="288.2" Width="100" Height="30" Border.Lines="All" Border.Color="Silver" Text="[Inventory.CurrentQty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="[IIf([Inventory.CurrentQty] &lt;= [Inventory.MinQty], Color.Red, Color.Black)]"/>
+      <TextObject Name="TextBodyUnit" Left="208.2" Width="80" Height="30" Border.Lines="All" Border.Color="Silver" Text="[Inventory.Unit]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="TextBody4" Left="118.2" Width="90" Height="30" Border.Lines="All" Border.Color="Silver" Text="[Inventory.MinQty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="TextBodyTrack" Left="0" Width="118.2" Height="30" Border.Lines="All" Border.Color="Silver" Text="[IIf([Inventory.IsTracked], &quot;نعم&quot;, &quot;لا&quot;)]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="177.2" Width="718.2" Height="20">
+      <TextObject Name="TextFooter" Width="718.2" Height="20" Text="صفحة [Page] من [TotalPages#] - [DateTime.Now]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

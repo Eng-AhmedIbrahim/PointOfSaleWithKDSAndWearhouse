@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/16/2026" ReportInfo.Modified="03/16/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Transactions" ReferenceName="ReportData.Transactions" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Date" DataType="System.DateTime"/>
+      <Column Name="Type" DataType="System.String"/>
+      <Column Name="QtyChange" DataType="System.Decimal"/>
+      <Column Name="ResultQty" DataType="System.Decimal"/>
+      <Column Name="Reference" DataType="System.String"/>
+      <Column Name="Reason" DataType="System.String"/>
+      <Column Name="CreatedBy" DataType="System.String"/>
+      <Column Name="Notes" DataType="System.String"/>
+      <Column Name="Image" DataType="System.Byte[]"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="TextTitle" Width="718.2" Height="40" Text="Waste and Damage Report" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold" TextFill.Color="Red"/>
+      <TextObject Name="TextDate" Top="40" Width="718.2" Height="25" Text="From: [FromDate] To: [ToDate]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="TextBranch" Top="65" Width="718.2" Height="20" Text="Branch: [BranchName]" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="35" Fill.Color="30, 58, 95">
+      <TextObject Name="H1" Width="180" Height="35" Text="Item" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H2" Left="180" Width="140" Height="35" Text="Date" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H3" Left="320" Width="100" Height="35" Text="Type" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H4" Left="420" Width="80" Height="35" Text="Qty" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H5" Left="500" Width="100" Height="35" Text="Responsible" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H6" Left="600" Width="118.2" Height="35" Text="Reason/Notes" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="143.2" Width="718.2" Height="100" DataSource="Transactions" CanGrow="true">
+      <TextObject Name="B1" Width="180" Height="35" Text="[Transactions.ItemName]" HorzAlign="Left" VertAlign="Center" Font="Arial, 11pt, style=Bold" Border.Lines="All" Border.Color="Silver" Padding="5,0,0,0"/>
+      <TextObject Name="B2" Left="180" Width="140" Height="35" Text="[Transactions.Date]" Format="Custom" Format.Format="yyyy-MM-dd hh:mm tt" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B3" Left="320" Width="100" Height="35" Text="[Transactions.Type]" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B4" Left="420" Width="80" Height="35" Text="[Abs([Transactions.QtyChange])]" Format="Number" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="Red" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B5" Left="500" Width="100" Height="35" Text="[Transactions.CreatedBy]" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B6" Left="600" Width="118.2" Height="35" Text="[Transactions.Reason] [Transactions.Notes]" HorzAlign="Left" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="Silver" Padding="5,0,0,0"/>
+      <PictureObject Name="Pic1" Left="600" Top="35" Width="118.2" Height="60" Border.Lines="All" Border.Color="Silver" DataColumn="Transactions.Image" SizeMode="Zoom"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="182.2" Width="718.2" Height="20">
+      <TextObject Name="Footer" Width="718.2" Height="20" Text="Page [Page] of [TotalPages#] - [DateTime.Now]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

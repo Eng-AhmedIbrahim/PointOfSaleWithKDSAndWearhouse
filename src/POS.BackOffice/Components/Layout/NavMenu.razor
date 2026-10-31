@@ -1,0 +1,45 @@
+﻿@inject IStringLocalizer<Resource> Localizer
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Dashboard</MudNavLink>
+    
+    <MudNavGroup Title="@Localizer["Category"]" Icon="@Icons.Material.Outlined.Category">
+        <MudNavLink Href="Categories"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.List">
+            @Localizer["Categories"]
+        </MudNavLink>
+        <MudNavLink Href="create-category"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.Add">
+            @Localizer["AddCategory"]
+        </MudNavLink>
+    </MudNavGroup>
+    @* <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink> *@
+   
+    <MudNavGroup Title="@Localizer["UserManagement"]" Icon="@Icons.Material.Outlined.ManageAccounts">
+        
+        <MudNavLink Href="users"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.People">
+            @Localizer["Users"]
+        </MudNavLink>
+
+        <MudNavLink Href="users"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.SupervisorAccount">
+            @Localizer["Roles"]
+        </MudNavLink>
+
+
+        <MudNavLink Href="users"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.AdminPanelSettings">
+            @Localizer["Permissions"]
+        </MudNavLink>
+
+
+    </MudNavGroup>
+
+</MudNavMenu>
+
+

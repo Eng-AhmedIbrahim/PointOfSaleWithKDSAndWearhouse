@@ -1,0 +1,114 @@
+@using BlazorBase.ERPFrontServices.LicensingServices
+@inject ILicenseService LicenseService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column align-center pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.VpnKey" Color="Color.Primary" Size="Size.Large" Class="mb-4" />
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-2">تنشيط النظام</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="mb-6">يرجى إدخال بيانات المسؤول لتنشيط هذا الجهاز</MudText>
+
+            <MudTextField @bind-Value="_username" Label="اسم المستخدم للمسؤول" Variant="Variant.Outlined" FullWidth Class="mb-4" 
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+            
+            <MudTextField @bind-Value="_password" Label="كلمة المرور للمسؤول" Variant="Variant.Outlined" FullWidth Class="mb-4"
+                          InputType="@_passwordInput" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" 
+                          OnAdornmentClick="TogglePasswordVisibility" />
+
+            <MudDivider Class="my-4" Style="width: 100%" />
+
+            <MudSelect @bind-Value="_licenseType" Label="نوع الترخيص" Variant="Variant.Outlined" FullWidth Class="mb-4">
+                <MudSelectItem Value="@LicenseType.POSOnly">POS Only (نقطة بيع فقط)</MudSelectItem>
+                <MudSelectItem Value="@LicenseType.Full">Full (BackOffice + POS)</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="_licenseKey" Label="مفتاح الترخيص (License Key)" Variant="Variant.Outlined" FullWidth Class="mb-4" Lines="3" />
+
+
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="my-2" />
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">إلغاء</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Activate" Disabled="_isProcessing">تنشيط الجهاز</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    private string _username;
+    private string _password;
+    private LicenseType _licenseType = LicenseType.POSOnly;
+    private string _licenseKey = "";
+
+    private bool _isProcessing;
+
+    private InputType _passwordInput = InputType.Password;
+    private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    private void TogglePasswordVisibility()
+    {
+        if (_passwordInput == InputType.Password)
+        {
+            _passwordInput = InputType.Text;
+            _passwordInputIcon = Icons.Material.Filled.Visibility;
+        }
+        else
+        {
+            _passwordInput = InputType.Password;
+            _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Activate()
+    {
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        {
+            Snackbar.Add("برجاء إدخال اسم المستخدم وكلمة المرور", Severity.Warning);
+            return;
+        }
+
+        _isProcessing = true;
+        try
+        {
+            var request = new ActivationRequest
+            {
+                Username = _username,
+                Password = _password,
+                Type = _licenseType,
+                LicenseKey = _licenseKey
+            };
+            var result = await LicenseService.ActivateAsync(request);
+
+
+            if (result.Success)
+            {
+                Snackbar.Add(result.Message, Severity.Success);
+
+                MudDialog.Close(DialogResult.Ok(true));
+                // In a real app we might want to force a reload or navigate to home
+            }
+            else
+            {
+                Snackbar.Add(result.Message, Severity.Error);
+
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ أثناء التنشيط: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+}

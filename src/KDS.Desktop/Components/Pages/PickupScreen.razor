@@ -1,0 +1,658 @@
+@page "/pickup/{BranchId:int}"
+@page "/pickup/{BranchId:int}/{ScreenId:int}"
+@inject IKdsErpService KdsService
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@implements IDisposable
+
+<div class="pickup-container" tabindex="0" @onkeydown="HandleKeyDown" @ref="_containerRef">
+    <!-- Header Bar -->
+    <div class="pickup-header">
+        <div class="pickup-header-right">
+            <div class="pickup-title">
+                <img src="images/logo.png" alt="Logo" style="height: 32px; width: 32px; object-fit: contain; margin-left: 6px;" />
+                شاشة الاستلام
+            </div>
+        </div>
+        <div class="pickup-header-center">
+            <span class="ready-count">✅ @_ready.Count جاهز</span>
+            @if (_preparing.Count > 0)
+            {
+                <span class="preparing-count">🍳 @_preparing.Count قيد التحضير</span>
+            }
+        </div>
+        <div class="pickup-header-left">
+            <div class="pickup-clock">@_currentTime.ToString("hh:mm:ss tt")</div>
+            <div class="pickup-branch">فرع @BranchId @(ScreenId > 0 ? $"| شاشة {ScreenId}" : "")</div>
+        </div>
+    </div>
+
+    <!-- Loading / Empty State -->
+    @if (_isLoading)
+    {
+        <div class="pickup-center">
+            <div class="loading-spinner"></div>
+            <div style="color:#64748b;margin-top:1rem;">جاري التحميل...</div>
+        </div>
+    }
+    else if (_allTickets.Count == 0)
+    {
+        <div class="pickup-center">
+            <div style="font-size:4rem;">🎉</div>
+            <div style="color:#10b981;font-size:1.5rem;font-weight:700;margin-top:1rem;">لا توجد طلبات حالياً</div>
+            <div style="color:#64748b;margin-top:0.5rem;">الطلبات ستظهر هنا تلقائياً</div>
+        </div>
+    }
+    else
+    {
+        <!-- Columns Layout — Side-by-side with no fixed height -->
+        <div class="pickup-columns-container">
+            @foreach (var col in GetColumns())
+            {
+                <div class="pickup-column">
+                    @foreach (var ticket in col)
+                    {
+                        var idx = _allTickets.IndexOf(ticket);
+                        bool isReady = ticket.Status == "Ready";
+                        <div class="pickup-ticket @(isReady ? "ticket-ready" : "ticket-preparing") @(idx == _selectedIndex ? "ticket-selected" : "")"
+                             @onclick="() => SelectAndFocus(idx)">
+                            <!-- Ticket Header -->
+                            <div class="ticket-top">
+                                <div class="order-num @(isReady ? "num-ready" : "num-preparing")">#@ticket.DailyOrderNumber</div>
+                                <div class="status-badge @(isReady ? "badge-ready" : "badge-preparing")">
+                                    @(isReady ? "✅ جاهز" : "🍳 يُحضَّر")
+                                </div>
+                            </div>
+
+                            <!-- Order Info -->
+                            <div class="ticket-meta">
+                                <div class="order-type-badge @(isReady ? "type-ready" : "type-preparing")">@ticket.OrderTypeName</div>
+                                @if (!string.IsNullOrEmpty(ticket.TableName))
+                                {
+                                    <div class="table-badge">طاولة: @ticket.TableName</div>
+                                }
+                                @if (!string.IsNullOrEmpty(ticket.CustomerName))
+                                {
+                                    <div class="customer-name">👤 @ticket.CustomerName</div>
+                                }
+                                @if (!string.IsNullOrEmpty(ticket.CustomerPhone))
+                                {
+                                    <div class="phone-badge">📞 @ticket.CustomerPhone</div>
+                                }
+                                <div class="elapsed-badge">⏱ @FormatElapsed(ticket.ElapsedMinutes)</div>
+                            </div>
+
+                            <!-- Items List -->
+                            <div class="ticket-items">
+                                @foreach (var item in ticket.Items)
+                                {
+                                    <div class="ticket-item">
+                                        <div class="item-title-line">
+                                            <span class="item-qty @(isReady ? "qty-ready" : "qty-preparing")">@item.Quantity ×</span>
+                                            <span class="item-name">@(item.ItemNameAr ?? item.ItemName)</span>
+                                        </div>
+                                        @if (item.Attributes != null && item.Attributes.Any())
+                                        {
+                                            <div class="item-attributes">
+                                                @foreach (var attr in item.Attributes)
+                                                {
+                                                    <span class="item-attr-badge @(isReady ? "attr-ready" : "attr-preparing")">⭐ @attr</span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Comment))
+                                        {
+                                            <div class="item-comment">📝 @item.Comment</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Action Button -->
+                            <div class="ticket-footer">
+                                @if (!_requireKitchenReady || isReady)
+                                {
+                                    <button class="btn-deliver" @onclick="() => CompleteOrder(ticket.OrderId)" @onclick:stopPropagation="true">
+                                        ✓ تسليم الطلب (Enter)
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div class="btn-waiting">⏳ في انتظار التحضير...</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Footer -->
+    <div class="pickup-legend">
+        <span class="shortcut">Enter / المسافة: تسليم المحدد</span>
+        <span class="sep">|</span>
+        <span class="shortcut">الأسهم: التنقل التلقائي</span>
+        <span class="sep">|</span>
+        <span class="shortcut">PageUp / PageDown: تحريك الشاشة</span>
+        <span class="sep">|</span>
+        <span class="shortcut">Esc: إغلاق</span>
+        <span class="sep">|</span>
+        <span class="shortcut">تحديث تلقائي كل 8 ثوان</span>
+    </div>
+</div>
+
+<style>
+    .pickup-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        background-color: #0b1120;
+        color: #f1f5f9;
+        overflow: hidden;
+        user-select: none;
+        outline: none;
+    }
+
+    .pickup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #0f172a;
+        padding: 0.6rem 1.2rem;
+        border-bottom: 2px solid #1e293b;
+        flex-shrink: 0;
+    }
+    .pickup-header-right, .pickup-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .pickup-header-center {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .pickup-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #34d399;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .ready-count {
+        background: #065f46;
+        color: #34d399;
+        padding: 0.3rem 0.9rem;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .preparing-count {
+        background: #1e3a5f;
+        color: #93c5fd;
+        padding: 0.3rem 0.9rem;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .pickup-clock {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        font-family: 'Outfit', monospace;
+        direction: ltr;
+    }
+    .pickup-branch { font-size: 0.75rem; color: #64748b; }
+
+    .pickup-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+    }
+    .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #1e293b;
+        border-top-color: #34d399;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    .pickup-columns-container {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.75rem;
+        padding: 0.75rem;
+        overflow-y: auto;
+        flex: 1;
+        align-content: start;
+    }
+
+    .pickup-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    /* Base card */
+    .pickup-ticket {
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        height: fit-content;
+        width: 100%;
+        box-sizing: border-box;
+        transition: transform 0.15s, border-color 0.15s;
+        cursor: pointer;
+    }
+
+    /* Ready card — green */
+    .ticket-ready {
+        background: #0d2818;
+        border: 2px solid #065f46;
+        border-top: 5px solid #10b981;
+    }
+
+    /* Preparing card — blue/dark */
+    .ticket-preparing {
+        background: #0f1c2e;
+        border: 2px solid #1e3a5f;
+        border-top: 5px solid #3b82f6;
+    }
+
+    /* Selected highlight */
+    .ticket-selected.ticket-ready {
+        outline: 3px solid #34d399;
+        transform: scale(1.02);
+        box-shadow: 0 0 24px rgba(52, 211, 153, 0.45);
+        z-index: 10;
+    }
+    .ticket-selected.ticket-preparing {
+        outline: 3px solid #60a5fa;
+        transform: scale(1.02);
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.35);
+        z-index: 10;
+    }
+
+    .ticket-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0.75rem 0.3rem;
+    }
+    .order-num { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+    .num-ready     { color: #10b981; }
+    .num-preparing { color: #60a5fa; }
+
+    .status-badge {
+        font-size: 0.82rem;
+        font-weight: 700;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+    }
+    .badge-ready     { background: #065f46; color: #34d399; }
+    .badge-preparing { background: #1e3a5f; color: #93c5fd; }
+
+    .ticket-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 0 0.75rem 0.4rem;
+        font-size: 0.78rem;
+        align-items: center;
+    }
+    .order-type-badge { padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; }
+    .type-ready     { background: #064e3b; color: #6ee7b7; }
+    .type-preparing { background: #172554; color: #93c5fd; }
+    .table-badge  { background: #14532d; color: #4ade80; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; }
+    .customer-name { color: #94a3b8; padding: 0.15rem 0; font-weight: 600; }
+    .phone-badge   { color: #7dd3fc; padding: 0.15rem 0; font-weight: 600; }
+    .elapsed-badge { font-size: 0.8rem; font-weight: 700; color: #f59e0b; margin-right: auto; }
+
+    .ticket-items {
+        padding: 0.4rem 0.75rem;
+        border-top: 1px solid #1f2937;
+    }
+    .ticket-item {
+        padding: 0.35rem 0;
+        border-bottom: 1px dashed #1e293b;
+        font-size: 0.95rem;
+        line-height: 1.3;
+    }
+    .ticket-item:last-child { border-bottom: none; }
+    .item-qty     { font-weight: 900; margin-left: 0.4rem; font-size: 1.05rem; }
+    .qty-ready     { color: #34d399; }
+    .qty-preparing { color: #60a5fa; }
+    .item-name    { color: #f1f5f9; font-weight: 700; }
+    .item-comment { font-size: 0.75rem; color: #fbbf24; margin-top: 0.15rem; padding-right: 1.2rem; }
+    .item-attributes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.25rem;
+        padding-right: 1.2rem;
+    }
+    .item-attr-badge {
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 0.12rem 0.45rem;
+        border-radius: 4px;
+        line-height: 1.2;
+    }
+    .attr-ready {
+        background: #064e3b;
+        color: #34d399;
+        border: 1px solid #059669;
+    }
+    .attr-preparing {
+        background: #1e3a5f;
+        color: #38bdf8;
+        border: 1px solid #0284c7;
+    }
+
+    .ticket-footer {
+        padding: 0.5rem 0.75rem;
+        border-top: 1px solid #1f2937;
+    }
+    .ticket-ready .ticket-footer   { background: #022c22; }
+    .ticket-preparing .ticket-footer { background: #0c1a2e; }
+
+    .btn-deliver {
+        width: 100%;
+        background: #10b981;
+        color: #022c22;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem;
+        font-weight: 800;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        animation: pulse-green 1.5s ease-in-out infinite;
+    }
+    .btn-deliver:hover { background: #059669; color: #fff; animation: none; }
+    @@keyframes pulse-green { 0%,100% { opacity:1; } 50% { opacity:0.78; } }
+
+    .btn-waiting {
+        text-align: center;
+        color: #475569;
+        font-size: 0.85rem;
+        padding: 0.35rem 0;
+    }
+
+    .pickup-legend {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: #0f172a;
+        border-top: 1px solid #1e293b;
+        padding: 0.4rem;
+        font-size: 0.75rem;
+        color: #475569;
+        flex-shrink: 0;
+    }
+    .sep { color: #334155; }
+    .shortcut { color: #475569; }
+</style>
+
+@code {
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public int ScreenId { get; set; }
+
+    private List<KdsOrderTicketDto> _allTickets = new();
+    private List<KdsOrderTicketDto> _ready      = new();
+    private List<KdsOrderTicketDto> _preparing  = new();
+    private int _selectedIndex = 0;
+    private bool _isLoading = true;
+    private DateTime _currentTime = DateTime.Now;
+    private System.Timers.Timer? _refreshTimer;
+    private System.Timers.Timer? _clockTimer;
+    private ElementReference _containerRef;
+    private int _prevReadyCount = 0;
+    private bool _requireKitchenReady = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _requireKitchenReady = bool.TryParse(Configuration["KdsSettings:RequireKitchenReadyBeforePickup"], out bool req) && req;
+
+        await LoadOrders();
+
+        _refreshTimer = new System.Timers.Timer(8_000);
+        _refreshTimer.Elapsed += async (_, _) => await InvokeAsync(RefreshOrders);
+        _refreshTimer.AutoReset = true;
+        _refreshTimer.Start();
+
+        _clockTimer = new System.Timers.Timer(1_000);
+        _clockTimer.Elapsed += async (_, _) =>
+        {
+            _currentTime = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+        };
+        _clockTimer.AutoReset = true;
+        _clockTimer.Start();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("kdsFocus.init", _containerRef); } catch { }
+        }
+    }
+
+    private const int ColumnCount = 5;
+
+    private List<List<KdsOrderTicketDto>> GetColumns()
+    {
+        var cols = new List<List<KdsOrderTicketDto>>();
+        for (int i = 0; i < ColumnCount; i++)
+            cols.Add(new List<KdsOrderTicketDto>());
+
+        if (_allTickets == null || _allTickets.Count == 0)
+            return cols;
+
+        var heights = new int[ColumnCount];
+
+        // 1. Distribute first N tickets into the N columns across the row (RTL)
+        int firstBatch = Math.Min(ColumnCount, _allTickets.Count);
+        for (int i = 0; i < firstBatch; i++)
+        {
+            cols[i].Add(_allTickets[i]);
+            heights[i] += EstimateTicketHeight(_allTickets[i]);
+        }
+
+        // 2. For each subsequent ticket, find the column with the minimum height
+        for (int i = firstBatch; i < _allTickets.Count; i++)
+        {
+            int minCol = 0;
+            for (int c = 1; c < ColumnCount; c++)
+            {
+                if (heights[c] < heights[minCol])
+                    minCol = c;
+            }
+            cols[minCol].Add(_allTickets[i]);
+            heights[minCol] += EstimateTicketHeight(_allTickets[i]);
+        }
+
+        return cols;
+    }
+
+    private int EstimateTicketHeight(KdsOrderTicketDto ticket)
+    {
+        int h = 130;
+        if (ticket.Items != null)
+        {
+            foreach (var item in ticket.Items)
+            {
+                h += 32;
+                if (item.Attributes != null && item.Attributes.Any())
+                    h += 24;
+                if (!string.IsNullOrEmpty(item.Comment))
+                    h += 20;
+            }
+        }
+        return h;
+    }
+
+    private async Task LoadOrders()
+    {
+        _isLoading = true;
+        var all = await KdsService.GetActivePickupOrders(BranchId, ScreenId);
+        ApplyOrders(all);
+        _isLoading = false;
+        if (_selectedIndex >= _allTickets.Count)
+            _selectedIndex = Math.Max(0, _allTickets.Count - 1);
+    }
+
+    private async Task RefreshOrders()
+    {
+        var all = await KdsService.GetActivePickupOrders(BranchId, ScreenId);
+        int newReadyCount = all.Count(o => o.Status == "Ready");
+        bool chime = newReadyCount > _prevReadyCount;
+        ApplyOrders(all);
+        if (_selectedIndex >= _allTickets.Count)
+            _selectedIndex = Math.Max(0, _allTickets.Count - 1);
+        if (chime)
+        {
+            try { await JS.InvokeVoidAsync("kdsAudio.playReadyChime"); } catch { }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Builds _allTickets: Ready orders first (sorted by OrderDate), then Preparing orders.
+    /// </summary>
+    private void ApplyOrders(List<KdsOrderTicketDto> all)
+    {
+        _ready     = all.Where(o => o.Status == "Ready")    .OrderBy(o => o.OrderDate).ToList();
+        _preparing = all.Where(o => o.Status == "Preparing").OrderBy(o => o.OrderDate).ToList();
+        _allTickets = _ready.Concat(_preparing).ToList();
+        _prevReadyCount = _ready.Count;
+    }
+
+    private async Task CompleteOrder(int orderId)
+    {
+        await KdsService.CompletePickupOrder(orderId);
+        await LoadOrders();
+        StateHasChanged();
+    }
+
+    private async Task SelectAndFocus(int idx)
+    {
+        _selectedIndex = idx;
+        StateHasChanged();
+        await ScrollSelectedIntoView();
+    }
+
+    private async Task ScrollSelectedIntoView()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("kdsScroll.scrollToSelected");
+        }
+        catch { }
+    }
+
+    private void CloseScreen()
+    {
+        try
+        {
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                System.Windows.Application.Current.MainWindow?.Close();
+            });
+        }
+        catch { }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowRight":
+            case "ArrowUp":
+                _selectedIndex = Math.Max(0, _selectedIndex - 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "ArrowLeft":
+            case "ArrowDown":
+                _selectedIndex = Math.Min(_allTickets.Count - 1, _selectedIndex + 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "Tab":
+                if (_allTickets.Count > 0)
+                {
+                    _selectedIndex = (_selectedIndex + 1) % _allTickets.Count;
+                    StateHasChanged();
+                    await ScrollSelectedIntoView();
+                }
+                break;
+            case "PageUp":
+                await JS.InvokeVoidAsync("kdsScroll.pageUp");
+                break;
+            case "PageDown":
+                await JS.InvokeVoidAsync("kdsScroll.pageDown");
+                break;
+            case "Escape":
+                CloseScreen();
+                break;
+            case "Enter":
+            case " ":
+                if (_allTickets.Count > 0 && _selectedIndex < _allTickets.Count)
+                {
+                    var t = _allTickets[_selectedIndex];
+                    if (!_requireKitchenReady || t.Status == "Ready")
+                        await CompleteOrder(t.OrderId);
+                }
+                break;
+            case "Home":
+                _selectedIndex = 0;
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "End":
+                _selectedIndex = Math.Max(0, _allTickets.Count - 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            default:
+                if (e.Key.Length == 1 && char.IsDigit(e.Key[0]))
+                {
+                    int target = int.Parse(e.Key) - 1;
+                    if (target >= 0 && target < _allTickets.Count)
+                    {
+                        _selectedIndex = target;
+                        StateHasChanged();
+                        await ScrollSelectedIntoView();
+                    }
+                }
+                break;
+        }
+    }
+
+    private string FormatElapsed(double minutes)
+    {
+        int m = (int)minutes;
+        int s = (int)((minutes - m) * 60);
+        return $"{m:D2}:{s:D2}";
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
+        _clockTimer?.Stop();
+        _clockTimer?.Dispose();
+    }
+}

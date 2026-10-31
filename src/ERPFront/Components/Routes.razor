@@ -1,0 +1,45 @@
+﻿@using ERPFront.Components.Pages
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeView Context="AuthorizationContext">
+                <Authorized>
+                    <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+                </Authorized>
+                <NotAuthorized>
+                    <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.AuthLayout)">
+                        <NotAuthorized><RedirectToLogin /></NotAuthorized>
+                    </AuthorizeRouteView>
+                </NotAuthorized>
+            </AuthorizeView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            @* <NavigationLock OnBeforeInternalNavigation="HandleBeforeNavigation" /> *@
+        </Found>
+    </Router>
+</CascadingAuthenticationState>
+
+
+
+@* @code { *@
+@*     private async Task HandleBeforeNavigation(LocationChangingContext context) *@
+@*     { *@
+@*         // Check if there are unfinished orders *@
+@*         var itemCount = await JS.InvokeAsync<string>("localStorage.getItem", "tableItemsCount"); *@
+@*         int count = int.TryParse(itemCount, out var result) ? result : 0; *@
+
+@*         if (count > 0) *@
+@*         { *@
+@*             // Prompt the user if there are unfinished orders *@
+@*             var confirmNavigation = await JS.InvokeAsync<bool>("confirm", "You have unfinished orders. Are you sure you want to leave?"); *@
+@*             if (!confirmNavigation) *@
+@*             { *@
+@*                 context.PreventNavigation(); *@
+@*             } *@
+@*         } *@
+@*     } *@
+@* } *@

@@ -1,0 +1,250 @@
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+@inject LocalizationService Localizer
+
+<MudDialog Style="min-width: 500px; max-width: 580px; border-radius: 12px; overflow: hidden;">
+    <TitleContent>
+        <div class="comment-dialog-header">
+            <MudIcon Icon="@Icons.Material.Filled.RateReview" Style="color:#fff; font-size:1.3rem;" />
+            <span class="comment-dialog-title">@Localizer["ItemComment"]</span>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="comment-dialog-body">
+
+            @* ── Existing Comments List ── *@
+            @if (_existingComments.Any())
+            {
+                <div class="comment-section-label">
+                    <MudIcon Icon="@Icons.Material.Filled.List" Style="font-size:1rem;" />
+                    <span>@Localizer["ExistingComments"]</span>
+                </div>
+                <div class="comment-chips-container">
+                    @foreach (var attr in _existingComments)
+                    {
+                        <div class="comment-chip @(_selectedComment == attr ? "comment-chip--selected" : "")"
+                             @onclick="() => SelectComment(attr)">
+                            <MudIcon Icon="@Icons.Material.Filled.ChatBubble" Style="font-size:0.85rem; margin-left:4px;" />
+                            <span class="comment-chip-text">@attr.Name</span>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Size="Size.Small"
+                                           Style="padding:2px; min-width:auto; width:20px; height:20px; color: inherit;"
+                                           OnClick="() => DeleteComment(attr)"
+                                           StopPropagation="true" />
+                        </div>
+                    }
+                </div>
+                <MudDivider Class="my-3" />
+            }
+
+            @* ── Input Area ── *@
+            <div class="comment-section-label">
+                <MudIcon Icon="@(_selectedComment != null ? Icons.Material.Filled.Edit : Icons.Material.Filled.AddComment)" Style="font-size:1rem;" />
+                <span>@(_selectedComment != null ? Localizer["EditComment"] : Localizer["AddNewComment"])</span>
+            </div>
+
+            <MudTextField @bind-Value="UserComment"
+                          Placeholder="@Localizer["TypeCommentHere"]"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          FullWidth="true"
+                          Class="comment-input"
+                          Immediate="true" />
+
+            @if (_selectedComment != null)
+            {
+                <div class="comment-selected-notice">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Style="font-size:0.85rem;" />
+                    <span>@Localizer["EditingComment"]: <strong>@_selectedComment.Name</strong></span>
+                </div>
+            }
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="comment-dialog-actions">
+            @if (_selectedComment != null)
+            {
+                <MudButton OnClick="SaveEdit"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Class="btn-save-edit">
+                    @Localizer["SaveEdit"]
+                </MudButton>
+                <MudButton OnClick="ClearSelection"
+                           Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Cancel"
+                           Class="btn-clear">
+                    @Localizer["Cancel"]
+                </MudButton>
+            }
+            else
+            {
+                <MudButton OnClick="AddNewComment"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Class="btn-add"
+                           Disabled="string.IsNullOrWhiteSpace(UserComment)">
+                    @Localizer["Add"]
+                </MudButton>
+            }
+
+            <MudButton OnClick="CloseDialog"
+                       Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Close"
+                       Class="btn-close">
+                @Localizer["Close"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    /* ─── Dialog Header ─── */
+    .comment-dialog-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #1a237e, #283593);
+        margin: -16px -24px 0;
+        padding: 14px 20px;
+        border-radius: 4px 4px 0 0;
+    }
+    .comment-dialog-title {
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    /* ─── Body ─── */
+    .comment-dialog-body {
+        padding: 16px 4px 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* ─── Section Labels ─── */
+    .comment-section-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #5c6bc0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    /* ─── Chips Container ─── */
+    .comment-chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 4px 0;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+
+    .comment-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 10px 6px 8px;
+        background: #e8eaf6;
+        border: 1.5px solid #c5cae9;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        font-size: 0.85rem;
+        color: #3949ab;
+        user-select: none;
+    }
+    .comment-chip:hover {
+        background: #c5cae9;
+        border-color: #3f51b5;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(63,81,181,0.2);
+    }
+    .comment-chip--selected {
+        background: #3f51b5 !important;
+        border-color: #283593 !important;
+        color: #fff !important;
+        box-shadow: 0 3px 8px rgba(63,81,181,0.4);
+    }
+    .comment-chip-text {
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* ─── Input ─── */
+    .comment-input {
+        margin-top: 4px;
+    }
+
+    /* ─── Edit Notice ─── */
+    .comment-selected-notice {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.78rem;
+        color: #e65100;
+        padding: 4px 8px;
+        background: #fff3e0;
+        border-radius: 6px;
+        border: 1px solid #ffb74d;
+    }
+
+    /* ─── Actions ─── */
+    .comment-dialog-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 6px 6px;
+        width: 100%;
+    }
+    .btn-add {
+        background: linear-gradient(135deg, #2e7d32, #43a047) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        height: 42px !important;
+        min-width: 140px !important;
+        box-shadow: 0 2px 6px rgba(46,125,50,0.3) !important;
+    }
+    .btn-save-edit {
+        background: linear-gradient(135deg, #1565c0, #1e88e5) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        height: 42px !important;
+        min-width: 140px !important;
+    }
+    .btn-clear {
+        border-radius: 8px !important;
+        height: 42px !important;
+        color: #f57c00 !important;
+        border-color: #f57c00 !important;
+    }
+    .btn-close {
+        border-radius: 8px !important;
+        height: 42px !important;
+        min-width: 110px !important;
+        color: #555 !important;
+        border: 1.5px solid #bdbdbd !important;
+        font-weight: 700 !important;
+        background: #fdfdfd !important;
+    }
+    .btn-close:hover {
+        background: #f0f0f0 !important;
+        border-color: #757575 !important;
+        color: #212121 !important;
+    }
+</style>

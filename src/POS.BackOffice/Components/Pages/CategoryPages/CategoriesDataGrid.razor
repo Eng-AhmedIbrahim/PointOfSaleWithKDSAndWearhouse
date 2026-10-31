@@ -1,0 +1,123 @@
+﻿@page "/Categories"
+@using POS.Contract.Dtos.CategoryDtos
+@inject IStringLocalizer<Resource> Localizer
+@inject ICategoryServices categoryService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@inject IJSRuntime _jsRuntime
+
+<PageTitle>Categories</PageTitle>
+
+@if (categories is null)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@categories" Hover="true"
+              Filter="new Func<CategoryToReturnDto,bool>(FilterFunc1)"
+              SortLabel="Sort By" AllowUnsorted="false">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">@Localizer["Categories"]</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString1"
+                          Placeholder="@Localizer["Search"]"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Class="mt-0 mx-2" />
+            <MudCheckBox Style="margin-top: 18px" Class="mx-2" @bind-Value="_showDates" Size="Size.Medium" Color="Color.Primary">Dates</MudCheckBox>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<CategoryToReturnDto, object>(x=>x.Id)">Id</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.ArabicName!)">@Localizer["ArabicName"]</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.EnglishName!)">@Localizer["EnglishName"]</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.ItemsFont!)">@Localizer["ItemsFont"]</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.Invisible)">@Localizer["Invisible"]</MudTableSortLabel></MudTh>
+            @if (_showDates)
+            {
+                <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.CreationDate)">@Localizer["CreationDate"]</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<CategoryToReturnDto, object>(x=>x.UpdatedDate!)">@Localizer["UpdatedDate"]</MudTableSortLabel></MudTh>
+            }
+
+            <MudTh>Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Id">@context.Id</MudTd>
+            <MudTd DataLabel="ArabicName">@context.ArabicName</MudTd>
+            <MudTd DataLabel="EnglishName">@context.EnglishName</MudTd>
+            <MudTd DataLabel="ItemsFont">@context.ItemsFont</MudTd>
+            <MudTd DataLabel="Invisible">@context.Invisible</MudTd>
+            @if (_showDates)
+            {
+                <MudTd DataLabel="CreationDate">@(context.CreationDate.ToString("dd/MM/yyyy hh:mm:ss tt") ?? "N/A")</MudTd>
+                <MudTd DataLabel="UpdatedDate">@(context.UpdatedDate?.ToString("dd/MM/yyyy hh:mm:ss tt") ?? "N/A")</MudTd>
+            }
+            <MudTd DataLabel="Action">
+                <MudButton Class="mr-2" Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(()=>EditCategory(context.Id))">@Localizer["Edit"]</MudButton>
+                <MudButton Color="Color.Error" Size="Size.Small" StartIcon="@Icons.Material.Filled.Delete" OnClick="@(()=>DeleteCategoryAsync(context))">@Localizer["Delete"]</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<CategoryToReturnDto>? categories;
+    private string searchString1 = string.Empty;
+    private bool _showDates = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await categoryService.GetAllCategories();
+
+        switch (result.Success)
+        {
+            case true:
+                categories = result.Data;
+                break;
+
+            case false:
+                Snackbar.Add(result.Message, Severity.Error);
+                break;
+        }
+    }
+
+    private bool FilterFunc1(CategoryToReturnDto category) => FilterFunc(category, searchString1);
+
+    private bool FilterFunc(CategoryToReturnDto category, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (category.ArabicName != null && category.ArabicName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (category.EnglishName != null && category.EnglishName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private void EditCategory(int id)
+    {
+        NavigationManager.NavigateTo($"/Edit-Category/{id}");
+    }
+    private async Task DeleteCategoryAsync(CategoryToReturnDto category)
+    {
+
+        var parameters = new DialogParameters<DeleteCategory>
+        {
+            {x => x.Category, category}
+        };
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge };
+
+        var dialog = await DialogService.ShowAsync<DeleteCategory>(Localizer["Delete"], parameters, options);
+
+        var result = await dialog.Result;
+
+        if (result!.Data != null && result.Data is bool && (bool)result.Data)
+            await _jsRuntime.InvokeVoidAsync("location.reload");
+    }
+}

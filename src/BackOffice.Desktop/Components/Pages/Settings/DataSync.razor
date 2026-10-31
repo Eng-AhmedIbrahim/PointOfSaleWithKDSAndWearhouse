@@ -1,0 +1,244 @@
+@page "/settings/datasync"
+@using POS.Contract.Dtos.SettingsDtos
+@using BlazorBase.ERPFrontServices.DataSyncServices
+@inject IDataSyncFrontService SyncService
+@inject MudBlazor.IDialogService MudDialogService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudStack Spacing="6">
+        <!-- Header -->
+        <MudPaper Elevation="0" Class="pa-4 flex-row d-flex align-center gap-4" Style="background: transparent;">
+            <MudIcon Icon="@Icons.Material.Filled.Sync" Color="Color.Primary" Style="font-size: 3rem;" />
+            <MudText Typo="Typo.h4" Style="font-weight: 900; color: #1e293b;">
+                @(Localizer.GetCurrentLanguage() == "ar" ? "تحديث البيانات من HQ" : "Sync Data from HQ")
+            </MudText>
+        </MudPaper>
+
+        <MudGrid Spacing="6">
+            <!-- Sync Selection Card -->
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="3" Style="border-radius: 20px;">
+                    <div class="pa-4">
+                        <MudText Typo="Typo.h6" Style="font-weight: 800; color: #334155;">
+                            @(Localizer.GetCurrentLanguage() == "ar" ? "اختر البيانات المراد مزامنتها" : "Select Data to Sync")
+                        </MudText>
+                    </div>
+                    <MudCardContent>
+                        <MudGrid Spacing="4">
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncMasterData" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "بيانات النظام الأساسية" : "Master Data")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncSalesItems" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف المبيعات" : "Sales Items")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncEmployees" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الموظفين" : "Employees")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncStoreItems" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف المخزن" : "Store Items")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncSuppliers" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "الموردين" : "Suppliers")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudCheckBox @bind-Value="_request.SyncWarehouses" Color="Color.Primary" Label="@(Localizer.GetCurrentLanguage() == "ar" ? "المخازن" : "Warehouses")" />
+                            </MudItem>
+                        </MudGrid>
+
+                        @if (_isSyncing)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudSpacer />
+                        <MudButton Variant="MudBlazor.Variant.Filled"
+                                   Color="Color.Primary" 
+                                   Size="Size.Large" 
+                                   StartIcon="@Icons.Material.Filled.Sync"
+                                   OnClick="StartSync" 
+                                   Disabled="_isSyncing"
+                                   Class="mr-4 mb-4"
+                                   Style="border-radius: 12px; min-width: 200px; height: 50px;">
+                            @(Localizer.GetCurrentLanguage() == "ar" ? "بدء المزامنة" : "Start Sync")
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+
+            <!-- HQ Connection Settings Card -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="3" Style="border-radius: 20px; background: #f8fafc;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 800; color: #0369a1;">
+                                    @(Localizer.GetCurrentLanguage() == "ar" ? "إعدادات الاتصال بالـ HQ" : "HQ Connection Settings")
+                                </MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.SettingsEthernet" 
+                                               Color="Color.Primary" 
+                                               OnClick="OpenSqlDialog" 
+                                               Title="@(Localizer.GetCurrentLanguage() == "ar" ? "خصائص الارتباط" : "Data Link Properties")" />
+                            </MudStack>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="4">
+                            <MudTextField @bind-Value="_hqSettings.ServerName" 
+                                          Label="@(Localizer.GetCurrentLanguage() == "ar" ? "عنوان السيرفر" : "Server Address")" 
+                                          Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            
+                            <MudTextField @bind-Value="_hqSettings.DatabaseName" 
+                                          Label="@(Localizer.GetCurrentLanguage() == "ar" ? "اسم قاعدة البيانات" : "Database Name")" 
+                                          Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+
+                            <MudCheckBox @bind-Value="_hqSettings.UseIntegratedSecurity" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "استخدام Integrated Security" : "Use Integrated Security")" 
+                                         Color="Color.Primary" Dense="true" />
+
+                            @if (!_hqSettings.UseIntegratedSecurity)
+                            {
+                                <MudTextField @bind-Value="_hqSettings.UserName" 
+                                              Label="@(Localizer.GetCurrentLanguage() == "ar" ? "اسم المستخدم" : "Username")"
+                                              Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                
+                                <MudTextField @bind-Value="_hqSettings.Password" 
+                                              Label="@(Localizer.GetCurrentLanguage() == "ar" ? "كلمة المرور" : "Password")"
+                                              InputType="InputType.Password" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            }
+
+                            <MudCheckBox @bind-Value="_hqSettings.IsEnabled" 
+                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "تفعيل الربط" : "Enable Sync")" 
+                                         Color="Color.Primary" Dense="true" />
+
+                            <MudExpansionPanels Elevation="0" Style="background: transparent;">
+                                <MudExpansionPanel Text="@(Localizer.GetCurrentLanguage() == "ar" ? "إعدادات متقدمة" : "Advanced Settings")" Style="background: transparent;">
+                                    <MudStack Spacing="2">
+                                        <MudNumericField @bind-Value="_hqSettings.ConnectTimeout" 
+                                                         Label="@(Localizer.GetCurrentLanguage() == "ar" ? "مهلة الاتصال" : "Connect Timeout")" 
+                                                         Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                        
+                                        <MudCheckBox @bind-Value="_hqSettings.Encrypt" 
+                                                     Label="@(Localizer.GetCurrentLanguage() == "ar" ? "تشفير" : "Encrypt")" 
+                                                     Color="Color.Primary" Dense="true" />
+                                    </MudStack>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+
+                            <MudButton Variant="MudBlazor.Variant.Filled"
+                                       Color="Color.Secondary" 
+                                       OnClick="SaveSettings" 
+                                       Class="mt-2" FullWidth="true"
+                                       Style="border-radius: 10px;">
+                                @(Localizer.GetCurrentLanguage() == "ar" ? "حفظ الإعدادات" : "Save Settings")
+                            </MudButton>
+
+                            <MudButton Variant="MudBlazor.Variant.Text" 
+                                       Color="Color.Info" 
+                                       StartIcon="@Icons.Material.Filled.AccountTree" 
+                                       OnClick="TestConnection" 
+                                       FullWidth="true">
+                                @(Localizer.GetCurrentLanguage() == "ar" ? "اختبار الاتصال" : "Test Connection")
+                            </MudButton>
+                            
+                            @if (_hqSettings.LastSyncDate.HasValue)
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Outlined" Class="mt-2" Style="border-radius: 12px; background: #e0f2fe;">
+                                    <MudText Typo="Typo.caption" Style="font-weight: bold;">
+                                        @(Localizer.GetCurrentLanguage() == "ar" ? "آخر مزامنة ناجحة:" : "Last successful sync:")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 800;">
+                                        @_hqSettings.LastSyncDate.Value.ToString("yyyy/MM/dd HH:mm:ss")
+                                    </MudText>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudStack>
+</MudContainer>
+
+<style>
+    body {
+        background-color: #f1f5f9;
+        min-height: 100vh;
+    }
+</style>
+
+@code {
+    private HqSettingDto _hqSettings = new();
+    private SyncRequestDto _request = new() { SyncSalesItems = true };
+    private bool _isLoading = true;
+    private bool _isSyncing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        _isLoading = true;
+        _hqSettings = await SyncService.GetHqSettingsAsync();
+        _isLoading = false;
+    }
+
+    private async Task OpenSqlDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new MudBlazor.DialogParameters { ["Settings"] = _hqSettings };
+
+        var dialog = await MudDialogService.ShowAsync<SqlConnectionStringDialog>(
+            Localizer.GetCurrentLanguage() == "ar" ? "خصائص ارتباط البيانات" : "Data Link Properties", 
+            parameters, 
+            options);
+        
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data != null)
+        {
+            _hqSettings = (HqSettingDto)result.Data;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        var result = await SyncService.UpdateHqSettingsAsync(_hqSettings);
+        Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Error);
+    }
+
+    private async Task TestConnection()
+    {
+        var result = await SyncService.TestHqConnectionAsync(_hqSettings);
+        Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Error);
+    }
+
+    private async Task StartSync()
+    {
+        if (_isSyncing) return;
+
+        _isSyncing = true;
+        try
+        {
+            var result = await SyncService.SyncHqDataAsync(_request);
+            Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Error);
+            if (result.Success)
+            {
+                await LoadSettings();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isSyncing = false;
+        }
+    }
+}

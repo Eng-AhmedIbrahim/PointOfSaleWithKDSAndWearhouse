@@ -1,0 +1,26 @@
+[
+    {
+        "Id": 1,
+        "ArabicName": "صنف بيع",
+        "EnglishName": "Sale Item",
+        "Code": "SaleItem"
+    },
+    {
+        "Id": 2,
+        "ArabicName": "مادة خام",
+        "EnglishName": "Raw Material",
+        "Code": "RawMaterial"
+    },
+    {
+        "Id": 3,
+        "ArabicName": "صنف نص مصنع",
+        "EnglishName": "Semi-Finished",
+        "Code": "SemiFinished"
+    },
+    {
+        "Id": 4,
+        "ArabicName": "خدمة",
+        "EnglishName": "Service",
+        "Code": "Service"
+    }
+]

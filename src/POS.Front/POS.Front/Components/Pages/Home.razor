@@ -1,0 +1,131 @@
+﻿@page "/"
+@layout LoginPageLayout
+@rendermode InteractiveServer
+
+<div class="container">
+    <div class="left-panel">
+        <div>
+            <h1>New Tech</h1>
+            <p>ERP Management System</p>
+            <img src="images/logo.png" />
+        </div>
+    </div>
+    <div class="right-panel">
+        <div class="login-form">
+            <label class="login-label">Login</label>
+            <select class="form-control">
+                <option>Administrator</option>
+            </select>
+            <input type="password" class="form-control mt-2" placeholder="Enter PIN" @bind-value="pin" />
+            <div class="keypad">
+                @foreach (var num in new[] { "7", "8", "9", "4", "5", "6", "1", "2", "3", "BS", "0", "Del" })
+                {
+                    <button @onclick="()=>HandleKeyPress(num.ToString())">@num</button>
+                }
+            </div>
+        </div>
+        <div class="login-btn">
+            <button class="btn btn-primary custom-btn">
+                Login
+            </button>
+            <button class="btn btn-danger custom-btn">
+                Exit
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+
+.container {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    height: 100vh;
+    max-width: 100% !important;
+    padding: 0;
+}
+
+.left-panel {
+    background: linear-gradient(to bottom,#022e66, #90cafb);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    position: relative;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+}
+
+    .left-panel img {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        width: 20%;
+        height: auto;
+    }
+
+.right-panel {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    margin-top: 20px;
+}
+
+    .keypad button {
+        width: 106px;
+        height: 68px;
+        font-size: 25px;
+        border: #ffffff;
+        border-radius: 6px
+    }
+
+.login-form {
+    width: 100%;
+    max-width: 330px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-label {
+    padding: 23px;
+    font-size: x-large;
+    font-weight: 600;
+}
+
+
+.login-btn {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.custom-btn {
+    font-size: 18px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+    .custom-btn:hover {
+        transform: scale(1.05);
+    }
+</style>

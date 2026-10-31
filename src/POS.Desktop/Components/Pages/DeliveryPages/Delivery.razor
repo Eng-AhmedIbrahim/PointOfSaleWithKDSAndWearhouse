@@ -1,0 +1,716 @@
+﻿@page "/delivery"
+@layout MainLayout
+@inject CommonProperties _commonProperties
+@inject IHttpClientFactory _httpClientFactory
+@inject NavigationManager _navigationManager
+@inject IDeliveryServices _deliveryServices
+@inject IBranchService _branchService
+@inject ISnackbar _snackbar
+@inject IDialogService _dialogService
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject LocalizationService Localizer
+@inject BlazorBase.ERPFrontServices.ComplaintServices.IComplaintServices _complaintServices
+
+<link href="delivery.css" rel="stylesheet" />
+
+<div dir="@_pageDirection" class="delivery-container fade-in" style="height: 100vh; overflow: hidden;">
+<MudGrid Spacing="0" Class="delivery-grid" Style="height: 100%; display: flex; flex-wrap: nowrap;">
+    <MudItem xs="12" sm="6" md="6" Class="d-flex flex-column border-r border-solid custom-border-color" Style="height: 100%;">
+        <MudText Typo="Typo.h6" Class="section-label">@Localizer["CustomerDetails"]</MudText>
+        <MudPaper Elevation="0" Class="rounded-0 p-4 overflow-y-auto overflow-x-hidden flex-grow-1" Style="height: 100%;">
+            <MudGrid Spacing="2" Class="h-100">
+                <!-- Row 1: Phone Numbers -->
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.FirstPhoneNumber"
+                                   Label="@Localizer["PrimaryPhone"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Phone"
+                                   AdornmentEnd="true"
+                                   OnAdornmentClick="OpenCustomerSearch"
+                                   AdornmentIconEnd="@Icons.Material.Filled.PersonSearch"
+                                   Class="premium-input phone-search-input"
+                                   Immediate="true"
+                                   FullWidth="true"
+                                   @onkeydown="HandleKeyDown" />
+                </MudItem>
+                
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.SecondPhoneNumber"
+                                   Label="@Localizer["SecondaryPhone"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Smartphone"
+                                   Class="premium-input"
+                                   Immediate="true"
+                                   FullWidth="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudAutocomplete T="string"
+                                     Label="@Localizer["Title"]"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.PersonAddAlt"
+                                     Class="premium-input"
+                                     PopoverClass="premium-popover"
+                                     FullWidth="true"
+                                     @bind-Value="_commonProperties!.CustomerDetails!.ClientTitle"
+                                     SearchFunc="SearchTitles"
+                                     Immediate="true"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true"
+                                     Strict="true" />
+                </MudItem>
+
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.CustomerName"
+                                   Label="@Localizer["CustomerName"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Person"
+                                   Class="premium-input"
+                                   Immediate="true"
+                                   FullWidth="true" />
+                </MudItem>
+
+                <MudItem xs="6">
+                    <MudAutocomplete T="DeliveryZonesToReturnDto"
+                                     Label="@Localizer["Zone"]"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Map"
+                                     Class="premium-input"
+                                     PopoverClass="premium-popover"
+                                     FullWidth="true"
+                                     Value="SelectedZone"
+                                     ValueChanged="OnZoneChanged"
+                                     SearchFunc="SearchZones"
+                                     ToStringFunc="@(z => z?.ZoneName ?? "")"
+                                     Immediate="true"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true"
+                                     Strict="false" />
+                </MudItem>
+
+                <!-- Row 4: Address -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.ClientAddress"
+                                   Label="@Localizer["Address"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.LocationCity"
+                                   Class="premium-input"
+                                   FullWidth="true"
+                                   Lines="1">
+                    </MudTextField>
+                </MudItem>
+
+                <!-- Row 5: Home, Floor, Flat -->
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.HomeNumber"
+                                   Label="@Localizer["HomeNumber"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Home"
+                                   Class="premium-input"
+                                   FullWidth="true" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.FloorNumber"
+                                   Label="@Localizer["FloorNumber"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Stairs"
+                                   Class="premium-input"
+                                   FullWidth="true" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.FlatNumber"
+                                   Label="@Localizer["FlatNumber"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Apartment"
+                                   Class="premium-input"
+                                   FullWidth="true" />
+                </MudItem>
+
+                <!-- Row 6: Notes -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.AddressNote"
+                                   Label="@Localizer["AddressNote"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.LocationSearching"
+                                   Class="premium-input"
+                                   FullWidth="true"
+                                   Lines="1">
+                    </MudTextField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.KitchenNote"
+                                   Label="@Localizer["KitchenNote"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Kitchen"
+                                   Class="premium-input"
+                                   FullWidth="true"
+                                   Lines="1">
+                    </MudTextField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_commonProperties!.CustomerDetails!.ClientNote"
+                                   Label="@Localizer["ClientNote"]"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.NoteAdd"
+                                   Class="premium-input"
+                                   FullWidth="true"
+                                   Lines="1" />
+                </MudItem>
+
+                @* ── Complaints Panel ── *@
+                @if (_customerComplaints.Count > 0)
+                {
+                    <MudItem xs="12">
+                        <div class="complaints-panel @(_showComplaints ? "expanded" : "")">
+                            <div class="complaints-header" @onclick="() => _showComplaints = !_showComplaints">
+                                <div class="complaints-header-left">
+                                    <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Size="Size.Small" />
+                                    <span>@(_isArabic ? "شكاوي العميل" : "Customer Complaints")</span>
+                                    <span class="complaints-badge">@_customerComplaints.Count</span>
+                                </div>
+                                <MudIcon Icon="@(_showComplaints ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" />
+                            </div>
+                            @if (_showComplaints)
+                            {
+                                <div class="complaints-body">
+                                    @foreach (var complaint in _customerComplaints.Take(5))
+                                    {
+                                        <div class="complaint-item">
+                                            <div class="complaint-top">
+                                                <span class="complaint-date">@complaint.ComplaintDate.ToString("dd/MM/yyyy")</span>
+                                                <span class="complaint-status @GetComplaintStatusCss(complaint.Status)">@complaint.Status</span>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(complaint.ComplaintText))
+                                            {
+                                                <div class="complaint-desc">@complaint.ComplaintText</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
+
+        <!-- Stats Footer Section -->
+        <div class="delivery-stats-panel" dir="rtl">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-blue"><MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["FirstOrderDate"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val">@(CustomerStats?.FirstOrderDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-purple"><MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["OrderCount"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val highlight-purple">@((CustomerStats?.OrderCount ?? 0).ToString("N0"))</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-cyan"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["LastOrderDate"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val">@(CustomerStats?.LastOrderDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-amber"><MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["OrderAverage"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val">@((CustomerStats?.AverageOrderValue ?? 0).ToString("N2")) <small class="currency-tag">ج.م</small></span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-emerald"><MudIcon Icon="@Icons.Material.Filled.PersonPin" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["LastReceiverName"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val receiver-name" title="@(CustomerStats?.LastReceiverName ?? "-")">@(CustomerStats?.LastReceiverName ?? "-")</span>
+                </div>
+            </div>
+
+            <div class="stat-card highlight-total-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-icon icon-green"><MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" /></span>
+                    <span class="stat-card-title">@Localizer["TotalOrdersAmount"]</span>
+                </div>
+                <div class="stat-card-body">
+                    <span class="stat-card-val highlight-green">@((CustomerStats?.TotalOrdersAmount ?? 0).ToString("N2")) <small class="currency-tag">ج.م</small></span>
+                </div>
+            </div>
+        </div>
+    </MudItem>
+
+
+    <!-- Section 2 -->
+
+    <MudItem xs="12" sm="5" md="5" Class="d-flex flex-column border-r border-solid custom-border-color" Style="height: 100%;">
+        <MudText Typo="Typo.h6" Class="section-label">@Localizer["Last10Orders"]</MudText>
+        <MudPaper Elevation="0" Class="premium-card rounded-0 overflow-y-auto custom-scrollbar overflow-x-hidden flex-grow-1" Style="height: 100%;">
+            @if (_orders == null || !_orders.Any())
+            {
+                <div class="empty-state">
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="empty-state-icon" />
+                    <MudText Class="empty-state-text">@Localizer["NoOrdersFound"]</MudText>
+                </div>
+            }
+            else
+            {
+                <MudTable T="CustomerOrder" Items="_orders" Hover="true" Dense="true" Class="modern-table" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>@Localizer["OrderId"]</MudTh>
+                        <MudTh>@Localizer["Date"]</MudTh>
+                        <MudTh>@Localizer["Total"]</MudTh>
+                        <MudTh>@Localizer["Status"]</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate Context="order">
+                        <MudTd DataLabel="@Localizer["OrderId"]">
+                            <MudText Typo="Typo.body2" Style="font-weight: 700;">#@order.OrderId</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["Date"]">
+                            <MudText Typo="Typo.body2">@order.OrderDate.ToString("dd/MM/yyyy")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["Total"]">
+                            <MudText Typo="Typo.body2" Style="font-weight: 700; color: #447cad;">@order.Total.ToString("0.00")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["Status"]">
+                            <span class="status-badge @GetStatusClass(order.Status)">
+                                @Localizer[order.Status]
+                            </span>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 3 -->
+    <MudItem xs="12" sm="1" md="1" Class="d-flex flex-column" Style="height: 100%;">
+        <MudText Typo="Typo.h6" Class="section-label">@Localizer["Actions"]</MudText>
+        <MudPaper Elevation="0" Class="rounded-0 overflow-hidden flex-grow-1" Style="height: 100%;">
+            <DeliveryButtons />
+        </MudPaper>
+    </MudItem>
+
+
+</MudGrid>
+</div>
+
+<style>
+    .full-height {
+        height: calc(100vh - 41.59px) !important;
+        max-height: calc(100vh - 41.59px) !important;
+        box-sizing: border-box;
+    }
+
+    .full-width {
+        width: 100%;
+    }
+
+
+    .total-field {
+        font-weight: bold;
+        color: #374151;
+        background: #E5E7EB;
+    }
+
+    .full-height-Section2 {
+        height: 100%;
+        overflow: hidden;
+    }
+
+
+    .mud-input-label {
+        font-size: 17px !important;
+        font-weight: bold !important;
+    }
+
+</style>
+
+
+@code {
+    private List<string> ClientTitles = new List<string> { "Mr.", "Mrs.", "Ms.", "Dr." };
+
+    // ── Complaints state ──────────────────────────────────────────────────
+    private List<ComplaintDto> _customerComplaints = new();
+    private bool _showComplaints = true;
+    private bool _isArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    private async Task OpenCustomerSearch()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await _dialogService.ShowAsync<CustomerSearchDialog>(_isArabic ? "بحث عن عميل" : "Customer Search", options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is DeliveryCustomerToReturnDto selectedCustomer)
+        {
+            if (!string.IsNullOrEmpty(selectedCustomer.FirstPhoneNumber))
+            {
+                if (_commonProperties.CustomerDetails == null) _commonProperties.CustomerDetails = new();
+                _commonProperties.CustomerDetails.FirstPhoneNumber = selectedCustomer.FirstPhoneNumber;
+                
+                // Emulate pressing Enter to load exactly the same way
+                await HandleKeyDown(new KeyboardEventArgs { Key = "Enter" });
+            }
+        }
+    }
+
+    private async Task LoadComplaintsByPhone(string? phone)
+    {
+        _customerComplaints = new();
+        _showComplaints = true;
+        if (string.IsNullOrWhiteSpace(phone)) return;
+        try
+        {
+            var result = await _complaintServices.GetComplaintsByPhoneAsync(phone);
+            _customerComplaints = result?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading complaints: {ex.Message}");
+        }
+    }
+
+    private string GetComplaintStatusCss(string? status) => status switch
+    {
+        "Open" => "status-open",
+        "Pending" => "status-pending",
+        "Resolved" => "status-resolved",
+        "Closed" => "status-closed",
+        _ => "status-pending"
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+
+    // Customer Order Model
+    public class CustomerOrder
+    {
+        public int Id { get; set; } // Database ID
+        public int OrderId { get; set; } // Sequence number for display
+        public DateTime OrderDate { get; set; }
+        public decimal Total { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+    }
+
+    private List<CustomerOrder>? _orders = new();
+
+    // Helper method to get status badge class
+    private string GetStatusClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "badge-pending",
+            "completed" => "badge-completed",
+            "cancelled" => "badge-cancelled",
+            _ => "badge-pending"
+        };
+    }
+
+    private Task<IEnumerable<string>> SearchTitles(string value, CancellationToken token)
+    {
+        if (CustomerTitles == null)
+            return Task.FromResult(Enumerable.Empty<string>());
+
+        var result = string.IsNullOrEmpty(value)
+            ? CustomerTitles.Select(x => x.TitleName ?? string.Empty)
+            : CustomerTitles.Where(x => x.TitleName != null && x.TitleName.Contains(value, StringComparison.OrdinalIgnoreCase))
+                            .Select(x => x.TitleName ?? string.Empty);
+
+        return Task.FromResult(result);
+    }
+
+    private Task<IEnumerable<DeliveryZonesToReturnDto>> SearchZones(string value, CancellationToken token)
+    {
+        var result = string.IsNullOrEmpty(value)
+            ? Zones
+            : Zones.Where(x => x.ZoneName != null && x.ZoneName.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(result);
+    }
+
+ 
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.FirstPhoneNumber))
+                return;
+
+            // Show loading
+            _snackbar.Add(Localizer["LoadingCustomerData"], Severity.Info);
+
+            try
+            {
+                var client = await _deliveryServices.GetClientByPhoneNumberAsync(_commonProperties.CustomerDetails.FirstPhoneNumber);
+                
+                if (client == null || client.Id == 0)
+                {
+                    ClearCustomerDataExceptPhone();
+                    CustomerStats = null;
+                    _orders = new();
+                    _snackbar.Add(Localizer["CustomerNotFound"], Severity.Warning);
+                    return;
+                }
+
+                // Update UI with basic customer info first
+                CustomerStats = client;
+                
+                // Set initial zone from the first address if available
+                var firstAddr = client.CustomerAddresses?.FirstOrDefault();
+                if (firstAddr != null)
+                {
+                    // Sync with latest data from master Zones list
+                    var zoneSync = Zones?.FirstOrDefault(z => z.Id == firstAddr.DeliveryZoneId);
+                    
+                    SelectedZone = zoneSync ?? new DeliveryZonesToReturnDto
+                    {
+                        Id = firstAddr.DeliveryZoneId,
+                        ZoneName = firstAddr.ZoneName,
+                        DeliveryFee = firstAddr.DeliveryFee,
+                        BranchId = firstAddr.BranchId,
+                        ZoneBonus = firstAddr.ZoneBonus
+                    };
+                    
+                    _commonProperties.CustomerDetails!.ZoneID = firstAddr.DeliveryZoneId;
+                    _commonProperties.CustomerDetails.BranchId = firstAddr.BranchId;
+                    _commonProperties.CustomerDetails.ZoneName = firstAddr.ZoneName;
+                    _commonProperties.CustomerDetails.ZoneFees = zoneSync?.DeliveryFee ?? firstAddr.DeliveryFee;
+                    _commonProperties.CustomerDetails.BranchName = firstAddr.BranchName;
+                    _commonProperties.CustomerDetails.ZoneBonus = zoneSync?.ZoneBonus ?? firstAddr.ZoneBonus;
+                }
+
+                // Populate Last 10 Orders
+                if (client.Last10Orders != null)
+                {
+                    _orders = client.Last10Orders.Select(o => new CustomerOrder
+                    {
+                        Id = o.Id,
+                        OrderId = o.OrderId,
+                        OrderDate = o.OrderDate ?? DateTime.MinValue,
+                        Total = o.GrandTotal ?? 0,
+                        Status = o.OrderState ?? "Pending",
+                        CustomerName = o.CustomerName ?? "",
+                        PhoneNumber = o.CustomerPhone
+                    }).ToList();
+                }
+                else
+                    _orders = new();
+
+                // Populate complaints...
+                await LoadComplaintsByPhone(_commonProperties.CustomerDetails.FirstPhoneNumber);
+
+                await InvokeAsync(StateHasChanged);
+
+                bool forceShowAddresses = false;
+
+                // Check for Active Order FIRST
+                if (client.ActiveOrders != null && client.ActiveOrders.Any())
+                {
+                    var parameters = new DialogParameters
+                    {
+                        { "ActiveOrders", client.ActiveOrders }
+                    };
+
+                    var options = new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.Medium, FullWidth = true };
+                    var dialog = await _dialogService.ShowAsync<ActiveOrderDialog>(Localizer["ActiveOrderFound"], parameters, options);
+                    var result = await dialog.Result;
+
+                    if (result != null && !result.Canceled)
+                    {
+                        if (result.Data is string str && str == "Voided")
+                        {
+                            _snackbar.Add(Localizer["VoidOperationSuccessful"], Severity.Success);
+                            await HandleKeyDown(new KeyboardEventArgs { Key = "Enter" });
+                            return;
+                        }
+                        if (result.Data is OrderDto selectedOrderToEdit)
+                        {
+                            if (selectedOrderToEdit.OrderState == "Dispatched" || selectedOrderToEdit.OrderState == "Delivered")
+                            {
+                                _snackbar.Add("لا يمكن تعديل الطلب لأنه خرج للتوصيل بالفعل", Severity.Warning);
+                                return;
+                            }
+
+                            _snackbar.Add(Localizer["LoadingActiveOrder"], Severity.Info);
+                            
+                            if (selectedOrderToEdit.OrderDetails != null)
+                            {
+                                _commonProperties.TableItems = selectedOrderToEdit.OrderDetails.Select(item => 
+                                {
+                                    var cloned = item.Clone();
+                                    cloned.IsReadOnly = true;
+                                    return cloned;
+                                }).ToList();
+                            }
+                            
+                            BackupCustomerDetails(client);
+                            _commonProperties.OrderDto = selectedOrderToEdit;
+                            _commonProperties.UpdateDeliveryOrder = true;
+                            _commonProperties.UpdateDineInOrder = false;
+                            _commonProperties.CurrentPosMode = "Delivery";
+                            
+                            _navigationManager.NavigateTo("/pos");
+                            return;
+                        }
+                        else 
+                        {
+                            // User clicked "Create New Order" (returns false from Result.Ok(false))
+                            forceShowAddresses = true; 
+                        }
+                    }
+                    else
+                    {
+                        // Canceled the warning dialog entirely, maybe just stop here?
+                        return;
+                    }
+                }
+
+                // Handle address selection logic
+                // Show if: 1. Multiple addresses exist 
+                // OR 2. Specifically chose "Create New Order" from the warning dialog
+                if (client.CustomerAddresses?.Count > 1 || (forceShowAddresses && client.CustomerAddresses?.Count > 0))
+                {
+                    var parameters = new DialogParameters
+                    {
+                        { "CustomerName", client.CustomerName },
+                        { "PhoneNumber", _commonProperties.CustomerDetails.FirstPhoneNumber },
+                        { "Addresses", client.CustomerAddresses.ToList() }
+                    };
+
+                    var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+                    _commonProperties.DialogReference = await _dialogService.ShowAsync<SelectAddressDialog>(Localizer["SelectAddress"], parameters, options);
+                }
+                else if (client.CustomerAddresses?.Count == 1)
+                {
+                    BackupCustomerDetails(client);
+                }
+                else
+                {
+                    // No addresses at all (New Customer scenario)
+                    ClearCustomerDataExceptPhone();
+                    CustomerStats = client;
+                }
+            }
+            catch (Exception ex)
+            {
+                _snackbar.Add($"{Localizer["Error"]}: {ex.Message}", Severity.Error);
+                Console.WriteLine($"Error loading customer: {ex}");
+            }
+        }
+    }
+
+    private void ClearCustomerDataExceptPhone()
+    {
+        // Preserve current zone info if available
+        var currentZoneId = _commonProperties.CustomerDetails?.ZoneID ?? 0;
+        var currentZoneName = _commonProperties.CustomerDetails?.ZoneName;
+        var currentZoneFees = _commonProperties.CustomerDetails?.ZoneFees ?? 0;
+        var currentBranchId = _commonProperties.CustomerDetails?.BranchId ?? 0;
+        var currentBranchName = _commonProperties.CustomerDetails?.BranchName;
+
+        var phone = _commonProperties.CustomerDetails?.FirstPhoneNumber;
+        _commonProperties.CustomerDetails = new BlazorBase.Models.DeliveryModels.CustomerDetails
+        {
+            FirstPhoneNumber = phone,
+            ZoneID = currentZoneId,
+            ZoneName = currentZoneName,
+            ZoneFees = currentZoneFees,
+            BranchId = currentBranchId,
+            BranchName = currentBranchName
+        };
+
+        // Maintain SelectedZone UI state
+        if (currentZoneId > 0)
+        {
+            SelectedZone = Zones.FirstOrDefault(z => z.Id == currentZoneId) ?? new DeliveryZonesToReturnDto
+            {
+                Id = currentZoneId,
+                ZoneName = currentZoneName,
+                DeliveryFee = currentZoneFees,
+                BranchId = currentBranchId
+            };
+        }
+        else
+        {
+            SelectedZone = null;
+        }
+    }
+
+    private void BackupCustomerDetails(DeliveryCustomerToReturnDto client)
+    {
+        var clientAddress = client!.CustomerAddresses!.FirstOrDefault();
+        if (clientAddress == null) return;
+
+        _commonProperties.CustomerDetails!.FirstPhoneNumber = client.FirstPhoneNumber;
+        _commonProperties.CustomerDetails.SecondPhoneNumber = client.SecondPhoneNumber;
+        _commonProperties.CustomerDetails.CustomerName = client.CustomerName;
+        _commonProperties.CustomerDetails.ClientTitle = client.ClientTitle;
+        _commonProperties.CustomerDetails.FloorNumber = clientAddress.FloorNumber;
+        _commonProperties.CustomerDetails.FlatNumber = clientAddress.FlatNumber;
+        _commonProperties.CustomerDetails.HomeNumber = clientAddress.HomeNumber;
+        _commonProperties.CustomerDetails.ClientAddress = clientAddress.ClientAddress;
+        _commonProperties.CustomerDetails.AddressNote = clientAddress.AddressNote;
+        _commonProperties.CustomerDetails.BranchName = clientAddress.BranchName;
+        _commonProperties.CustomerDetails.ZoneName = clientAddress.ZoneName;
+        _commonProperties.CustomerDetails.CustomerAddressId = clientAddress.Id;
+        _commonProperties.CustomerDetails.ZoneID = clientAddress.DeliveryZoneId;
+        _commonProperties.CustomerDetails.Id = clientAddress.DeliveryCustomerId;
+        _commonProperties.CustomerDetails.BranchId = clientAddress.BranchId;
+        
+        // Use fee from address, but sync with current Zones list for latest price and bonus if possible
+        _commonProperties.CustomerDetails.ZoneFees = clientAddress.DeliveryFee;
+        _commonProperties.CustomerDetails.ZoneBonus = clientAddress.ZoneBonus;
+        
+        var zoneSync = Zones?.FirstOrDefault(z => z.Id == clientAddress.DeliveryZoneId);
+        if (zoneSync != null)
+        {
+            if (zoneSync.DeliveryFee.HasValue)
+                _commonProperties.CustomerDetails.ZoneFees = zoneSync.DeliveryFee.Value;
+            
+            if (zoneSync.ZoneBonus.HasValue)
+                _commonProperties.CustomerDetails.ZoneBonus = zoneSync.ZoneBonus.Value;
+        }
+
+        SafeAddressSelected();
+    }
+
+
+    private string ToArabicNumerals(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        return input.Replace('0', '٠').Replace('1', '١').Replace('2', '٢').Replace('3', '٣')
+                    .Replace('4', '٤').Replace('5', '٥').Replace('6', '٦').Replace('7', '٧')
+                    .Replace('8', '٨').Replace('9', '٩');
+    }
+}

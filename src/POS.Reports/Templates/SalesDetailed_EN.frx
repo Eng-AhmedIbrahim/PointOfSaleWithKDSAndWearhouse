@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="2026-03-10" ReportInfo.Modified="03/15/2026 03:45:00" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="Orders" ReferenceName="ReportData.Orders" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderType" DataType="System.String"/>
+      <Column Name="OrderState" DataType="System.String"/>
+      <Column Name="VoidAmount" DataType="System.Decimal"/>
+      <Column Name="VoidReason" DataType="System.String"/>
+      <Column Name="VoidByName" DataType="System.String"/>
+      <Column Name="CashierName" DataType="System.String"/>
+      <Column Name="TotalDiscount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="OrderDetails" ReferenceName="ReportData.OrderDetails" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="Price" DataType="System.Decimal"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+      <Column Name="IsVoided" DataType="System.Boolean"/>
+      <Column Name="DiscountAmount" DataType="System.Decimal"/>
+      <Column Name="TotalAfterDiscount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="StaffSummary" ReferenceName="ReportData.StaffSummary" DataType="System.Int32" Enabled="true">
+      <Column Name="StaffName" DataType="System.String"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+      <Column Name="OrderAmount" DataType="System.Decimal"/>
+      <Column Name="VoidCount" DataType="System.Int32"/>
+      <Column Name="VoidAmount" DataType="System.Decimal"/>
+      <Column Name="TotalDiscount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String" AsString=""/>
+    <Parameter Name="ToDate" DataType="System.String" AsString=""/>
+    <Parameter Name="ReportTitle" DataType="System.String" AsString=""/>
+    <Parameter Name="BranchName" DataType="System.String" AsString=""/>
+    <Parameter Name="SubTitle" DataType="System.String" AsString=""/>
+    <Total Name="TotalSum" Expression="[Orders.GrandTotal]" Evaluator="Data1"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="110">
+      <TextObject Name="Text1" Width="718.2" Height="47.25" Text="Staff Sales Report - Detailed" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="45" Width="718.2" Height="25" Text="Period From: [FromDate] To: [ToDate]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="70" Width="718.2" Height="20" Text="Branch: [BranchName]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="TextSub" Top="85" Width="718.2" Height="20" Text="[SubTitle]" HorzAlign="Center" Font="Arial, 10pt, style=Bold, Italic"/>
+    </ReportTitleBand>
+
+    <PageHeaderBand Name="PageHeader1" Top="113.2" Width="718.2" Height="35" Fill.Color="30, 58, 95">
+      <TextObject Name="TextHeader1" Width="90" Height="35" Border.Lines="All" Border.Color="White" Text="Order #" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader2" Left="90" Width="160" Height="35" Border.Lines="All" Border.Color="White" Text="Date &amp; Time" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader3" Left="250" Width="130" Height="35" Border.Lines="All" Border.Color="White" Text="Order Type" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader4" Left="380" Width="100" Height="35" Border.Lines="All" Border.Color="White" Text="Grand Total" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeaderDiscount" Left="480" Width="100" Height="35" Border.Lines="All" Border.Color="White" Text="Discount" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader5" Left="580" Width="138.2" Height="35" Border.Lines="All" Border.Color="White" Text="Cashier" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+
+    <DataBand Name="Data1" Top="179.6" Width="718.2" Height="40" DataSource="Orders" KeepTogether="true">
+      <TextObject Name="TextBody1" Width="90" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Fill.Color="WhiteSmoke" Text="[Orders.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="TextBody2" Left="90" Width="160" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Text="[Orders.OrderDate]" Format="Custom" Format.Format="yyyy-MM-dd HH:mm" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="TextBody3" Left="250" Width="130" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Text="[Orders.OrderType]&#13;&#10;([Orders.OrderState])" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt"/>
+      <TextObject Name="TextBody4" Left="380" Width="100" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Text="[Orders.GrandTotal]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="TextBodyDiscount" Left="480" Width="100" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Text="[Orders.TotalDiscount]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="TextBody5" Left="580" Width="138.2" Height="40" Border.Lines="All" Border.Color="30, 58, 95" Text="[Orders.CashierName]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+
+      <DataHeaderBand Name="DataHeader1" Top="151.4" Width="718.2" Height="25" Fill.Color="240, 240, 240">
+        <TextObject Name="TextSubHeader1" Left="90" Width="210" Height="25" Border.Lines="All" Border.Color="Silver" Fill.Color="White" Text="Item Name" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+        <TextObject Name="TextSubHeader2" Left="300" Width="90" Height="25" Border.Lines="All" Border.Color="Silver" Fill.Color="White" Text="Qty" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+        <TextObject Name="TextSubHeader3" Left="390" Width="90" Height="25" Border.Lines="All" Border.Color="Silver" Fill.Color="White" Text="Price" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+        <TextObject Name="TextSubHeader4" Left="480" Width="100" Height="25" Border.Lines="All" Border.Color="Silver" Fill.Color="White" Text="Disc" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+        <TextObject Name="TextSubHeader5" Left="580" Width="100" Height="25" Border.Lines="All" Border.Color="Silver" Fill.Color="White" Text="Subtotal" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt, style=Bold"/>
+      </DataHeaderBand>
+
+      <DataBand Name="Data2" Top="222.8" Width="718.2" Height="25" DataSource="OrderDetails" Filter="[OrderDetails.OrderId] == [Orders.OrderId]">
+        <TextObject Name="DetailItem" Left="90" Width="210" Height="25" Border.Lines="Left, Right, Bottom" Border.Color="Silver" Text="[OrderDetails.ItemName] [([OrderDetails.IsVoided] ? &quot;(VOIDED)&quot; : &quot;&quot;)]" Padding="5, 0, 5, 0" VertAlign="Center" Font="Arial, 9pt"/>
+        <TextObject Name="DetailQty" Left="300" Width="90" Height="25" Border.Lines="Left, Right, Bottom" Border.Color="Silver" Text="[OrderDetails.Qty]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+        <TextObject Name="DetailPrice" Left="390" Width="90" Height="25" Border.Lines="Left, Right, Bottom" Border.Color="Silver" Text="[OrderDetails.Price]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+        <TextObject Name="DetailDisc" Left="480" Width="100" Height="25" Border.Lines="Left, Right, Bottom" Border.Color="Silver" Text="[OrderDetails.DiscountAmount]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt" TextFill.Color="Red"/>
+        <TextObject Name="DetailTotal" Left="580" Width="100" Height="25" Border.Lines="Left, Right, Bottom" Border.Color="Silver" Fill.Color="250, 250, 250" Text="[OrderDetails.TotalAfterDiscount]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold"/>
+      </DataBand>
+
+      <DataFooterBand Name="DataFooter1" Top="251" Width="718.2" Height="80">
+        <TextObject Name="VoidMessage" Left="38.2" Top="5" Width="680" Height="25" VisibleExpression="[Orders.OrderState] == &quot;Voided&quot; || [Orders.VoidAmount] &gt; 0" Fill.Color="255, 235, 238" CanShrink="true" Text="⚠ Order Voided: [Orders.VoidReason] | By: [Orders.VoidByName]" Padding="10, 0, 0, 0" VertAlign="Center" Font="Arial, 9pt, style=Bold, Italic" TextFill.Color="Red"/>
+        <LineObject Name="LineBottom" Top="35" Width="718.2" Border.Color="30, 58, 95" Border.Width="1.5" ShiftMode="Always"/>
+      </DataFooterBand>
+    </DataBand>
+
+    <ReportSummaryBand Name="SummaryReport" Top="350" Width="718.2" Height="150">
+      <TextObject Name="TextSumLabel" Left="201.65" Top="10" Width="150" Height="30" Border.Lines="All" Fill.Color="WhiteSmoke" Text="Grand Total:" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="TextSum" Left="370.55" Top="10" Width="175.6" Height="30" Border.Lines="All" Fill.Color="30, 58, 95" Text="[TotalSum]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+
+      <TableObject Name="StaffTable" Top="60" Width="700" Height="50" Left="9">
+        <TableColumn Name="ColS1" Width="150"/>
+        <TableColumn Name="ColS2" Width="110"/>
+        <TableColumn Name="ColS3" Width="110"/>
+        <TableColumn Name="ColS4" Width="110"/>
+        <TableColumn Name="ColS5" Width="110"/>
+        <TableColumn Name="ColS6" Width="110"/>
+        <TableRow Name="RowS1" Height="25">
+          <TableCell Name="CellS1" Border.Lines="All" Fill.Color="30, 58, 95" Text="Employee" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="CellS2" Border.Lines="All" Fill.Color="30, 58, 95" Text="Orders" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="CellS3" Border.Lines="All" Fill.Color="30, 58, 95" Text="Order Val" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="CellS4" Border.Lines="All" Fill.Color="30, 58, 95" Text="Voids" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="CellS5" Border.Lines="All" Fill.Color="30, 58, 95" Text="Void Val" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+          <TableCell Name="CellS6" Border.Lines="All" Fill.Color="30, 58, 95" Text="Discounts" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt, style=Bold" TextFill.Color="White"/>
+        </TableRow>
+        <TableRow Name="RowS2" Height="25" DataSource="StaffSummary">
+          <TableCell Name="CellS7" Border.Lines="All" Text="[StaffSummary.StaffName]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          <TableCell Name="CellS8" Border.Lines="All" Text="[StaffSummary.OrderCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          <TableCell Name="CellS9" Border.Lines="All" Text="[StaffSummary.OrderAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          <TableCell Name="CellS10" Border.Lines="All" Text="[StaffSummary.VoidCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          <TableCell Name="CellS11" Border.Lines="All" Text="[StaffSummary.VoidAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          <TableCell Name="CellS12" Border.Lines="All" Text="[StaffSummary.TotalDiscount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+        </TableRow>
+      </TableObject>
+    </ReportSummaryBand>
+
+    <PageFooterBand Name="PageFooter1" Top="420" Width="718.2" Height="18.9">
+      <TextObject Name="TextFooter1" Width="718.2" Height="18.9" Text="Print Time: [DateTime.Now]  |  Page [Page] of [TotalPages#]" HorzAlign="Center" VertAlign="Center" Font="Arial, 8pt" TextFill.Color="Gray"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

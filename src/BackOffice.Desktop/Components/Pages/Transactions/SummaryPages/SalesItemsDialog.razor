@@ -1,0 +1,214 @@
+@using global::POS.Contract.Dtos.ReportingDtos
+@using global::BackOffice.Desktop.Components.Pages.Reporting
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+
+<MudDialog Class="premium-sales-items-dialog" Style="border-radius: 20px; overflow: hidden; max-height: 95vh;">
+    <DialogContent>
+        <div class="dialog-layout d-flex flex-column" dir="@(_commonProperties.IsRtl ? "rtl" : "ltr")" style="height: 100%;">
+            @* ════════ FIXED HEADER ════════ *@
+            <div class="header-section pa-4">
+                <div class="custom-header-box d-flex align-center justify-space-between glass pa-4 rounded-xl border">
+                    <div class="d-flex align-center gap-3">
+                        <div class="icon-circle shadow-sm">
+                            <MudIcon Icon="@Icons.Material.Filled.Leaderboard" Color="Color.Primary" />
+                        </div>
+                        <div>
+                            <MudText Typo="Typo.h5" Style="font-weight: 900; color: #1e3a5f;">@Localizer["SalesItemsSummary"]</MudText>
+                            <MudText Typo="Typo.caption" Class="text-muted">@Items.Count @Localizer["UniqueItems"]</MudText>
+                        </div>
+                    </div>
+                    <div class="d-flex align-center gap-2">
+                        @if (_canPrintItems)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.LocalPrintshop" OnClick="PrintItems" Color="Color.Info" Variant="MudBlazor.Variant.Filled" Size="Size.Small" Class="rounded-pill" />
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" Color="Color.Error" Variant="MudBlazor.Variant.Filled" Size="Size.Small" Class="rounded-pill" />
+                    </div>
+                </div>
+
+                <div class="search-section mt-4">
+                    <MudTextField @bind-Value="_searchText" 
+                                 Placeholder="@Localizer["Search"]" 
+                                 Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                 FullWidth="true" 
+                                 Class="search-field-pill rounded-pill"
+                                 Clearable="true" />
+                </div>
+            </div>
+
+            @* ════════ SCROLLABLE TABLE ════════ *@
+            <div class="table-container-elevated flex-grow-1 mx-4 mb-4 shadow-xs rounded-xl overflow-hidden border">
+                <MudTable Items="FilteredItems" 
+                          Hover="true" 
+                          Dense="true" 
+                          Elevation="0" 
+                          FixedHeader="true" 
+                          Height="calc(95vh - 420px)" 
+                          Class="items-table"
+                          Bordered="false">
+                    <HeaderContent>
+                        @if (_commonProperties.IsRtl)
+                        {
+                            <MudTh Style="background: #f8f9fa; font-weight: 800;">@Localizer["Item"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800;">@Localizer["Category"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800; text-align: center;">@Localizer["Qty"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800; text-align: center;">@Localizer["Total"]</MudTh>
+                        }
+                        else
+                        {
+                            <MudTh Style="background: #f8f9fa; font-weight: 800; text-align: center;">@Localizer["Total"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800; text-align: center;">@Localizer["Qty"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800;">@Localizer["Category"]</MudTh>
+                            <MudTh Style="background: #f8f9fa; font-weight: 800;">@Localizer["Item"]</MudTh>
+                        }
+                    </HeaderContent>
+                    <RowTemplate>
+                        @if (_commonProperties.IsRtl)
+                        {
+                            <MudTd DataLabel="@Localizer["Item"]">
+                                <MudText Style="font-weight: 700;">@context.ItemName</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Category"]">
+                                <MudChip T="string" Size="Size.Small" Variant="MudBlazor.Variant.Text" Color="Color.Info" Class="rounded-lg">@context.CategoryName</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Qty"]" Style="text-align: center;">
+                                <span class="qty-badge">@context.Quantity.ToString("0.##")</span>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Total"]" Style="text-align: center;">
+                                <MudText Color="Color.Primary" Style="font-weight: 900;">@context.TotalAmount.ToString("0.##")</MudText>
+                            </MudTd>
+                        }
+                        else
+                        {
+                            <MudTd DataLabel="@Localizer["Total"]" Style="text-align: center;">
+                                <MudText Color="Color.Primary" Style="font-weight: 900;">@context.TotalAmount.ToString("0.##")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Qty"]" Style="text-align: center;">
+                                <span class="qty-badge">@context.Quantity.ToString("0.##")</span>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Category"]">
+                                <MudChip T="string" Size="Size.Small" Variant="MudBlazor.Variant.Text" Color="Color.Info" Class="rounded-lg">@context.CategoryName</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@Localizer["Item"]">
+                                <MudText Style="font-weight: 700;">@context.ItemName</MudText>
+                            </MudTd>
+                        }
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="w-100 pa-4 pt-0">
+            <div class="footer-stats-box glass pa-4 mb-4 rounded-xl border d-flex justify-space-around align-center">
+                @if (_commonProperties.IsRtl)
+                {
+                    <div class="stat-group text-center">
+                        <MudText Typo="Typo.caption" Class="stat-label">@Localizer["TotalSales"]</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 900;">@Items.Sum(x => x.TotalAmount).ToString("0.##")</MudText>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-group text-center">
+                        <MudText Typo="Typo.caption" Class="stat-label">@Localizer["TotalQty"]</MudText>
+                        <MudText Typo="Typo.h5" Style="font-weight: 900; color: #2c3e50;">@Items.Sum(x => x.Quantity).ToString("0.##")</MudText>
+                    </div>
+                }
+                else
+                {
+                    <div class="stat-group text-center">
+                        <MudText Typo="Typo.caption" Class="stat-label">@Localizer["TotalQty"]</MudText>
+                        <MudText Typo="Typo.h5" Style="font-weight: 900; color: #2c3e50;">@Items.Sum(x => x.Quantity).ToString("0.##")</MudText>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-group text-center">
+                        <MudText Typo="Typo.caption" Class="stat-label">@Localizer["TotalSales"]</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 900;">@Items.Sum(x => x.TotalAmount).ToString("0.##")</MudText>
+                    </div>
+                }
+            </div>
+            <MudButton Variant="MudBlazor.Variant.Filled"
+                       Color="Color.Error" 
+                       OnClick="Close" 
+                       FullWidth="true"
+                       Class="rounded-pill py-3 px-10"
+                       Style="font-weight: 800;">@Localizer["Close"]</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-sales-items-dialog .mud-dialog-content { padding: 0 !important; background: #fdfdfd; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+    .dialog-layout { height: 100%; max-height: calc(95vh - 200px); flex: 1; }
+    .custom-header-box { background: rgba(255, 255, 255, 0.9); }
+    .icon-circle { width: 40px; height: 40px; background: #e3f2fd; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .text-muted { color: #8898aa; font-size: 11px; }
+    
+    .search-field-pill .mud-outlined-input { border-radius: 30px !important; background: white !important; }
+    
+    .items-table .mud-table-head { border-bottom: 2px solid #eee; }
+    .qty-badge { background: #f0f2f5; padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; }
+    
+    .footer-stats-box { background: #fcfcfc; box-shadow: 0 -4px 10px rgba(0,0,0,0.02); }
+    .stat-label { font-weight: 800; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-divider { width: 2px; height: 40px; background: #eee; }
+    
+    .glass { backdrop-filter: blur(10px); }
+</style>
+
+@code {
+    [Parameter] public List<SalesItemSummaryDto> Items { get; set; } = new();
+    [Parameter] public DateTime SelectedDate { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
+    [Inject] private IPrintOrderService PrintOrderService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IAuthorizationService AuthorizationService { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
+    private string _searchText = "";
+    private bool _canPrintItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            _canPrintItems = (await AuthorizationService.AuthorizeAsync(user, "CanPrintSalesItemsAtBackOffice")).Succeeded;
+        }
+    }
+
+    private IEnumerable<SalesItemSummaryDto> FilteredItems => 
+        string.IsNullOrWhiteSpace(_searchText) 
+            ? Items 
+            : Items.Where(i => i.ItemName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) || 
+                               i.CategoryName.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private void Close() => MudDialog.Close();
+
+    private async Task PrintItems()
+    {
+        try
+        {
+            var parameters = new MudBlazor.DialogParameters<ReportViewerDialog>
+            {
+                { x => x.ReportId, "ItemSales" },
+                { x => x.ReportName, Localizer["SalesItemsSummary"] },
+                { x => x.FromDate, SelectedDate },
+                { x => x.ToDate, SelectedDate }
+            };
+
+            var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, FullScreen = true };
+            await DialogService.ShowAsync<ReportViewerDialog>(Localizer["SalesItemsSummary"], parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+    }
+}

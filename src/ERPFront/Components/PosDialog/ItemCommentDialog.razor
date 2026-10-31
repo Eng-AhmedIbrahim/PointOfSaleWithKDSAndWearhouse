@@ -1,0 +1,52 @@
+﻿@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject IDialogService _dialogService
+@inject CartService _cartService
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.None" Class="custom-dialog-width">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Add Line Comment</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField Label="Your Comment" @bind-Value="UserComment" FullWidth="true" Lines="1" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+
+            <MudButton OnClick="SubmitComment" Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Send">
+                Submit
+            </MudButton>
+
+            <MudButton OnClick="EditComment" Color="Color.Warning" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit">
+                Edit
+            </MudButton>
+
+            <MudButton OnClick="DeleteComment" Color="Color.Error" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete">
+                Delete
+            </MudButton>
+
+            <MudButton OnClick="CloseDialog" Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Close">
+                Cancel
+            </MudButton>
+
+        </MudStack>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .merged {
+        background-color: #ffcc00 !important;
+        color: black !important;
+        font-weight: bold;
+    }
+
+    .custom-dialog-width {
+        max-width: 90%;
+        width: 500px;
+    }
+
+</style>

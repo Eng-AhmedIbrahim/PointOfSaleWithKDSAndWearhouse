@@ -1,0 +1,97 @@
+﻿@using POS.Contract.Dtos.CategoryDtos
+@* @page "/Delete-Category/{CategoryId:int}" *@
+@inject IStringLocalizer<Resource> Localizer
+@inject ICategoryServices _categoryService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+<PageTitle>Delete Category</PageTitle>
+
+<MudDialog Style="min-width: 385px">
+    <DialogContent>
+        @if (Category is null)
+        {
+            <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+        }
+        else
+        {
+            <MudSimpleTable Style=" overflow-x: auto; ">
+                <thead>
+                    <tr>
+                        <th>@Localizer["Property"]</th>
+                        <th>@Localizer["Information"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>@Localizer["Id"]</td>
+                        <td>@Category.Id</td>
+                    </tr>
+                    <tr>
+                        <td>@Localizer["ArabicName"]</td>
+                        <td>@Category.ArabicName</td>
+                    </tr>
+                    <tr>
+                        <td>@Localizer["EnglishName"]</td>
+                        <td>@Category.EnglishName</td>
+                    </tr>
+                    <tr>
+                        <td>@Localizer["Invisible"]</td>
+                        <td>@Category.Invisible</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>   
+        }
+    </DialogContent>
+    <DialogActions>
+        @* <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton> *@
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   OnClick="async () => await OnValidSubmit()"
+                   Class="mx-1">
+            @Localizer["Delete"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [CascadingParameter]
+    private MudDialog? MudDialog { get; set; }
+
+    [Parameter]
+    public CategoryToReturnDto? Category { get; set; }
+
+    // protected override async Task OnParametersSetAsync()
+    // {
+    //     var result = await _categoryService.GetCategoryById(CategoryId);
+
+    //     switch (result.Success)
+    //     {
+    //         case true:
+    //             Category = result.Data;
+    //             break;
+
+    //         case false:
+    //             Snackbar.Add(result.Message, Severity.Error);
+    //             break;
+    //     }
+    // }
+    // private void Cancel() => MudDialog!.Cancel();
+    private async Task OnValidSubmit()
+    {
+        var result = await _categoryService.DeleteCategory(Category!.Id);
+        switch (result.Success)
+        {
+            // case true:
+            //     Snackbar.Add(result.Message, MudBlazor.Severity.Success);
+            //     MudDialog!.Close(DialogResult.Ok(true));
+            //     break;
+
+            // case false:
+            //     Snackbar.Add(result.Message, Severity.Error);
+            //     break;
+        }
+    }
+
+}

@@ -1,0 +1,11 @@
+[
+  { "ArabicName": "كيلو", "EnglishName": "Kilogram", "Code": "kg" },
+  { "ArabicName": "جرام", "EnglishName": "Gram", "Code": "g" },
+  { "ArabicName": "ليتر", "EnglishName": "Liter", "Code": "l" },
+  { "ArabicName": "مليليتر", "EnglishName": "Milliliter", "Code": "ml" },
+  { "ArabicName": "قطعة", "EnglishName": "Piece", "Code": "pcs" },
+  { "ArabicName": "حبة", "EnglishName": "Unit", "Code": "u" },
+  { "ArabicName": "كرتونة", "EnglishName": "Box", "Code": "box" },
+  { "ArabicName": "زجاجة", "EnglishName": "Bottle", "Code": "btl" },
+  { "ArabicName": "عبوة", "EnglishName": "Pack", "Code": "pk" }
+]

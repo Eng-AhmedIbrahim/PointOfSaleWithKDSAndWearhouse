@@ -1,0 +1,289 @@
+@using MudBlazor
+@using BlazorBase.Services
+@inject CommonProperties _commonProperties
+@inject LocalizationService Localizer
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@using BlazorBase.ERPFrontServices.CartServices
+@using BlazorBase.ERPFrontServices.Section4ButtonsService
+@using BlazorBase.ERPFrontServices.AppDateServices
+@inject IPrintOrderService _printOrderService
+@inject CartService _cartService
+@inject NavigationManager _navigationManager
+@inject IAppDateService _appDateService
+@inject Section4ButtonsServices _services
+@inject ISnackbar _snackbar
+
+<MudDialog Class="premium-calc-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5" Style="font-weight: 900;">@Localizer["QuickPayment"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="calc-container">
+            <div class="display-section">
+                <div class="display-row total">
+                    <span class="label">@Localizer["TotalAmount"]</span>
+                    <span class="value">@TotalOrderPrice.ToString("N2")</span>
+                </div>
+                <div class="display-row input">
+                    <span class="label">@Localizer["AmountPaid"]</span>
+                    <span class="value highlighted">@PaidAmountString</span>
+                </div>
+                <div class="display-row change">
+                    <span class="label">@Localizer["RemainingChange"]</span>
+                    <span class="value @(RemainingChange < 0 ? "negative" : "positive")">@RemainingChange.ToString("N2")</span>
+                </div>
+            </div>
+
+            <div class="keypad-grid mt-4">
+                @for (int i = 1; i <= 9; i++)
+                {
+                    int num = i;
+                    <button class="key-btn" @onclick="() => AddDigit(num.ToString())">@num</button>
+                }
+                <button class="key-btn action" @onclick="Clear">C</button>
+                <button class="key-btn" @onclick='() => AddDigit("0")'>0</button>
+                <button class="key-btn action" @onclick="DeleteDigit">
+                    <MudIcon Icon="@Icons.Material.Filled.Backspace" Size="Size.Small" />
+                </button>
+                <button class="key-btn extra" @onclick='() => AddDigit(".")'>.</button>
+                <button class="key-btn extra" @onclick='() => AddQuickAmount(50)'>50</button>
+                <button class="key-btn extra" @onclick='() => AddQuickAmount(100)'>100</button>
+                <button class="key-btn extra" @onclick='() => AddQuickAmount(200)'>200</button>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="px-6 pb-6 w-100 d-flex gap-3">
+            <MudButton OnClick="Cancel" Variant="Variant.Outlined" FullWidth="true" Style="height: 50px; border-radius: 12px; font-weight: 700;">
+                @Localizer["Cancel"]
+            </MudButton>
+            <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" Style="height: 50px; border-radius: 12px; font-weight: 800;">
+                @Localizer["Save"]
+            </MudButton>
+            <MudButton OnClick="PrintOrder" Color="Color.Secondary" Variant="Variant.Filled" FullWidth="true" Style="height: 50px; border-radius: 12px; font-weight: 800;">
+                <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
+                @Localizer["Print"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-calc-dialog {
+        border-radius: 24px !important;
+        max-width: 400px;
+    }
+
+    .display-section {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .display-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .display-row:last-child {
+        margin-bottom: 0;
+        padding-top: 12px;
+        border-top: 2px dashed #cbd5e1;
+    }
+
+    .display-row .label {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .display-row .value {
+        font-weight: 800;
+        font-size: 1.2rem;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    .display-row.input .value.highlighted {
+        color: #2563eb;
+        font-size: 1.8rem;
+    }
+
+    .value.positive { color: #059669; }
+    .value.negative { color: #dc2626; }
+
+    .keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .key-btn {
+        height: 60px;
+        border: none;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1e293b;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .key-btn:hover {
+        background: #f1f5f9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .key-btn.action {
+        background: #fee2e2;
+        color: #ef4444;
+        border-color: #fecaca;
+    }
+
+    .key-btn.extra {
+        background: #f1f5f9;
+        font-size: 1rem;
+        color: #475569;
+    }
+
+    .key-btn:active {
+        transform: scale(0.95);
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string PaidAmountString { get; set; } = "0";
+    private decimal PaidAmount => decimal.TryParse(PaidAmountString, out var val) ? val : 0;
+    private decimal TotalOrderPrice => _commonProperties._financeSettingsList?.Count > 4 ? (_commonProperties._financeSettingsList[4].Value ?? 0) : (_commonProperties.TotalOrderPrice ?? 0);
+    private decimal RemainingChange => PaidAmount - TotalOrderPrice;
+
+    private void AddDigit(string digit)
+    {
+        if (PaidAmountString == "0" && digit != ".")
+            PaidAmountString = digit;
+        else if (digit == "." && PaidAmountString.Contains("."))
+            return;
+        else
+            PaidAmountString += digit;
+    }
+
+    private void DeleteDigit()
+    {
+        if (PaidAmountString.Length > 1)
+            PaidAmountString = PaidAmountString.Substring(0, PaidAmountString.Length - 1);
+        else
+            PaidAmountString = "0";
+    }
+
+    private void Clear() => PaidAmountString = "0";
+
+    private void AddQuickAmount(decimal amount)
+    {
+        PaidAmountString = (PaidAmount + amount).ToString();
+    }
+
+    private void Cancel() => _commonProperties.QuickPaymentDialogReference?.Close();
+
+    private bool _isProcessing = false;
+    private void Submit()
+    {
+        if (_isProcessing) return;
+        _isProcessing = true;
+        try
+        {
+            _commonProperties.OrderDto!.Paid = PaidAmount;
+            _commonProperties.OrderDto.Remaining = RemainingChange;
+            _commonProperties.QuickPaymentDialogReference?.Close(DialogResult.Ok(true));
+        }
+        finally { _isProcessing = false; }
+    }
+
+    private async Task PrintOrder()
+    {
+        if (_isProcessing || !_commonProperties!.TableItems!.Any()) return;
+        
+        _isProcessing = true;
+        try
+        {
+            _commonProperties.OrderDto!.Paid = PaidAmount;
+            _commonProperties.OrderDto.Remaining = RemainingChange;
+
+            if (_commonProperties.CurrentPosMode == "TakeAway")
+            {
+                var result = await _printOrderService.PrintTakeAwayOrder(PaidAmount, _commonProperties.CustomerName ?? "", _commonProperties.CustomerPhone ?? "", _commonProperties.SelectedPaymentMethod);
+                if (result is true)
+                {
+                    _cartService.ClearTakeAwayOrderAttributes();
+                }
+            }
+            else if (_commonProperties.CurrentPosMode == "DineIn")
+            {
+                var activeOrder = _commonProperties.GetActiveOrder();
+                if (activeOrder != null)
+                {
+                    await _printOrderService.PrintInitialDineInOrder(activeOrder, true, false);
+                }
+                _cartService.ClearDineInOrderAttributes();
+            }
+
+            _commonProperties.CurrentPosMode = "TakeAway";
+            _cartService.UpdateFinanceSettingsByMode(_commonProperties.CurrentPosMode);
+            await _appDateService.UpdateOrderCount();
+
+            await SafeNavigateAsync("/pos");
+            _services.NotifyStateChanged();
+
+            _commonProperties.QuickPaymentDialogReference?.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private async Task SafeNavigateAsync(string uri)
+    {
+        int maxRetries = 5;
+        int currentRetry = 0;
+        int delayMs = 50;
+
+        while (currentRetry < maxRetries)
+        {
+            try
+            {
+                await Task.Delay(delayMs);
+                if (_navigationManager != null && !string.IsNullOrEmpty(_navigationManager.Uri))
+                {
+                    await InvokeAsync(() => _navigationManager.NavigateTo(uri, forceLoad: false));
+                    return;
+                }
+                else
+                {
+                    throw new InvalidOperationException("NavigationManager not yet initialized");
+                }
+            }
+            catch (Exception ex)
+            {
+                currentRetry++;
+                if (currentRetry >= maxRetries) 
+                {
+                    _snackbar.Add($"Navigation failed: {ex.Message}", Severity.Error);
+                    return;
+                }
+                delayMs *= 2;
+            }
+        }
+    }
+}

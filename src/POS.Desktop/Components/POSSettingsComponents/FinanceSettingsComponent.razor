@@ -1,0 +1,92 @@
+@inject ICustomizationSettingsService CustomizationSettingsService
+@inject DesktopFontSizeService FontSizeService
+@inject LocalizationService Localizer
+
+<MudButton OnClick="OnExpandCollapseClick"
+           Class="settings-section-btn"
+           EndIcon="@(_expanded ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)">
+    <MudText Class="section-btn-label">@Localizer["Section4"]</MudText>
+</MudButton>
+<MudCollapse Class="pa-4" Expanded="_expanded">
+    <MudStack Spacing="3">
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.TableChart" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@Localizer["ResizeTable"]</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await CustomizationSettingsService.AdjustHeight(nameof(ICustomizationSettingsService.TableMaxHeight),5)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await CustomizationSettingsService.AdjustHeight(nameof(ICustomizationSettingsService.TableMaxHeight),-5)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@Localizer["ResizeLabelFont"]</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await IncreaseSize(FinanceLabelTextSize)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await DecreaseSize(FinanceLabelTextSize)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Input" Size="Size.Small" Color="Color.Primary" />
+                <MudText Class="settings-group-title">@Localizer["ResizeInputFont"]</MudText>
+            </MudStack>
+            <div class="settings-button-group">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="async () => await IncreaseSize(FinanceInputTextSize)"
+                               Class="settings-control-btn" />
+                <MudDivider Vertical="true" FlexItem="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="async () => await DecreaseSize(FinanceInputTextSize)"
+                               Class="settings-control-btn" />
+            </div>
+        </div>
+
+        <MudButton StartIcon="@Icons.Material.Filled.RestartAlt"
+                   OnClick="Reset"
+                   Variant="Variant.Outlined"
+                   Class="settings-reset-btn">
+            @Localizer["ResetDefaults"]
+        </MudButton>
+    </MudStack>
+</MudCollapse>
+
+@code {
+    bool _expanded = false;
+
+    private void OnExpandCollapseClick() => _expanded = !_expanded;
+
+    private const string FinanceLabelTextSize = "finance-label-text-size";
+    private const string FinanceInputTextSize = "finance-input-text-size";
+
+    private async Task IncreaseSize(string className)
+    {
+        await FontSizeService.UpdateFontSize(className, 2.0);
+    }
+
+    private async Task DecreaseSize(string className)
+    {
+        await FontSizeService.UpdateFontSize(className, -2.0);
+    }
+
+    private async Task Reset()
+    {
+        await FontSizeService.ClearSection4FontSizes();
+    }
+
+}

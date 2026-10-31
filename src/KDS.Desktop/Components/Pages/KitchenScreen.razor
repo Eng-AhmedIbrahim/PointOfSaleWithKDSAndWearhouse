@@ -1,0 +1,632 @@
+@page "/kitchen/{BranchId:int}/{ScreenId:int}"
+@inject IKdsErpService KdsService
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<div class="kds-container" tabindex="0" @onkeydown="HandleKeyDown" @ref="_containerRef">
+    <!-- Header Bar -->
+    <div class="kds-header">
+        <div class="kds-header-right">
+            <div class="kds-title">
+                <img src="images/logo.png" alt="Logo" style="height: 32px; width: 32px; object-fit: contain; margin-left: 6px;" />
+                شاشة المطبخ
+            </div>
+        </div>
+        <div class="kds-header-center">
+            <span class="ticket-count">@_tickets.Count طلب نشط</span>
+            @if (_lastBumpedOrderId.HasValue)
+            {
+                <button class="btn-recall" @onclick="RecallLast">↩ استرجاع آخر طلب (R)</button>
+            }
+        </div>
+        <div class="kds-header-left">
+            <div class="clock">@_currentTime.ToString("hh:mm:ss tt")</div>
+            <div class="branch-info">فرع @BranchId | شاشة @ScreenId</div>
+        </div>
+    </div>
+
+    <!-- Loading / Empty State -->
+    @if (_isLoading)
+    {
+        <div class="kds-center">
+            <div class="loading-spinner"></div>
+            <div style="color:#64748b;margin-top:1rem;">جاري التحميل...</div>
+        </div>
+    }
+    else if (_tickets.Count == 0)
+    {
+        <div class="kds-center">
+            <div style="font-size:4rem;">🎉</div>
+            <div style="color:#10b981;font-size:1.5rem;font-weight:700;margin-top:1rem;">لا توجد طلبات حالياً</div>
+            <div style="color:#64748b;margin-top:0.5rem;">الطلبات الجديدة ستظهر هنا تلقائياً</div>
+        </div>
+    }
+    else
+    {
+        <!-- Columns Layout — Side-by-side with no fixed height -->
+        <div class="kds-columns-container">
+            @foreach (var col in GetColumns())
+            {
+                <div class="kds-column">
+                    @foreach (var ticket in col)
+                    {
+                        var idx = _tickets.IndexOf(ticket);
+                        var timerClass = ticket.ElapsedMinutes < 5 ? "timer-green"
+                                       : ticket.ElapsedMinutes < 10 ? "timer-yellow"
+                                       : "timer-red";
+                        <div class="kds-ticket @(idx == _selectedIndex ? "ticket-selected" : "") @timerClass-border"
+                             @onclick="() => SelectAndFocus(idx)">
+                            <!-- Ticket Header -->
+                            <div class="ticket-top">
+                                <div class="order-number">#@ticket.DailyOrderNumber</div>
+                                <div class="@timerClass timer-badge">
+                                    ⏱ @FormatElapsed(ticket.ElapsedMinutes)
+                                </div>
+                            </div>
+
+                            <!-- Order Info -->
+                            <div class="ticket-meta">
+                                <div class="order-type-badge">@ticket.OrderTypeName</div>
+                                @if (!string.IsNullOrEmpty(ticket.TableName))
+                                {
+                                    <div class="table-badge">طاولة: @ticket.TableName</div>
+                                }
+                                @if (!string.IsNullOrEmpty(ticket.WaiterName))
+                                {
+                                    <div class="waiter-badge">ويتر: @ticket.WaiterName</div>
+                                }
+                                @if (!string.IsNullOrEmpty(ticket.CustomerName))
+                                {
+                                    <div class="customer-name">@ticket.CustomerName</div>
+                                }
+                            </div>
+
+                            <!-- Order Notice -->
+                            @if (!string.IsNullOrEmpty(ticket.OrderNotice))
+                            {
+                                <div class="order-notice">
+                                    ⚠ @ticket.OrderNotice
+                                </div>
+                            }
+
+                            <!-- Items List -->
+                            <div class="ticket-items">
+                                @foreach (var item in ticket.Items)
+                                {
+                                    <div class="ticket-item">
+                                        <div class="item-title-line">
+                                            <span class="item-qty">@item.Quantity ×</span>
+                                            <span class="item-name">@(item.ItemNameAr ?? item.ItemName)</span>
+                                        </div>
+                                        @if (item.Attributes != null && item.Attributes.Any())
+                                        {
+                                            <div class="item-attributes">
+                                                @foreach (var attr in item.Attributes)
+                                                {
+                                                    <span class="item-attr-badge">⭐ @attr</span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Comment))
+                                        {
+                                            <div class="item-comment">📝 @item.Comment</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Bump Button -->
+                            <div class="ticket-footer">
+                                <button class="btn-bump" @onclick="() => BumpOrder(ticket.OrderId)" @onclick:stopPropagation="true">
+                                    ✓ إنهاء وتحضير (Enter)
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Footer Controls -->
+    <div class="kds-footer">
+        <span class="shortcut">Enter / المسافة: إنهاء المحدد</span>
+        <span class="sep">|</span>
+        <span class="shortcut">الأسهم: التنقل التلقائي</span>
+        <span class="sep">|</span>
+        <span class="shortcut">PageUp / PageDown: تحريك الشاشة</span>
+        <span class="sep">|</span>
+        <span class="shortcut">R: استرجاع</span>
+        <span class="sep">|</span>
+        <span class="shortcut">تحديث تلقائي كل 10 ثوان</span>
+    </div>
+</div>
+
+<style>
+    .kds-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        background-color: #0b1120;
+        color: #f1f5f9;
+        overflow: hidden;
+        user-select: none;
+        outline: none;
+    }
+
+    .kds-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #0f172a;
+        padding: 0.6rem 1.2rem;
+        border-bottom: 2px solid #1e293b;
+        flex-shrink: 0;
+    }
+
+    .kds-header-right, .kds-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .kds-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ticket-count {
+        background: #0284c7;
+        color: #fff;
+        padding: 0.3rem 0.9rem;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .btn-recall {
+        background: #d97706;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 0.35rem 0.9rem;
+        margin-right: 0.8rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .clock { font-size: 1.3rem; font-weight: 700; color: #e2e8f0; font-family: 'Outfit', monospace; direction: ltr; }
+    .branch-info { font-size: 0.75rem; color: #64748b; }
+
+    .kds-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+    }
+    .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #1e293b;
+        border-top-color: #38bdf8;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    .kds-columns-container {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.75rem;
+        padding: 0.75rem;
+        overflow-y: auto;
+        flex: 1;
+        align-content: start;
+    }
+
+    .kds-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    .kds-ticket {
+        background: #111827;
+        border: 2px solid #1f2937;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        height: fit-content;
+        width: 100%;
+        box-sizing: border-box;
+        transition: transform 0.15s, border-color 0.15s;
+        cursor: pointer;
+    }
+    .ticket-selected {
+        outline: 3px solid #38bdf8;
+        transform: scale(1.02);
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+        z-index: 10;
+    }
+
+    .timer-green-border  { border-top: 5px solid #10b981; }
+    .timer-yellow-border { border-top: 5px solid #f59e0b; }
+    .timer-red-border    { border-top: 5px solid #ef4444; }
+
+    .ticket-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0.75rem 0.3rem;
+    }
+    .order-number { font-size: 1.8rem; font-weight: 900; color: #e2e8f0; }
+    .timer-badge { font-size: 0.9rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px; }
+    .timer-green { color: #10b981; }
+    .timer-yellow { color: #f59e0b; animation: none; }
+    .timer-red { color: #ef4444; animation: pulse 1s ease-in-out infinite; }
+    @@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+    .ticket-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 0 0.75rem 0.4rem;
+        font-size: 0.78rem;
+    }
+    .order-type-badge {
+        background: #1e3a5f;
+        color: #60a5fa;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        font-weight: 700;
+    }
+    .table-badge  { background: #14532d; color: #4ade80; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; }
+    .waiter-badge { background: #3b0764; color: #c084fc; padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .customer-name { color: #94a3b8; padding: 0.15rem 0; font-weight: 600; }
+
+    .order-notice {
+        background: #78350f;
+        color: #fde68a;
+        padding: 0.3rem 0.6rem;
+        margin: 0.2rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .ticket-items {
+        padding: 0.4rem 0.75rem;
+        border-top: 1px solid #1f2937;
+    }
+
+    .ticket-item {
+        padding: 0.35rem 0;
+        border-bottom: 1px dashed #1e293b;
+        font-size: 0.95rem;
+        line-height: 1.3;
+    }
+    .ticket-item:last-child { border-bottom: none; }
+    .item-qty {
+        font-weight: 900;
+        color: #38bdf8;
+        margin-left: 0.4rem;
+        font-size: 1.05rem;
+    }
+    .item-name {
+        color: #f1f5f9;
+        font-weight: 700;
+    }
+    .item-comment {
+        font-size: 0.75rem;
+        color: #fbbf24;
+        margin-top: 0.15rem;
+        padding-right: 1.2rem;
+    }
+    .item-attributes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.25rem;
+        padding-right: 1.2rem;
+    }
+    .item-attr-badge {
+        background: #1e3a5f;
+        color: #38bdf8;
+        border: 1px solid #0284c7;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 0.12rem 0.45rem;
+        border-radius: 4px;
+        line-height: 1.2;
+    }
+
+    .ticket-footer {
+        padding: 0.5rem 0.75rem;
+        background: #0f172a;
+        border-top: 1px solid #1f2937;
+    }
+    .btn-bump {
+        width: 100%;
+        background: #10b981;
+        color: #022c22;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem;
+        font-weight: 800;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-bump:hover { background: #059669; color: #fff; }
+
+    .kds-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: #0f172a;
+        border-top: 1px solid #1e293b;
+        padding: 0.4rem;
+        font-size: 0.75rem;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+    .sep { color: #334155; }
+</style>
+
+@code {
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public int ScreenId { get; set; }
+
+    private List<KdsOrderTicketDto> _tickets = new();
+    private int _selectedIndex = 0;
+    private int? _lastBumpedOrderId = null;
+    private bool _isLoading = true;
+    private DateTime _currentTime = DateTime.Now;
+    private System.Timers.Timer? _refreshTimer;
+    private System.Timers.Timer? _clockTimer;
+    private ElementReference _containerRef;
+    private int _prevTicketCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTickets();
+
+        _refreshTimer = new System.Timers.Timer(10_000);
+        _refreshTimer.Elapsed += async (_, _) => await InvokeAsync(RefreshTickets);
+        _refreshTimer.AutoReset = true;
+        _refreshTimer.Start();
+
+        _clockTimer = new System.Timers.Timer(1_000);
+        _clockTimer.Elapsed += async (_, _) =>
+        {
+            _currentTime = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+        };
+        _clockTimer.AutoReset = true;
+        _clockTimer.Start();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("kdsFocus.init", _containerRef);
+            }
+            catch { }
+        }
+    }
+
+    private const int ColumnCount = 5;
+
+    private List<List<KdsOrderTicketDto>> GetColumns()
+    {
+        var cols = new List<List<KdsOrderTicketDto>>();
+        for (int i = 0; i < ColumnCount; i++)
+            cols.Add(new List<KdsOrderTicketDto>());
+
+        if (_tickets == null || _tickets.Count == 0)
+            return cols;
+
+        var heights = new int[ColumnCount];
+
+        // 1. Distribute first N tickets into the N columns across the row (RTL)
+        int firstBatch = Math.Min(ColumnCount, _tickets.Count);
+        for (int i = 0; i < firstBatch; i++)
+        {
+            cols[i].Add(_tickets[i]);
+            heights[i] += EstimateTicketHeight(_tickets[i]);
+        }
+
+        // 2. For each subsequent ticket, find the column with the minimum height
+        for (int i = firstBatch; i < _tickets.Count; i++)
+        {
+            int minCol = 0;
+            for (int c = 1; c < ColumnCount; c++)
+            {
+                if (heights[c] < heights[minCol])
+                    minCol = c;
+            }
+            cols[minCol].Add(_tickets[i]);
+            heights[minCol] += EstimateTicketHeight(_tickets[i]);
+        }
+
+        return cols;
+    }
+
+    private int EstimateTicketHeight(KdsOrderTicketDto ticket)
+    {
+        int h = 130;
+        if (ticket.Items != null)
+        {
+            foreach (var item in ticket.Items)
+            {
+                h += 32;
+                if (item.Attributes != null && item.Attributes.Any())
+                    h += 24;
+                if (!string.IsNullOrEmpty(item.Comment))
+                    h += 20;
+            }
+        }
+        if (!string.IsNullOrEmpty(ticket.OrderNotice)) h += 30;
+        return h;
+    }
+
+    private async Task LoadTickets()
+    {
+        _isLoading = true;
+        var result = await KdsService.GetActiveKitchenOrders(BranchId, ScreenId);
+        _prevTicketCount = result.Count;
+        _tickets = result;
+        _isLoading = false;
+        if (_selectedIndex >= _tickets.Count)
+            _selectedIndex = Math.Max(0, _tickets.Count - 1);
+    }
+
+    private async Task RefreshTickets()
+    {
+        var result = await KdsService.GetActiveKitchenOrders(BranchId, ScreenId);
+        bool hasNew = result.Count > _prevTicketCount;
+        _prevTicketCount = result.Count;
+        _tickets = result;
+        if (_selectedIndex >= _tickets.Count)
+            _selectedIndex = Math.Max(0, _tickets.Count - 1);
+        if (hasNew)
+        {
+            try { await JS.InvokeVoidAsync("kdsAudio.playNewOrder"); } catch { }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task BumpOrder(int orderId)
+    {
+        await KdsService.BumpKitchenOrder(orderId);
+        _lastBumpedOrderId = orderId;
+        await LoadTickets();
+        StateHasChanged();
+    }
+
+    private async Task RecallLast()
+    {
+        if (_lastBumpedOrderId.HasValue)
+        {
+            await KdsService.RecallKitchenOrder(_lastBumpedOrderId.Value);
+            _lastBumpedOrderId = null;
+            await LoadTickets();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectAndFocus(int idx)
+    {
+        _selectedIndex = idx;
+        StateHasChanged();
+        await ScrollSelectedIntoView();
+    }
+
+    private async Task ScrollSelectedIntoView()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("kdsScroll.scrollToSelected");
+        }
+        catch { }
+    }
+
+    private void CloseScreen()
+    {
+        try
+        {
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                System.Windows.Application.Current.MainWindow?.Close();
+            });
+        }
+        catch { }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowRight":
+            case "ArrowUp":
+                _selectedIndex = Math.Max(0, _selectedIndex - 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "ArrowLeft":
+            case "ArrowDown":
+                _selectedIndex = Math.Min(_tickets.Count - 1, _selectedIndex + 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "PageUp":
+                await JS.InvokeVoidAsync("kdsScroll.pageUp");
+                break;
+            case "PageDown":
+                await JS.InvokeVoidAsync("kdsScroll.pageDown");
+                break;
+            case "Escape":
+                CloseScreen();
+                break;
+            case "Enter":
+            case " ":
+                if (_tickets.Count > 0 && _selectedIndex < _tickets.Count)
+                    await BumpOrder(_tickets[_selectedIndex].OrderId);
+                break;
+            case "r":
+            case "R":
+                await RecallLast();
+                break;
+            case "Home":
+                _selectedIndex = 0;
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            case "End":
+                _selectedIndex = Math.Max(0, _tickets.Count - 1);
+                StateHasChanged();
+                await ScrollSelectedIntoView();
+                break;
+            default:
+                if (e.Key.Length == 1 && char.IsDigit(e.Key[0]))
+                {
+                    int target = int.Parse(e.Key) - 1;
+                    if (target >= 0 && target < _tickets.Count)
+                    {
+                        _selectedIndex = target;
+                        StateHasChanged();
+                        await ScrollSelectedIntoView();
+                    }
+                }
+                break;
+        }
+    }
+
+    private string FormatElapsed(double minutes)
+    {
+        int m = (int)minutes;
+        int s = (int)((minutes - m) * 60);
+        return $"{m:D2}:{s:D2}";
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
+        _clockTimer?.Stop();
+        _clockTimer?.Dispose();
+    }
+}

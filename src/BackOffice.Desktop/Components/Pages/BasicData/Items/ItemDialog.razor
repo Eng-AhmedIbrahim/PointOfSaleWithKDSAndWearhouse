@@ -1,0 +1,895 @@
+@inject IItemService ItemService
+@inject ICategoryServices CategoryService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="custom-dialog item-dialog">
+    <DialogContent>
+        <RadzenTemplateForm TItem="ItemFormModel" Data="@model" Submit="@SubmitForm" InvalidSubmit="@OnInvalidSubmit">
+            <div class="p-4" dir="@(IsArabic ? "rtl" : "ltr")">
+                <div class="d-flex flex-column gap-3">
+
+                    <!-- ID Card -->
+                    <div class="id-card-section">
+                        <label class="field-label">@(IsArabic ? "رقم الصنف" : "Item Code")</label>
+                        <div class="id-premium-card d-flex align-items-center">
+                            <span class="id-icon-box">
+                                <RadzenIcon Icon="tag" Style="font-size: 1.1rem; color: #2563eb;" />
+                            </span>
+                            <RadzenNumeric Name="Id" @bind-Value="model.Id" ReadOnly="true" TValue="int" ShowUpDown="false"
+                                           Style="border: none; background: transparent; font-weight: 900; color: #2563eb; font-size: 1.8rem; padding: 0; height: auto; width: 90px;" />
+                            <span class="ms-auto badge-auto">@(IsArabic ? "ترقيم تلقائي" : "Auto")</span>
+                        </div>
+                    </div>
+
+                    <!-- Names Section -->
+                    <div class="fields-section-card">
+                        <!-- Arabic Name -->
+                        <div class="field-row">
+                            <div class="field-icon-wrap">
+                                <RadzenIcon Icon="translate" Style="font-size: 1rem; color: #64748b;" />
+                            </div>
+                            <div class="flex-grow-1">
+                                <RadzenTextBox Name="ArabicName" @bind-Value="model.ArabicName"
+                                               Style="width: 100%; border: none; background: transparent; font-size: 1.05rem; font-weight: 800; padding: 0;"
+                                               AutoComplete="false"
+                                               Placeholder="@(IsArabic ? "اكتب الاسم بالعربي..." : "Enter Arabic Name...")" />
+                                <RadzenRequiredValidator Component="ArabicName" Text="@(IsArabic ? "الاسم العربي مطلوب" : "Arabic name is required")" Popup="false" Style="font-size: 0.85rem; font-weight: 700; color: #ef4444;" />
+                            </div>
+                        </div>
+
+                        <div class="field-divider"></div>
+
+                        <!-- English Name -->
+                        <div class="field-row">
+                            <div class="field-icon-wrap">
+                                <RadzenIcon Icon="abc" Style="font-size: 1rem; color: #64748b;" />
+                            </div>
+                            <div class="flex-grow-1">
+                                <RadzenTextBox Name="EnglishName" @bind-Value="model.EnglishName"
+                                               Style="width: 100%; border: none; background: transparent; font-size: 1.05rem; font-weight: 800; padding: 0;"
+                                               AutoComplete="false"
+                                Placeholder="@(IsArabic ? "اكتب الاسم بالإنجليزي..." : "Enter English Name...")" />
+                                <RadzenRequiredValidator Component="EnglishName" Text="@(IsArabic ? "الاسم الانجليزي مطلوب" : "English name is required")" Popup="false" Style="font-size: 0.85rem; font-weight: 700; color: #ef4444;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (_isInventoryEnabled)
+                    {
+                        <!-- Item Type Dropdown -->
+                        <div class="dropdown-field-wrap">
+                            <RadzenDropDown TValue="int?" Data="@ItemTypes" TextProperty="@(IsArabic ? "ArabicName" : "EnglishName")" ValueProperty="Id"
+                                            @bind-Value="model.ItemTypeId" Change="@OnItemTypeChanged"
+                                            Style="width: 100%; border-radius: 12px; height: 52px; border: 2px solid #e2e8f0; font-weight: 800;"
+                                            Placeholder="@(IsArabic ? "اختر نوع الصنف..." : "Select Item Type...")" />
+                        </div>
+                    }
+
+                    <!-- Classification Dropdown -->
+                    <div class="dropdown-field-wrap">
+                        <RadzenDropDown TValue="int?" Data="@Classifications" TextProperty="@(IsArabic ? "ArabicName" : "Name")" ValueProperty="Id"
+                                        @bind-Value="model.MainCategoryId"
+                                        Style="width: 100%; border-radius: 12px; height: 52px; border: 2px solid #e2e8f0; font-weight: 800;"
+                                        Placeholder="@(IsArabic ? "اختر التصنيف..." : "Select Classification...")" />
+                    </div>
+
+                    <!-- Category Dropdown -->
+                    <div class="dropdown-field-wrap">
+                        <RadzenDropDown TValue="int?" Data="@Categories" TextProperty="@(IsArabic ? "ArabicName" : "EnglishName")" ValueProperty="Id"
+                                        @bind-Value="model.CategoryId"
+                                        Style="width: 100%; border-radius: 12px; height: 52px; border: 2px solid #e2e8f0; font-weight: 800;"
+                                        Placeholder="@(IsArabic ? "اختر القسم..." : "Select Category...")" Name="CategoryId" />
+                        <RadzenRequiredValidator Component="CategoryId" Text="@(IsArabic ? "القسم مطلوب" : "Category is required")" Popup="false" Style="font-size: 0.85rem; font-weight: 700; color: #ef4444; margin-top: 4px; display: block;" DefaultValue="null" />
+                    </div>
+
+                    <!-- Price -->
+                    <div class="fields-section-card">
+                        <div class="field-row">
+                            <div class="field-icon-wrap" style="color: #10b981;">
+                                <RadzenIcon Icon="payments" Style="font-size: 1rem; color: #10b981;" />
+                            </div>
+                            <div class="flex-grow-1 d-flex align-items-center">
+                                <RadzenNumeric Name="Price" @bind-Value="model.Price" TValue="decimal?"
+                                               Style="flex: 1; border: none; background: transparent; font-weight: 900; font-size: 1.3rem; padding: 0; height: auto; color: #0f172a;"
+                                               ShowUpDown="false" />
+                                <span style="font-size: 0.85rem; font-weight: 900; color: #10b981; background: #f0fdf4; padding: 4px 10px; border-radius: 8px; border: 1px solid #bbf7d0; white-space: nowrap;">@(IsArabic ? "ج.م" : "EGP")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="fields-section-card">
+                        <div class="field-row">
+                            <div class="field-icon-wrap" style="color: #6366f1;">
+                                <RadzenIcon Icon="notes" Style="font-size: 1rem; color: #6366f1;" />
+                            </div>
+                            <div class="flex-grow-1">
+                                <RadzenTextArea @bind-Value="model.Description" Rows="2"
+                                                Style="width: 100%; border: none; background: transparent; font-size: 0.95rem; font-weight: 700; resize: none;"
+                                                Placeholder="@(IsArabic ? "وصف الصنف (اختياري)..." : "Item description (optional)...")" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visibility & Attribute Toggle -->
+                    <div class="fields-section-card">
+                        <div class="field-row justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="vis-icon-circle" style="background: @(model.Invisible ? "#fef3c7" : "#f0fdf4"); border: 1.5px solid @(model.Invisible ? "#fcd34d" : "#86efac");">
+                                    <RadzenIcon Icon="@(model.Invisible ? "visibility_off" : "visibility")" Style="@($"color: {(model.Invisible ? "#d97706" : "#16a34a")}; font-size: 1.2rem;")" />
+                                </span>
+                                <div>
+                                    <div style="font-weight: 900; font-size: 1rem; color: #1e293b;">@(IsArabic ? "ظهور الصنف" : "Visibility")</div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: @(model.Invisible ? "#d97706" : "#16a34a");">@(IsArabic ? (model.Invisible ? "مخفي في المنيو" : "ظاهر في المنيو") : (model.Invisible ? "Hidden" : "Visible"))</div>
+                                </div>
+                            </div>
+                            <RadzenSwitch @bind-Value="model.Invisible" Name="Invisible" />
+                        </div>
+                        <div class="field-divider"></div>
+                        <div class="field-row justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="vis-icon-circle" style="background: @(model.HasAttribute ? "#eff6ff" : "#f8fafc"); border: 1.5px solid @(model.HasAttribute ? "#2563eb" : "#e2e8f0");">
+                                    <RadzenIcon Icon="list_alt" Style="@($"color: {(model.HasAttribute ? "#2563eb" : "#64748b")}; font-size: 1.2rem;")" />
+                                </span>
+                                <div>
+                                    <div style="font-weight: 900; font-size: 1rem; color: #1e293b;">@(IsArabic ? "يحتوي على خصائص" : "Has Attributes")</div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">@(IsArabic ? (model.HasAttribute ? "نعم" : "لا") : (model.HasAttribute ? "Yes" : "No"))</div>
+                                </div>
+                            </div>
+                            <RadzenSwitch @bind-Value="model.HasAttribute" Name="HasAttribute" />
+                        </div>
+                        @if (_isInventoryEnabled)
+                        {
+                            <div class="field-divider"></div>
+                            <div class="field-row justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="vis-icon-circle" style="background: @(model.IsInventory ? "#f0fdf4" : "#fef2f2"); border: 1.5px solid @(model.IsInventory ? "#86efac" : "#fecaca");">
+                                        <RadzenIcon Icon="@(model.IsInventory ? "inventory_2" : "inventory")" Style="@($"color: {(model.IsInventory ? "#16a34a" : "#dc2626")}; font-size: 1.2rem;")" />
+                                    </span>
+                                    <div>
+                                        <div style="font-weight: 900; font-size: 1rem; color: #1e293b;">@(IsArabic ? "تتبع كمخزون" : "Track as Inventory")</div>
+                                        <div style="font-size: 0.8rem; font-weight: 700; color: @(model.IsInventory ? "#16a34a" : "#dc2626");">@(IsArabic ? (model.IsInventory ? "نعم" : "لا") : (model.IsInventory ? "Yes" : "No"))</div>
+                                    </div>
+                                </div>
+                                <RadzenSwitch @bind-Value="model.IsInventory" Name="IsInventory" />
+                            </div>
+                        }
+                    </div>
+
+                    @if (model.HasAttribute)
+                    {
+                        <!-- Attribute Selection & Price -->
+                        <div class="fields-section-card animate-fade-in">
+                            <div class="field-row">
+                                <RadzenDropDown TValue="int?" Data="@AttributesList" TextProperty="@(IsArabic ? "ArabicName" : "EnglishName")" ValueProperty="Id"
+                                                @bind-Value="model.AttributeId"
+                                                Style="width: 100%; border: none; background: transparent; font-weight: 800;"
+                                                Placeholder="@(IsArabic ? "اختر الخاصية المرتبطة..." : "Select Linked Attribute...")" />
+                            </div>
+                        </div>
+                    }
+
+                    <!-- ===== ADVANCED SETTINGS SECTION ===== -->
+                    <div class="advanced-section-toggle" @onclick="ToggleAdvanced">
+                        <RadzenIcon Icon="@(_showAdvanced ? "expand_less" : "expand_more")" Style="font-size: 1.1rem; color: #64748b;" />
+                        <span>@(IsArabic ? "الإعدادات الإضافية" : "Advanced Settings")</span>
+                        @if (HasAdvancedSettings)
+                        {
+                            <span class="advanced-badge">@(IsArabic ? "مُفعّل" : "Active")</span>
+                        }
+                    </div>
+
+                    @if (_showAdvanced)
+                    {
+                        <div class="advanced-settings-panel animate-fade-in">
+
+                            <!-- Tax -->
+                            <div class="adv-row">
+                                <div class="adv-label">
+                                    <RadzenIcon Icon="receipt_long" Style="font-size: 1rem; color: #f59e0b;" />
+                                    <span>@(IsArabic ? "نسبة الضريبة %" : "Tax %")</span>
+                                </div>
+                                <RadzenNumeric @bind-Value="model.Tax" TValue="decimal?" ShowUpDown="false"
+                                               Style="width: 120px; border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 1rem;" />
+                            </div>
+
+                            <div class="adv-divider"></div>
+
+                            <!-- Design -->
+                            <div class="adv-section-title">@(IsArabic ? "التصميم" : "Design")</div>
+
+                            <!-- Preview Card -->
+                            <div class="item-preview-card" style="background-color: @(string.IsNullOrEmpty(model.BackColor) ? "#ffffff" : model.BackColor); color: @(string.IsNullOrEmpty(model.TextColor) ? "#0f172a" : model.TextColor); font-size: @(model.TextSize.HasValue ? $"{model.TextSize}px" : "1.15rem"); font-weight: 700;">
+                                @(string.IsNullOrEmpty(model.ArabicName) ? (IsArabic ? "معاينة الزرار" : "Button Preview") : model.ArabicName)
+                            </div>
+
+                            <!-- BackColor + TextColor -->
+                            <div class="adv-colors-row">
+                                <div class="adv-color-field">
+                                    <label class="adv-color-label">@(IsArabic ? "لون الخلفية" : "Back Color")</label>
+                                    <div class="adv-color-input-wrap">
+                                        <input type="color" value="@(string.IsNullOrEmpty(model.BackColor) ? "#ffffff" : model.BackColor)"
+                                               @oninput="e => model.BackColor = e.Value?.ToString()" class="color-picker-input" />
+                                        <input type="text" value="@model.BackColor"
+                                               @oninput="e => model.BackColor = e.Value?.ToString()" placeholder="#ffffff"
+                                               class="color-text-input" />
+                                        @if (!string.IsNullOrEmpty(model.BackColor))
+                                        {
+                                            <button type="button" class="color-clear-btn" @onclick="() => model.BackColor = null">✕</button>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="adv-color-field">
+                                    <label class="adv-color-label">@(IsArabic ? "لون النص" : "Text Color")</label>
+                                    <div class="adv-color-input-wrap">
+                                        <input type="color" value="@(string.IsNullOrEmpty(model.TextColor) ? "#0f172a" : model.TextColor)"
+                                               @oninput="e => model.TextColor = e.Value?.ToString()" class="color-picker-input" />
+                                        <input type="text" value="@model.TextColor"
+                                               @oninput="e => model.TextColor = e.Value?.ToString()" placeholder="#0f172a"
+                                               class="color-text-input" />
+                                        @if (!string.IsNullOrEmpty(model.TextColor))
+                                        {
+                                            <button type="button" class="color-clear-btn" @onclick="() => model.TextColor = null">✕</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TextSize -->
+                            <div class="adv-row">
+                                <div class="adv-label">
+                                    <RadzenIcon Icon="format_size" Style="font-size: 1rem; color: #6366f1;" />
+                                    <span>@(IsArabic ? "حجم الخط (px)" : "Font Size (px)")</span>
+                                </div>
+                                <RadzenNumeric @bind-Value="model.TextSize" TValue="int?" ShowUpDown="false" Min="10" Max="40"
+                                               Style="width: 100px; border: 2px solid #e2e8f0; border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 1rem;" />
+                            </div>
+
+                            <div class="adv-divider"></div>
+
+                            <!-- ByWeight -->
+                            <div class="adv-row justify-content-between">
+                                <div class="adv-label">
+                                    <RadzenIcon Icon="monitor_weight" Style="font-size: 1rem; color: #0ea5e9;" />
+                                    <div>
+                                        <div style="font-weight: 900; font-size: 0.95rem; color: #1e293b;">@(IsArabic ? "بيع بالوزن" : "Sell By Weight")</div>
+                                        <div style="font-size: 0.78rem; color: #64748b; font-weight: 600;">@(IsArabic ? "سيظهر اختيار الوزن في الكاشير" : "Weight selector will appear at POS")</div>
+                                    </div>
+                                </div>
+                                <RadzenSwitch @bind-Value="model.ByWeight" />
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-end px-4 pb-4 gap-3 border-top pt-4" dir="@(IsArabic ? "rtl" : "ltr")">
+                <RadzenButton Click="@Cancel" Text="@(IsArabic ? "الخروج" : "Exit")" ButtonStyle="Radzen.ButtonStyle.Light"
+                              Style="border-radius: 12px; padding: 0 25px; height: 44px; font-weight: 800; font-size: 1rem; border: 2px solid #e2e8f0; color: #64748b;" />
+
+                @if (ItemToEdit == null)
+                {
+                    <RadzenButton Click="@(() => _stayOpen = true)" ButtonType="Radzen.ButtonType.Submit"
+                                  ButtonStyle="Radzen.ButtonStyle.Warning"
+                                  Disabled="@_isSaving"
+                                  Style="border-radius: 12px; font-weight: 800; height: 44px; min-width: 170px; font-size: 1rem; background: #f59e0b; color: white; border: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);">
+                        @if (_isSaving && _stayOpen)
+                        {
+                            <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Inherit" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <RadzenIcon Icon="add_circle" Style="font-size: 1.1rem;" />
+                                <span>@(IsArabic ? "حفظ وإنشاء جديد" : "Save & Add New")</span>
+                            </div>
+                        }
+                    </RadzenButton>
+                }
+
+                <RadzenButton Click="@(() => _stayOpen = false)" ButtonType="Radzen.ButtonType.Submit"
+                              ButtonStyle="Radzen.ButtonStyle.Primary"
+                              Disabled="@_isSaving"
+                              Style="border-radius: 12px; font-weight: 900; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; min-width: 130px; height: 44px; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                    @if (_isSaving && !_stayOpen)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Inherit" />
+                            <span>@(IsArabic ? "جاري..." : "Saving...")</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <RadzenIcon Icon="save" Style="font-size: 1.1rem;" />
+                            <span>@(IsArabic ? "حفظ" : "Save")</span>
+                        </div>
+                    }
+                </RadzenButton>
+            </div>
+        </RadzenTemplateForm>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .item-dialog .mud-dialog-title { display: none; }
+    .item-dialog .mud-dialog-content { padding: 0 !important; overflow: visible !important; }
+
+    /* Field Label */
+    .field-label {
+        display: block;
+        font-weight: 800;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 6px;
+    }
+
+    /* ID Card */
+    .id-card-section {}
+    .id-premium-card {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 10px 16px;
+        gap: 12px;
+    }
+    .id-icon-box {
+        width: 34px;
+        height: 34px;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .badge-auto {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
+        background: #f1f5f9;
+        padding: 3px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+
+    /* Grouped section card (names, price) */
+    .fields-section-card {
+        background: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .field-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+    .field-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: 0 16px;
+    }
+    .field-icon-wrap {
+        width: 32px;
+        height: 32px;
+        background: #f8fafc;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #f1f5f9;
+        flex-shrink: 0;
+    }
+
+    /* Dropdown wrapper with icon */
+    .dropdown-field-wrap {
+        position: relative;
+    }
+    .dropdown-icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+    }
+    .dropdown-icon-ltr { left: 14px; }
+    .dropdown-icon-rtl { right: 14px; }
+
+    /* Visibility card */
+    .visibility-card {
+        background: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 16px;
+    }
+    .vis-icon-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    /* Radzen overrides */
+    .rz-textbox, .rz-numeric-input {
+        transition: all 0.2s ease;
+        font-weight: 800 !important;
+        color: #1e293b !important;
+    }
+    .rz-textbox::placeholder, input::placeholder {
+        color: #cbd5e1 !important;
+        font-weight: 600 !important;
+    }
+
+    /* Dropdown */
+    .rz-dropdown {
+        font-weight: 800 !important;
+    }
+    .rz-dropdown-label {
+        font-weight: 800 !important;
+        color: #1e293b !important;
+        padding-right: 16px !important;
+        padding-left: 16px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .rz-dropdown-items-list { padding: 8px !important; }
+    .rz-dropdown-item {
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+        margin-bottom: 3px !important;
+        transition: all 0.15s ease;
+        text-align: right !important;
+        color: #334155 !important;
+    }
+    .rz-dropdown-item:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+    .rz-dropdown-item.rz-state-highlight {
+        background: #eff6ff !important;
+        color: #2563eb !important;
+        box-shadow: inset 0 0 0 1px #dbeafe !important;
+    }
+
+    .rz-button { text-transform: none; letter-spacing: 0.4px; }
+
+    /* Remove spinner arrows from numeric inputs */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    /* Advanced Settings Toggle */
+    .advanced-section-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: #f8fafc;
+        border: 2px dashed #e2e8f0;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #64748b;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+    .advanced-section-toggle:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+    .advanced-badge {
+        margin-inline-start: auto;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 2px 10px;
+        border-radius: 20px;
+        letter-spacing: 0.4px;
+    }
+
+    /* Advanced Settings Panel */
+    .advanced-settings-panel {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .adv-section-title {
+        font-weight: 900;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+        margin-top: 4px;
+    }
+    .adv-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 0;
+    }
+    .adv-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: #374151;
+        flex: 1;
+    }
+    .adv-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: 4px 0;
+    }
+
+    /* Item Preview Card */
+    .item-preview-card {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 18px 12px;
+        text-align: center;
+        font-size: 1.15rem;
+        font-weight: 700;
+        min-height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    /* Color picker row */
+    .adv-colors-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+    .adv-color-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .adv-color-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .adv-color-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 4px 10px;
+    }
+    .color-picker-input {
+        width: 32px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        border-radius: 6px;
+    }
+    .color-text-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: #1e293b;
+        min-width: 0;
+    }
+    .color-clear-btn {
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 0.85rem;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+    .color-clear-btn:hover { color: #ef4444; background: #fef2f2; }
+
+    /* Animation */
+    .animate-fade-in {
+        animation: fadeInDown 0.25s ease;
+    }
+    @@keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@using POS.Core.Entities.Item
+@using POS.Core.Services.Contract.ItemServices
+@using POS.Core.Services.Contract.PosFeatureServices
+@inject IAttributeService AttributeService
+@inject IPosFeatureSettingsService FeatureSettingsService
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsArabic { get; set; }
+    [Parameter] public MenuSalesItemsToReturnDto? ItemToEdit { get; set; }
+    [Parameter] public List<MenuSalesItemsToReturnDto> ExistingItems { get; set; } = new();
+
+    private bool _isSaving = false;
+    private bool _stayOpen = false;
+    private bool _showAdvanced = false;
+    private bool _isInventoryEnabled = false;
+    private ItemFormModel model = new();
+
+    private void OnItemTypeChanged(object value)
+    {
+        if (value is int newTypeId)
+        {
+            var selectedType = ItemTypes.FirstOrDefault(t => t.Id == newTypeId);
+            if (selectedType != null)
+            {
+                if (selectedType.Code != "SaleItem" && selectedType.Code != "Service")
+                {
+                    model.Invisible = true;
+                }
+                else
+                {
+                    model.Invisible = false;
+                }
+            }
+        }
+    }
+
+    private bool HasAdvancedSettings => model.Tax.HasValue || !string.IsNullOrEmpty(model.BackColor)
+        || !string.IsNullOrEmpty(model.TextColor) || model.TextSize.HasValue || model.ByWeight;
+
+    private void ToggleAdvanced() => _showAdvanced = !_showAdvanced;
+
+    private List<CategoryToReturnDto> Categories = new();
+    private List<ItemsClassificationsDto> Classifications = new();
+    private List<Attributes> AttributesList = new();
+    private List<ItemTypeDto> ItemTypes = new();
+
+    public class ItemFormModel
+    {
+        public int Id { get; set; }
+        public string ArabicName { get; set; } = string.Empty;
+        public string EnglishName { get; set; } = string.Empty;
+        public decimal? Price { get; set; }
+        public decimal? Tax { get; set; }
+        public string? Description { get; set; }
+        public bool Invisible { get; set; }
+        public int? CategoryId { get; set; }
+        public int? MainCategoryId { get; set; }
+        public bool HasAttribute { get; set; }
+        public int? AttributeId { get; set; }
+        public int? ItemTypeId { get; set; }
+        // Design settings
+        public string? BackColor { get; set; }
+        public string? TextColor { get; set; }
+        public int? TextSize { get; set; }
+        // Weight pricing
+        public bool ByWeight { get; set; } = false;
+        public bool IsInventory { get; set; } = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        await Task.WhenAll(LoadCategories(), LoadClassifications(), LoadAttributes(), LoadItemTypes());
+
+        if (ItemToEdit != null)
+        {
+            model.Id = ItemToEdit.Id;
+            model.ArabicName = ItemToEdit.ArabicName ?? string.Empty;
+            model.EnglishName = ItemToEdit.EnglishName ?? string.Empty;
+            model.Price = ItemToEdit.Price;
+            model.Tax = ItemToEdit.Tax;
+            model.Description = ItemToEdit.Description;
+            model.Invisible = ItemToEdit.Invisible;
+            model.CategoryId = ItemToEdit.CategoryId;
+            model.MainCategoryId = ItemToEdit.MainCategoryId;
+            model.BackColor = ItemToEdit.BackColor;
+            model.TextColor = ItemToEdit.TextColor;
+            model.TextSize = ItemToEdit.TextSize;
+            model.ByWeight = ItemToEdit.ByWeight;
+            model.ItemTypeId = ItemToEdit.ItemTypeId;
+            model.IsInventory = _isInventoryEnabled && ItemToEdit.IsInventory;
+
+            model.HasAttribute = ItemToEdit.AttributeId.HasValue;
+            model.AttributeId = ItemToEdit.AttributeId;
+
+            // Auto-open advanced if any advanced setting is set
+            if (HasAdvancedSettings) _showAdvanced = true;
+        }
+        else
+        {
+            SetNextId();
+            // Default to SaleItem using code lookup
+            model.ItemTypeId = ItemTypes.FirstOrDefault(x => x.Code == "SaleItem")?.Id ?? 1;
+        }
+    }
+
+    private void SetNextId()
+    {
+        model.Id = ExistingItems.Any() ? ExistingItems.Max(x => x.Id) + 1 : 1;
+    }
+
+    private async Task LoadCategories()
+    {
+        var response = await CategoryService.GetAllCategories();
+        if (response != null && response.Success && response.Data != null)
+        {
+            Categories = response.Data.ToList();
+        }
+    }
+
+    private async Task LoadClassifications()
+    {
+        var response = await ItemService.GetAllClassificationsAsync();
+        if (response != null && response.Success && response.Data != null)
+        {
+            Classifications = response.Data.ToList();
+        }
+    }
+
+    private async Task LoadAttributes()
+    {
+        var result = await AttributeService.GetAllAttributeAsync();
+        if (result != null) AttributesList = result.ToList();
+    }
+
+    private async Task LoadItemTypes()
+    {
+        var response = await ItemService.GetItemTypesAsync();
+        if (response != null && response.Success && response.Data != null)
+        {
+            ItemTypes = response.Data.ToList();
+        }
+    }
+
+    private void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        Snackbar.Add(IsArabic ? "يرجى التحقق من البيانات المطلوبة" : "Please check required fields", Severity.Warning);
+    }
+
+    private async Task SubmitForm()
+    {
+        _isSaving = true;
+        if (!_isInventoryEnabled)
+        {
+            model.IsInventory = false;
+        }
+
+        try
+        {
+            if (ItemToEdit == null)
+            {
+                var newItem = new MenuSalesItemsDto
+                {
+                    Id = model.Id,
+                    ArabicName = model.ArabicName,
+                    EnglishName = model.EnglishName,
+                    Price = model.Price ?? 0,
+                    Tax = model.Tax,
+                    Description = model.Description,
+                    Invisible = model.Invisible,
+                    CategoryId = model.CategoryId,
+                    MainCategoryId = model.MainCategoryId,
+                    HasAttribute = model.HasAttribute,
+                    AttributeId = model.HasAttribute ? model.AttributeId : null,
+                    BackColor = model.BackColor,
+                    TextColor = model.TextColor,
+                    TextSize = model.TextSize,
+                    ByWeight = model.ByWeight,
+                    ItemTypeId = model.ItemTypeId,
+                    IsInventory = model.IsInventory,
+                    BranchId = 1,
+                    CreationDate = DateTime.Now
+                };
+
+                var response = await ItemService.CreateItemAsync(newItem);
+                if (response != null && response.Success)
+                {
+                    Snackbar.Add(IsArabic ? "تم الإضافة بنجاح" : "Added successfully", Severity.Success);
+                    
+                    if (_stayOpen)
+                    {
+                        // Update existing items list locally to ensure next ID is correct
+                        if (response.Data != null) ExistingItems.Add(response.Data);
+                        ResetForm();
+                    }
+                    else
+                    {
+                        MudDialog.Close(DialogResult.Ok(response.Data));
+                    }
+                }
+                else
+                {
+                    Snackbar.Add(response?.Message ?? "Error saving item", Severity.Error);
+                }
+            }
+            else
+            {
+                var updatedItem = new UpdatedItemDto
+                {
+                    ItemId = model.Id,
+                    ArabicName = model.ArabicName,
+                    EnglishName = model.EnglishName,
+                    Price = model.Price,
+                    Tax = model.Tax,
+                    Description = model.Description,
+                    Invisible = model.Invisible,
+                    CategoryId = model.CategoryId,
+                    MainCategoryId = model.MainCategoryId,
+                    HasAttribute = model.HasAttribute,
+                    AttributeId = model.HasAttribute ? model.AttributeId : null,
+                    BackColor = model.BackColor,
+                    TextColor = model.TextColor,
+                    TextSize = model.TextSize,
+                    ByWeight = model.ByWeight,
+                    ItemTypeId = model.ItemTypeId,
+                    IsInventory = model.IsInventory,
+                    BranchId = ItemToEdit.BranchId ?? 1
+                };
+
+                var response = await ItemService.UpdateItemAsync(updatedItem);
+                if (response != null && response.Success)
+                {
+                    Snackbar.Add(IsArabic ? "تم التعديل بنجاح" : "Updated successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(response.Data));
+                }
+                else
+                {
+                    Snackbar.Add(response?.Message ?? "Error updating item", Severity.Error);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "حدث خطأ أثناء الحفظ" : "An error occurred while saving", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        SetNextId();
+        model.ArabicName = string.Empty;
+        model.EnglishName = string.Empty;
+        model.Price = null;
+        // Keep Category and Classification if user is adding multiple to same category
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

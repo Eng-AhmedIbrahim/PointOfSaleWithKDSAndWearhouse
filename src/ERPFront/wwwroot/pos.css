@@ -1,0 +1,119 @@
+:root {
+    --dynamic-icon-size: 1.125rem;
+    --dynamic-keypad-btn-size: 1.125rem;
+    --dynamic-sec4-btn-size: 1.125rem;
+    --dynamic-quantity-btn-size: 1.125rem;
+    --dynamic-finance-label-text-size: 1.125rem;
+    --dynamic-finance-input-text-size: 1rem;
+}
+
+.custom-button-color {
+    color: rgb(66 66 66) !important;
+}
+
+.special-keypad-button {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-keypad-btn-size) !important;
+}
+
+.special-quantity-button {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-quantity-btn-size) !important;
+}
+
+.special-icon-btn svg {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-icon-size) !important;
+}
+
+
+.full-height {
+    height: calc(100vh - 90.25px - 41.59px) !important;
+    max-height: calc(100vh - 90.25px - 41.59px) !important;
+    box-sizing: border-box;
+}
+
+
+.section-label {
+    background-color: #114484 !important; /*var(--mud-palette-primary)*/ /*1366ce*/
+    color: var(--mud-palette-primary-text);
+    padding: 8px;
+    text-align: center;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--mud-palette-primary-light);
+}
+
+.section4-label {
+/*    background-color: rgba(0, 200, 83, 1) !important;*/
+    background-color: #114484 !important;
+    color: var(--mud-palette-primary-text);
+    padding: 8px;
+    text-align: center;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--mud-palette-primary-light);
+}
+.custom-border-color {
+    border-color: #eeeeee4d !important;
+}
+
+.same-width {
+    width: 120px;
+    min-width: 120px;
+    text-align: center;
+}
+
+.finance-label-text-size {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-finance-label-text-size) !important;
+}
+
+.finance-input-text-size input {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-finance-input-text-size) !important;
+}
+
+
+.align-text-center {
+    align-items: center;
+    /*text-align: center;*/
+}
+
+.align-text-center input {
+    text-align: center;
+}
+
+.section-btn-label {
+    font-size: 1.2rem !important;
+}
+
+.mud-overlay-dark {
+    background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.special-sec4-button {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-sec4-btn-size) !important;
+}
+.special-sec4-button svg {
+    transition: font-size 0.2s ease-in-out;
+    font-size: var(--dynamic-sec4-btn-size) !important;
+}
+
+.liner-grid-buttons {
+    background: linear-gradient(135deg, #ffffff, #e7ecf5);
+    color: #143155;
+}
+
+.make-color {
+    background-color: #143155 !important;
+}
+
+.label-color {
+    color: #143155 !important;
+}
+
+
+.button-height
+{
+    height:100px
+}

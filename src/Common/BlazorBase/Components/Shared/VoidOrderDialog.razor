@@ -1,0 +1,308 @@
+﻿@using BlazorBase.Components.Shared
+@using BlazorBase.Models
+@using MudBlazor
+
+<MudDialog DisableSidePadding="true" Class="void-dialog-custom" Style="direction: rtl;">
+    <DialogContent>
+        <MudGrid Class="pa-0" Spacing="0" Style="min-height: 700px; height: 80vh; max-height: 850px; background-color: #f1f5f9;" dir="rtl">
+            <!-- Left Side: Order Items Table -->
+            <MudItem xs="8" Class="d-flex flex-column h-100 pa-4">
+                <div class="void-table-container elevation-4 rounded-xl bg-white flex-grow-1 d-flex flex-column overflow-hidden">
+                    <div class="table-header-custom pa-3 d-flex align-center shrink-0">
+                        <div class="header-icon-box ml-3">
+                            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Color="Color.Primary" />
+                        </div>
+                        <MudText Typo="Typo.h6" Class="font-weight-bold color-slate-800">@_localizer["ItemsToVoid"]</MudText>
+                        <MudSpacer />
+                        <div class="d-flex gap-6">
+                            <div class="stat-group">
+                                <span class="stat-label">@_localizer["OrderBefore"]</span>
+                                <span class="stat-value">@OriginalOrderTotal.ToString("N2")</span>
+                            </div>
+                            <div class="stat-group highlight">
+                                <span class="stat-label">@_localizer["OrderAfter"]</span>
+                                <span class="stat-value">@NewOrderTotal.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+                    <MudTable T="VoidItemModel" Items="@Items" Dense="true" Hover="true" FixedHeader="true"
+                               @bind-SelectedItem="SelectedItem" OnRowClick="OnRowClick"
+                               Class="void-mud-table flex-grow-1 overflow-auto" Height="100%">
+                        <HeaderContent>
+                            <MudTh Style="min-width: 150px;">@_localizer["ItemName"]</MudTh>
+                            <MudTh Style="text-align: center;">@_localizer["Price"]</MudTh>
+                            <MudTh Style="text-align: center;">@_localizer["QtyBefore"]</MudTh>
+                            <MudTh Style="text-align: center; color: #ef4444;">@_localizer["QtyToVoid"]</MudTh>
+                            <MudTh Style="text-align: center;">@_localizer["QtyAfter"]</MudTh>
+                            <MudTh Style="text-align: right;">@_localizer["TotalBefore"]</MudTh>
+                            <MudTh Style="text-align: right; color: #10b981;">@_localizer["TotalAfter"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                             <MudTd DataLabel="@_localizer["ItemName"]" Class="font-weight-bold">@context.ItemName</MudTd>
+                             <MudTd DataLabel="@_localizer["Price"]" Style="text-align: center;">@context.UnitPrice.ToString("N2")</MudTd>
+                             <MudTd DataLabel="@_localizer["QtyBefore"]" Style="text-align: center;">@context.OriginalQuantity</MudTd>
+                             <MudTd DataLabel="@_localizer["QtyToVoid"]" Style="text-align: center;">
+                                 <div class="@(context.QuantityToVoid > 0 ? "void-qty-badge active" : "void-qty-badge")">
+                                     @context.QuantityToVoid
+                                 </div>
+                             </MudTd>
+                             <MudTd DataLabel="@_localizer["QtyAfter"]" Style="text-align: center;" Class="opacity-75">@(context.OriginalQuantity - context.QuantityToVoid)</MudTd>
+                             <MudTd DataLabel="@_localizer["TotalBefore"]" Style="text-align: right;" Class="font-weight-medium">@((context.OriginalQuantity * context.UnitPrice).ToString("N2"))</MudTd>
+                             <MudTd DataLabel="@_localizer["TotalAfter"]" Style="text-align: right;" Class="font-weight-black text-success">@(((context.OriginalQuantity - context.QuantityToVoid) * context.UnitPrice).ToString("N2"))</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            </MudItem>
+
+            <!-- Right Side: Numpad & Actions -->
+            <MudItem xs="4" Class="d-flex flex-column h-100 pa-4 pl-0">
+                
+                <!-- Summary Section (Top) -->
+                <div class="summary-area pa-4 rounded-xl bg-white elevation-4 mb-4 d-flex flex-column shrink-0">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                         <MudText Typo="Typo.subtitle2" Class="color-slate-500 font-weight-bold uppercase">@_localizer["TotalToVoid"]</MudText>
+                         <MudText Typo="Typo.h5" Color="Color.Error" Class="font-weight-black text-glow-red">@TotalVoidAmount.ToString("N2")</MudText>
+                    </div>
+                    <MudGrid Spacing="1">
+                        <MudItem xs="6">
+                             <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="VoidAll" 
+                                         Class="void-all-btn rounded-lg font-weight-bold elevation-0" StartIcon="@Icons.Material.Filled.DeleteSweep">
+                                @_localizer["VoidAllItems"]
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                             <MudButton Variant="Variant.Filled" Color="Color.Dark" FullWidth="true" OnClick="FullOrderVoidConfirm" 
+                                         Class="full-void-btn rounded-lg font-weight-bold elevation-0" StartIcon="@Icons.Material.Filled.Dangerous"
+                                         Style="background-color: #1e293b; color: white;">
+                                @_localizer["VoidEntireOrder"]
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </div>
+
+                <!-- Numpad Section -->
+                <div class="numpad-control pa-3 rounded-xl bg-white elevation-4 mb-4 flex-grow-1 d-flex flex-column">
+                    <MudGrid Spacing="2" Class="flex-grow-1 ma-0">
+                        @{
+                            var keys = new[] { "7", "8", "9", "4", "5", "6", "1", "2", "3", "0", "CLEAR", "BACK" };
+                        }
+                        @foreach (var key in keys)
+                        {
+                             <MudItem xs="4" Class="pa-1">
+                                @if (key == "CLEAR")
+                                {
+                                     <MudButton Variant="Variant.Text" FullWidth="true" Class="numpad-btn control-btn clear" OnClick="ClearQuantity">
+                                        <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+                                    </MudButton>
+                                }
+                                else if (key == "BACK")
+                                {
+                                     <MudButton Variant="Variant.Text" FullWidth="true" Class="numpad-btn control-btn back" OnClick="Backspace">
+                                        <MudIcon Icon="@Icons.Material.Filled.Backspace" />
+                                    </MudButton>
+                                }
+                                else
+                                {
+                                    var k = key;
+                                    <MudButton Variant="Variant.Text" FullWidth="true" Class="numpad-btn num-btn"
+                                               OnClick="@(() => OnNumpadClick(k))">
+                                        @k
+                                    </MudButton>
+                                }
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="action-area rounded-xl bg-white pa-4 elevation-4 shrink-0">
+                    <MudTextField @bind-Value="CustomReason" 
+                                 Placeholder="@_localizer["TypeReasonHere"]"
+                                 Variant="Variant.Outlined" 
+                                 FullWidth="true" 
+                                 Class="mb-2 custom-reason-field" 
+                                 Lines="2"
+                                 Margin="Margin.Dense"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Comment" />
+
+                    @if (_commonProperties.IsFeatureEnabled("EnableInventoryTracking"))
+                    {
+                        <div class="d-flex align-center justify-space-between mb-3 px-2">
+                            <MudText Typo="Typo.body2" Class="font-weight-bold color-slate-600">@_localizer["ReturnToStock"]</MudText>
+                            <MudSwitch @bind-Value="ReturnToStock" Color="Color.Primary" Dense="true" />
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-3">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick="Save" 
+                                   StartIcon="@Icons.Material.Filled.DoneAll" Class="py-2 font-weight-bold rounded-lg confirm-btn" Size="Size.Medium">
+                            @_localizer["ConfirmVoid"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" OnClick="Cancel" 
+                                   StartIcon="@Icons.Material.Filled.Close" Class="py-2 font-weight-bold rounded-lg cancel-btn" Size="Size.Medium">
+                            @_localizer["Cancel"]
+                        </MudButton>
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .void-dialog-custom.mud-dialog,
+    .void-dialog-custom .mud-dialog,
+    .void-dialog-custom .mud-dialog-width-sm,
+    .void-dialog-custom .mud-dialog-width-md,
+    .void-dialog-custom .mud-dialog-width-lg {
+        max-width: 1100px !important; 
+        width: 95%;
+        height: auto;
+        max-height: 95vh;
+        overflow: hidden;
+        border-radius: 20px !important;
+    }
+    
+    .void-dialog-custom .mud-dialog-content {
+        padding: 0 !important;
+        overflow: hidden !important;
+        background-color: #f1f5f9;
+    }
+
+    .header-icon-box {
+        width: 44px;
+        height: 44px;
+        background: #eff6ff;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .table-header-custom {
+        background: #ffffff;
+        border-bottom: 2px solid #f1f5f9;
+        flex-shrink: 0;
+        padding: 16px 24px !important;
+    }
+
+    .stat-group {
+        background: #f8fafc;
+        padding: 6px 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 120px;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #64748b;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #1e293b;
+    }
+
+    .stat-group.highlight {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .stat-group.highlight .stat-value {
+        color: #2563eb;
+    }
+
+    .void-qty-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 16px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.95rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .void-qty-badge.active {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    .numpad-btn {
+        height: 56px !important;
+        font-size: 1.25rem !important;
+        font-weight: 800 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    }
+
+    .num-btn {
+        background: #ffffff !important;
+        color: #1e293b !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    }
+
+    .num-btn:hover {
+        background: #f8fafc !important;
+        border-color: #3b82f6 !important;
+    }
+
+    .control-btn.clear { background: #fee2e2 !important; color: #ef4444 !important; }
+    .control-btn.back { background: #fff7ed !important; color: #ea580c !important; }
+
+    .summary-area {
+        background: #ffffff;
+        border-left: 5px solid #ef4444;
+    }
+
+    .text-glow-red {
+        color: #ef4444;
+        font-size: 2rem;
+        font-weight: 900;
+    }
+
+    .void-mud-table {
+        background: transparent !important;
+    }
+
+    .void-mud-table .mud-table-head .mud-th {
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        font-size: 0.8rem !important;
+        color: #64748b !important;
+        padding: 16px !important;
+    }
+
+    .void-mud-table .mud-table-body .mud-td {
+        padding: 14px 16px !important;
+        background: white !important;
+    }
+
+    .confirm-btn {
+        background: #10b981 !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
+    }
+
+    .cancel-btn {
+        border-width: 2px !important;
+        font-size: 1.1rem !important;
+    }
+
+    .uppercase { text-transform: uppercase; }
+    .shrink-0 { flex-shrink: 0; }
+</style>

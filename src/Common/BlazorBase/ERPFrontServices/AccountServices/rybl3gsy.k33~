@@ -1,0 +1,127 @@
+using POS.Contract.Dtos.AccountDtos;
+namespace BlazorBase.ERPFrontServices.AccountServices;
+
+public class AccountService : IAccountService
+{
+    private readonly ApiSettings _apiSettings;
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<AccountService> _logger;
+
+    public AccountService(ApiSettings apiSettings,
+        IHttpClientFactory httpClientFactory,
+        ILogger<AccountService> logger)
+    {
+        _apiSettings = apiSettings;
+        _logger = logger;
+        _httpClient = httpClientFactory.CreateClient(_apiSettings.ApiName!);
+    }
+
+    public async Task<IEnumerable<UserDto>> GetUsers()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(_apiSettings.Endpoints!.GetUsers);
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return ApiRequestHelpers.DeserializeResponseContent<List<UserDto>>(content) ?? [];
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users");
+        }
+        return [];
+    }
+
+    public async Task<IEnumerable<RoleToReturnDto>> GetRoles()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(_apiSettings.Endpoints!.GetAllRoles);
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return ApiRequestHelpers.DeserializeResponseContent<List<RoleToReturnDto>>(content) ?? [];
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting roles");
+        }
+        return [];
+    }
+
+    public async Task<bool> CreateUser(RegisterDto registerDto)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(_apiSettings.Endpoints!.CreateUser, registerDto);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateUser(UserDto userDto)
+    {
+        try
+        {
+            // Note: The API might need a specific update endpoint, 
+            // but usually we use the same or partial update.
+            // For now using UpdateUser endpoint from ApiEndpoints
+            var response = await _httpClient.PostAsJsonAsync(_apiSettings.Endpoints!.UpdateUser, userDto);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteUser(string userId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"{_apiSettings.Endpoints!.DeleteUser}/{userId}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user");
+            return false;
+        }
+    }
+
+    public async Task<bool> CreateRole(string roleName)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync($"{_apiSettings.Endpoints!.CreateRole}?Name={Uri.EscapeDataString(roleName)}", null);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating role");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteRole(string roleName)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"{_apiSettings.Endpoints!.DeleteRole}/{Uri.EscapeDataString(roleName)}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting role");
+            return false;
+        }
+    }
+}

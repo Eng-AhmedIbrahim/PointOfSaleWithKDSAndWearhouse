@@ -1,0 +1,570 @@
+﻿@page "/distribution"
+@layout MainLayout
+@using ERPFront.Models
+@using POS.Contract.Dtos.OrderDtos
+@using ERPFront.HubSettings
+@inject LocalizationService Localizer
+@implements IAsyncDisposable
+
+<MudGrid Spacing="0" Class="distribution-container">
+    <MudItem xs="12">
+        <MudPaper Elevation="0" Class="main-paper">
+            
+            <!-- Header Section -->
+            <MudPaper Elevation="0" Class="header-bar d-flex align-center px-4 py-2 mb-2">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowForward" 
+                              OnClick="NavigateBack" 
+                              Color="Color.Default" 
+                              Edge="Edge.Start"
+                              Class="back-btn" />
+                
+                <MudText Typo="Typo.h6" Class="page-title mx-4">
+                    @(!string.IsNullOrWhiteSpace(_searchQuery) ? $"نتائج البحث ({FilteredOrders.Count()})" : (showAssigned ? Localizer["Distribution_AssignedOrders"] : Localizer["Distribution_UnassignedOrders"]))
+                </MudText>
+
+                <MudSpacer />
+
+                <!-- Search Box: Customer Phone or Name -->
+                <div class="mx-2" style="min-width: 270px; max-width: 340px;">
+                    <MudTextField @bind-Value="_searchQuery"
+                                  Placeholder="بحث برقم الموبايل أو اسم العميل..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Clearable="true"
+                                  Immediate="true"
+                                  Style="background: white; border-radius: 6px;" />
+                </div>
+
+                @if (AvailableBranches.Any())
+                {
+                    <div class="mx-3" style="min-width: 170px;">
+                        <MudSelect T="int?" @bind-Value="_selectedBranchId" 
+                                   Dense="true" 
+                                   Variant="Variant.Outlined" 
+                                   Margin="Margin.Dense" 
+                                   Placeholder="جميع الفروع" 
+                                   Clearable="true"
+                                   Style="background: white; border-radius: 6px;">
+                            <MudSelectItem T="int?" Value="@((int?)null)">جميع الفروع</MudSelectItem>
+                            @foreach (var b in AvailableBranches)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                }
+
+                <div class="toggle-group">
+                    <MudButton OnClick="() => ToggleAssigned(false)"
+                             Disabled="@(!showAssigned && string.IsNullOrWhiteSpace(_searchQuery))"
+                             Class="@(string.IsNullOrWhiteSpace(_searchQuery) && !showAssigned ? "toggle-btn active" : "toggle-btn")"
+                             DisableElevation="true">
+                        @Localizer["Distribution_Unassigned"]
+                    </MudButton>
+                    <MudButton OnClick="() => ToggleAssigned(true)"
+                             Disabled="@(showAssigned && string.IsNullOrWhiteSpace(_searchQuery))"
+                             Class="@(string.IsNullOrWhiteSpace(_searchQuery) && showAssigned ? "toggle-btn active" : "toggle-btn")"
+                             DisableElevation="true">
+                        @Localizer["Distribution_Assigned"]
+                    </MudButton>
+                </div>
+            </MudPaper>
+
+            <!-- Table Section -->
+            <MudCardContent Class="px-4 py-0 flex-grow-1 overflow-hidden" Style="display: flex; flex-direction: column; height: calc(100vh - 160px);">
+                <MudTable Items="FilteredOrders"
+                          Hover="true"
+                          Dense="true"
+                          FixedHeader="true"
+                          Elevation="0"
+                          Class="distribution-table"
+                          Height="100%"
+                          RowClassFunc="GetRowClass">
+                    <HeaderContent>
+                        @if (showAssigned)
+                        {
+                            <MudTh Style="width: 50px; text-align: center;">
+                                <MudCheckBox T="bool" Value="SelectAllOrders" ValueChanged="ToggleSelectAll" Color="Color.Primary" Dense="true" Size="Size.Small" />
+                            </MudTh>
+                        }
+                        @if (_canAssignDriver)
+                        {
+                            <MudTh>@(showAssigned ? Localizer["Distribution_ChangeDriver"] : Localizer["Distribution_AssignDriver"])</MudTh>
+                        }
+                        <MudTh>@Localizer["CustomerName"]</MudTh>
+                        <MudTh>@Localizer["PhoneNumber"]</MudTh>
+                        <MudTh>الفرع</MudTh>
+                        <MudTh>الحالة</MudTh>
+                        <MudTh>@Localizer["Distribution_Address"]</MudTh>
+                        <MudTh>@Localizer["Distribution_AddressNotes"]</MudTh>
+                        <MudTh>@Localizer["Distribution_Time"]</MudTh>
+                        @if (showAssigned)
+                        {
+                            <MudTh>@Localizer["Distribution_DispatchTime"]</MudTh>
+                        }
+                        <MudTh Style="text-align: center;">@Localizer["Distribution_Show"]</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        @if (showAssigned)
+                        {
+                            <MudTd Style="text-align: center;">
+                                <MudCheckBox T="bool" Value="@SelectedOrderIds.Contains(context.Id)" ValueChanged="@(v => ToggleOrderSelection(context, v))" Color="Color.Primary" Dense="true" Size="Size.Small" />
+                            </MudTd>
+                        }
+                        @if (_canAssignDriver)
+                        {
+                            <MudTd Class="action-cell">
+                                <MudButton Variant="Variant.Filled"
+                                         Color="Color.Primary"
+                                         Size="Size.Small"
+                                         OnClick="@(() => OpenAssignmentDialog(context))"
+                                         Class="assign-btn"
+                                         DisableElevation="true">
+                                    <MudIcon Icon="@(context.DriverID == null ? Icons.Material.Filled.LocalShipping : Icons.Material.Filled.Edit)" Size="Size.Small" />
+                                </MudButton>
+                            </MudTd>
+                        }
+                        <MudTd>
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-black">@context.CustomerName</MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudText Typo="Typo.h6" Class="font-mono font-weight-bold">@context.Phone1</MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@(string.IsNullOrEmpty(context.BranchName) ? "-" : context.BranchName)</MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small" Color="@GetStateColor(context.OrderState)" Variant="Variant.Filled">
+                                @GetStateText(context.OrderState)
+                            </MudChip>
+                            @if (!string.IsNullOrEmpty(context.DriverName))
+                            {
+                                <MudText Typo="Typo.caption" Class="d-block font-weight-bold mt-1" Style="color: #1976d2;">
+                                    <MudIcon Icon="@Icons.Material.Filled.TwoWheeler" Size="Size.Small" Style="font-size: 1rem; vertical-align: middle;" />
+                                    @context.DriverName
+                                </MudText>
+                            }
+                        </MudTd>
+                        <MudTd>
+                            <div class="address-text font-weight-bold" style="font-size: 1.1rem;">@context.StreetName</div>
+                        </MudTd>
+                        <MudTd>
+                            <div class="notes-text font-weight-bold" style="font-size: 1.1rem;">@context.AddressNotice</div>
+                        </MudTd>
+                        <MudTd>
+                            @{
+                                var time = context.OrderDate;
+                                var timeStr = time?.ToString("hh:mm tt").Replace("AM", "ص").Replace("PM", "م");
+                            }
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@timeStr</MudText>
+                        </MudTd>
+                        @if (showAssigned)
+                        {
+                            <MudTd>
+                                @{
+                                    var dTime = context.AssignTime;
+                                    var dTimeStr = dTime?.ToString("hh:mm tt").Replace("AM", "ص").Replace("PM", "م");
+                                }
+                                <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="font-weight-black">@dTimeStr</MudText>
+                            </MudTd>
+                        }
+                        <MudTd Style="text-align: center;">
+                            <div class="d-flex justify-center gap-2">
+                                @if (_canViewOrder)
+                                {
+                                    <MudTooltip Text="@Localizer["Distribution_ViewOrder"]">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                     OnClick="@(() => ViewOrder(context))"
+                                                     Size="Size.Small"
+                                                     Color="Color.Warning"
+                                                     Variant="Variant.Filled"
+                                                     Class="action-icon-btn" />
+                                    </MudTooltip>
+                                }
+
+                                @if (_canVoidOrder)
+                                {
+                                    <MudTooltip Text="@Localizer["Distribution_VoidOrderTitle"]">
+                                        <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
+                                                     OnClick="@(() => VoidOrder(context))"
+                                                     Disabled="@IsVoidDisabled(context)"
+                                                     Size="Size.Small"
+                                                     Color="Color.Error"
+                                                      Variant="Variant.Filled"
+                                                     Class="action-icon-btn" />
+                                    </MudTooltip>
+                                }
+
+                                @if (showAssigned)
+                                {
+                                    @if (_canPrintOrder)
+                                    {
+                                        <MudTooltip Text="@Localizer["Print"]">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Print"
+                                                         OnClick="@(() => PrintOrder(context))"
+                                                         Size="Size.Small"
+                                                         Color="Color.Success"
+                                                          Variant="Variant.Filled"
+                                                         Class="action-icon-btn" />
+                                        </MudTooltip>
+                                    }
+
+                                    @if (_canUnDispatch)
+                                    {
+                                        <MudTooltip Text="@Localizer["Distribution_Unassigned"]">
+                                             <MudIconButton Icon="@Icons.Material.Filled.Undo"
+                                                         OnClick="@(() => UnDispatchOrder(context))"
+                                                         Size="Size.Small"
+                                                         Color="Color.Default"
+                                                          Variant="Variant.Filled"
+                                                         Class="action-icon-btn" />
+                                        </MudTooltip>
+                                    }
+                                }
+                            </div>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudCardContent>
+
+            <!-- Footer Toolbar -->
+            <MudPaper Elevation="4" Class="footer-toolbar px-4 py-2">
+                <div class="d-flex align-center justify-space-between gap-2 overflow-auto" style="min-width: 0;">
+                    
+                    <!-- Main Actions -->
+                    <div class="d-flex align-center gap-2 flex-nowrap">
+                         @if (showAssigned)
+                        {
+                            <div class="btn-group shadow-sm flex-nowrap" style="flex-shrink: 0;">
+                                <MudButton OnClick="RefreshData" StartIcon="@Icons.Material.Filled.Refresh" Class="group-btn" Size="Size.Small">
+                                    @Localizer["Distribution_Refresh"]
+                                </MudButton>
+                                @if (_canViewVoidHistory)
+                                {
+                                    <MudButton OnClick="ShowVoidedOrders" StartIcon="@Icons.Material.Filled.EventBusy" Class="group-btn" Size="Size.Small">
+                                        @Localizer["Distribution_VoidHistory"]
+                                    </MudButton>
+                                }
+                                @if (_canViewDriverSettlement)
+                                {
+                                    <MudButton OnClick="ShowDriverSettlement" StartIcon="@Icons.Material.Filled.Assignment" Class="group-btn" Size="Size.Small">
+                                        @Localizer["Distribution_DriverSettlement"]
+                                    </MudButton>
+                                }
+                            </div>
+
+                            @if (_canCollect)
+                            {
+                                <div class="btn-group shadow-sm mx-2 flex-nowrap" style="flex-shrink: 0;">
+                                    <MudButton OnClick="CollectSelected"
+                                             Disabled="@(!SelectedOrderIds.Any())"
+                                             StartIcon="@Icons.Material.Filled.LibraryAddCheck"
+                                             Color="Color.Primary"
+                                             Variant="Variant.Filled"
+                                             Class="group-btn primary-group" Size="Size.Small">
+                                        @Localizer["Distribution_CollectSelected"] (@SelectedOrderIds.Count)
+                                    </MudButton>
+                                    <MudButton OnClick="CollectAll"
+                                             StartIcon="@Icons.Material.Filled.DoneAll"
+                                             Color="Color.Primary"
+                                             Variant="Variant.Filled"
+                                             Class="group-btn primary-group" Size="Size.Small">
+                                        @Localizer["Distribution_CollectAll"]
+                                    </MudButton>
+                                </div>
+                            }
+                        }
+
+                        @if (!showAssigned)
+                        {
+                            <div class="btn-group shadow-sm flex-nowrap" style="flex-shrink: 0;">
+                                @if (_canViewDrivers)
+                                {
+                                    <MudButton OnClick="ShowAvailableDrivers" StartIcon="@Icons.Material.Filled.PersonPin" Color="Color.Success" Variant="Variant.Text" Class="group-btn text-success" Size="Size.Small">
+                                        @Localizer["Distribution_AvailableDrivers"]
+                                    </MudButton>
+                                    <MudButton OnClick="ShowUnavailableDrivers" StartIcon="@Icons.Material.Filled.PersonOff" Color="Color.Warning" Variant="Variant.Text" Class="group-btn text-warning" Size="Size.Small">
+                                        @Localizer["Distribution_UnavailableDrivers"]
+                                    </MudButton>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Right Actions (Driver Select & Exit) -->
+                    <div class="d-flex align-center gap-3 flex-nowrap">
+                         @if (showAssigned && BusyDrivers.Any())
+                        {
+                            <MudSelect T="string"
+                                       Label="@Localizer["Distribution_CollectDriver"]"
+                                       Variant="Variant.Outlined"
+                                       Dense="true"
+                                       Margin="Margin.None"
+                                       Value="@_selectedDriverId"
+                                       ValueChanged="@(id => CollectByDriver(id))"
+                                       Class="driver-select"
+                                       Style="background-color: white; min-width: 200px;"
+                                       AnchorOrigin="Origin.TopCenter"
+                                       TransformOrigin="Origin.BottomCenter">
+                                <MudSelectItem Value="@((string)null!)">@Localizer["Distribution_SelectDriver"]</MudSelectItem>
+                                @foreach (var driver in BusyDrivers)
+                                {
+                                    <MudSelectItem Value="@driver.DriverID">@driver.DriverName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+
+                        <div class="btn-group shadow-sm flex-nowrap" style="flex-shrink: 0;">
+                            <MudButton OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowForward" Class="group-btn" Size="Size.Small">
+                                @Localizer["Back"]
+                            </MudButton>
+                            <MudButton OnClick="ExitApp" StartIcon="@Icons.Material.Filled.ExitToApp" Color="Color.Error" Variant="Variant.Filled" Class="group-btn danger-group" Size="Size.Small">
+                                @Localizer["Exit"]
+                            </MudButton>
+                        </div>
+                    </div>
+
+                </div>
+            </MudPaper>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<style>
+    /* Global Container */
+    .distribution-container {
+        height: 100vh;
+        background-color: #f8fafc;
+        direction: rtl;
+        overflow: hidden;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    .main-paper {
+        background-color: transparent !important;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Header Styling */
+    .header-bar {
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .page-title {
+        color: #1e293b;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+    }
+
+    .back-btn {
+        color: #64748b;
+    }
+
+    /* Toggle Group */
+    .toggle-group {
+        background-color: #f1f5f9;
+        padding: 4px;
+        border-radius: 8px;
+        display: flex;
+        gap: 4px;
+    }
+
+    .toggle-btn {
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        padding: 6px 16px !important;
+        color: #64748b !important;
+        background: transparent !important;
+        transition: all 0.2s ease;
+    }
+
+    .toggle-btn.active {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Table Styling */
+    .distribution-table {
+        background-color: #ffffff !important;
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0;
+    }
+
+    .distribution-table .mud-table-container {
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .distribution-table th {
+        background-color: #f8fafc !important;
+        color: #334155 !important;
+        font-weight: 800 !important;
+        font-size: 1.05rem !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+        padding: 12px 16px !important;
+        white-space: nowrap;
+    }
+
+    .distribution-table td {
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 10px 16px !important;
+        color: #1e293b;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    /* Action Buttons in Rows */
+    .assign-btn {
+        min-width: 32px !important;
+        width: 100%;
+        border-radius: 6px !important;
+        background-color: #3b82f6 !important;
+    }
+
+    .action-icon-btn {
+        border-radius: 8px !important;
+        width: 32px;
+        height: 32px;
+    }
+
+    .address-text, .notes-text {
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Footer Toolbar */
+    .footer-toolbar {
+        background-color: #ffffff !important;
+        border-top: 1px solid #e2e8f0;
+        z-index: 10;
+        position: relative;
+    }
+
+    /* Button Groups */
+    .btn-group {
+        display: flex;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+    }
+
+    .group-btn {
+        border-radius: 0 !important;
+        border-right: 1px solid #cbd5e1;
+        height: 48px;
+        font-family: 'Tajawal', 'Cairo', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+        padding: 0 24px !important;
+        letter-spacing: 0.3px;
+    }
+
+    .group-btn:last-child {
+        border-right: none;
+    }
+
+    /* Primary Actions */
+    .primary-group {
+        background-color: #3b82f6 !important;
+        color: #ffffff !important;
+    }
+    .primary-group:hover {
+        background-color: #2563eb !important;
+    }
+    
+    /* Danger Actions */
+    .danger-group {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+    }
+    .danger-group:hover {
+        background-color: #dc2626 !important;
+    }
+
+    /* Text Button Specifics (Drivers) */
+    .text-success { 
+        color: #059669 !important; /* Emerald-600 */
+        font-weight: 900 !important;
+        font-size: 1.05rem !important;
+    }
+    .text-warning { 
+        color: #d97706 !important; /* Amber-600 */
+        font-weight: 900 !important;
+        font-size: 1.05rem !important;
+    }
+
+    /* Driver Select */
+    .driver-select {
+        min-width: 200px;
+    }
+    
+    .driver-select .mud-input-control {
+        margin-top: 0 !important;
+    }
+
+    .driver-select .mud-input-outlined-border {
+        border-color: #cbd5e1 !important;
+        border-radius: 4px !important;
+    }
+    
+    .driver-select.mud-input-control.mud-input-control-boolean-input.mud-input-input-control.mud-shrink ~ label {
+         transform: translate(0, -6px) scale(0.75) !important;
+    }
+
+    /* RTL Label Fixes for MudSelect */
+    .driver-select label.mud-input-label {
+        font-family: 'Tajawal', sans-serif !important;
+        font-weight: 800 !important;
+        color: #334155 !important;
+        background-color: white;
+        padding: 0 4px;
+        right: 8px !important;
+        left: unset !important;
+        transform-origin: top right !important;
+        font-size: 1rem !important;
+    }
+
+    .driver-select .mud-select-input {
+        font-family: 'Tajawal', sans-serif !important;
+        font-weight: 900 !important;
+        color: #0f172a !important;
+        font-size: 1.1rem !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important; 
+    }
+    
+    .driver-select .mud-icon-root {
+        color: #64748b !important;
+    }
+
+    .font-mono {
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: 600;
+    }
+    .font-bold {
+        font-weight: 700;
+    }
+
+    /* Row Backgrounds based on user logic (optional override) */
+    .bg-red-100 {
+        background-color: #fecaca !important; /* light red */
+    }
+    .bg-yellow-100 {
+        background-color: #fef08a !important; /* light yellow */
+    }
+    
+    .mud-table-row:hover {
+        background-color: #f1f5f9 !important; /* slight gray on hover */
+    }
+</style>

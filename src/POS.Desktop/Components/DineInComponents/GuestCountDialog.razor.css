@@ -1,0 +1,65 @@
+
+.guest-dialog-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    transition: all 0.3s ease;
+}
+
+.guest-dialog-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--mud-palette-primary);
+}
+
+.counter-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--mud-palette-background-grey);
+    padding: 4px 8px;
+    border-radius: 30px;
+}
+
+.counter-button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.counter-button:hover {
+    background: rgba(var(--mud-palette-primary-rgb), 0.1);
+}
+
+.counter-value {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.total-card {
+    background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 10px 20px rgba(var(--mud-palette-primary-rgb), 0.3);
+}
+
+.icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

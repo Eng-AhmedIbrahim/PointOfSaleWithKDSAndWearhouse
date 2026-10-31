@@ -1,0 +1,152 @@
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+@inject LocalizationService Localizer
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Small" Class="premium-discount-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: 1px;">@Localizer["OrderDiscount"]</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="6" Class="pa-6">
+            <div class="discount-mode-selector">
+                <MudText Typo="Typo.subtitle2" Class="mb-3 grey-text" Style="font-weight: 700; text-transform: uppercase;">@Localizer["SelectDiscountMode"]</MudText>
+                <div class="custom-toggle-container">
+                    <button type="button" class="toggle-btn @(DiscountType == "Percentage" ? "active" : "")" @onclick="@(() => OnModeChanged("Percentage"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Small" Class="mr-2" />
+                        @Localizer["Percentage"]
+                    </button>
+                    <button type="button" class="toggle-btn @(DiscountType == "Value" ? "active" : "")" @onclick="@(() => OnModeChanged("Value"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" Class="mr-2" />
+                        @Localizer["FixedAmount"]
+                    </button>
+                </div>
+            </div>
+
+            <MudCard Elevation="0" Class="discount-input-card pa-6">
+                @if (DiscountType == "Percentage")
+                {
+                    <div class="text-center mb-4">
+                        <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight: 900;">@DiscountPercentage<span style="font-size: 1.5rem">%</span></MudText>
+                        <MudText Typo="Typo.caption" Class="grey-text">@Localizer["SlideToReduceTotal"]</MudText>
+                    </div>
+                    <MudSlider Value="@DiscountPercentage" ValueChanged="@((decimal v) => DiscountPercentage = v)" Min="0" Max="100" Step="1" Color="Color.Primary" Class="custom-slider" />
+                }
+                else
+                {
+                    <MudTextField T="decimal" Label="@Localizer["EnterDiscountAmount"]" 
+                                  Value="@DiscountValue" ValueChanged="@((decimal v) => DiscountValue = v)"
+                                  Variant="Variant.Outlined" 
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Money" 
+                                  AdornmentColor="Color.Primary"
+                                  FullWidth="true"
+                                  Class="premium-field"
+                                  Immediate="true" />
+                    <div class="text-center mt-4">
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 900;">-@DiscountValue EGP</MudText>
+                    </div>
+                }
+            </MudCard>
+
+            <div class="reason-selector">
+                <MudText Typo="Typo.subtitle2" Class="mb-3 grey-text" Style="font-weight: 700; text-transform: uppercase;">@Localizer["DiscountReason"]</MudText>
+                <MudTextField T="string" @bind-Value="DiscountReasonText" 
+                              Label="@Localizer["DiscountReason"]" 
+                              Variant="Variant.Outlined" 
+                              Required="true"
+                              RequiredError="@Localizer["DiscountReasonRequired"]"
+                              Class="premium-field" />
+            </div>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="px-8 pb-8 w-100 d-flex gap-3">
+            <MudButton Variant="Variant.Filled" OnClick="RemoveDiscount" FullWidth="true" Class="remove-discount-btn" Style="height: 56px; border-radius: 16px; font-weight: 800;">
+                @Localizer["RemoveDiscount"]
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyDiscount" FullWidth="true" Class="action-btn" Style="height: 56px; border-radius: 16px; font-weight: 800;">
+                @Localizer["Apply"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-discount-dialog {
+        border-radius: 28px !important;
+    }
+
+    .discount-input-card {
+        background-color: #f8fafc !important;
+        border-radius: 20px !important;
+        border: 1px solid #e2e8f0;
+    }
+
+    .grey-text {
+        color: #64748b;
+    }
+
+    .custom-slider .mud-slider-track-active {
+        background: linear-gradient(90deg, #447cad 0%, #6366f1 100%) !important;
+    }
+
+    .action-btn {
+        transition: all 0.2s;
+    }
+
+    .remove-discount-btn {
+        background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%) !important;
+        color: white !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2) !important;
+    }
+
+    .remove-discount-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(225, 29, 72, 0.3) !important;
+        filter: brightness(1.1);
+    }
+
+    .remove-discount-btn:active {
+        transform: translateY(0);
+    }
+
+    .custom-toggle-container {
+        display: flex;
+        background: #f1f5f9;
+        padding: 5px;
+        border-radius: 16px;
+        gap: 5px;
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-center: center;
+        justify-content: center;
+        color: #64748b;
+        background: transparent;
+    }
+
+    .toggle-btn.active {
+        background: white;
+        color: #594ae2;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .toggle-btn:not(.active):hover {
+        background: rgba(255,255,255,0.5);
+    }
+</style>

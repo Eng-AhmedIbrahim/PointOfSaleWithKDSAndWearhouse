@@ -1,0 +1,43 @@
+﻿@inherits LayoutComponentBase
+
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snack bars *@
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudStack Spacing="0" Justify="Justify.Center" AlignItems="AlignItems.Center" StretchItems="StretchItems.Middle">
+        <MudPaper Class="w-100 rounded-0 full-height-for-body overflow-hidden">
+            @Body
+        </MudPaper>
+        <MudPaper Class="w-100 rounded-0"> 
+         </MudPaper>
+    </MudStack>
+</MudLayout>
+
+
+
+<style>
+    .make-color {
+        background-color: #022e66;
+    }
+
+    .full-height-for-body {
+        height: calc(100vh - 43px);
+        max-height: calc(100vh - 43px);
+        overflow-y: scroll;
+        box-sizing: border-box;
+    }
+
+    .full-height {
+        height: calc(100vh - 43px) !important;
+        max-height: calc(100vh - 43px) !important;
+        box-sizing: border-box;
+    }
+
+</style>

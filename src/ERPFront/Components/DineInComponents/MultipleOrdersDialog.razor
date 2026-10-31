@@ -1,0 +1,154 @@
+@using MudBlazor
+@using BlazorBase.Models
+@inject MudBlazor.ISnackbar _snackbar
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Split Order</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="0">
+            <MudItem xs="5" Class="border-r border-solid custom-border-color">
+                <div class="orders-list">
+                    <MudList T="DineInOrderDetails" SelectedValue="SelectedOrder" SelectedValueChanged="OnOrderSelected" Clickable="true" Class="pa-0">
+                        @foreach (var order in Orders ?? new())
+                        {
+                            var isOriginal = !order.RelatedTableName!.Contains("- Split");
+                            <MudListItem Value="order" Class="@(SelectedOrder == order ? "selected-order-item" : "")">
+                                <MudStack Row="true" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@(isOriginal ? Icons.Material.Filled.Home : Icons.Material.Filled.TableBar)" 
+                                             Color="@(isOriginal ? Color.Primary : Color.Default)" />
+                                    <div class="d-flex flex-column">
+                                        <MudText Typo="Typo.body1" Style="font-weight: bold">
+                                            @(isOriginal ? $"{order.RelatedTableName} (الأوردر الرئيسي)" : order.RelatedTableName)
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">ID: @order.BasicOrderDetails?.OrderId</MudText>
+                                    </div>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                </div>
+            </MudItem>
+            <MudItem xs="7" Class="pa-4 bg-slate-50">
+                @if (SelectedOrder != null)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">
+                        @SelectedOrder.RelatedTableName - @SelectedOrder.BasicOrderDetails?.OrderId
+                    </MudText>
+                    <div class="items-preview-container">
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Qty</th>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in SelectedOrder.BasicOrderDetails?.Items ?? new())
+                                {
+                                    <tr>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.Name</td>
+                                        <td>@(item.Price?.ToString("N2") ?? "0.00")</td>
+                                        <td>@(item.Total?.ToString("N2") ?? "0.00")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-center justify-center h-100 opacity-50">
+                        <MudText Typo="Typo.h6">إختر أوردر لعرض الآيتمز</MudText>
+                    </div>
+                }
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex flex-column w-100 pa-4 gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="Confirm" Disabled="@(SelectedOrder == null)" Class="confirm-btn">
+                تأكيد الاختيار
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick="Cancel">
+                إلغاء
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .orders-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .selected-order-item {
+        background-color: #e3f2fd !important;
+        border-right: 4px solid #1976d2;
+    }
+    .items-preview-container {
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+    }
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .items-table th, .items-table td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.85rem;
+    }
+    .items-table th {
+        background-color: #fafafa;
+        font-weight: bold;
+    }
+    .custom-border-color {
+        border-color: #e0e0e0;
+    }
+    .confirm-btn {
+        background-color: #5c6bc0 !important;
+        height: 48px;
+        font-weight: bold;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public List<DineInOrderDetails> Orders { get; set; } = new();
+    
+    private DineInOrderDetails? SelectedOrder;
+
+    protected override void OnInitialized()
+    {
+        if (Orders != null && Orders.Any())
+        {
+            SelectedOrder = Orders.FirstOrDefault();
+        }
+    }
+
+    private void OnOrderSelected(DineInOrderDetails order)
+    {
+        SelectedOrder = order;
+        StateHasChanged();
+    }
+
+    private void Confirm()
+    {
+        if (SelectedOrder != null)
+        {
+            MudDialog.Close(DialogResult.Ok(SelectedOrder));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

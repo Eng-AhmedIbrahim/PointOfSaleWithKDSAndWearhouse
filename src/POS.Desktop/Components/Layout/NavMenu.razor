@@ -1,0 +1,21 @@
+﻿@using Microsoft.Extensions.Localization
+@using MudBlazor
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    <MudNavGroup Title="Category" Icon="@Icons.Material.Outlined.Category">
+        <MudNavLink Href="Categories"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.List">
+            Categories
+        </MudNavLink>
+        <MudNavLink Href="create-category"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Outlined.Add">
+           AddCategory
+        </MudNavLink>
+    </MudNavGroup>
+    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
+    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+</MudNavMenu>
+
+

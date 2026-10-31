@@ -1,0 +1,92 @@
+@inject BlazorBase.ERPFrontServices.ReportingServices.IReportingErpService ReportingService
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudDialog Class="rounded-xl overflow-hidden shadow-xl" Style="min-width: 450px;">
+    <TitleContent>
+        <div class="pa-4 bg-primary text-white d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Rounded.People" />
+            <MudText Typo="Typo.h6" Style="font-weight: 800;">@(IsArabic ? "فلتر المبيعات" : "Sales Filter")</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-4">
+            <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">@(IsArabic ? "اختر الموظف لعرض تقرير مبيعاته" : "Select an employee to view their sales report")</MudText>
+            
+            <MudSelect T="AccountSummaryDto" Label="@(IsArabic ? "إختر الموظف" : "Select Staff")" @bind-Value="_selectedStaff"
+                       Variant="MudBlazor.Variant.Outlined" Class="rounded-lg mb-4"
+                       AnchorOrigin="Origin.BottomCenter" Disabled="@(_staffList == null || !_staffList.Any())">
+                @if (_staffList != null)
+                {
+                    <MudSelectItem T="AccountSummaryDto" Value="@(new AccountSummaryDto { Id = "All", Name = IsArabic ? "الكل" : "All", Type = "All" })">@(IsArabic ? "الكل" : "All")</MudSelectItem>
+                    @foreach (var staff in _staffList)
+                    {
+                        <MudSelectItem Value="@staff">@staff.Name (@(IsArabic ? (staff.Type == "Cashier" ? "كاشير" : staff.Type == "Waiter" ? "ويتر" : "طيار") : staff.Type))</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-center mt-3">
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="pa-4 w-100 d-flex gap-2">
+            <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Class="rounded-pill flex-1">@(IsArabic ? "إغلاق" : "Cancel")</MudButton>
+            <MudButton Color="Color.Primary" OnClick="Submit" Variant="MudBlazor.Variant.Filled" 
+                       Class="rounded-pill flex-2" DisableElevation="true" 
+                       Disabled="@(_selectedStaff == null)">
+                @(IsArabic ? "عرض التقرير" : "Show Report")
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DateTime SelectedDate { get; set; }
+
+    private string _staffType = "All";
+    private AccountSummaryDto? _selectedStaff;
+    private List<AccountSummaryDto>? _staffList;
+    private bool _isLoading = false;
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStaff();
+    }
+
+    private async Task LoadStaff()
+    {
+        _isLoading = true;
+        try
+        {
+            _staffList = await ReportingService.GetAccountsSummary(SelectedDate, _staffType);
+        }
+        catch { }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Submit()
+    {
+        if (_selectedStaff != null)
+        {
+            var result = new Dictionary<string, string>
+            {
+                ["StaffId"] = _selectedStaff.Id,
+                ["StaffName"] = _selectedStaff.Name,
+                ["StaffType"] = _selectedStaff.Type
+            };
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "Id": 1,
+    "Name": "New Tech",
+    "NormalizedName": "NEW TECH",
+    "Description": null,
+    "ImagePath": "",
+    "LogoWidth": 200,
+    "LogoHeight": 100,
+    "Address": null,
+    "Phone1": null,
+    "Phone2": null,
+    "Active": true,
+    "Suspend": false,
+    "CreationDate": "2025-03-01",
+    "UpdateDate": null,
+    "CompanyId": 0,
+    "Currency": "EGP"
+  }
+]

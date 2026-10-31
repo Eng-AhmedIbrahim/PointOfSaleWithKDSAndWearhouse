@@ -1,0 +1,22 @@
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="4" Class="pa-4">
+            <MudButton Variant="Variant.Filled" 
+                        Color="Color.Primary" 
+                        Size="Size.Large"
+                        OnClick="@(() => MudDialog.Close(DialogResult.Ok("New")))" 
+                        StartIcon="@Icons.Material.Filled.Add">@Localizer["NewComplaint"]</MudButton>
+            
+            <MudButton Variant="Variant.Filled" 
+                        Color="Color.Secondary" 
+                        Size="Size.Large"
+                        OnClick="@(() => MudDialog.Close(DialogResult.Ok("View")))" 
+                        StartIcon="@Icons.Material.Filled.List">@Localizer["ViewComplaints"]</MudButton>
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] LocalizationService Localizer { get; set; } = default!;
+}

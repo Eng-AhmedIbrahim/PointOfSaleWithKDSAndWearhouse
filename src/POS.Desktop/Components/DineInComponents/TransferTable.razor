@@ -1,0 +1,249 @@
+@using MudBlazor
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject IDineInService _dineInService
+@inject LocalizationService Localizer
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Small" Class="transfer-dialog-container">
+    <TitleContent>
+        <div class="transfer-header">
+            <div class="header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Large" />
+            </div>
+            <div class="header-text">
+                <MudText Typo="Typo.h5" Class="font-weight-bold">@Localizer["TransferTable"]</MudText>
+                <MudText Typo="Typo.caption" Class="opacity-70">@Localizer["TransferOrderToAnotherTable"]</MudText>
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="transfer-body">
+            <!-- Source Table -->
+            <div class="selection-card">
+                <div class="card-label">
+                    <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="mr-1" />
+                    @Localizer["SelectCurrentTable"]
+                </div>
+                <MudSelect T="int?"
+                           Value="@SelectedCurrentTable"
+                           ValueChanged="OnCurrentTableChanged"
+                           Variant="Variant.Filled"
+                           AnchorOrigin="Origin.BottomCenter"
+                           TransformOrigin="Origin.TopCenter"
+                           Placeholder="@Localizer["FromTable"]"
+                           AdornmentIcon="@Icons.Material.Filled.TableBar"
+                           AdornmentColor="Color.Primary"
+                           Class="premium-select"
+                           PopoverClass="premium-popover"
+                           DisableUnderLine="true">
+                    @foreach (var table in OccupiedTables)
+                    {
+                        <MudSelectItem Value="@table.RelatedTableId">
+                            <div class="d-flex align-center gap-2 py-1">
+                                <MudIcon Icon="@Icons.Material.Filled.TableBar" Size="Size.Small" Color="Color.Primary" />
+                                <MudText>@table.RelatedTableName</MudText>
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <!-- Arrow Indicator -->
+            <div class="arrow-container">
+                <div class="arrow-line"></div>
+                <div class="arrow-circle">
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Color="Color.Primary" />
+                </div>
+            </div>
+
+            <!-- Target Table -->
+            <div class="selection-card">
+                <div class="card-label">
+                    <MudIcon Icon="@Icons.Material.Filled.Login" Size="Size.Small" Class="mr-1" />
+                    @Localizer["SelectAvailableTable"]
+                </div>
+                <MudSelect T="int?"
+                           Value="@SelectedAvailableTable"
+                           ValueChanged="OnAvailableTableChanged"
+                           Variant="Variant.Filled"
+                           AnchorOrigin="Origin.BottomCenter"
+                           TransformOrigin="Origin.TopCenter"
+                           Disabled="@(SelectedCurrentTable == null)"
+                           Placeholder="@Localizer["ToTable"]"
+                           AdornmentIcon="@Icons.Material.Filled.Fastfood"
+                           AdornmentColor="Color.Success"
+                           Class="premium-select"
+                           PopoverClass="premium-popover"
+                           DisableUnderLine="true">
+                    @foreach (var table in AvailableTables)
+                    {
+                        <MudSelectItem Value="@table.Id">
+                            <div class="d-flex align-center gap-2 py-1">
+                                <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Small" Color="Color.Success" />
+                                <MudText>@table.TableName</MudText>
+                                @if (table.TableState == "Closed")
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text" Class="ml-auto">@Localizer["Closed"]</MudChip>
+                                }
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="transfer-footer pa-4">
+            <MudButton OnClick="CloseDialog" 
+                       Variant="Variant.Text" 
+                       Color="Color.Default"
+                       Class="px-6 rounded-lg font-weight-bold">
+                @Localizer["Cancel"]
+            </MudButton>
+            <MudButton OnClick="TransferTables"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Disabled="@IsTransferDisabled"
+                       StartIcon="@Icons.Material.Filled.Send"
+                       Class="px-8 rounded-lg font-weight-bold transfer-btn shadow-lg">
+                @Localizer["Transfer"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .transfer-dialog-container {
+        direction: rtl;
+        border-radius: 20px !important;
+        overflow: hidden;
+    }
+
+    .transfer-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 24px 24px 12px;
+        background: white;
+    }
+
+    .header-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-text h5 {
+        font-family: 'Cairo', sans-serif !important;
+        margin-bottom: 0px;
+    }
+
+    .transfer-body {
+        padding: 16px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: #f8fafc;
+    }
+
+    .selection-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .selection-card:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05);
+    }
+
+    .card-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    .premium-select {
+        --mud-palette-surface: #f1f5f9;
+        border-radius: 12px !important;
+        overflow: hidden;
+    }
+
+    .premium-select .mud-input {
+        background: #f1f5f9 !important;
+        border-radius: 12px !important;
+        padding: 4px 12px !important;
+    }
+
+    .premium-popover {
+        border-radius: 12px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        margin-top: 4px;
+        direction: rtl;
+    }
+
+    .arrow-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        height: 32px;
+        z-index: 2;
+    }
+
+    .arrow-line {
+        position: absolute;
+        width: 2px;
+        height: 100%;
+        background: #e2e8f0;
+        z-index: 1;
+    }
+
+    .arrow-circle {
+        width: 32px;
+        height: 32px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .transfer-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #e2e8f0;
+        background: white;
+    }
+
+    .transfer-btn {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    }
+
+    .transfer-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3) !important;
+    }
+
+    /* Fix for MudSelect Label issues in RTL */
+    .mud-input-label-outlined {
+        transform-origin: top right !important;
+    }
+</style>

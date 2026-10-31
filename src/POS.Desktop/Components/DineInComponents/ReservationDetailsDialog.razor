@@ -1,0 +1,213 @@
+@inject LocalizationService Localizer
+@inject IDineInOrderFrontService DineInOrderFrontService
+@inject BlazorBase.ERPFrontServices.DineInServices.IDineInService DineInService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog Class="premium-details-dialog">
+    <TitleContent>
+        <div class="d-flex align-center pa-2">
+            <div class="icon-box-purple mr-4">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">@Localizer["ReservationDetails"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@Reservation.TableName</MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-4">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <div class="detail-group">
+                        <MudText Typo="Typo.caption" Class="detail-label">@Localizer["CustomerName"]</MudText>
+                        <MudText Typo="Typo.body1" Class="detail-value">@Reservation.ReservationCustomerName</MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <div class="detail-group">
+                        <MudText Typo="Typo.caption" Class="detail-label">@Localizer["PhoneNumber"]</MudText>
+                        <MudText Typo="Typo.body1" Class="detail-value">@Reservation.ReservationCustomerPhone</MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <div class="detail-group">
+                        <MudText Typo="Typo.caption" Class="detail-label">@Localizer["ReservationTime"]</MudText>
+                        <MudText Typo="Typo.body1" Class="detail-value">@Reservation.ScheduleDateTime?.ToString("hh:mm tt dd/MM/yyyy")</MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <div class="detail-group">
+                        <MudText Typo="Typo.caption" Class="detail-label">@Localizer["GuestCount"]</MudText>
+                        <MudText Typo="Typo.body1" Class="detail-value">@Reservation.CustomerCount</MudText>
+                    </div>
+                </MudItem>
+                @if (Reservation.ReservationPaid > 0)
+                {
+                    <MudItem xs="12" sm="6">
+                        <div class="detail-group highlight-deposit">
+                            <MudText Typo="Typo.caption" Class="detail-label">@Localizer["DepositAmount"]</MudText>
+                            <MudText Typo="Typo.body1" Class="detail-value font-weight-bold">@Reservation.ReservationPaid?.ToString("N2") EGP</MudText>
+                        </div>
+                    </MudItem>
+                }
+                
+
+
+                @if (!string.IsNullOrEmpty(Reservation.OrderNotice))
+                {
+                    <MudItem xs="12">
+                        <div class="detail-group">
+                            <MudText Typo="Typo.caption" Class="detail-label">@Localizer["SpecialRequests"]</MudText>
+                            <MudText Typo="Typo.body2" Class="detail-value note-text">@Reservation.OrderNotice</MudText>
+                        </div>
+                    </MudItem>
+                }
+                
+                <MudItem xs="12">
+                    <div class="detail-group highlight-captain">
+                        <MudText Typo="Typo.caption" Class="detail-label">@Localizer["SelectCaptain"]</MudText>
+                        <MudSelect T="UserToReturnDto" @bind-Value="SelectedCaptain" 
+                                   Label="@Localizer["Captain"]" 
+                                   Variant="Variant.Outlined" 
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Class="detail-value-select">
+                            @foreach (var captain in Captains)
+                            {
+                                <MudSelectItem Value="@captain">@captain.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-space-between align-center pa-4 w-100">
+            <MudButton OnClick="CancelReservation" Color="Color.Error" Variant="Variant.Outlined" Class="rounded-lg px-6">@Localizer["CancelReservation"]</MudButton>
+            <div class="d-flex gap-2">
+                <MudButton OnClick="Close" Color="Color.Default" Variant="Variant.Text" Class="rounded-lg px-6">@Localizer["Close"]</MudButton>
+                <MudButton OnClick="SeatOrder" Color="Color.Success" Variant="Variant.Filled" Class="rounded-lg px-8 font-weight-bold" StartIcon="@Icons.Material.Filled.Login">@Localizer["StartOrder"]</MudButton>
+            </div>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DineInOrderDto Reservation { get; set; } = default!;
+
+    private List<UserToReturnDto> Captains { get; set; } = new();
+    private UserToReturnDto? SelectedCaptain { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await DineInService.GetCaptainOrders();
+        Captains = result.ToList();
+        
+        // Auto-select if there's only one or if already assigned (though reservations usually don't have one)
+        if (Captains.Count == 1)
+        {
+            SelectedCaptain = Captains.First();
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+
+    private async Task SeatOrder()
+    {
+        if (SelectedCaptain == null)
+        {
+            Snackbar.Add(Localizer["PleaseSelectCaptain"], Severity.Warning);
+            return;
+        }
+
+        var result = await DineInOrderFrontService.SeatReservationAsync(Reservation.Id, SelectedCaptain.Id, SelectedCaptain.DisplayName);
+        if (result)
+        {
+            Snackbar.Add(string.Format(Localizer["ReservationSeatedSuccess"], Reservation.TableName), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+
+    private async Task CancelReservation()
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            Localizer["CancelReservation"],
+            Localizer["ConfirmCancelReservation"],
+            yesText: Localizer["Yes"],
+            cancelText: Localizer["No"]);
+
+        if (confirm != true) return;
+        
+        var result = await DineInOrderFrontService.CancelReservationAsync(Reservation.TableId);
+        if (result)
+        {
+            Snackbar.Add(Localizer["ReservationCanceled"], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(Localizer["CancellationFailed"], Severity.Error);
+        }
+    }
+}
+
+<style>
+    .premium-details-dialog {
+        border-radius: 24px !important;
+    }
+    .icon-box-purple {
+        width: 56px;
+        height: 56px;
+        background: rgba(var(--mud-palette-info-rgb), 0.1);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .detail-group {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        height: 100%;
+    }
+    .detail-label {
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .detail-value {
+        color: #1e293b;
+        font-weight: 700;
+    }
+    .highlight-deposit {
+        background: rgba(var(--mud-palette-success-rgb), 0.05);
+        border-color: rgba(var(--mud-palette-success-rgb), 0.2);
+    }
+    .highlight-captain {
+        background: rgba(var(--mud-palette-info-rgb), 0.05);
+        border-color: rgba(var(--mud-palette-info-rgb), 0.2);
+    }
+    .detail-value-select {
+        margin-top: -8px;
+    }
+    .detail-value-select .mud-input {
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .note-text {
+        font-style: italic;
+        color: #475569;
+    }
+</style>

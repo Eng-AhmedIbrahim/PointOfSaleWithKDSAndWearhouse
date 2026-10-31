@@ -1,0 +1,223 @@
+@page "/basicdata/paymentmethods"
+@using POS.Contract.Dtos.PaymentDtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.PaymentMethodServices
+@using Radzen
+@using Radzen.Blazor
+@inject IPaymentMethodServices PaymentMethodServices
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<link href="basicdata/categorymanagement.css" rel="stylesheet" />
+
+<div class="category-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "طرق الدفع" : "Payment Methods Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem;">
+                @(IsArabic ? "إضافة طريقة دفع" : "Add Payment Method")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث في طرق الدفع..." : "Search payment methods...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredMethods" 
+                            TItem="PaymentMethodToReturnDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PaymentMethodToReturnDto" Property="Id" Title="@(IsArabic ? "الكود" : "ID")" Width="80px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="method">
+                            <span style="font-weight: 900; color: #3b82f6;">#@method.Id</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PaymentMethodToReturnDto" Property="NameAr" Title="@(IsArabic ? "الاسم العربي" : "Arabic Name")" Width="180px">
+                        <Template Context="method">
+                            <span style="font-weight: bold;">@method.NameAr</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="PaymentMethodToReturnDto" Property="NameEn" Title="@(IsArabic ? "الاسم الإنجليزي" : "English Name")" Width="180px">
+                         <Template Context="method">
+                            <span style="font-weight: 600; color: #64748b;">@method.NameEn</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PaymentMethodToReturnDto" Property="IsActive" Title="@(IsArabic ? "الحالة" : "Status")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="method">
+                            @if (method.IsActive)
+                            {
+                                <MudChip T="string" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Text">
+                                    @(IsArabic ? "نشط" : "Active")
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Text">
+                                    @(IsArabic ? "غير نشط" : "Inactive")
+                                </MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PaymentMethodToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="140px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="method">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => OpenEditDialog(method))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="MudBlazor.Color.Error" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => DeleteMethod(method))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<PaymentMethodToReturnDto> Methods = new();
+    private List<PaymentMethodToReturnDto> FilteredMethods = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<PaymentMethodToReturnDto>? grid;
+    private string SearchTerm = "";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var result = await PaymentMethodServices.GetAllPaymentMethodsAsync();
+            Methods = result.ToList();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات" : "Failed to load data", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredMethods = new List<PaymentMethodToReturnDto>(Methods);
+        }
+        else
+        {
+            var term = SearchTerm.ToLower().Trim();
+            FilteredMethods = Methods.Where(x => 
+                (x.NameAr != null && x.NameAr.ToLower().Contains(term)) ||
+                (x.NameEn != null && x.NameEn.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["IsArabic"] = IsArabic };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<PaymentMethodDialog>(IsArabic ? "إضافة طريقة دفع" : "Add Payment Method", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(PaymentMethodToReturnDto method)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["MethodToEdit"] = method
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<PaymentMethodDialog>(IsArabic ? "تعديل طريقة دفع" : "Edit Payment Method", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task DeleteMethod(PaymentMethodToReturnDto method)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemName"] = IsArabic ? method.NameAr : method.NameEn,
+            ["TitleArabic"] = "تأكيد الحذف",
+            ["MessageArabic"] = $"هل أنت متأكد من حذف طريقة الدفع '{method.NameAr}'؟"
+        };
+        
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<DeleteConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await PaymentMethodServices.DeletePaymentMethod(method.Id);
+            if (response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add(response.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,52 @@
+@inject BlazorBase.Services.LocalizationService Localizer
+
+<MudDialog Class="rounded-xl overflow-hidden shadow-xl" Style="min-width: 400px;">
+    <TitleContent>
+        <div class="pa-4 bg-warning text-dark d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Rounded.AccessTime" />
+            <MudText Typo="Typo.h6" Style="font-weight: 800;">@(IsArabic ? "تحديد الساعات" : "Hour Range Selection")</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-4">
+            <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">@(IsArabic ? "اختر النطاق الزمني لعرضه في التقرير" : "Select the hour range to display in the report")</MudText>
+            
+            <div class="d-flex gap-4 align-center">
+                <MudNumericField T="int" Label="@(IsArabic ? "من الساعة" : "From Hour")" @bind-Value="_fromHour" 
+                                 Min="0" Max="23" Variant="MudBlazor.Variant.Outlined" Class="rounded-lg" />
+                <MudIcon Icon="@Icons.Material.Rounded.ArrowForward" Class="mt-4" />
+                <MudNumericField T="int" Label="@(IsArabic ? "إلى الساعة" : "To Hour")" @bind-Value="_toHour" 
+                                 Min="0" Max="23" Variant="MudBlazor.Variant.Outlined" Class="rounded-lg" />
+            </div>
+            <MudText Typo="Typo.caption" Class="mt-2 d-block">*(24-hour format: 0=12AM, 13=1PM)</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="pa-4 w-100 d-flex gap-2">
+            <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Class="rounded-pill flex-1">@(IsArabic ? "إغلاق" : "Cancel")</MudButton>
+            <MudButton Color="Color.Warning" OnClick="Submit" Variant="MudBlazor.Variant.Filled" 
+                       Class="rounded-pill flex-2 text-dark" DisableElevation="true">
+                @(IsArabic ? "عرض التقرير" : "Show Report")
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    private int _fromHour = 0;
+    private int _toHour = 23;
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    private void Submit()
+    {
+        var result = new Dictionary<string, string>
+        {
+            ["FromHour"] = _fromHour.ToString(),
+            ["ToHour"] = _toHour.ToString()
+        };
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/16/2026" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="VoidedItems" ReferenceName="ReportData.VoidedItems" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+      <Column Name="VoidReason" DataType="System.String"/>
+      <Column Name="VoidByName" DataType="System.String"/>
+      <Column Name="VoidTime" DataType="System.DateTime"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="45" Text="تقرير المحذوفات (Void) التفصيلي للأصناف" HorzAlign="Center" VertAlign="Center" Font="Arial, 22pt, style=Bold" TextFill.Color="Maroon"/>
+      <TextObject Name="Text2" Top="50" Width="718.2" Height="25" Text="الفترة من: [FromDate] إلى: [ToDate]" HorzAlign="Center" Font="Arial, 11pt"/>
+      <TextObject Name="Text3" Top="75" Width="718.2" Height="25" Text="[BranchName] :الفرع" HorzAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="30, 58, 95" RTL="true"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="40" Fill.Color="30, 58, 95">
+      <TextObject Name="H1" Left="518.2" Width="200" Height="40" Text="الصنف" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H2" Left="458.2" Width="60" Height="40" Text="الكمية" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H3" Left="398.2" Width="60" Height="40" Text="طلب#" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H4" Left="238.2" Width="160" Height="40" Text="السبب" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H5" Left="138.2" Width="100" Height="40" Text="بواسطة" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+      <TextObject Name="H6" Left="0" Width="138.2" Height="40" Text="الوقت" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White" Border.Lines="All" Border.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="148.2" Width="718.2" Height="35" DataSource="VoidedItems">
+      <TextObject Name="B1" Left="518.2" Width="200" Height="35" Text="[VoidedItems.ItemName]" Padding="5, 0, 5, 0" VertAlign="Center" Font="Arial, 10.5pt, style=Bold" Border.Lines="All" Border.Color="Silver" RTL="true" HorzAlign="Right"/>
+      <TextObject Name="B2" Left="458.2" Width="60" Height="35" Text="[VoidedItems.Qty]" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="Red" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B3" Left="398.2" Width="60" Height="35" Text="[VoidedItems.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B4" Left="238.2" Width="160" Height="35" Text="[VoidedItems.VoidReason]" Padding="5, 0, 5, 0" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="Silver" RTL="true" HorzAlign="Right"/>
+      <TextObject Name="B5" Left="138.2" Width="100" Height="35" Text="[VoidedItems.VoidByName]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="Silver"/>
+      <TextObject Name="B6" Left="0" Width="138.2" Height="35" Text="[VoidedItems.VoidTime]" Format="Date" Format.Format="dd/MM HH:mm" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" Border.Lines="All" Border.Color="Silver"/>
+    </DataBand>
+  </ReportPage>
+</Report>

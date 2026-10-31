@@ -1,0 +1,114 @@
+--- COMPREHENSIVE AUTHORIZATION REVIEW ---
+Total Unique Auth Strings Found in POS.Desktop Code: 93
+Total Permissions Defined in Permissions.cs: 60
+
+MISSING from Permissions.cs (Used in code but not defined):
+ - CanCompleteWaitingOrder
+ - CanPrintOrderReceipt
+ - CanPrintStaffAccounts
+ - CanPrintSummaryReport
+ - CanRemoveWaitingOrder
+ - CanViewOrderDetails
+ - CanViewStaffAccounts
+ - CanViewSummaryDetails
+ - CanVoidOrderFromList
+ - Delivery_Button_AddNew
+ - Delivery_Button_BranchMgmt
+ - Delivery_Button_Clear
+ - Delivery_Button_Complaints
+ - Delivery_Button_Order
+ - Delivery_Button_Search
+ - Delivery_Button_ToggleDir
+ - DineIn_Button_Back
+ - DineIn_Button_CloseTable
+ - DineIn_Button_Order
+ - DineIn_Button_Receipt
+ - DineIn_Button_Void
+ - EnableCaptainSelection
+ - EnableGuestCount
+ - EnableReservation
+ - EnableSplitBill
+ - EnableTableMerge
+ - EnableTableTransfer
+ - Footer_Button_CustomerData
+ - Footer_Button_Discount
+ - Footer_Button_Meals
+ - Footer_Button_PaymentMethod
+ - Footer_Button_QuickPayment
+ - Footer_Button_Settings
+ - Footer_Button_Waiting
+ - Navbar_Button_Accounts
+ - Navbar_Button_AllOrders
+ - Navbar_Button_Delivery
+ - Navbar_Button_Distribution
+ - Navbar_Button_Exit
+ - Navbar_Button_Summary
+ - Navbar_Button_Tables
+ - Navbar_Button_TakeAway
+ - posSettingsFeature
+
+UNUSED in POS.Desktop (Defined in CS but not found in code):
+ - CanAccessAccountsPrintBtn
+ - CanAccessAccountsViewBtn
+ - CanAccessAllOrdersPrintBtn
+ - CanAccessAllOrdersViewBtn
+ - CanAccessAllOrdersVoidBtn
+ - CanAccessPosSettings
+ - CanAccessPrintReceipt
+ - CanAccessSummaryPrintBtn
+ - CanAccessSummaryViewDetailsBtn
+ - CanAccessVoidOrder
+
+MATCHED (Both in code and defined):
+ - CanAccessAccounts
+ - CanAccessDelivery
+ - CanAccessDeliveryAddNewBtn
+ - CanAccessDeliveryBranchManagementBtn
+ - CanAccessDeliveryClearBtn
+ - CanAccessDeliveryComplaintsBtn
+ - CanAccessDeliveryDistributionBtn
+ - CanAccessDeliveryOrderBtn
+ - CanAccessDeliverySearchBtn
+ - CanAccessDeliveryToggleDirectionBtn
+ - CanAccessDineInCloseTableBtn
+ - CanAccessDineInGuestCountBtn
+ - CanAccessDineInMergeTableBtn
+ - CanAccessDineInOrderBtn
+ - CanAccessDineInReceiptBtn
+ - CanAccessDineInSplitOrderBtn
+ - CanAccessDineInTransferBtn
+ - CanAccessDineInVoidBtn
+ - CanAccessDistribution
+ - CanAccessDistributionAssignBtn
+ - CanAccessDistributionCollectBtn
+ - CanAccessDistributionDriverSettlementBtn
+ - CanAccessDistributionPrintBtn
+ - CanAccessDistributionUnDispatchBtn
+ - CanAccessDistributionViewBtn
+ - CanAccessDistributionViewDriversBtn
+ - CanAccessDistributionVoidBtn
+ - CanAccessDistributionVoidHistoryBtn
+ - CanAccessFooterCustomerDataBtn
+ - CanAccessFooterDiscountBtn
+ - CanAccessFooterMealsBtn
+ - CanAccessFooterPaymentMethodBtn
+ - CanAccessFooterQuickPaymentBtn
+ - CanAccessFooterSettingsBtn
+ - CanAccessFooterWaitingBtn
+ - CanAccessOrders
+ - CanAccessPosSettingsFeature
+ - CanAccessSummary
+ - CanAccessTables
+ - CanAccessTakeAway
+ - CanAccessWaiting
+ - CanApplyItemDiscount
+ - CanCancelOrder
+ - CanDecrementQuantity
+ - CanDeleteItem
+ - CanEditItemComment
+ - CanIncrementQuantity
+ - CanPrintOrder
+ - CanUseKeypad
+ - CanWaitingOrder
+
+FEATURE Strings (IsFeatureEnabled):

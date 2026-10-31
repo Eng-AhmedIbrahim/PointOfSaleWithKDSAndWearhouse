@@ -1,0 +1,56 @@
+@using MudBlazor
+@using POS.Contract.Dtos.DeliveryDtos.DeliveryCustomerInfo
+@using POS.Core.Entities.Delivery
+@inject IDialogService DialogService
+@inject CommonProperties _commonProperties
+@inject DeliveryServices _deliveryServices
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject BranchService _branchService
+
+<MudDialog Class="address-dialog">
+    <DialogContent>
+        <MudText><b>Name:</b> @CustomerName</MudText>
+        <MudText><b>Phone:</b> @PhoneNumber</MudText>
+
+        <MudGrid Class="mt-4" GutterSize="3">
+            @foreach (var address in Addresses)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Class="pa-4 address-card elevation-3" Style="height: 100%;">
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 text-secondary"><b>Address</b></MudText>
+
+                            <MudText Dense="true"><b>Branch : </b> @address.BranchName</MudText>
+                            <MudText Dense="true"><b>Location : </b> @address.ClientAddress</MudText>
+                            <MudText Dense="true"><b>Note : </b> @address.AddressNote</MudText>
+                        </MudCardContent>
+
+                        <MudCardActions Class="justify-end">
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="@(() => SelectAddress(address))">
+                                Select
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+
+    .address-card {
+        transition: box-shadow 0.3s ease;
+        border-radius: 12px;
+    }
+
+        .address-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+</style>

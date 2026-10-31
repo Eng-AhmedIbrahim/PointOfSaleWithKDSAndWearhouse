@@ -1,0 +1,150 @@
+@page "/pos"
+@layout PosScreenLayout
+@inject CommonProperties _commonProperties
+@inject Section4ButtonsServices _section4ButtonsServices
+@inject CartService _cartService
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject LocalizationService Localizer
+@inject ICategoryServices _categoryServices
+@inject IJSRuntime JsRuntime
+@inject ICustomizationSettingsService CustomizationSettingsService
+@inject IAppDateService _appDate
+@inject IOrderSettingsService _orderSettingsService
+@inject IBranchService _branchService
+@inject IPrintOrderService _printOrderService
+@inject IPosFeatureSettingsService _featureSettingsService
+@inject IInventoryFrontService _inventoryService
+@inject IDialogService DialogService
+@implements IDisposable
+
+<link href="section4-footer.css" rel="stylesheet" />
+
+<MudGrid Spacing="0" Justify="Justify.Center" Class="overflow-hidden" Style="height: 100%;" tabindex="0">
+    @if (_commonProperties.CurrentStaffMeal == null || _commonProperties.CurrentStaffMeal.IsAllItemsAllowed)
+    {
+        <MudItem xs="2" Class="section-container border-r border-solid custom-border-color">
+            <MudText Typo="Typo.h6" Class="section-label">@Localizer["Categories"]</MudText>
+            <div class="full-height overflow-y-auto pa-0 ma-0">
+                @foreach (var category in GetFilteredCategories())
+                {
+                    <button class="category-btn" @onclick="async () => await InvokeItems(category.Id)">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? 
+                        category.ArabicName : (category.EnglishName ?? category.ArabicName))
+                    </button>
+                }
+            </div>
+        </MudItem>
+    }
+    <!-- Section 2 -->
+
+    <MudItem xs="@(_commonProperties.CurrentStaffMeal == null || _commonProperties.CurrentStaffMeal.IsAllItemsAllowed ? 4 : 6)" Class="section-container border-r border-solid custom-border-color">
+        <MudText Typo="Typo.h6" Class="section-label">@Localizer["SalesItems"]</MudText>
+        <div class="full-height overflow-y-auto pa-0 ma-0 sales-grid-container">
+            @foreach (var item in GetFilteredItems())
+            {
+                <MudTooltip Placement="Placement.Right" Arrow="true" Color="MudBlazor.Color.Dark"
+                            Delay="400"
+                            RootStyle="display:block;">
+                    <ChildContent>
+                        <button class="item-button"
+                                style="@GetItemButtonStyle(item)"
+                                @onclick="@(() => AddItemToSection4(item))">
+                            @if (item.ByWeight)
+                            {
+                                <span class="item-weight-badge">⚖️</span>
+                            }
+                            <span class="item-text" style="@(item.TextSize.HasValue ? $"font-size:{item.TextSize}px" : "")">@(Localizer.GetCurrentLanguage() == "ar" ? item.ArabicName : (item.EnglishName ?? item.ArabicName))</span>
+                        </button>
+                    </ChildContent>
+                    <TooltipContent>
+                        <div style="text-align:right; direction:rtl; min-width:120px; padding:4px 2px;">
+                            <div style="font-weight:900; font-size:1rem; color:#4ade80; letter-spacing:0.5px;">
+                                @((item.ExtraPrice > 0 ? item.ExtraPrice : item.Price)?.ToString("0.##")) <span style="font-size:0.75rem; opacity:0.8;">ج.م</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <div style="font-size:0.8rem; opacity:0.85; margin-top:4px; font-weight:600; max-width:200px; white-space:normal; line-height:1.4;">
+                                    @item.Description
+                                </div>
+                            }
+                        </div>
+                    </TooltipContent>
+                </MudTooltip>
+            }
+        </div>
+    </MudItem>
+
+
+    <!-- Section 3 -->
+    <MudItem xs="1" Class="section-container border-r border-solid custom-border-color" Style="max-width: 8.33%; flex: 0 0 8.33%;">
+        <MudText Typo="Typo.h6" Class="section-label">@Localizer["Actions"]</MudText>
+        <div class="full-height">
+            <Section3 />
+        </div>
+    </MudItem>
+
+    <!-- Section 4 -->
+    <MudItem xs="5" Class="section-container border-l border-solid custom-border-color">
+        <div class="d-flex align-center gap-1">
+            <MudText Typo="Typo.h6" Class="section4-label flex-grow-1">
+                @if (_commonProperties.CurrentStaffMeal != null)
+                {
+                    <MudChip T="string" Color="@(_commonProperties.CurrentStaffMeal.DailyAmountLimit > 0 ? Color.Secondary : Color.Info)" Size="Size.Small" Icon="@Icons.Material.Filled.Badge" Class="mr-2">
+                        @Localizer["StaffMeal"]: @_commonProperties.CurrentStaffMeal.UserName
+                        @if (_commonProperties.CurrentStaffMeal.DailyAmountLimit > 0)
+                        {
+                            @* AMOUNT MODE: show remaining balance *@
+                            var spentNow = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => (i.OriginalPrice ?? 0) * i.Quantity) ?? 0;
+                            var displayBalance = _commonProperties.RemainingStaffMealAmount - spentNow;
+                            <span> | الرصيد: @displayBalance.ToString("0.##") EGP</span>
+                        }
+                        else
+                        {
+                            @* COUNT MODE: show remaining meal count *@
+                            var spentQty = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => i.Quantity) ?? 0;
+                            <span> | المتبقي: @(_commonProperties.RemainingStaffMeals - (int)spentQty)</span>
+                        }
+                    </MudChip>
+                }
+                @(_commonProperties.CurrentPosMode == "Delivery" ? Localizer["DeliveryService"] : _commonProperties.CurrentPosMode + " " + Localizer["Order"])
+            </MudText>
+            
+        </div>
+
+        <div class="full-height d-flex flex-column">
+            @if (_commonProperties.UpdateDeliveryOrder || _commonProperties.UpdateDineInOrder)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-1 py-1" Style="font-size: 0.9rem; font-weight: bold;">
+                    @Localizer["ReceiptBelongsToOrder"] @(_commonProperties.UpdateDineInOrder ? _commonProperties.DineInOrderValues?.OrderID : _commonProperties.OrderDto?.OrderId)
+                </MudAlert>
+            }
+            <!-- Order Table - Fills remaining space -->
+            <div class="flex-grow-1 overflow-y-auto" style="@(!string.IsNullOrEmpty(CustomizationSettingsService.TableMaxHeight) ? $"max-height: {CustomizationSettingsService.TableMaxHeight};" : "")">
+                <Section4Table Items="_commonProperties.TableItems" OnItemsChanged="OnSection4ItemsChanged" />
+            </div>
+
+            <!-- Fixed Bottom Sections - Compact Layout -->
+            <div class="section-footer-compact">
+                <!-- Notes Field -->
+                <MudTextField ShrinkLabel="true"
+                               @bind-Value="_commonProperties.OrderNote"
+                               Immediate="true"
+                               Lines="1"
+                               Margin="Margin.Dense"
+                               Placeholder="@Localizer["Notes"]"
+                               Variant="Variant.Outlined"
+                               Class="notes-field" />
+
+                <!-- Action Buttons - No spacing -->
+                <div class="action-buttons-row">
+                    <Section4Buttons />
+                </div>
+
+                <!-- Finance Component - Compact -->
+                <div class="finance-section-compact">
+                    <FinanceComponent Settings="_commonProperties._financeSettingsList" />
+                </div>
+            </div>
+        </div>
+    </MudItem>
+</MudGrid>

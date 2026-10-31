@@ -1,0 +1,756 @@
+@using BlazorBase
+@using POS.Contract.Dtos.CompanyDtos
+@using BlazorBase.ERPFrontServices.BranchServices
+@using BlazorBase.ERPFrontServices.DeliveryServices
+@inject CommonProperties _commonProperties
+@inject LocalizationService Localizer
+@inject MudBlazor.ISnackbar _snackbar
+@inject IBranchService _branchService
+@inject IDeliveryServices _deliveryServices
+
+<MudDialog Class="@(_commonProperties.IsRtl ? "rtl-dialog" : "")">
+    <DialogContent>
+        <div class="customer-info-wrapper" dir="@(_commonProperties.IsRtl ? "rtl" : "ltr")">
+            
+            <!-- Modern Gradient Header -->
+            <div class="dialog-hero-header">
+                <div class="hero-content">
+                    <div class="hero-icon-box">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonPinCircle" Size="Size.Large" Class="hero-icon" />
+                    </div>
+                    <div class="hero-text">
+                        <MudText Typo="Typo.h6" Class="hero-title">بيانات العميل وعنوان التوصيل</MudText>
+                        <MudText Typo="Typo.caption" Class="hero-subtitle">تفاصيل العنوان وتوجيه الطلب للفرع المنفذ</MudText>
+                    </div>
+                </div>
+                @if (_isBranchChanged)
+                {
+                    <div class="transfer-badge animate-pulse">
+                        <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Class="me-1" />
+                        <span>تم تحويل الفرع</span>
+                    </div>
+                }
+            </div>
+
+            <div class="dialog-body-content">
+                
+                <!-- Card 1: البيانات الأساسية -->
+                <div class="modern-card">
+                    <div class="card-header-bar">
+                        <div class="card-header-title">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Class="card-icon" />
+                            <span>البيانات الأساسية للعميل</span>
+                        </div>
+                    </div>
+                    <div class="card-inner-body">
+                        <div class="data-grid-2col">
+                            <div class="data-item">
+                                <span class="data-label">اسم العميل</span>
+                                <span class="data-value customer-name">
+                                    @(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.CustomerName) ? _commonProperties.CustomerDetails.CustomerName : "غير محدد")
+                                </span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">الهاتف الأساسي</span>
+                                <span class="data-value phone-highlight">
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="inline-icon me-1" />
+                                    @(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.FirstPhoneNumber) ? _commonProperties.CustomerDetails.FirstPhoneNumber : "غير مسجل")
+                                </span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_commonProperties.CustomerDetails?.SecondPhoneNumber))
+                        {
+                            <div class="data-item mt-2">
+                                <span class="data-label">الهاتف الإضافي</span>
+                                <span class="data-value phone-secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid" Size="Size.Small" Class="inline-icon me-1" />
+                                    @_commonProperties.CustomerDetails.SecondPhoneNumber
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Card 2: تفاصيل العنوان -->
+                <div class="modern-card mt-3">
+                    <div class="card-header-bar">
+                        <div class="card-header-title">
+                            <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" Class="card-icon location-icon" />
+                            <span>تفاصيل عنوان التوصيل</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.ZoneName))
+                        {
+                            <span class="zone-pill">
+                                <MudIcon Icon="@Icons.Material.Filled.Explore" Size="Size.Small" Class="me-1" />
+                                @_commonProperties.CustomerDetails.ZoneName
+                            </span>
+                        }
+                    </div>
+                    <div class="card-inner-body">
+                        <!-- Full Address -->
+                        <div class="data-item full-span">
+                            <span class="data-label">العنوان بالتفصيل</span>
+                            <span class="data-value address-text">
+                                @(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.ClientAddress) ? _commonProperties.CustomerDetails.ClientAddress : "لم يتم تحديد عنوان تفصيلي")
+                            </span>
+                        </div>
+
+                        <!-- Building, Floor, Flat Mini-Cards -->
+                        <div class="address-units-grid mt-2">
+                            <div class="unit-box">
+                                <span class="unit-label">رقم العمارة / المنزل</span>
+                                <span class="unit-value">@(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.HomeNumber) ? _commonProperties.CustomerDetails.HomeNumber : "-")</span>
+                            </div>
+                            <div class="unit-box">
+                                <span class="unit-label">رقم الدور</span>
+                                <span class="unit-value">@(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.FloorNumber) ? _commonProperties.CustomerDetails.FloorNumber : "-")</span>
+                            </div>
+                            <div class="unit-box">
+                                <span class="unit-label">رقم الشقة</span>
+                                <span class="unit-value">@(!string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.FlatNumber) ? _commonProperties.CustomerDetails.FlatNumber : "-")</span>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Fee if available -->
+                        @if ((_commonProperties.CustomerDetails?.ZoneFees ?? 0) > 0)
+                        {
+                            <div class="delivery-fee-badge mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Size="Size.Small" Class="me-1" />
+                                <span>رسوم التوصيل المقررة للمنطقة: <strong>@_commonProperties.CustomerDetails!.ZoneFees.ToString("N2") ج.م</strong></span>
+                            </div>
+                        }
+
+                        <!-- Address Note -->
+                        @if (!string.IsNullOrEmpty(_commonProperties.CustomerDetails?.AddressNote))
+                        {
+                            <div class="note-callout mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="note-icon" />
+                                <div class="note-body">
+                                    <span class="note-label">ملاحظات العنوان:</span>
+                                    <span class="note-content">@_commonProperties.CustomerDetails.AddressNote</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Card 3: اختيار وتحويل الفرع المنفذ للطلب -->
+                <div class="modern-card mt-3 branch-card">
+                    <div class="card-header-bar branch-header">
+                        <div class="card-header-title">
+                            <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Small" Class="card-icon branch-icon" />
+                            <span>توجيه الأوردر إلى الفرع</span>
+                        </div>
+                        @if (_isBranchChanged)
+                        {
+                            <button type="button" class="reset-branch-btn" @onclick="ResetToOriginalBranch" title="استعادة فرع العنوان الأصلي">
+                                <MudIcon Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small" Class="me-1" />
+                                <span>إعادة للفرع الأصلي</span>
+                            </button>
+                        }
+                    </div>
+                    <div class="card-inner-body">
+                        <div class="branch-selector-wrapper">
+                            <label class="data-label mb-1 d-block">
+                                اختر الفرع المطلوب تنفيذ الطلب من خلاله:
+                            </label>
+                            
+                            @if (_isLoading)
+                            {
+                                <div class="d-flex align-center justify-center py-2">
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                    <span class="ms-2">جاري تحميل الفروع...</span>
+                                </div>
+                            }
+                            else if (_branches.Any())
+                            {
+                                <MudSelect T="int" 
+                                           Value="@_selectedBranchId" 
+                                           ValueChanged="@OnBranchChanged"
+                                           Variant="Variant.Outlined" 
+                                           Margin="Margin.Dense"
+                                           Dense="true"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           Class="custom-branch-select">
+                                    @foreach (var branch in _branches)
+                                    {
+                                        <MudSelectItem Value="@branch.Id">
+                                            <div class="d-flex align-center justify-space-between w-100">
+                                                <div class="d-flex align-center">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Class="me-2 text-primary" />
+                                                    <span class="fw-bold">@branch.Name</span>
+                                                </div>
+                                                @if (branch.Id == _originalBranchId)
+                                                {
+                                                    <span class="original-tag">فرع العنوان</span>
+                                                }
+                                            </div>
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Error">لم يتم العثور على فروع نشطة.</MudText>
+                            }
+
+                            <!-- Routing Status Banner -->
+                            @if (_isBranchChanged)
+                            {
+                                <div class="routing-alert mt-2">
+                                    <div class="routing-alert-header">
+                                        <MudIcon Icon="@Icons.Material.Filled.AltRoute" Size="Size.Small" Class="me-1 text-warning" />
+                                        <span>تنبيه: تم تغيير فرع التوصيل لهذا الطلب</span>
+                                    </div>
+                                    <div class="routing-alert-details">
+                                        <span class="origin-tag">الفرع التابع للعنوان: <strong>@(!string.IsNullOrEmpty(_originalBranchName) ? _originalBranchName : "-")</strong></span>
+                                        <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Class="mx-1 text-muted" />
+                                        <span class="target-tag">الفرع الموجه إليه الطلب حالياً: <strong>@_selectedBranchName</strong></span>
+                                    </div>
+                                    <small class="routing-hint mt-1 d-block text-muted">
+                                        * ستبقى جميع بيانات العميل والعنوان كما هي، وسيتم توجيه الطباعة والإرسال إلى الفرع المختار.
+                                    </small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="branch-confirmed-box mt-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="text-success me-1" />
+                                    <span>الفرع المعتمد للتنفيذ: <strong>@(!string.IsNullOrEmpty(_selectedBranchName) ? _selectedBranchName : "-")</strong></span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Dialog Actions Footer -->
+            <div class="dialog-footer-actions">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.CheckCircleOutline"
+                           OnClick="Close" 
+                           FullWidth="true" 
+                           Class="confirm-btn-styled">
+                    تأكيد وإغلاق
+                </MudButton>
+            </div>
+
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .rtl-dialog {
+        direction: rtl;
+    }
+    
+    .customer-info-wrapper {
+        font-family: 'Cairo', 'Segoe UI', sans-serif !important;
+        background-color: #f8fafc;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    /* Hero Header */
+    .dialog-hero-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #2563eb 100%);
+        padding: 16px 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    .hero-content {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .hero-icon-box {
+        width: 46px;
+        height: 46px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+    }
+
+    .hero-title {
+        font-weight: 800 !important;
+        letter-spacing: -0.3px;
+        color: #ffffff !important;
+        margin-bottom: 2px;
+    }
+
+    .hero-subtitle {
+        color: rgba(255, 255, 255, 0.85) !important;
+        font-size: 0.8rem;
+    }
+
+    .transfer-badge {
+        background: rgba(234, 88, 12, 0.95);
+        color: #ffffff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
+    }
+
+    /* Body Container */
+    .dialog-body-content {
+        padding: 16px 20px 8px 20px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    /* Modern Card */
+    .modern-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .modern-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-header-bar {
+        background: #f1f5f9;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .card-header-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: #1e293b;
+    }
+
+    .card-icon {
+        color: #2563eb;
+    }
+
+    .location-icon {
+        color: #0284c7;
+    }
+
+    .branch-icon {
+        color: #d97706;
+    }
+
+    .card-inner-body {
+        padding: 14px 16px;
+    }
+
+    /* Data Elements */
+    .data-grid-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .data-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .full-span {
+        grid-column: 1 / -1;
+    }
+
+    .data-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .data-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .customer-name {
+        color: #1e293b;
+        font-size: 1.15rem;
+    }
+
+    .phone-highlight {
+        color: #1e40af;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+    }
+
+    .phone-secondary {
+        color: #475569;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+    }
+
+    .address-text {
+        color: #334155;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e1;
+    }
+
+    .zone-pill {
+        background: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.8rem;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Address Units 3-Col */
+    .address-units-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+    }
+
+    .unit-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .unit-label {
+        font-size: 0.7rem;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 2px;
+    }
+
+    .unit-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .delivery-fee-badge {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .note-callout {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 8px 12px;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .note-icon {
+        color: #d97706;
+        margin-top: 2px;
+    }
+
+    .note-body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .note-label {
+        font-size: 0.72rem;
+        color: #92400e;
+        font-weight: 700;
+    }
+
+    .note-content {
+        font-size: 0.85rem;
+        color: #78350f;
+        font-weight: 600;
+    }
+
+    /* Branch Routing Card */
+    .branch-card {
+        border-color: #fed7aa;
+        background: #fffdfb;
+    }
+
+    .branch-header {
+        background: #fff7ed;
+        border-bottom-color: #ffedd5;
+    }
+
+    .reset-branch-btn {
+        background: none;
+        border: 1px solid #f97316;
+        color: #c2410c;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.15s ease;
+    }
+
+    .reset-branch-btn:hover {
+        background: #ea580c;
+        color: #ffffff;
+    }
+
+    .original-tag {
+        font-size: 0.7rem;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    .routing-alert {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+
+    .routing-alert-header {
+        display: flex;
+        align-items: center;
+        font-weight: 800;
+        font-size: 0.82rem;
+        color: #9a3412;
+        margin-bottom: 4px;
+    }
+
+    .routing-alert-details {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        color: #431407;
+    }
+
+    .origin-tag strong {
+        color: #64748b;
+    }
+
+    .target-tag strong {
+        color: #c2410c;
+    }
+
+    .branch-confirmed-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        color: #166534;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Footer Actions */
+    .dialog-footer-actions {
+        padding: 12px 20px 16px 20px;
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .confirm-btn-styled {
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 1.05rem !important;
+        border-radius: 10px !important;
+        padding: 10px !important;
+        background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<BranchToReturnDto> _branches = new();
+    private int _selectedBranchId;
+    private int _originalBranchId;
+    private string? _originalBranchName;
+    private bool _isLoading = true;
+
+    private string? _selectedBranchName => _branches.FirstOrDefault(b => b.Id == _selectedBranchId)?.Name;
+    private bool _isBranchChanged => _originalBranchId > 0 && _selectedBranchId != _originalBranchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // 1. Fetch available branches
+            var branchesResult = await _branchService.GetBranches();
+            _branches = branchesResult?
+                .Where(b => b.Active && !b.Suspend)
+                .OrderBy(b => b.Name)
+                .ToList() ?? new();
+
+            // 2. Resolve initial branch from CustomerDetails
+            int initialBranchId = 0;
+            string? initialBranchName = null;
+
+            if (_commonProperties.CustomerDetails?.BranchId > 0)
+            {
+                initialBranchId = _commonProperties.CustomerDetails.BranchId;
+                initialBranchName = _commonProperties.CustomerDetails.BranchName;
+            }
+
+            // Fallback: Check Zone's BranchId if CustomerDetails.BranchId was not set
+            if (initialBranchId <= 0 && (_commonProperties.CustomerDetails?.ZoneID ?? 0) > 0)
+            {
+                try
+                {
+                    var zones = await _deliveryServices.GetAllDeliveryZonesAsync();
+                    var matchedZone = zones?.FirstOrDefault(z => z.Id == _commonProperties.CustomerDetails!.ZoneID);
+                    if (matchedZone != null && matchedZone.BranchId > 0)
+                    {
+                        initialBranchId = matchedZone.BranchId;
+                    }
+                }
+                catch { }
+            }
+
+            // Fallback: Match by name if ID was missing
+            if (initialBranchId <= 0 && !string.IsNullOrWhiteSpace(_commonProperties.CustomerDetails?.BranchName))
+            {
+                var matchedByName = _branches.FirstOrDefault(b => 
+                    string.Equals(b.Name, _commonProperties.CustomerDetails.BranchName, StringComparison.OrdinalIgnoreCase));
+                if (matchedByName != null)
+                {
+                    initialBranchId = matchedByName.Id;
+                }
+            }
+
+            // Fallback: Current workstation BranchDetails
+            if (initialBranchId <= 0 && (_commonProperties.BranchDetails?.Id ?? 0) > 0)
+            {
+                initialBranchId = _commonProperties.BranchDetails!.Id;
+            }
+
+            // Fallback: First available branch
+            if (initialBranchId <= 0)
+            {
+                initialBranchId = _branches.FirstOrDefault()?.Id ?? 0;
+            }
+
+            _selectedBranchId = initialBranchId;
+            _originalBranchId = initialBranchId;
+
+            // Resolve original branch name
+            var origBranchObj = _branches.FirstOrDefault(b => b.Id == _originalBranchId);
+            _originalBranchName = origBranchObj?.Name ?? initialBranchName ?? _commonProperties.CustomerDetails?.BranchName;
+
+            // Sync CustomerDetails with current branch immediately so it displays correctly
+            ApplyBranchSelection(_selectedBranchId, notify: false);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"حدث خطأ أثناء تحميل الفروع: {ex.Message}", Severity.Warning);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OnBranchChanged(int newBranchId)
+    {
+        if (newBranchId <= 0 || newBranchId == _selectedBranchId) return;
+
+        _selectedBranchId = newBranchId;
+        ApplyBranchSelection(newBranchId, notify: true);
+    }
+
+    private void ResetToOriginalBranch()
+    {
+        if (_originalBranchId > 0 && _originalBranchId != _selectedBranchId)
+        {
+            _selectedBranchId = _originalBranchId;
+            ApplyBranchSelection(_originalBranchId, notify: true);
+        }
+    }
+
+    private void ApplyBranchSelection(int branchId, bool notify)
+    {
+        var targetBranch = _branches.FirstOrDefault(b => b.Id == branchId);
+        if (targetBranch == null) return;
+
+        // 1. Update CustomerDetails
+        if (_commonProperties.CustomerDetails != null)
+        {
+            _commonProperties.CustomerDetails.BranchId = targetBranch.Id;
+            _commonProperties.CustomerDetails.BranchName = targetBranch.Name;
+            _commonProperties.CustomerDetails.BranchApiUrl = targetBranch.ApiUrl;
+        }
+
+        // 2. Update BranchDetails
+        _commonProperties.BranchDetails = targetBranch;
+
+        // 3. Update OrderDto if initialized
+        if (_commonProperties.OrderDto != null)
+        {
+            _commonProperties.OrderDto.BranchId = targetBranch.Id;
+            _commonProperties.OrderDto.BranchName = targetBranch.Name;
+            _commonProperties.OrderDto.DeliveryBranchUrl = targetBranch.ApiUrl;
+        }
+
+        if (notify)
+        {
+            _snackbar.Add($"تم تحويل الأوردر إلى فرع: {targetBranch.Name}", Severity.Success);
+            StateHasChanged();
+        }
+    }
+
+    private void Close()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

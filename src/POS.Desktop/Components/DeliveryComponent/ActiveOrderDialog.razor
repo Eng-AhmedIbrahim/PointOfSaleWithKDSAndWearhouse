@@ -1,0 +1,131 @@
+@using POS.Contract.Dtos.OrderDtos
+@using MudBlazor
+
+<MudDialog DisableSidePadding="true" Class="premium-dialog">
+    <DialogContent>
+        <MudContainer Style="max-height: 500px; overflow-y: auto;" Class="px-4">
+            
+            <div class="d-flex align-center gap-3 mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" />
+                <MudText Typo="Typo.h5" Style="font-weight: 800; color: #1e293b;">
+                    @Localizer["ActiveOrders"]
+                </MudText>
+            </div>
+            
+            <MudAlert Severity="Severity.Warning" Class="mb-4 rounded-lg" Elevation="2">
+                @Localizer["ActiveOrderDescription"]
+            </MudAlert>
+
+            @if (ActiveOrders != null && ActiveOrders.Any())
+            {
+                <MudTable Items="@ActiveOrders" Dense="false" Hover="true" Elevation="2" Class="active-orders-table rounded-lg overflow-hidden">
+                    <HeaderContent>
+                        <MudTh Style="font-weight: 700; color: #475569;">@Localizer["OrderId"]</MudTh>
+                        <MudTh Style="font-weight: 700; color: #475569;">@Localizer["Date"]</MudTh>
+                        <MudTh Style="font-weight: 700; color: #475569;">@Localizer["TotalAmount"]</MudTh>
+                        <MudTh Style="font-weight: 700; color: #475569; text-align: center;">الحالة</MudTh>
+                        <MudTh Style="font-weight: 700; color: #475569; text-align: center;">@Localizer["Actions"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="order">
+                        <MudTd DataLabel="@Localizer["OrderId"]">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 800;">#@order.OrderId</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["Date"]">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600; color: #64748b;">
+                                @order.OrderDate?.ToString("dd/MM/yyyy HH:mm")
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["TotalAmount"]">
+                            <MudText Typo="Typo.subtitle1" Color="Color.Primary" Style="font-weight: 800;">
+                                @order.GrandTotal?.ToString("F2")
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="الحالة" Style="text-align: center;">
+                            @if (order.OrderState == "Dispatched" || order.OrderState == "Delivered")
+                            {
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">خرج للتوصيل</MudChip>
+                            }
+                            else if (order.OrderState == "Assigned")
+                            {
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled">تحت التجهيز</MudChip>
+                            }
+                            else if (order.OrderState == "SentToBranch")
+                            {
+                                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled">تم الإرسال للفرع</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Filled">@order.OrderState</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="@Localizer["Actions"]" Style="text-align: center;">
+                            @if (order.OrderState == "Dispatched" || order.OrderState == "Delivered" || order.OrderState == "Completed" || order.OrderState == "Voided")
+                            {
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Dark" 
+                                           Size="Size.Small"
+                                           Disabled="true"
+                                           Style="font-weight: 700; border-radius: 8px; padding: 4px 16px;">
+                                    لا يمكن التعديل
+                                </MudButton>
+                            }
+                            else
+                            {
+                                @if (_canEditOrder)
+                                {
+                                    <MudButton OnClick="@(() => EditExisting(order))" 
+                                               Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               Size="Size.Small"
+                                               Style="font-weight: 700; border-radius: 8px; padding: 4px 16px; margin-left: 6px;">
+                                        @Localizer["Edit"]
+                                    </MudButton>
+                                }
+                                @if (_canVoidOrder)
+                                {
+                                    <MudButton OnClick="@(() => VoidExisting(order))"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.DeleteForever"
+                                               Style="font-weight: 700; border-radius: 8px; padding: 4px 12px;">
+                                        @Localizer["VoidOrder"]
+                                    </MudButton>
+                                }
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">@Localizer["NoItems"]</MudText>
+            }
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <div class="px-4 pb-4 w-100 d-flex justify-start">
+            @if (_canCreateOrder)
+            {
+                <MudButton OnClick="CreateNew" Variant="Variant.Outlined" Color="Color.Secondary" Style="font-weight: 700; border-radius: 8px; height: 42px; border-width: 2px;">
+                    @Localizer["CreateNewOrder"]
+                </MudButton>
+            }
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .active-orders-table {
+        border: 1px solid #e2e8f0;
+    }
+    .active-orders-table .mud-table-head {
+        background-color: #f8fafc;
+    }
+    .premium-dialog {
+        border-radius: 16px !important;
+    }
+    .premium-dialog .mud-dialog-title {
+        display: none; /* Hide default title bar, we use custom header */
+    }
+</style>

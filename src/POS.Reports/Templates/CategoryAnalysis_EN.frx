@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="Categories" ReferenceName="ReportData.Categories" DataType="System.Int32" Enabled="true">
+      <Column Name="CategoryName" DataType="System.String"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+      <Column Name="Percentage" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="40" Text="Sales Analysis by Category" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="718.2" Height="25" Text="Period From: [FromDate] To: [ToDate]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="65" Width="718.2" Height="20" Text="Branch: [BranchName]" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="30" Fill.Color="30, 58, 95">
+      <TextObject Name="Text4" Width="300" Height="30" Border.Lines="All" Border.Color="White" Text="Category Name" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextCount" Left="300" Width="100" Height="30" Border.Lines="All" Border.Color="White" Text="Orders" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text5" Left="400" Width="200" Height="30" Border.Lines="All" Border.Color="White" Text="Total Sales" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text6" Left="600" Width="118.2" Height="30" Border.Lines="All" Border.Color="White" Text="Sales %" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="138.2" Width="718.2" Height="30" DataSource="Categories">
+      <TextObject Name="Text7" Width="300" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Categories.CategoryName]" Padding="5, 0, 0, 0" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="TextCountVal" Left="300" Width="100" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Categories.OrderCount]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text8" Left="400" Width="200" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Categories.Total]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="Text9" Left="600" Width="118.2" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Categories.Percentage]%" Format="Number" Format.DecimalDigits="1" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt" TextFill.Color="Navy"/>
+    </DataBand>
+  </ReportPage>
+</Report>

@@ -1,0 +1,29 @@
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information", // Information
+      "Override": {
+        "Microsoft": "Information", // Warning
+        "Microsoft.AspNetCore": "Warning", // Warning
+        "System": "Error" // Error
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console"
+      },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "logs/MyAppLog-.txt",
+          "rollingInterval": "Day",
+          "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName" ],
+    "Properties": {
+      "Application": "MyApp"
+    }
+  }
+}

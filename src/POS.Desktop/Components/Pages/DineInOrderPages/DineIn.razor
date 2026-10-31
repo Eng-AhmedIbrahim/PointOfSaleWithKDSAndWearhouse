@@ -1,0 +1,649 @@
+@page "/dineIn"
+@layout MainLayout
+@inject CommonProperties _commonProperties
+@inject IHttpClientFactory _httpClientFactory
+@inject IDineInService _dineInService
+@inject NavigationManager _navigationManager
+@inject LocalizationService Localizer
+@inject IDineInOrderFrontService _dineInOrderService
+
+<MudGrid Spacing="0" Class="overflow-hidden main-dinein-container">
+    <MudItem xs="6" Class="d-flex flex-column h-100">
+        <MudText Typo="Typo.h6" Class="section-label ">
+            <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Class="mr-2 mb-1" />
+            @Localizer["Tables"]
+        </MudText>
+        
+        <div class="dinein-content-area">
+            <!-- Floor Selection Section -->
+            <div class="floor-nav-section">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="pa-2 overflow-x-auto no-scrollbar">
+                    @foreach (var tableGroup in _tableGroups ?? [])
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Class="@GetFloorClass(tableGroup.Id)"
+                                   OnClick='async () => await GetTablesFromGroup(tableGroup.Id)'>
+                            @tableGroup.GroupName
+                        </MudButton>
+                    }
+                </MudStack>
+            </div>
+
+            <!-- Tables Grid Section -->
+            <div class="tables-grid-section flex-grow-1">
+                <MudGrid Spacing="2" Class="pa-3">
+                    @foreach (var table in _tables ?? [])
+                    {
+                        <MudItem xs="3" sm="3" md="2" @key="table.Id">
+                            <div class="table-card-container">
+                                <button class="@GetTableModernClass(table)" 
+                                        @onclick="() => ToggleState(tableStates, table!.Id!.Value, table!.TableName!, UpdateState)"
+                                        @oncontextmenu:preventDefault 
+                                        @oncontextmenu="@(e => OnTableRightClick(e, table))">
+                                    <div class="table-icon-box">
+                                        <MudIcon Icon="@Icons.Material.Filled.TableBar" Size="Size.Large" />
+                                    </div>
+                                    <span class="table-name">@table.TableName</span>
+                                    
+                                    @if (_commonProperties?.DineInOrdersDetails != null && _commonProperties.DineInOrdersDetails.ContainsKey(table.Id!.Value))
+                                    {
+                                        <span class="table-status">@Localizer["Order"]</span>
+                                    }
+                                    else if (table.TableState == "Reserved")
+                                    {
+                                        <span class="table-status table-status-reserved">@Localizer["Waiting"]</span>
+                                    }
+                                </button>
+                                
+                                <div class="table-action-icons">
+                                    @if (_commonProperties.IsFeatureEnabled("EnableReservation"))
+                                    {
+                                        @if ((_commonProperties?.DineInOrdersDetails == null || !_commonProperties.DineInOrdersDetails.ContainsKey(table.Id!.Value)) && table.TableState != "Reserved")
+                                        {
+                                            <MudTooltip Text="@Localizer["ReserveTable"]">
+                                                <MudIconButton Icon="@Icons.Material.Filled.EventNote" 
+                                                               Size="Size.Small" 
+                                                               Color="Color.Success" 
+                                                               OnClick="@(e => OnTableRightClick(new MouseEventArgs(), table))" 
+                                                               Class="reserve-icon-btn" />
+                                            </MudTooltip>
+                                        }
+                                        else if (table.TableState == "Reserved")
+                                        {
+                                            <MudTooltip Text="@Localizer["Cancel"]">
+                                                <MudIconButton Icon="@Icons.Material.Filled.EventBusy" 
+                                                               Size="Size.Small" 
+                                                               Color="Color.Error" 
+                                                               OnClick="@(e => OnTableRightClick(new MouseEventArgs(), table))" 
+                                                               Class="reserve-icon-btn" />
+                                            </MudTooltip>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </div>
+
+            @if (_commonProperties.IsFeatureEnabled("EnableCaptainSelection"))
+            {
+                <!-- Captain Selection Section -->
+                <div class="captain-selection-section">
+                    <MudText Typo="Typo.subtitle2"
+                             Class="px-4 pt-2 font-weight-bold opacity-75">
+                        @Localizer["CaptainName"]
+                    </MudText>
+
+                    <div class="captain-scroll-container">
+                        @foreach (var captainOrder in _captainOrders ?? [])
+                        {
+                            <button class="@GetCaptainModernClass(captainOrder)"
+                                    @key="captainOrder.Id"
+                                    @onclick="() => ToggleState(buttonStates!, captainOrder.Id!, captainOrder.ArabicName!, UpdateState)"
+                                    type="button">
+
+                                <div class="captain-popup">
+                                    @captainOrder.ArabicName
+                                </div>
+
+                                <div class="captain-avatar">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                                </div>
+
+                                <span class="captain-name-text">
+                                    @captainOrder.ArabicName
+                                </span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+        </div>
+    </MudItem>
+
+    <!-- Section 2 -->
+
+    <MudItem xs="5" Class="d-flex flex-column h-100 border-l border-solid custom-border-color">
+        <MudText Typo="Typo.h6" Class="section-label ">
+            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Class="mr-2 mb-1" />
+            @Localizer["OrderDetails"]
+        </MudText>
+        
+        <div class="order-details-content flex-grow-1 d-flex flex-column">
+            <!-- Order Table -->
+            <div class="order-table-container flex-grow-1 overflow-y-auto">
+                <Section4Table Items="Items" Disabled="true" />
+            </div>
+
+            <!-- Premium Summary Card -->
+            <div class="summary-card-wrapper pa-3">
+                <div class="premium-summary-card">
+                    <div class="card-glass-effect"></div>
+                    <div class="card-content">
+                        <div class="summary-header">
+                            <span class="order-number-badge">@Localizer["Order"] #@_commonProperties?.DineInOrderValues?.OrderID</span>
+                            <div class="time-box">
+                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" />
+                                <span>@_commonProperties?.DineInOrderValues?.TableOpenTime</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="summary-label">@Localizer["Tables"]</span>
+                                <span class="summary-value highlight">@_commonProperties?.DineInOrderValues?.TableName</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">@Localizer["CaptainName"]</span>
+                                <span class="summary-value">@_commonProperties?.DineInOrderValues?.CaptainName</span>
+                            </div>
+                        </div>
+
+                        @if (_commonProperties?.DineInOrderValues?.Discount > 0)
+                        {
+                            <div class="grand-total-section mt-2" style="background: rgba(239, 68, 68, 0.1); border: 1px dashed rgba(239, 68, 68, 0.3);">
+                                <span class="total-label" style="font-size: 0.9rem; color: #fca5a5;">@Localizer["Discount"]</span>
+                                <div class="total-amount-display">
+                                    <span class="currency" style="color: #fca5a5;">- @Localizer["EGP"]</span>
+                                    <span class="amount" style="font-size: 1.25rem; color: #f87171;">@_commonProperties.DineInOrderValues.Discount?.ToString("N2")</span>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="grand-total-section mt-3">
+                            <span class="total-label">@Localizer["Total"]</span>
+                            <div class="total-amount-display">
+                                <span class="currency">@Localizer["EGP"]</span>
+                                <span class="amount">@_commonProperties.DineInOrderValues.Total?.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </MudItem>
+
+    <!-- Section 3 -->
+    <MudItem xs="1" Class="d-flex flex-column h-100 border-l border-solid custom-border-color">
+        <MudText Typo="Typo.h6" Class="section-label ">
+            <MudIcon Icon="@Icons.Material.Filled.Bolt" Class="mr-2 mb-1" />
+            @Localizer["Actions"]
+        </MudText>
+        <div class="actions-content-area flex-grow-1">
+            <MenuButtons />
+        </div>
+    </MudItem>
+
+
+</MudGrid>
+
+
+<style>
+    .main-dinein-container {
+        height: 100vh;
+        background-color: #f8fafc;
+        overflow: hidden;
+    }
+
+    .premium-label {
+        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%) !important;
+        font-family: 'Cairo', sans-serif !important;
+        letter-spacing: 0.5px;
+        text-transform: capitalize !important;
+    }
+
+    .dinein-content-area {
+        height: calc(100vh - 41.59px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .floor-nav-section {
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .floor-btn {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        font-weight: 700 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .floor-btn-active {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+        border: none !important;
+    }
+
+    .tables-grid-section {
+        overflow-y: auto;
+        padding-bottom: 20px;
+    }
+
+    /* Modern Table Cards */
+    .table-modern-card {
+        width: 100%;
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+    }
+
+    .table-modern-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+
+    .table-card-active {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .table-card-has-order {
+        background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+        border-color: #ef4444;
+    }
+
+    .table-card-has-order .table-icon-box {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .table-icon-box {
+        width: 48px;
+        height: 48px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .table-name {
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: #1e293b;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    .table-status {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.65rem;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .table-status-reserved {
+        background: #f59e0b;
+    }
+
+    .table-card-reserved {
+        background: linear-gradient(135deg, #fffbeb 0%, #fff 100%);
+        border-color: #f59e0b;
+    }
+
+        .table-card-reserved .table-icon-box {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+    /* Captain Section */
+    .captain-selection-section {
+        background: white;
+        border-top: 2px solid #3b82f6;
+        padding-bottom: 8px;
+    }
+
+    .captain-modern-btn {
+        min-width: 160px;
+        height: 58px;
+        background: #ffffff;
+        border: 2px solid #cbd5e1;
+        border-radius: 16px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.25s ease;
+        flex-shrink: 0;
+    }
+
+        .captain-modern-btn:hover {
+            background: #f0f7ff;
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(59,130,246,0.25);
+        }
+
+    .captain-avatar {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, #e2e8f0, #c7d2fe);
+        color: #1e293b;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease;
+    }
+
+    .captain-name-text {
+        font-weight: 700;
+        color: #334155;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    /* ===== Scroll ===== */
+    .captain-scroll-container {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding: 10px 14px;
+    }
+
+        .captain-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+    /* ===== Button reset ===== */
+    .captain-modern-btn {
+        appearance: none;
+        border: 2px solid #cbd5e1;
+        background: #ffffff;
+        border-radius: 16px;
+        min-width: 160px;
+        height: 58px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        position: relative;
+        transition: all .25s ease;
+        flex-shrink: 0;
+    }
+
+        /* Hover */
+        .captain-modern-btn:hover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(59,130,246,.25);
+        }
+
+    /* ===== Avatar ===== */
+    .captain-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg,#e2e8f0,#c7d2fe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e293b;
+        transition: all .25s ease;
+    }
+
+    /* ===== Name ===== */
+    .captain-name-text {
+        font-family: Cairo, sans-serif;
+        font-weight: 800;
+        font-size: .95rem;
+        color: #1e293b;
+        white-space: nowrap;
+    }
+
+    /* ===== Active ===== */
+    .captain-active {
+        background: linear-gradient(135deg,#1e3a8a,#2563eb);
+        border-color: #1e40af;
+        box-shadow: 0 16px 30px rgba(37,99,235,.45);
+    }
+
+        .captain-active .captain-name-text,
+        .captain-active .captain-avatar {
+            color: #fff;
+        }
+
+        .captain-active .captain-avatar {
+            background: rgba(255,255,255,.25);
+        }
+
+    /* ===== Popup ===== */
+    .captain-popup {
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%) scale(.9);
+        background: #1e293b;
+        color: #fff;
+        padding: 6px 12px;
+        font-size: .75rem;
+        font-weight: 700;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all .2s ease;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+        .captain-popup::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #1e293b;
+        }
+
+    .captain-modern-btn:hover .captain-popup {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+
+    /* Show popup */
+    .captain-modern-btn:hover .captain-popup {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+
+    /* ===== Optional: Busy Indicator ===== */
+    .captain-modern-btn.busy::after {
+        content: "";
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        background: #ef4444;
+        border-radius: 50%;
+    }
+
+
+    /* Order Details Card */
+    .premium-summary-card {
+        position: relative;
+        background: #1e293b;
+        color: white;
+        border-radius: 16px;
+        padding: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-glass-effect {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .order-number-badge {
+        background: #3b82f6;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .time-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        opacity: 0.7;
+        font-size: 0.85rem;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        opacity: 0.6;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .summary-value {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .summary-value.highlight {
+        color: #3b82f6;
+        font-size: 1.25rem;
+    }
+
+    .grand-total-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .total-label {
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    .total-amount-display {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+
+    .currency {
+        font-size: 0.8rem;
+        opacity: 0.6;
+    }
+
+    .amount {
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: #10b981;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .table-card-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .table-action-icons {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        display: flex;
+        gap: 2px;
+        z-index: 5;
+    }
+
+    .reserve-icon-btn {
+        padding: 4px !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 6px !important;
+    }
+
+    .reserve-icon-btn:hover {
+        background: white !important;
+        transform: scale(1.1);
+    }
+</style>

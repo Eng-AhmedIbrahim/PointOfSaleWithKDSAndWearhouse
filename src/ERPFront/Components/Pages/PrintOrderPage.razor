@@ -1,0 +1,323 @@
+﻿@layout CommonLayout
+@inject CommonProperties _commonProperties
+@inject NavigationManager _navigationManager
+@page "/printOrder"
+@using global::POS.Contract.Models
+@using global::POS.Core.Entities.Customer
+
+
+<MudGrid Spacing="0" Justify="Justify.Center" Class="overflow-hidden">
+    <!-- Section 1 -->
+    <MudItem xs="7">
+        <MudPaper Elevation="1" Height="100%" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+            <MudText Typo="Typo.h6" Class="section-label">Payment Process</MudText>
+            <MudGrid Spacing="0" Class="first-section">
+                <MudItem xs="6" Class="border-r p-2">
+                    <MudText Typo="Typo.h6" Class="section-label">Keypad</MudText>
+                    <MudGrid Class="keypad m-0 w-100 mt-3" Spacing="2">
+                        @for (byte keypadNumber = 1; keypadNumber <= 9; keypadNumber++)
+                        {
+                            var number = keypadNumber;
+                            <MudItem xs="4">
+                                <MudButton Variant="Variant.Filled" FullWidth="true" Class="keypad-btn"
+                                           OnClick="() => AddDigit(number.ToString())">
+                                    @(number.ToString())
+                                </MudButton>
+                            </MudItem>
+                        }
+                        <MudItem xs="4">
+                            <MudButton Variant="Variant.Filled" FullWidth="true" Class="keypad-btn"
+                                       OnClick="DeleteLastDigit">
+                                BS
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudButton Variant="Variant.Filled" FullWidth="true" Class="keypad-btn"
+                                       OnClick='() => AddDigit("0")'>
+                                0
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudButton Variant="Variant.Filled" FullWidth="true" Class="keypad-btn"
+                                       OnClick="ClearInput">
+                                DEL
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+
+                <MudItem xs="6" Class="p-3">
+                    <MudText Typo="Typo.h6" Class="mb-3 font-bold section-label">Payment Details</MudText>
+
+                    <MudPaper Elevation="2" Class="p-4">
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Total :</MudText>
+                                <MudTextField Value="@OrderTotalAmount" ReadOnly="true" Variant="Variant.Outlined" FullWidth="true" Disabled />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Paid :</MudText>
+                                <MudTextField @bind-Value="PinInput" Variant="Variant.Outlined" FullWidth="true" Immediate="true" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Remaining :</MudText>
+                                <MudTextField Value="@RemainAmount" ReadOnly="true" Variant="Variant.Outlined" FullWidth="true" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Payment Method :</MudText>
+                                <MudSelect @bind-Value="SelectedCashType" Variant="Variant.Outlined" FullWidth="true">
+                                    @foreach (var method in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
+                                    {
+                                        <MudSelectItem Value="@method">@method.ToString()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 2 -->
+    <MudItem xs="5" Class="full-height">
+        <MudText Typo="Typo.h6" Class="section-label">Order Client</MudText>
+
+        <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color p-3">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1">Client Name:</MudText>
+                    <MudAutocomplete T="TakeawayCustomer"
+                                     @bind-Value="SelectedCustomer"
+                                     SearchFunc="SearchCustomers"
+                                     ToStringFunc="CustomerDisplay"
+                                     Variant="Variant.Outlined"
+                                     FullWidth="true"
+                                     Placeholder="Search or enter new client..."
+                                     OnValueChanged="OnCustomerSelected" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1">Phone Number:</MudText>
+                    <MudTextField @bind-Value="SelectedCustomerPhone"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  Placeholder="Enter phone number..." />
+                </MudItem>
+
+                <MudItem xs="12" Class="mt-2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SaveOrSelectCustomer"
+                               FullWidth="true"
+                               Style="font-size: 1.2rem; height: 100px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
+                        Print
+                    </MudButton>
+                </MudItem>
+
+                <MudItem xs="12" Class="mt-2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Secondary"
+                               OnClick='()=>_navigationManager.NavigateTo("/pos")'
+                               FullWidth="true"
+                               Style="font-size: 1.2rem; height: 100px;">
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Class="mr-2" />
+                        Back
+                    </MudButton>
+                </MudItem>
+
+
+            </MudGrid>
+
+            <!-- Sales Items Section -->
+            <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap"
+                      StretchItems="StretchItems.None" Spacing="1" Class="sales-items-container">
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+@code {
+    private string PaidAmount { get; set; } = "0.00";
+    private decimal _pin = 0.00M;
+    private string RemainAmount { get; set; } = "0.00";
+    private PaymentMethod SelectedCashType { get; set; } = PaymentMethod.Cash;
+
+    private decimal OrderTotalAmount { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (_commonProperties!._financeSettingsList!.Count == 0) return;
+
+        OrderTotalAmount = _commonProperties?._financeSettingsList?[0]!.Value ?? 0;
+    }
+
+    private string PinInput
+    {
+        get => _pin.ToString();
+        set
+        {
+            if (decimal.TryParse(value, out decimal newPin))
+            {
+                _pin = newPin;
+            }
+            else if (string.IsNullOrEmpty(value)) // Handle empty input
+            {
+                _pin = 0;
+            }
+
+            UpdateRemainAmount();
+        }
+    }
+
+    private void UpdateRemainAmount()
+    {
+        if (_commonProperties!._financeSettingsList!.Count == 0) return;
+
+        decimal totalOrderPrice = _commonProperties?._financeSettingsList?[0]!.Value ?? 0;
+        RemainAmount = (_pin - totalOrderPrice).ToString("0.00");
+    }
+
+    private void AddDigit(string digit)
+    {
+        if (_pin == 0)
+        {
+            _pin = decimal.Parse(digit);
+        }
+        else
+        {
+            _pin = decimal.Parse($"{_pin.ToString()}{digit}");
+        }
+        UpdateRemainAmount();
+    }
+
+    private void DeleteLastDigit()
+    {
+        string pinString = _pin.ToString();
+
+        if (pinString.Length > 1)
+        {
+            _pin = decimal.Parse(pinString[..^1]);
+        }
+        else
+        {
+            _pin = 0;
+        }
+        UpdateRemainAmount();
+    }
+
+    private void ClearInput()
+    {
+        _pin = 0;
+        UpdateRemainAmount();
+    }
+
+
+
+
+    private TakeawayCustomer SelectedCustomer { get; set; } = new();
+    private string SelectedCustomerPhone { get; set; } = string.Empty;
+
+    private List<TakeawayCustomer> Customers = new List<TakeawayCustomer>
+    {
+        new TakeawayCustomer { CustomerName = "John Doe", CustomerPhone = "123-456-7890" },
+        new TakeawayCustomer { CustomerName = "Alice Smith", CustomerPhone = "987-654-3210" }
+    };
+
+    private Task<IEnumerable<TakeawayCustomer>> SearchCustomers(string value, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<TakeawayCustomer>>(Customers);
+
+        var filteredCustomers = Customers
+            .Where(c => c.CustomerName != null && c.CustomerName.Contains(value, StringComparison.OrdinalIgnoreCase)
+                     || c.CustomerPhone != null && c.CustomerPhone.Contains(value))
+            .ToList();
+
+        return Task.FromResult<IEnumerable<TakeawayCustomer>>(filteredCustomers);
+    }
+
+    private string CustomerDisplay(TakeawayCustomer customer)
+    {
+        return customer == null ? "" : $"{customer.CustomerName} ({customer.CustomerPhone})";
+    }
+
+    private void OnCustomerSelected(TakeawayCustomer customer)
+    {
+        if (customer != null)
+        {
+            SelectedCustomerPhone = customer.CustomerPhone ?? string.Empty;
+        }
+        else
+        {
+            SelectedCustomerPhone = string.Empty;
+        }
+    }
+
+
+    //todo
+    private void SaveOrSelectCustomer()
+    {
+
+
+        if (SelectedCustomer is null && string.IsNullOrWhiteSpace(SelectedCustomer!.CustomerName))
+            return;
+
+        var existingCustomer = Customers.FirstOrDefault(c =>
+            c.CustomerName != null && c.CustomerName.Equals(SelectedCustomer.CustomerName, StringComparison.OrdinalIgnoreCase));
+
+        if (existingCustomer == null)
+        {
+            Customers.Add(new TakeawayCustomer { CustomerName = SelectedCustomer.CustomerName, CustomerPhone = SelectedCustomerPhone });
+        }
+        else
+        {
+            existingCustomer.CustomerPhone = SelectedCustomerPhone;
+        }
+
+        _commonProperties!.OrderReceipt!.CashierName = _commonProperties!.CurrentUser!;
+
+        _commonProperties!.OrderReceipt!.DateCreated = DateTime.Now;
+
+        _commonProperties!.OrderReceipt!.Id = _commonProperties.CurrentOrderCount;
+
+        _commonProperties!.OrderReceipt.StoreName = _commonProperties!.StoreName!;
+
+        _commonProperties!.OrderReceipt!.TotalAmount = _commonProperties.TotalOrderPrice;
+
+        _commonProperties!.OrderReceipt!.PaymentMethod = _commonProperties!.PaymentMethod!;
+        
+        // _commonProperties.OrderReceipt.FooterMessage = _com
+
+    }
+
+}
+}
+<style>
+    .first-section {
+        height: calc(100vh - 86px) !important;
+    }
+
+    .keypad-btn {
+        font-size: clamp(1rem, 2.5vw, 2rem);
+        font-weight: bold;
+        padding: clamp(10px, 2vw, 20px);
+        min-height: 50px;
+        background: linear-gradient(135deg, #ffffff, #e7ecf5);
+        color: #143155;
+        text-align: center !important;
+        border-bottom: 1px solid var(--mud-palette-primary-light) !important;
+    }
+
+    .mud-grid-item {
+        margin: 0;
+        box-sizing: border-box;
+        border-color: aliceblue;
+    }
+</style>

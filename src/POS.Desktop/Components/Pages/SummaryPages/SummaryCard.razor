@@ -1,0 +1,63 @@
+@inject LocalizationService Localizer
+@namespace POS.Desktop.Components.Pages.SummaryPages
+
+
+<div class="summary-card fade-in">
+    <div class="card-header @Color">
+        <div class="header-content">
+            <MudIcon Icon="@Icon" Size="Size.Medium" Class="header-icon" />
+            <div class="title-container">
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@Title</MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.8;">@Localizer["DailyPerformance"]</MudText>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="stat-item">
+            <span class="label">@Localizer["Subtotal"]</span>
+            <span class="value">@Data.Subtotal.ToString("0.##")</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">@Localizer["Discount"]</span>
+            <span class="value" style="color: #ef4444;">@Data.Discount.ToString("0.##")</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">@Localizer["Tax"] (@Data.Tax.ToString("F0")%)</span>
+            <span class="value">@Data.Tax.ToString("0.##")</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">@(Title == Localizer["Delivery"] ? Localizer["DeliveryService"] : Localizer["Service"])</span>
+            <span class="value">@Data.Service.ToString("0.##")</span>
+        </div>
+        <div class="stat-item uncollected">
+            <span class="label">@Localizer["Uncollected"]</span>
+            <span class="value">@Data.UncollectedAmount.ToString("0.##")</span>
+        </div>
+        
+        <div class="total-row-container">
+            <div class="total-row">
+                <span class="label">@Localizer["Total"]</span>
+                <span class="value">@Data.Total.ToString("0.##")</span>
+            </div>
+        </div>
+
+        <div class="footer-stats">
+            <div class="sub-stat">
+                <span class="label">@Localizer["OrderCount"]</span>
+                <span class="value">@Data.OrderCount</span>
+            </div>
+            <div class="divider-v"></div>
+            <div class="sub-stat">
+                <span class="label">@Localizer["Average"]</span>
+                <span class="value">@Data.AverageOrder.ToString("0.##")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public string Color { get; set; } = "info";
+    [Parameter] public ModeSummaryDto Data { get; set; } = new();
+}

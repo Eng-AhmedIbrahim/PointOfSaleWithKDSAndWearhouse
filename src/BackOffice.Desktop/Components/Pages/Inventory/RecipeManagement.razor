@@ -1,0 +1,270 @@
+@page "/inventory/recipes"
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@using Radzen
+@using Radzen.Blazor
+@inject IInventoryFrontService InventoryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+@inject NavigationManager NavManager
+@inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+@using BackOffice.Desktop.Components.Pages.BasicData.Inventory
+
+<style>
+    .recipes-mgmt-page { 
+        font-family: 'Tajawal', sans-serif; 
+        background: #f8fafc; 
+        height: 100%; 
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .page-header-compact { 
+        flex-shrink: 0;
+        background: white; 
+        padding: 0.75rem 1.5rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-icon-small { 
+        background: #ef4444; 
+        color: white; 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.2rem;
+    }
+    .header-text-compact h1 { margin: 0; font-size: 1.25rem; font-weight: 950; color: #1e293b; }
+    .header-text-compact p { margin: 0; color: #64748b; font-size: 0.8rem; font-weight: 600; }
+    
+    .stats-row-compact { 
+        flex-shrink: 0;
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 0.75rem; 
+        margin-bottom: 1rem; 
+    }
+    
+    .stat-card-compact { 
+        background: white; 
+        padding: 0.75rem 1rem; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+    }
+    
+    .mini-icon { 
+        width: 32px; 
+        height: 32px; 
+        border-radius: 8px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1rem;
+    }
+    
+    .stat-data .label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+    .stat-data .value { font-size: 1.25rem; font-weight: 950; color: #0f172a; line-height: 1; }
+
+    .grid-container-fixed { 
+        flex-grow: 1;
+        background: white; 
+        border-radius: 12px; 
+        border: 1px solid #e2e8f0; 
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .grid-header-bar { 
+        flex-shrink: 0;
+        padding: 0.6rem 1.25rem; 
+        background: #f8fafc; 
+        border-bottom: 1px solid #e2e8f0; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+
+    .rz-datagrid { border: none !important; font-family: 'Tajawal', sans-serif !important; }
+    .rz-column-title { color: #64748b !important; font-weight: 850 !important; font-size: 0.8rem !important; text-transform: uppercase !important; }
+    
+    .recipe-badge { background: #f0fdf4; color: #16a34a; padding: 4px 12px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; }
+    .no-recipe-badge { background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; }
+
+    /* RTL Numeric Flip: Arrows Left, Number Right */
+    .rz-numeric { display: flex !important; flex-direction: row-reverse !important; }
+    .rz-numeric-input { text-align: right !important; flex-grow: 1 !important; padding-right: 8px !important; }
+    .rz-spinner { display: flex !important; flex-direction: column !important; }
+</style>
+
+<div class="recipes-mgmt-page" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+    @if (!IsInventoryEnabled)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
+            <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ميزة المخازن غير مفعلة" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "يرجى تفعيل 'تتبع المخزون' من إعدادات الخصائص أولاً." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الرجوع للرئيسية" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+        </div>
+    }
+    else
+    {
+        <div class="page-header-compact">
+            <div class="header-left">
+                <div class="header-icon-small">
+                    <RadzenIcon Icon="restaurant_menu" />
+                </div>
+                <div class="header-text-compact">
+                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "إدارة التكاليف والريسيبي" : "BOM & Cost Hub")</h1>
+                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "تحديد مكونات الأصناف وحساب الهالك" : "Precision ingredient and waste monitoring")</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                 <MudButton Variant="MudBlazor.Variant.Filled" StartIcon="@Icons.Material.Filled.FileDownload" 
+                            Color="Color.Default" Class="rounded-lg" Style="font-weight: 850; background: #f1f5f9; color: #475569; padding: 8px 20px;">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "تصدير شيت" : "Export Sheet")
+                 </MudButton>
+            </div>
+        </div>
+
+        <div class="stats-row-compact">
+            <div class="stat-card-compact">
+                <div class="mini-icon" style="background: #f0fdf4; color: #16a34a;"><RadzenIcon Icon="check_circle" /></div>
+                <div class="stat-data">
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف بريسبي" : "Active")</div>
+                    <div class="value">@Items.Count(x => x.HasRecipe)</div>
+                </div>
+            </div>
+            <div class="stat-card-compact">
+                <div class="mini-icon" style="background: #fef2f2; color: #dc2626;"><RadzenIcon Icon="error" /></div>
+                <div class="stat-data">
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف بدون ريسبي" : "Missing")</div>
+                    <div class="value">@Items.Count(x => !x.HasRecipe)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-container-fixed">
+            <div class="grid-header-bar">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight: 950; font-size: 1.1rem; color: #1e293b;">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "تحليل مكونات القائمة" : "Menu BOM Analysis")
+                </RadzenText>
+                <div class="search-box-wrap" style="position: relative; width: 400px;">
+                    <RadzenIcon Icon="search" Style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem; z-index: 5;" />
+                    <RadzenTextBox Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "بحث عن صنف لتحليل مكوناته..." : "Search items to analyze BOM...")" 
+                                     @bind-Value="SearchTerm" 
+                                     Style="width: 100%; border-radius: 10px; padding-left: 38px; border: 2px solid #e2e8f0; height: 40px; font-weight: 700; font-size: 0.9rem;" />
+                </div>
+            </div>
+
+            <RadzenDataGrid AllowFiltering="true" FilterMode="FilterMode.Simple" AllowPaging="false"
+                            AllowSorting="true" Data="@FilteredItems" TItem="RecipeItemSummary" 
+                            Style="height: 100%;" AllowColumnResize="true"
+                            EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد بيانات" : "No results found")">
+                <Columns>
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الصنف" : "Item")" Width="300px">
+                        <Template Context="item">
+                            <div class="d-flex align-center gap-3">
+                                <div style="width: 42px; height: 42px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
+                                    <RadzenIcon Icon="@(item.ItemTypeCode == "SaleItem" ? "shopping_bag" : "science")" Style="color: #6366f1; font-size: 1.2rem;" />
+                                </div>
+                                <div>
+                                    <div style="font-weight: 900; color: #1e293b; font-size: 1rem;">@item.ItemNameAr</div>
+                                    <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700;">@item.ItemTypeCode</span>
+                                </div>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "حالة الريسيبي" : "Status")" Width="150px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            @if (item.HasRecipe)
+                            {
+                                <span class="recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "يوجد مكونات" : "Has Recipe")</span>
+                            }
+                            else
+                            {
+                                <span class="no-recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "لم يحدد بعد" : "No Recipe")</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الإجراء" : "Action")" Width="180px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "تعديل المكونات" : "Edit BOM")" 
+                                          Icon="settings" ButtonStyle="ButtonStyle.Primary" 
+                                          Size="ButtonSize.Small" Click="@(() => OpenRecipe(item))"
+                                          Style="border-radius: 10px; font-weight: 900; padding: 0 20px; background: #6366f1; border: none;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    }
+</div>
+
+@code {
+    private List<RecipeItemSummary> Items = new();
+    private string SearchTerm = "";
+    private bool IsInventoryEnabled = true;
+
+    public class RecipeItemSummary : InventoryItemDto
+    {
+        public bool HasRecipe { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        if (!IsInventoryEnabled) return;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var res = await InventoryService.GetAllInventoryAsync();
+        if (res.Success && res.Data != null)
+        {
+            // Sales Items and Semi-Finished Items are the ones that HAVE recipes
+            var baseItems = res.Data.Where(x => x.ItemTypeCode == "SaleItem" || x.ItemTypeCode == "SemiFinished").ToList();
+            
+            // For now, we simulate checking if they have recipes by calling service for each (in production we'd optimize this)
+            Items = baseItems.Select(x => new RecipeItemSummary {
+                Id = x.Id,
+                MenuSalesItemId = x.MenuSalesItemId,
+                ItemNameAr = x.ItemNameAr,
+                ItemNameEn = x.ItemNameEn,
+                ItemTypeCode = x.ItemTypeCode,
+                HasRecipe = x.HasRecipe
+            }).ToList();
+        }
+    }
+
+    private IEnumerable<RecipeItemSummary> FilteredItems => string.IsNullOrWhiteSpace(SearchTerm)
+        ? Items
+        : Items.Where(i => i.ItemNameAr.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private async Task OpenRecipe(RecipeItemSummary item)
+    {
+        var parameters = new DialogParameters { ["Item"] = (InventoryItemDto)item };
+        var dialog = await DialogService.ShowAsync<BackOffice.Desktop.Components.Pages.BasicData.Inventory.RecipeDialog>("", parameters, new MudBlazor.DialogOptions { NoHeader = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (!(await dialog.Result).Canceled) await LoadData();
+    }
+}

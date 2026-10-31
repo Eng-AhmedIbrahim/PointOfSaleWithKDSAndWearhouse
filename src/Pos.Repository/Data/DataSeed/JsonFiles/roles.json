@@ -1,0 +1,121 @@
+[
+  {
+    "Id": "1",
+    "Name": "Administrator",
+    "NormalizedName": "ADMINISTRATOR",
+    "ConcurrencyStamp": "f5b6a7e9-8f3d-4a2c-b0b1-e9d1f5c8a12f",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "2",
+    "Name": "مدير فرع",
+    "NormalizedName": "مدير فرع",
+    "ConcurrencyStamp": "7c3a8b49-9b4f-46e3-9a1e-3b2a5c9d7f8e",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "3",
+    "Name": "مساعد مدير",
+    "NormalizedName": "مساعد مدير",
+    "ConcurrencyStamp": "d2c5aeb3-5a2d-4f3e-a8c9-e1f6b7a4d8f9",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "4",
+    "Name": "كاشير",
+    "NormalizedName": "كاشير",
+    "ConcurrencyStamp": "a9d8c7b6-3e2f-4a1d-b5c6-f8e7d9a3c2b4",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "5",
+    "Name": "كابتن صاله",
+    "NormalizedName": "كابتن صاله",
+    "ConcurrencyStamp": "e5d4c3b2-1a9f-4d8c-b7a6-f9e3d2c1b5a4",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "6",
+    "Name": "محاسب مالى",
+    "NormalizedName": "محاسب مالى",
+    "ConcurrencyStamp": "b3c2d1a9-7f6e-4d5c-a8b9-e4f3d7c5a2b1",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "7",
+    "Name": "محاسب تكاليف",
+    "NormalizedName": "محاسب تكاليف",
+    "ConcurrencyStamp": "c9b8a7d6-5e4f-3d2c-a1b9-e7f6d3c5a4b2",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "8",
+    "Name": "مدير HR",
+    "NormalizedName": "مدير HR",
+    "ConcurrencyStamp": "a1b2c3d4-5e6f-7d8c-9a0b-e2f3d4c5a6b7",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "9",
+    "Name": "امين الخزنة",
+    "NormalizedName": "امين الخزنة",
+    "ConcurrencyStamp": "d3c2b1a9-8f7e-6d5c-a4b3-e9f8d7c5a2b1",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "10",
+    "Name": "مراقب تكاليف",
+    "NormalizedName": "مراقب تكاليف",
+    "ConcurrencyStamp": "e2d3c4b5-6a7f-8d9c-0a1b-f4d3c5a6b7e8",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "11",
+    "Name": "مراقب مخزون",
+    "NormalizedName": "مراقب مخزون",
+    "ConcurrencyStamp": "b7a6d5c4-3e2f-1d0c-9a8b-f6d5c3a2b4e7",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "12",
+    "Name": "Call Center",
+    "NormalizedName": "CALL CENTER",
+    "ConcurrencyStamp": "f9e8d7c6-5b4a-3d2c-1a0b-d3c5a6b7e9f8",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "13",
+    "Name": "امين مخزن",
+    "NormalizedName": "امين مخزن",
+    "ConcurrencyStamp": "c5a4b3d2-1e0f-9d8c-7a6b-d5c3a2b4e7f9",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "14",
+    "Name": "شيف عمومى",
+    "NormalizedName": "شيف عمومى",
+    "ConcurrencyStamp": "d3a2b1c9-8f7e-6d5c-4b3a-f2d5c7a6b9e8",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "15",
+    "Name": "المدير الإدارى",
+    "NormalizedName": "المدير الإدارى",
+    "ConcurrencyStamp": "e4d3c2b1-9a8f-7d6c-5b3a-f0d2c5a6b7e9",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "16",
+    "Name": "المدير المالى",
+    "NormalizedName": "المدير المالى",
+    "ConcurrencyStamp": "b2a1d3c4-5e6f-7d8c-9a0b-f3d4c5a6b7e8",
+    "Discriminator": "IdentityRole"
+  },
+  {
+    "Id": "17",
+    "Name": "طيار",
+    "NormalizedName": "طيار",
+    "ConcurrencyStamp": "b2a1d3c4-5e6f-7d8c-9a0b-f3d4c5a6b7e8",
+    "Discriminator": "IdentityRole"
+  }
+]

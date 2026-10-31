@@ -1,0 +1,233 @@
+@page "/delivery-complaints"
+@using BlazorBase.ERPFrontServices.ComplaintServices
+@using global::POS.Contract.Dtos
+@inject IComplaintServices ComplaintService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService Localizer
+@inject NavigationManager NavigationManager
+
+<div class="complaints-container fade-in">
+
+    @* ═══════════════════════ HEADER BAR ═══════════════════════ *@
+    <div class="complaints-header">
+        <div class="header-left d-flex align-center gap-3">
+             <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                            Color="Color.Default"
+                            Size="Size.Medium"
+                            OnClick="Back"
+                            Class="back-btn" />
+            <div class="header-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.SupportAgent" 
+                         Color="Color.Primary" Size="Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight:900; color:#1e293b;">
+                    @Localizer["ComplaintsManagement"]
+                </MudText>
+                <MudText Typo="Typo.caption" Style="color:#64748b;">
+                    @(_complaints?.Count() ?? 0) @Localizer["TotalComplaints"]
+                </MudText>
+            </div>
+        </div>
+
+        <div class="header-controls d-flex align-center gap-3">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadComplaints"
+                       Class="rounded-lg px-5 py-2 shadow-sm">
+                @Localizer["Refresh"]
+            </MudButton>
+        </div>
+    </div>
+
+    @* ═══════════════════════ TABLE ═══════════════════════ *@
+    <div class="complaints-content">
+        <MudTable Items="@_complaints"
+                  Hover="true"
+                  Dense="true"
+                  Loading="@_loading"
+                  Elevation="0"
+                  Height="calc(100vh - 160px)"
+                  FixedHeader="true"
+                  Class="custom-table"
+                  Filter="new Func<ComplaintDto, bool>(FilterFunc)">
+            
+            <HeaderContent>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@Localizer["ComplaintNumber"]</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@Localizer["CustomerName"]</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@Localizer["Phone"]</MudTh>
+                <MudTh Style="text-align:right; background:#f8fafc; font-weight:800;">@Localizer["Date"]</MudTh>
+                <MudTh Style="text-align:center; background:#f8fafc; font-weight:800;">@Localizer["Status"]</MudTh>
+                <MudTh Style="text-align:center; background:#f8fafc; font-weight:800;">@Localizer["Actions"]</MudTh>
+            </HeaderContent>
+
+            <RowTemplate Context="complaint">
+                <MudTd Style="text-align:right;">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Size="Size.Small" Color="Color.Default" Style="opacity:0.6;"/>
+                        <span style="font-weight:700; color:#1e293b; font-family:'Outfit',sans-serif;">@complaint.ComplaintNumber</span>
+                    </div>
+                </MudTd>
+                <MudTd Style="text-align:right; font-weight:600;">@complaint.CustomerName</MudTd>
+                <MudTd Style="text-align:right; font-family:'Outfit',sans-serif; color:#475569;">@complaint.CustomerPhone</MudTd>
+                <MudTd Style="text-align:right; font-size:0.85rem; color:#64748b;">@complaint.ComplaintDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudChip T="string" 
+                             Color="@GetStatusColor(complaint.Status)" 
+                             Size="Size.Small"
+                             Variant="Variant.Text"
+                             Style="font-weight:800;">
+                        @Localizer[complaint.Status]
+                    </MudChip>
+                </MudTd>
+                <MudTd Style="text-align:center;">
+                    <div class="d-flex justify-center gap-2">
+                        <MudTooltip Text="@Localizer["Details"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                           Color="Color.Info" 
+                                           Size="Size.Small"
+                                           OnClick="@(() => ShowDetails(complaint))" />
+                        </MudTooltip>
+                        @if (complaint.Status == "Open" || complaint.Status == "Pending")
+                        {
+                            <MudTooltip Text="@Localizer["Resolve"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" 
+                                               Color="Color.Success" 
+                                               Size="Size.Small"
+                                               OnClick="@(() => ResolveComplaint(complaint))" />
+                            </MudTooltip>
+                        }
+                    </div>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </div>
+</div>
+
+@code {
+    private IEnumerable<ComplaintDto> _complaints = new List<ComplaintDto>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadComplaints();
+    }
+
+    private async Task LoadComplaints()
+    {
+        _loading = true;
+        _complaints = await ComplaintService.GetAllComplaintsAsync();
+        _loading = false;
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Open" => Color.Error,
+        "Pending" => Color.Warning,
+        "Resolved" => Color.Success,
+        "Closed" => Color.Default,
+        _ => Color.Default
+    };
+
+    private async Task ShowDetails(ComplaintDto complaint)
+    {
+        var parameters = new DialogParameters { ["ComplaintDto"] = complaint };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<ComplaintDetailsDialog>(Localizer["ComplaintDetails"], parameters, options);
+    }
+
+    private async Task ResolveComplaint(ComplaintDto complaint)
+    {
+        // Simple prompt for resolution text
+        var parameters = new DialogParameters
+        {
+            { "ContentText", Localizer["EnterResolution"] },
+            { "ButtonText", Localizer["Resolve"] },
+            { "Color", Color.Success }
+        };
+
+        // Actually, let's just update status for now or use a dialog with a text field
+        var result = await ComplaintService.UpdateComplaintStatusAsync(complaint.Id, "Resolved");
+        if (result)
+        {
+            Snackbar.Add(Localizer["ComplaintResolved"], Severity.Success);
+            await LoadComplaints();
+        }
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/delivery");
+
+    private bool FilterFunc(ComplaintDto complaint)
+    {
+        return true; // Simplified for now
+    }
+}
+
+<style>
+    .complaints-container {
+        direction: rtl;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 10px 14px;
+        gap: 8px;
+        background: #f1f5f9;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .complaints-header {
+        flex-shrink: 0;
+        background: white;
+        padding: 10px 18px;
+        border-radius: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .header-icon-wrap {
+        width: 42px; height: 42px;
+        background: #eff6ff;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .complaints-content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: white !important;
+        border-radius: 14px;
+        padding: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    ::deep .custom-table { height: 100% !important; background: transparent !important; }
+    ::deep .mud-table-container { height: 100% !important; overflow-y: auto !important; scrollbar-width: thin; }
+    ::deep .mud-table-head .mud-table-cell {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 800 !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    ::deep .mud-table-row:hover td { background: #f8fafc !important; }
+
+    .fade-in { animation: fadeInUp 0.35s ease-out; }
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>

@@ -1,0 +1,15 @@
+[
+    {
+        "Id": 0,
+        "EnglishName": "Test Company",
+        "NormalizedEnglishName": "TEST COMPANY",
+        "ArabicName": "شركة تجريبية",
+        "PhoneNumber": "000000000",
+        "MobileNumber": "000000000",
+        "Website": "test.com",
+        "Email": "test@test.com",
+        "NormalizedEmail": "TEST@TEST.COM",
+        "Address": "Test Address",
+        "CreationDate": "2025-03-01T00:00:00"
+    }
+]

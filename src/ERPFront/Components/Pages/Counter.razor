@@ -1,0 +1,28 @@
+﻿@page "/counter"
+@using BlazorBase.API
+@using Microsoft.Extensions.Options
+@inject ApiSettings ApiSettings
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<p>@ApiSettings.ApiName</p>
+<p>@ApiSettings.BaseUrl</p>
+<p>@ApiSettings.Endpoints!.GetAllCategories</p>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+        Console.WriteLine($"ApiSettings.ApiName: {ApiSettings.ApiName}\n" +
+                          $"ApiSettings.BaseUrl: {ApiSettings.BaseUrl} " +
+                          $"ApiSettings.Endpoints!.GetAllCategories: {ApiSettings.Endpoints!.GetAllCategories}");
+    }
+}

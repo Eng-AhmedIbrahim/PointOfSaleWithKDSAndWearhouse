@@ -1,0 +1,147 @@
+﻿@page "/Edit-Category/{CategoryId:int}"
+@using BlazorBase.ERPFrontServices.CategoryServices
+@using Blazored.FluentValidation
+@using POS.Contract.Dtos.CategoryDtos
+
+@inject IStringLocalizer<Resource> Localizer
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IMapper _mapper
+@inject ICategoryServices _categoryService
+
+<PageTitle>Edit Category</PageTitle>
+
+@if (_updatedCategoryDto is null)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else
+{
+    <EditForm Model="@_updatedCategoryDto" OnValidSubmit="@(async () => await OnValidSubmit())">
+        <FluentValidationValidator /> 
+        <MudGrid>
+            <MudItem xs="12" sm="7">
+                <MudCard>
+                    <MudCardContent>
+                        <MudNumericField Class="my-2" @bind-Value="_updatedCategoryDto.Id"
+                                      For="@(() => _updatedCategoryDto.Id)"
+                                      Label=@Localizer["Id"]
+                                      ReadOnly="true" Disabled="true" />
+
+                        <MudTextField Class="my-2" @bind-Value="_updatedCategoryDto.ArabicName"
+                                      For="@(() => _updatedCategoryDto.ArabicName)"
+                                      Label=@Localizer["ArabicName"]
+                                      Immediate="true" />
+
+                        <MudTextField Class="my-2" @bind-Value="_updatedCategoryDto.EnglishName"
+                                      For="@(() => _updatedCategoryDto.EnglishName)"
+                                      Label=@Localizer["EnglishName"]
+                                      Immediate="true" />
+
+                        <MudSelect Class="my-2"
+                                   Label="@Localizer["ItemsFont"]"
+                                   For="@(() => _updatedCategoryDto.ItemsFont)"
+                                   @bind-Value="_updatedCategoryDto.ItemsFont">
+                            <MudSelectItem Value="@("regular")" T="string">@Localizer["regular"]</MudSelectItem>
+                            <MudSelectItem Value="@("semiBold")" T="string">@Localizer["semiBold"]</MudSelectItem>
+                            <MudSelectItem Value="@("bold")" T="string">@Localizer["bold"]</MudSelectItem>
+                        </MudSelect>
+
+                        <MudRadioGroup Class="my-2" T="bool" @bind-Value="_updatedCategoryDto.Invisible">
+                            <MudRadio Placement="Placement.End"
+                                      Size="Size.Medium"
+                                      Color="Color.Primary"
+                                      Value="false">
+                                @Localizer["VisibleCategory"]
+                            </MudRadio>
+                            <MudRadio Placement="Placement.End"
+                                      Size="Size.Medium"
+                                      Color="Color.Error"
+                                      Value="true">
+                                @Localizer["InvisibleCategory"]
+                            </MudRadio>
+                        </MudRadioGroup>
+
+                    </MudCardContent>
+                    <MudCardActions Class="d-flex justify-end">
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Class="mx-1">
+                            Submit
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudPaper Class="pa-4 mud-height-full">
+                    <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                    @if (Success)
+                    {
+                        <MudText Color="Color.Success">Success</MudText>
+                    }
+                    else
+                    {
+                        <MudText Color="@Color.Error">
+                            <ValidationSummary />
+                        </MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2" Align="Align.Center">
+                    Fill out the form correctly to see the success message.
+                </MudText>
+            </MudItem>
+        </MudGrid>
+
+    </EditForm>
+}
+
+
+@code {
+    [Parameter] public int CategoryId { get; set; }
+    private bool Success = false;
+    private UpdatedCategoryDto? _updatedCategoryDto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await _categoryService.GetCategoryById(CategoryId);
+
+        switch (result.Success)
+        {
+            case true:
+                _updatedCategoryDto = _mapper.Map<UpdatedCategoryDto>(result.Data);
+                break;
+
+            case false:
+                Snackbar.Add(result.Message, Severity.Error);
+                break;
+        }
+    }
+
+    private async Task OnValidSubmit()
+    {
+        _updatedCategoryDto!.UpdatedDate = DateTime.Now;
+        if (string.IsNullOrEmpty(_updatedCategoryDto.EnglishName))
+            _updatedCategoryDto.EnglishName = _updatedCategoryDto.ArabicName;
+
+        var result = await _categoryService.UpdateCategory(_updatedCategoryDto);
+
+        switch (result.Success)
+        {
+            case true:
+                Snackbar.Add(result.Message, MudBlazor.Severity.Success);
+                Success = true;
+                _updatedCategoryDto = new();
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                NavigationManager.NavigateTo("/Categories");
+                break;
+
+            case false:
+                Snackbar.Add(result.Message, Severity.Error);
+                break;
+        }
+    }
+}
+

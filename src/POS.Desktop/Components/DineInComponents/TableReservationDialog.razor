@@ -1,0 +1,164 @@
+@inject ISnackbar Snackbar
+@inject IDineInOrderFrontService DineInOrderFrontService
+@inject LocalizationService Localizar
+
+<MudDialog Class="premium-reservation-dialog">
+    <TitleContent>
+        <div class="d-flex align-center pa-2">
+            <div class="icon-box mr-4" style="background-color: rgba(var(--mud-palette-success-rgb), 0.1);">
+                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Success" Size="Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">@Localizar["ReserveTable"] - @TableName</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizar["AdjustGuestCountDescription"]</MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4" Style="max-height: 500px; overflow-y: auto;">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="CustomerName" 
+                                 Label="@Localizar["CustomerName"]" 
+                                 Variant="Variant.Outlined" 
+                                 Required="true" 
+                                 Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Person" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="CustomerPhone" 
+                                 Label="@Localizar["PhoneNumber"]" 
+                                 Variant="Variant.Outlined" 
+                                 Required="true" 
+                                 Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Phone" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="ReservationDate" 
+                                  Label="@Localizar["ReservationDate"]" 
+                                  Variant="Variant.Outlined" 
+                                  MinDate="DateTime.Today" 
+                                  Required="true" 
+                                  Editable="true"
+                                  Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTimePicker @bind-Time="ReservationTime" 
+                                  Label="@Localizar["ReservationTime"]" 
+                                  Variant="Variant.Outlined" 
+                                  Required="true" 
+                                  Editable="true"
+                                  AmPm="true"
+                                  Color="Color.Info"
+                                  AdornmentIcon="@Icons.Material.Filled.AccessTime" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <div class="counter-label mb-1">
+                        <MudText Typo="Typo.caption">@Localizar["MenCount"] + @Localizar["WomenCount"]</MudText>
+                    </div>
+                    <MudNumericField @bind-Value="GuestCount" 
+                                    Label="@Localizar["TotalGuest"]" 
+                                    Variant="Variant.Outlined" 
+                                    Min="1" 
+                                    Required="true" 
+                                    Adornment="Adornment.Start" 
+                                    AdornmentIcon="@Icons.Material.Filled.People" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="DepositAmount" 
+                                    Label="@Localizar["DepositAmount"]" 
+                                    Variant="Variant.Outlined" 
+                                    Min="0" 
+                                    Format="N2" 
+                                    Adornment="Adornment.Start" 
+                                    AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
+                                    AdornmentText="EGP" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="SpecialRequests" 
+                                 Label="@Localizar["SpecialRequests"]" 
+                                 Variant="Variant.Outlined" 
+                                 Lines="3" 
+                                 Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Notes" />
+                </MudItem>
+
+                <MudItem xs="12" Class="mt-2">
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Elevation="4" Class="rounded-xl py-3 px-4" Icon="@Icons.Material.Filled.Info">
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.subtitle2" Class="font-weight-bold mb-1">@Localizar["Summary"]</MudText>
+                            <MudText Typo="Typo.body2">
+                                @((MarkupString)string.Format(Localizar["TableReservationSummary"], 
+                                    $"<span class='font-weight-bold text-white'>{TableName}</span>", 
+                                    $"<span class='font-weight-bold text-white'>{GuestCount}</span>", 
+                                    $"<span class='font-weight-bold text-white'>{ReservationDate?.ToString("dd MMM yyyy") ?? ""}</span>", 
+                                    ReservationTime.HasValue ? $"<span class='font-weight-bold text-white'>{DateTime.Today.Add(ReservationTime.Value).ToString("hh:mm tt")}</span>" : ""))
+                            </MudText>
+                        </div>
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-end gap-3 pa-4 w-100">
+            <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Class="px-8 flex-grow-0">@Localizar["Cancel"]</MudButton>
+            <MudButton Color="Color.Success" 
+                      Variant="Variant.Filled" 
+                      OnClick="Reserve" 
+                      Class="px-10 py-2 rounded-lg font-weight-bold" 
+                      StartIcon="@Icons.Material.Filled.EventAvailable">
+                @Localizar["ConfirmReservation"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-reservation-dialog {
+        border-radius: 24px !important;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    }
+    .premium-reservation-dialog .mud-dialog-title {
+        background: linear-gradient(135deg, rgba(var(--mud-palette-success-rgb), 0.1), rgba(var(--mud-palette-info-rgb), 0.05));
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 1.5rem !important;
+    }
+    .icon-box {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 16px -4px rgba(var(--mud-palette-success-rgb), 0.2);
+    }
+    .rounded-lg {
+        border-radius: 16px !important;
+    }
+    .rounded-xl {
+        border-radius: 20px !important;
+    }
+    .mud-input-outlined {
+        background-color: #fcfcfc;
+    }
+    .mud-input-outlined:focus-within {
+        background-color: white;
+    }
+    .counter-label {
+        color: var(--mud-palette-text-secondary);
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+</style>
+

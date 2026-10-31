@@ -1,0 +1,92 @@
+@using MudBlazor
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<MudDialog DisableSidePadding="true">
+    <TitleContent>
+        <div class="d-flex align-center gap-2 px-3 pb-2" dir="rtl" style="border-bottom: 2px solid #f0f0f0;">
+            <MudIcon Icon="@Icons.Material.Rounded.History" Color="Color.Warning" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Style="font-weight: 800; color: #222;">تقرير العملاء المنقطعين</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div dir="rtl" class="px-5 pt-4 pb-2">
+            <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Outlined" Class="mb-5" Style="border-radius: 8px; border-width: 1.5px; font-size: 0.95rem; font-weight: 500;">
+                عرض العملاء الذين <strong>لم يسجلوا أي طلب</strong> طوال المدة المحددة أدناه
+            </MudAlert>
+
+            <MudText Typo="Typo.body2" Class="mb-2" Style="color: #444; font-weight: 700;">
+                حدد عدد الأيام (فترة الانقطاع):
+            </MudText>
+
+            <div style="background-color: #fafafa; border-radius: 8px; padding: 10px;" class="mb-5 border-solid border-1 mud-border-lines-default">
+                <MudNumericField @bind-Value="_days"
+                             Min="1" Max="3650"
+                             Variant="MudBlazor.Variant.Text"
+                             Margin="Margin.None"
+                             HideSpinButtons="true"
+                             DisableUnderLine="true"
+                             Style="font-size: 2rem; font-weight: 800; text-align: center; color: #1a237e;" />
+            </div>
+
+            <div class="d-flex flex-wrap justify-center gap-3" dir="rtl">
+                @foreach (var preset in _presets)
+                {
+                    <MudChip T="string" Color="@(_days == preset.Days ? Color.Primary : Color.Dark)"
+                             Variant="@(_days == preset.Days ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                             Size="Size.Medium" OnClick="@(() => _days = preset.Days)"
+                             Style="cursor: pointer; font-weight: 700; border-radius: 8px; min-width: 70px; justify-content: center;">
+                        @preset.Label
+                    </MudChip>
+                }
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex gap-3 px-5 pb-4 w-100 mt-2" dir="rtl">
+            <MudButton OnClick="Submit"
+                       Variant="MudBlazor.Variant.Filled"
+                       Color="Color.Warning"
+                       FullWidth="true"
+                       DisableElevation="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Rounded.ListAlt"
+                       Style="border-radius: 8px; font-weight: 800; font-size: 1.1rem; color: #fff;">
+                عرض التقرير
+            </MudButton>
+            <MudButton OnClick="Cancel"
+                       Variant="MudBlazor.Variant.Text"
+                       Color="Color.Dark"
+                       Size="Size.Large"
+                       Style="border-radius: 8px; font-weight: 700; min-width: 100px;">
+                إلغاء
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private int _days = 30;
+
+    private class DaysPreset { public int Days { get; set; } public string Label { get; set; } = ""; }
+
+    private readonly List<DaysPreset> _presets = new()
+    {
+        new DaysPreset { Days = 7, Label = "7 أيام" },
+        new DaysPreset { Days = 30, Label = "30 يوم" },
+        new DaysPreset { Days = 60, Label = "60 يوم" },
+        new DaysPreset { Days = 90, Label = "3 أشهر" },
+        new DaysPreset { Days = 180, Label = "6 أشهر" },
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new Dictionary<string, string>
+        {
+            ["DormantDays"] = _days.ToString()
+        }));
+    }
+}

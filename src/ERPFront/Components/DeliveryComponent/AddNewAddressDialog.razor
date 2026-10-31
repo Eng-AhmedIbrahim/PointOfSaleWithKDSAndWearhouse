@@ -1,0 +1,125 @@
+﻿@using BlazorBase.Models.DeliveryModels
+@using MudBlazor
+@using POS.Contract.Dtos.DeliveryDtos.DeliveryCustomerInfo
+@using POS.Core.Entities.Delivery
+@inject IDialogService DialogService
+@inject CommonProperties _commonProperties
+@inject DeliveryServices _deliveryServices
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject BranchService _branchService
+@inject ISnackbar _snackbar
+
+<MudDialog MaxWidth="MaxWidth.None" FullWidth="true" Class="custom-dialog-width">
+    <DialogContent>
+        <MudPaper Class="pa-4" Elevation="1" Square="true">
+            <MudForm Style="width: 100%">
+                <MudGrid Spacing="3">
+                    <!-- First Phone Number -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_handelDeliveryInvocation.CustomerDetails!.FirstPhoneNumber"
+                        Label="First Phone Number"
+                        Style="width: 100%"
+                        Margin="Margin.Dense"
+                        ReadOnly="true" />
+                    </MudItem>
+
+                    <!-- Branch and Zone -->
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string"
+                        Label="Branch"
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Store"
+                        Placeholder="Select Branch"
+                        FullWidth="true"
+                        Value="_commonProperties.CustomerDetails!.BranchName"
+                        ValueChanged="OnValueChanged"
+                        ValueExpression="@(() => _commonProperties.CustomerDetails.BranchName)">
+                            @foreach (var branch in Branches ?? [])
+                            {
+                                <MudSelectItem Value="@branch.Name">@branch.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudAutocomplete T="string"
+                        Label="Zone"
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Map"
+                        Placeholder="Select Zone"
+                        FullWidth="true"
+                        @bind-Value="_commonProperties.CustomerDetails!.ZoneName"
+                        SearchFunc="SearchZones"
+                        Immediate="true"
+                        ResetValueOnEmptyText="true"
+                        Required="true"
+                        Strict="true"
+                        Disabled="!IsBranchSelected" />
+                    </MudItem>
+
+                    <!-- Home, Floor, Flat Numbers -->
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_commonProperties.CustomerDetails!.HomeNumber"
+                        Label="Home Number"
+                        Style="width: 100%"
+                        Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_commonProperties.CustomerDetails!.FloorNumber"
+                        Label="Floor Number"
+                        Style="width: 100%"
+                        Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_commonProperties.CustomerDetails!.FlatNumber"
+                        Label="Flat Number"
+                        Style="width: 100%"
+                        Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <!-- Address -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_commonProperties.CustomerDetails!.ClientAddress"
+                        Label="Client Address"
+                        Style="width: 100%"
+                        Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <!-- Address Note -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_commonProperties.CustomerDetails!.AddressNote"
+                        Label="Address Note"
+                        Style="width: 100%"
+                        Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Submit</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+<style>
+    .custom-dialog-width {
+    max-width: 90%;
+    width: 500px;
+    }
+
+    .address-card {
+    transition: box-shadow 0.3s ease;
+    border-radius: 12px;
+    }
+
+    .address-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    }
+</style>

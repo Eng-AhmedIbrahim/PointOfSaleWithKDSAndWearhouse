@@ -1,0 +1,158 @@
+@using POS.Contract.Dtos.InventoryDtos
+@using BlazorBase.ERPFrontServices.InventoryServices
+@inject IUnitFrontService UnitService
+@inject ISnackbar Snackbar
+@inject LocalizationService Localizer
+
+<MudDialog Class="premium-unit-dialog">
+    <DialogContent>
+        <div class="premium-dialog-container" dir="@(Localizer.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")">
+            <!-- Dialog Header -->
+            <div class="dialog-premium-header">
+                <div class="header-icon-box shadow-sm">
+                    <RadzenIcon Icon="@(Unit.Id == 0 ? "add_circle" : "edit")" Style="color: #6366f1;" />
+                </div>
+                <div class="header-text-content">
+                    <h2 class="dialog-main-title">@(Unit.Id == 0 ? (Localizer.GetCurrentLanguage() == "ar" ? "إضافة وحدة جديدة" : "Add New Unit") : (Localizer.GetCurrentLanguage() == "ar" ? "تعديل وحدة" : "Edit Unit"))</h2>
+                    <p class="dialog-subtitle text-muted">@(Localizer.GetCurrentLanguage() == "ar" ? "أدخل تفاصيل وحدة القياس بدقة" : "Please enter the unit details carefully")</p>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="dialog-premium-body px-4 py-6">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <label class="premium-label">@(Localizer.GetCurrentLanguage() == "ar" ? "الاسم بالعربي" : "Arabic Name")</label>
+                        <RadzenTextBox @bind-Value="Unit.ArabicName" Style="width: 100%;" Placeholder="..." Class="premium-input" />
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="premium-label">@(Localizer.GetCurrentLanguage() == "ar" ? "الاسم بالإنجليزي" : "English Name")</label>
+                        <RadzenTextBox @bind-Value="Unit.EnglishName" Style="width: 100%;" Placeholder="..." Class="premium-input" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="premium-label">@(Localizer.GetCurrentLanguage() == "ar" ? "الكود / الرمز" : "Code / Symbol")</label>
+                        <RadzenTextBox @bind-Value="Unit.Code" Style="width: 100%;" Placeholder="e.g. kg, pcs, l" Class="premium-input" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="dialog-premium-footer d-flex justify-content-center gap-3 w-100 pb-6 px-6">
+            <RadzenButton Click="Cancel" 
+                          Text="@(Localizer.GetCurrentLanguage() == "ar" ? "إلغاء المعاملة" : "Cancel")" 
+                          ButtonStyle="ButtonStyle.Light" 
+                          Class="dialog-btn secondary-btn" />
+            
+            <RadzenButton Click="Save" 
+                          Text="@(Localizer.GetCurrentLanguage() == "ar" ? "حفظ البيانات" : "Save Changes")" 
+                          ButtonStyle="ButtonStyle.Primary" 
+                          Disabled="@IsSaving"
+                          Class="dialog-btn primary-btn shadow-sm">
+                @if (IsSaving)
+                {
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                }
+            </RadzenButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-unit-dialog .mud-dialog-title { display: none; }
+    .premium-unit-dialog .mud-dialog-content { padding: 0 !important; }
+    
+    .premium-dialog-container { background: white; border-radius: 24px; overflow: hidden; }
+
+    .dialog-premium-header {
+        background: #f8fafc;
+        padding: 2rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .header-icon-box {
+        background: white;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.8rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .dialog-main-title { font-weight: 800; color: #1e293b; font-size: 1.4rem; margin: 0; font-family: 'Outfit', 'Noto Sans Arabic', sans-serif; }
+    .dialog-subtitle { margin: 0; font-size: 0.9rem; }
+
+    .premium-label {
+        display: block;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 0.6rem;
+        font-size: 0.9rem;
+    }
+
+    .premium-input {
+        border-radius: 12px !important;
+        border: 2px solid #e2e8f0 !important;
+        padding: 0.8rem 1rem !important;
+        transition: all 0.2s !important;
+    }
+    .premium-input:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+    }
+
+    .dialog-btn {
+        border-radius: 14px !important;
+        height: 54px !important;
+        min-width: 140px !important;
+        font-weight: 700 !important;
+        text-transform: none !important;
+        font-size: 1rem !important;
+        font-family: 'Outfit', 'Noto Sans Arabic', sans-serif;
+    }
+
+    .primary-btn { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important; border: none !important; color: white !important; }
+    .secondary-btn { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }
+
+    [dir="rtl"] .me-2 { margin-left: 0.5rem !important; margin-right: 0 !important; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public UnitDto Unit { get; set; } = new();
+    
+    private bool IsSaving = false;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Unit.ArabicName) || string.IsNullOrWhiteSpace(Unit.EnglishName))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الاسم مطلوب" : "Name is required", Severity.Warning);
+            return;
+        }
+
+        IsSaving = true;
+        var response = Unit.Id == 0 ? await UnitService.CreateUnitAsync(Unit) : await UnitService.UpdateUnitAsync(Unit);
+        
+        if (response.Success)
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم الحفظ بنجاح" : "Saved successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(response.Message, Severity.Error);
+        }
+        IsSaving = false;
+    }
+}

@@ -1,0 +1,195 @@
+@using BlazorBase.ERPFrontServices.PaymentMethodServices
+@using POS.Contract.Models
+@using POS.Contract.Dtos.PaymentDtos
+@inject CommonProperties _commonProperties
+@inject LocalizationService Localizer
+@inject IPaymentMethodServices PaymentMethodServices
+
+<MudDialog Class="premium-payment-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: 0.5px;">@Localizer["PaymentMethod"]</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="6" Class="pa-6">
+            <MudText Typo="Typo.subtitle1" Align="Align.Center" Style="font-weight: 700; color: #64748b;">@Localizer["SelectPaymentMethod"]</MudText>
+            
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-center pa-8">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (!_commonProperties.AvailablePaymentMethods.Any(m => m.IsActive))
+            {
+                 <div class="d-flex flex-column align-center pa-8 gap-3">
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large" />
+                    <MudText Typo="Typo.body1" Align="Align.Center">@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد طرق دفع متاحة حالياً" : "No payment methods available")</MudText>
+                    <MudButton OnClick="LoadPaymentMethods" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "إعادة المحاولة" : "Retry")
+                    </MudButton>
+                </div>
+            }
+            else
+            {
+                <div class="payment-grid">
+                    @foreach (var method in _commonProperties.AvailablePaymentMethods.Where(m => m.IsActive))
+                    {
+                        <MudButton Variant="@(_commonProperties.SelectedPaymentMethodId == method.Id ? Variant.Filled : Variant.Outlined)"
+                                   Color="@(_commonProperties.SelectedPaymentMethodId == method.Id ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => SelectPaymentMethod(method))"
+                                   Class="payment-btn" FullWidth="true"
+                                   Style="@(GetSpanStyle(method))">
+                            <div class="d-flex flex-column align-center gap-2 py-2">
+                                <MudIcon Icon="@GetIconForMethod(method.NameEn)" Size="Size.Large" />
+                                <MudText Style="font-weight: 800;">@(Localizer.GetCurrentLanguage() == "ar" ? method.NameAr : method.NameEn)</MudText>
+                            </div>
+                        </MudButton>
+                    }
+                </div>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <div class="px-8 pb-8 w-100">
+            <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" 
+                       Disabled="@(_commonProperties.SelectedPaymentMethodId == 0)"
+                       Class="action-submit-btn" Style="height: 60px; font-weight: 900; border-radius: 18px; font-size: 1.1rem;">
+                @Localizer["ConfirmOperation"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-payment-dialog {
+        border-radius: 32px !important;
+        max-width: 480px;
+    }
+
+    .payment-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .payment-btn {
+        border-radius: 20px !important;
+        border-width: 2px !important;
+        text-transform: none !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .payment-btn:active {
+        background-color: #3b82f6 !important;
+        color: white !important;
+    }
+
+    .payment-btn:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    }
+
+    .action-submit-btn {
+        box-shadow: 0 10px 20px rgba(68, 124, 173, 0.3) !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    private bool _isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_commonProperties.AvailablePaymentMethods.Any())
+        {
+            await LoadPaymentMethods();
+        }
+    }
+
+    private async Task LoadPaymentMethods()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await PaymentMethodServices.GetAllPaymentMethodsAsync();
+            if (result != null)
+            {
+                _commonProperties.AvailablePaymentMethods = result.ToList();
+                
+                // Set default if none selected
+                if (_commonProperties.SelectedPaymentMethodId == 0 && _commonProperties.AvailablePaymentMethods.Any(m => m.IsActive))
+                {
+                    var cash = _commonProperties.AvailablePaymentMethods.FirstOrDefault(m => m.IsActive && m.NameEn.Equals("Cash", StringComparison.OrdinalIgnoreCase));
+                    if (cash != null) 
+                    {
+                        _commonProperties.SelectedPaymentMethodId = cash.Id;
+                        _commonProperties.SelectedPaymentMethod = PaymentMethod.Cash;
+                    }
+                    else
+                    {
+                        var first = _commonProperties.AvailablePaymentMethods.FirstOrDefault(m => m.IsActive);
+                        if (first != null) _commonProperties.SelectedPaymentMethodId = first.Id;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading payment methods: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectPaymentMethod(PaymentMethodToReturnDto method)
+    {
+        _commonProperties.SelectedPaymentMethodId = method.Id;
+        
+        // Sync with legacy enum
+        if (Enum.TryParse<PaymentMethod>(method.NameEn, true, out var legacyMethod))
+        {
+            _commonProperties.SelectedPaymentMethod = legacyMethod;
+        }
+        else
+        {
+            // Default or special handling if needed
+        }
+        
+        StateHasChanged();
+    }
+
+    private string GetIconForMethod(string? nameEn)
+    {
+        if (string.IsNullOrEmpty(nameEn)) return Icons.Material.Filled.AccountBalanceWallet;
+
+        return nameEn.ToLower() switch
+        {
+            "cash" => Icons.Material.Filled.Payments,
+            "visa" => Icons.Material.Filled.CreditCard,
+            "instapay" => Icons.Material.Filled.AccountBalance,
+            "vodafone cash" => Icons.Material.Filled.PhonelinkRing,
+            _ => Icons.Material.Filled.AccountBalanceWallet
+        };
+    }
+
+    private string GetSpanStyle(PaymentMethodToReturnDto method)
+    {
+        if (method.NameEn == null) return "";
+
+        // If it's a "wide" method or we want to balance the grid
+        bool isWide = method.NameEn.Equals("InstaPay", StringComparison.OrdinalIgnoreCase) || 
+                      method.NameEn.Equals("Vodafone Cash", StringComparison.OrdinalIgnoreCase);
+        
+        return isWide ? "grid-column: span 2;" : "";
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+}

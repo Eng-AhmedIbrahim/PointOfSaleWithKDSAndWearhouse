@@ -1,0 +1,125 @@
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@inject IPrinterServices PrinterServices
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+@inject IPrintOrderService PrintOrderService
+
+<MudDialog Class="pdf-preview-dialog-container" Style="max-width:1200px;width:100vw;height:100vh;display:flex;flex-direction:column;overflow:hidden;border-radius:0;">
+    <DialogContent>
+        <div class="preview-layout" dir="ltr">
+            @* Toolbar *@
+            <div class="custom-toolbar">
+                <div class="toolbar-left">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="QuickPrint"
+                               StartIcon="@Icons.Material.Filled.FlashOn" Class="tb-btn rounded-pill">
+                        @(_isArabic ? "طباعة سريعة" : "Quick Print")
+                    </MudButton>
+
+                    <MudMenu Label="@(_isArabic ? "طباعة إلى" : "Print To")"
+                             EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                             Color="Color.Primary" Variant="Variant.Outlined" Class="tb-btn rounded-pill">
+                        @if (_printers.Any())
+                        {
+                            @foreach (var p in _printers)
+                            {
+                                <MudMenuItem OnClick="@(() => PrintTo(p))">@p</MudMenuItem>
+                            }
+                        }
+                    </MudMenu>
+                </div>
+
+                <div class="toolbar-center">
+                    <span class="toolbar-title">@FileName</span>
+                </div>
+
+                <div class="toolbar-right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Download" OnClick="Download" Color="Color.Info" Variant="Variant.Filled" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small" />
+                </div>
+            </div>
+
+            @* PDF Viewer *@
+            <div class="pdf-viewer-container">
+                @if (!string.IsNullOrEmpty(_pdfUrl))
+                {
+                    <iframe src="@_pdfUrl" class="pdf-iframe"></iframe>
+                }
+                else
+                {
+                    <div class="d-flex justify-center align-center h-100">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+            </div>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .pdf-preview-dialog-container .mud-dialog-content { padding: 0 !important; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .preview-layout { display: flex; flex-direction: column; height: 100%; background: #263238; }
+    .custom-toolbar { height: 60px; background: #1a237e; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; color: #fff; border-bottom: 2px solid #0d47a1; }
+    .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 12px; }
+    .toolbar-title { font-size: 15px; font-weight: 700; opacity: 0.9; }
+    
+    .pdf-viewer-container { flex: 1; position: relative; background: #37474f; }
+    .pdf-iframe { width: 100%; height: 100%; border: none; }
+</style>
+
+@code {
+    [Parameter] public byte[] PdfContent { get; set; } = Array.Empty<byte>();
+    [Parameter] public string FileName { get; set; } = "Report.pdf";
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    private string _pdfUrl = "";
+    private List<string> _printers = new();
+    private bool _isArabic => Localizer.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _printers = await PrinterServices.GetInstalledPrinters();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && PdfContent.Length > 0)
+        {
+            var base64 = Convert.ToBase64String(PdfContent);
+            _pdfUrl = $"data:application/pdf;base64,{base64}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task QuickPrint() => await PrintTo(null);
+
+    private async Task PrintTo(string? printerName)
+    {
+        try
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
+            await File.WriteAllBytesAsync(tempPath, PdfContent);
+            
+            // Usage of PrinterServices instead of PrintOrderService for raw PDF files
+            bool success = await PrinterServices.PrintPdfAsync(tempPath, printerName ?? "");
+            if (success) Snackbar.Add("Printed successfully", Severity.Success);
+            else Snackbar.Add("Print failed", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task Download()
+    {
+        // Simple download logic for desktop
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), FileName);
+        await File.WriteAllBytesAsync(path, PdfContent);
+        Snackbar.Add($"Saved to Desktop: {FileName}", Severity.Success);
+    }
+
+    private void Close() => MudDialog.Close();
+}

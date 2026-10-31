@@ -1,0 +1,127 @@
+﻿@using MudBlazor
+@inject NavigationManager _navigationManager
+@inject CommonProperties _commonProperties
+@inject ISnackbar _snackbar
+@inject IDialogService _dialogService
+@inject DeliveryServices _deliveryServices
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+
+<MudGrid Spacing="1" Justify="Justify.Center">
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button active-button"
+                   Size="Size.Large"
+                   OnClick='AddCustomer'>
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Order</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large"
+                   OnClick='AddNewAddress'>
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.LocationCity" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Add New</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large"
+                   OnClick="ClearDeliveryOrder">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Clear" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Clear</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Complaints</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Search</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Branches</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.HorizontalDistribute" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Distribution</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                   Class="full-height-button special-keypad-button"
+                   Size="Size.Large"
+                   OnClick="BackToPos">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Class="button-icon" />
+                <MudText Typo="Typo.subtitle2">Back</MudText>
+            </MudStack>
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+<style>
+    .full-height-button {
+        height: calc((100vh - 68px) / 8);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: none;
+    }
+
+    .button-icon {
+        font-size: 2rem;
+    }
+
+    .special-keypad-button {
+        background: linear-gradient(135deg, #ffffff, #e7ecf5);
+        color: #143155 !important;
+    }
+
+    .active-button {
+        background: linear-gradient(135deg, #fbd14b, #ffea92);
+        color: black !important;
+    }
+</style>

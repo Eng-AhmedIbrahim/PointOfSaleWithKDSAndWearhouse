@@ -1,0 +1,65 @@
+@using MudBlazor
+
+<MudDialog Class="premium-confirm-dialog" Style="direction: rtl;">
+    <DialogContent>
+        <div class="d-flex flex-column align-center pa-4">
+            <div class="icon-wrapper mb-4 @(IconClass)">
+                <MudIcon Icon="@Icon" Style="font-size: 3.5rem;" />
+            </div>
+            <MudText Typo="Typo.h5" Class="font-weight-bold mb-2">@Title</MudText>
+            <MudText Typo="Typo.body1" Class="text-center color-slate-600 px-4">@ContentText</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex gap-3 px-6 pb-6 w-100">
+            <MudButton Variant="Variant.Filled" Color="@Color" FullWidth="true" OnClick="Submit" Class="py-3 rounded-xl font-weight-bold elevation-4">@ConfirmText</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" OnClick="Cancel" Class="py-3 rounded-xl font-weight-bold">@CancelText</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .premium-confirm-dialog {
+        border-radius: 24px !important;
+        overflow: hidden;
+        max-width: 450px !important;
+    }
+    
+    .premium-confirm-dialog .mud-dialog-content {
+        padding: 0 !important;
+    }
+
+    .icon-wrapper {
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-top: 2rem;
+    }
+
+    .icon-wrapper.error {
+        background-color: #fee2e2;
+        color: #ef4444;
+    }
+
+    .icon-wrapper.warning {
+        background-color: #ffedd5;
+        color: #f59e0b;
+    }
+
+    .icon-wrapper.info {
+        background-color: #eff6ff;
+        color: #3b82f6;
+    }
+
+    .icon-wrapper.success {
+        background-color: #dcfce7;
+        color: #10b981;
+    }
+
+    .color-slate-600 {
+        color: #475569;
+    }
+</style>

@@ -1,0 +1,378 @@
+@inject MudBlazor.ISnackbar _snackbar
+@inject LocalizationService Localizar
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.False" Class="split-dialog-root">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <div class="title-icon-wrapper">
+                <MudIcon Icon="@Icons.Material.Filled.Restaurant" Color="Color.Primary" Size="Size.Large" />
+            </div>
+            <div class="d-flex flex-column">
+                <MudText Typo="Typo.h6" Style="font-weight: 900; color: #1a237e;">
+                    @Localizar["SplitOrder"]
+                </MudText>
+                <MudText Typo="Typo.caption" Class="opacity-50" Style="font-size: 0.7rem;">
+                    @Localizar["ChoiceOrder"]
+                </MudText>
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div dir="@(Localizar.GetCurrentLanguage() == "ar" ? "rtl" : "ltr")" class="pa-2">
+            <MudGrid Spacing="3">
+
+                <!-- 🔵 Order List (4/12 columns) -->
+                <MudItem xs="12" md="4" lg="3">
+                    <div class="order-list-panel-refined d-flex flex-column">
+
+                        <div class="pa-3 border-b header-refined">
+                            <MudText Typo="Typo.overline" Style="font-weight:900;">
+                                @Localizar["AllOrders"]
+                            </MudText>
+                        </div>
+
+                        <div class="flex-grow-1 overflow-auto pa-2">
+                            <MudList T="DineInOrderDetails"
+                                     SelectedValue="SelectedOrder"
+                                     SelectedValueChanged="OnOrderSelected"
+                                     Clickable="true">
+
+                                @foreach (var order in Orders ?? new())
+                                {
+                                    var isOriginal = !order.RelatedTableName!.Contains("- Split");
+                                    var total = (order.BasicOrderDetails?.Items?.Sum(i => (i.Total ?? (i.Quantity * (i.Price ?? 0)))) ?? 0);
+
+                                    <MudListItem Value="order" Class="@($"{GetItemClass(order)} order-card-refined")">
+
+                                        <div class="d-flex flex-column align-center w-100 gap-2">
+
+                                            <div class="icon-container-refined @(isOriginal ? "main-order-gradient" : "split-order-gradient") mb-0">
+                                                <MudIcon Icon="@(isOriginal ? Icons.Material.Filled.HomeWork : Icons.Material.Filled.TableRestaurant)" />
+                                            </div>
+
+                                            <div class="text-center w-100">
+                                                <MudText Typo="Typo.subtitle2" Style="font-weight:800; color: #1e293b; line-height: 1.1;" dir="rtl">
+                                                    @(isOriginal ? $"{order.RelatedTableName} ({Localizar["MainOrder"]})" : order.RelatedTableName)
+                                                </MudText>
+                                                
+                                                <div class="d-flex flex-column align-center mt-1">
+                                                    <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight:950; line-height: 1;">
+                                                        @total.ToString("N2") 
+                                                        <span style="font-size: 0.6rem; font-weight: 700; opacity: 0.7;">@Localizar["EGP"]</span>
+                                                    </MudText>
+                                                    <MudText Typo="Typo.caption" Style="font-size: 0.65rem;" Class="opacity-50">
+                                                        #@order.BasicOrderDetails?.OrderId
+                                                    </MudText>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </MudListItem>
+                                }
+
+                            </MudList>
+                        </div>
+                    </div>
+                </MudItem>
+
+                <!-- 🟣 Order Details (8/12 columns) -->
+                <MudItem xs="12" md="8" lg="9" Class="mud-item-full-height">
+                    <div class="order-details-panel-refined d-flex flex-column">
+
+                        @if (SelectedOrder != null)
+                        {
+                            <div class="pa-4 d-flex flex-column h-100">
+
+                                <!-- Header -->
+                                <div class="d-flex justify-space-between mb-4">
+
+                                    <div>
+                                        <MudText Typo="Typo.h6" Style="font-weight:900;">
+                                            @SelectedOrder.RelatedTableName
+                                        </MudText>
+                                        
+                                        <MudText Typo="Typo.caption" Style="font-size: 0.7rem;">
+                                            #@SelectedOrder.BasicOrderDetails?.OrderId
+                                        </MudText>
+                                    </div>
+
+                                    <div class="total-box">
+                                        @SelectedOrderTotal.ToString("N2") EGP
+                                    </div>
+
+                                </div>
+
+                                <!-- Items -->
+                                <div class="items-container">
+
+                                    <table class="items-table-refined">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 50%">@Localizar["Item"]</th>
+                                                <th class="text-center">@Localizar["Qty"]</th>
+                                                <th class="text-end">@Localizar["Price"]</th>
+                                                <th class="text-end">@Localizar["Total"]</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            @foreach (var item in SelectedOrder.BasicOrderDetails?.Items ?? new())
+                                            {
+                                                var total = item.Total ?? (item.Quantity * (item.Price ?? 0));
+                                                var displayName = (Localizar.GetCurrentLanguage() == "ar" && !string.IsNullOrEmpty(item.NameAr)) ? item.NameAr : item.Name;
+
+                                                <tr>
+                                                    <td>@displayName</td>
+                                                    <td class="text-center font-bold">@item.Quantity.ToString("G29")</td>
+                                                    <td class="text-end font-mono">@(item.Price?.ToString("N2") ?? "0.00")</td>
+                                                    <td class="text-end total-cell font-mono">@total.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+
+                                </div>
+
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <MudText>اختار أوردر</MudText>
+                            </div>
+                        }
+
+                    </div>
+                </MudItem>
+
+            </MudGrid>
+        </div>
+    </DialogContent>
+
+    <!-- Actions -->
+    <DialogActions>
+        <div class="d-flex w-100 gap-4 pa-4 bg-slate-50 border-t">
+
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Cancel" Style="height: 54px; border-radius: 12px; font-weight: 800; min-width: 140px;">
+                @Localizar["Cancel"]
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       FullWidth="true"
+                       Disabled="@(SelectedOrder == null)"
+                       OnClick="Confirm"
+                       Class="confirm-btn"
+                       Style="height: 54px; border-radius: 12px; font-weight: 900; font-size: 1.1rem;">
+                @Localizar["ConfirmSelection"]
+            </MudButton>
+
+        </div>
+    </DialogActions>
+
+</MudDialog>
+
+<style>
+
+.split-dialog-root{
+    --primary:#1a237e;
+}
+
+.split-dialog-root .mud-dialog {
+    width: 99vw !important;
+    max-width: 1900px !important;
+    height: 95vh !important;
+    max-height: 1000px !important;
+}
+
+/* Ensure the grid doesn't wrap on medium screens */
+@@media (min-width: 960px) {
+    .split-dialog-root .mud-grid {
+        flex-wrap: nowrap !important;
+    }
+}
+
+/* List Panel */
+.order-list-panel-refined{
+    height: calc(95vh - 200px);
+    max-height: 750px;
+    border-radius:14px;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+}
+
+/* Card Style */
+.order-card-refined{
+    background:white;
+    border-radius:12px;
+    border:1px solid #e5e7eb;
+    margin-bottom:8px;
+    padding:8px !important;
+    transition:.25s;
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.order-card-refined:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(0,0,0,.06);
+}
+
+/* Icon */
+.icon-container-refined{
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+}
+
+.icon-container-refined .mud-icon-root {
+    font-size: 1.1rem !important;
+}
+
+/* Gradients */
+.main-order-gradient{
+    background:linear-gradient(135deg,#0d47a1,#1976d2);
+}
+
+.split-order-gradient{
+    background:linear-gradient(135deg,#f57c00,#ff9800);
+}
+
+/* Details Panel */
+.order-details-panel-refined{
+    height: calc(95vh - 200px);
+    max-height: 750px;
+    border-radius:14px;
+    background:white;
+    border:1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+}
+
+.selected-order-item {
+    background: #eef2ff !important;
+    border: 1px solid #c7d2fe !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
+}
+
+.selected-order-item::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 4px;
+    background: #1a237e;
+    border-radius: 4px;
+}
+
+/* Total */
+.total-box{
+    background:linear-gradient(135deg, #1a237e, #3f51b5);
+    color:white;
+    padding:8px 18px;
+    border-radius:10px;
+    font-weight:950;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.15);
+}
+
+/* Table */
+.items-container{
+    overflow:auto;
+    flex-grow:1;
+    border-radius:12px;
+    border:1px solid #f1f5f9;
+    background: #fafafa;
+}
+
+.items-table-refined{
+    width:100%;
+    border-collapse:separate;
+    border-spacing: 0;
+}
+
+.items-table-refined th{
+    background:#f1f5f9;
+    padding:8px 12px;
+    font-weight: 900;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.items-table-refined td{
+    padding:8px 12px;
+    border-bottom:1px solid #f1f5f9;
+    font-weight: 500;
+    color: #334155;
+    font-size: 0.85rem;
+}
+
+.total-cell{
+    font-weight:900;
+    color:#1a237e;
+    font-size: 0.9rem;
+}
+
+.font-mono { font-family: 'Roboto Mono', monospace; font-size: 0.9rem; }
+.font-bold { font-weight: 900; }
+
+/* Buttons */
+.confirm-btn{
+    background:#1a237e !important;
+    color:white !important;
+    box-shadow: 0 6px 12px rgba(26, 35, 126, 0.2) !important;
+}
+
+/* Empty */
+.empty-state{
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    opacity:.3;
+}
+
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<DineInOrderDetails> Orders { get; set; } = new();
+
+    private DineInOrderDetails? SelectedOrder;
+
+    private decimal SelectedOrderTotal =>
+        SelectedOrder?.BasicOrderDetails?.Items?.Sum(i => i.Total ?? (i.Quantity * (i.Price ?? 0))) ?? 0;
+
+    protected override void OnInitialized()
+    {
+        SelectedOrder = Orders?.FirstOrDefault();
+    }
+
+    private string GetItemClass(DineInOrderDetails order)
+        => SelectedOrder == order ? "selected-order-item" : "";
+
+    private void OnOrderSelected(DineInOrderDetails order)
+    {
+        SelectedOrder = order;
+    }
+
+    private void Confirm()
+    {
+        if (SelectedOrder != null)
+            MudDialog.Close(DialogResult.Ok(SelectedOrder));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

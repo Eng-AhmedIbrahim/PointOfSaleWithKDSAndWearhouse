@@ -1,0 +1,434 @@
+@using Radzen
+@using Radzen.Blazor
+@using POS.Contract.Dtos.CompanyDtos
+@using BlazorBase.ERPFrontServices.BranchServices
+@using BlazorBase.ERPFrontServices.CompanyServices
+@using System.IO
+@inject IBranchService BranchService
+@inject ICompanyService CompanyService
+@inject NotificationService NotificationService
+@inject LocalizationService Localizer
+
+<MudDialog Class="premium-radzen-dialog">
+    <DialogContent>
+        <RadzenCard Variant="Radzen.Variant.Flat" Class="rz-p-0 overflow-hidden" Style="border-radius: 20px;">
+            <!-- Header Section -->
+            <div class="modern-header">
+                <div class="d-flex align-center gap-3">
+                    <div class="header-icon-box">
+                        <RadzenIcon Icon="@(Branch == null ? "add_business" : "edit_note")" />
+                    </div>
+                    <div>
+                        <RadzenText TextStyle="TextStyle.H5" Class="rz-m-0 fw-fat">
+                            @(Branch == null ? Localizer["AddBranch"] : Localizer["EditBranch"])
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption" Class="rz-m-0 opacity-75">
+                            @Localizer["ProvideBranchDetails"]
+                        </RadzenText>
+                    </div>
+                </div>
+                <RadzenButton Icon="close" Variant="Radzen.Variant.Text" ButtonStyle="ButtonStyle.Secondary" Click="Cancel" />
+            </div>
+
+            <div class="modern-body rz-p-8">
+                <RadzenStack Gap="1.5rem">
+                    
+                    <!-- Company -->
+                    <div class="form-group">
+                        <RadzenLabel Text="@Localizer["Company"]" Class="field-label required-marker" Component="company_id" />
+                        <RadzenDropDown TValue="int?" @bind-Value="_branchModel.CompanyId"
+                                        Data="@_companies"
+                                        TextProperty="@nameof(CreateCompanyDto.ArabicName)"
+                                        ValueProperty="@nameof(CreateCompanyDto.Id)"
+                                        Name="company_id"
+                                        Placeholder="@Localizer["SelectCompany"]"
+                                        AllowClear="false" Style="width:100%" Class="modern-input" />
+                    </div>
+
+                    <!-- Row 1: Currency | Phone 1 | Branch Name -->
+                    <RadzenRow Gap="1.5rem">
+                        <RadzenColumn SizeMD="4" Size="12">
+                            <div class="form-group">
+                                <RadzenLabel Text="@Localizer["Currency"]" Class="field-label" Component="bn_currency" />
+                                <RadzenTextBox @bind-Value="_branchModel.Currency" Name="bn_currency" 
+                                               Placeholder="EGP, USD..." Style="width:100%" Class="modern-input" />
+                            </div>
+                        </RadzenColumn>
+                        <RadzenColumn SizeMD="4" Size="12">
+                            <div class="form-group">
+                                <RadzenLabel Text="@Localizer["Phone1"]" Class="field-label required-marker" Component="bn_phone1" />
+                                <RadzenTextBox @bind-Value="_branchModel.Phone1" Name="bn_phone1"
+                                               Placeholder="01xxxxxxxxx" Style="width:100%" Class="modern-input" />
+                            </div>
+                        </RadzenColumn>
+                        <RadzenColumn SizeMD="4" Size="12">
+                            <div class="form-group">
+                                <RadzenLabel Text="@Localizer["BranchName"]" Class="field-label required-marker" Component="bn_name" />
+                                <RadzenTextBox @bind-Value="_branchModel.Name" Name="bn_name"
+                                               Placeholder="@Localizer["EnterBranchName"]" Style="width:100%" Class="modern-input" />
+                            </div>
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                    <!-- Row 2: Address | Phone 2 -->
+                    <RadzenRow Gap="1.5rem">
+                        <RadzenColumn SizeMD="8" Size="12">
+                            <div class="form-group">
+                                <RadzenLabel Text="@Localizer["Address"]" Class="field-label" Component="bn_address" />
+                                <RadzenTextBox @bind-Value="_branchModel.Address" Name="bn_address"
+                                               Placeholder="@Localizer["EnterAddress"]" Style="width:100%" Class="modern-input" />
+                            </div>
+                        </RadzenColumn>
+                        <RadzenColumn SizeMD="4" Size="12">
+                            <div class="form-group">
+                                <RadzenLabel Text="@Localizer["Phone2"]" Class="field-label" Component="bn_phone2" />
+                                <RadzenTextBox @bind-Value="_branchModel.Phone2" Name="bn_phone2"
+                                               Placeholder="01xxxxxxxxx" Style="width:100%" Class="modern-input" />
+                            </div>
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <RadzenLabel Text="@Localizer["Description"]" Class="field-label" Component="bn_desc" />
+                        <RadzenTextArea @bind-Value="_branchModel.Description" Name="bn_desc" Rows="2" 
+                                        Placeholder="@Localizer["EnterDescription"]" Style="width:100%" Class="modern-input" />
+                    </div>
+
+                    <!-- Logo Section -->
+                    <div class="logo-config-panel">
+                        <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mb-4 fw-bold">@Localizer["LogoSettings"]</RadzenText>
+                        <div class="d-flex align-center gap-6">
+                            <div class="logo-drop-zone">
+                                <InputFile id="logoUpload" OnChange="UploadLogo" accept=".png,.jpg,.jpeg" style="display:none" />
+                                <RadzenButton Text="@Localizer["UploadLogo"]" Icon="upload" ButtonStyle="ButtonStyle.Secondary"
+                                              Variant="Radzen.Variant.Outlined" Click="@(() => _triggerFileInput = true)" 
+                                              Class="upload-action-btn" />
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(_branchModel.ImagePath))
+                            {
+                                <div class="modern-logo-preview">
+                                    <img src="@GetImageSrc()" class="preview-img" />
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
+                                                  Variant="Radzen.Variant.Flat" Class="delete-fab" Click="DeleteLogo" />
+                                </div>
+                            }
+                        </div>
+
+                        <RadzenRow Gap="1.5rem" Class="rz-mt-6">
+                            <RadzenColumn Size="6">
+                                <div class="form-group">
+                                    <RadzenLabel Text="@Localizer["LogoWidth"]" Class="field-label" />
+                                    <RadzenNumeric TValue="int" @bind-Value="_branchModel.LogoWidth" Style="width:100%" Class="modern-input" />
+                                </div>
+                            </RadzenColumn>
+                            <RadzenColumn Size="6">
+                                <div class="form-group">
+                                    <RadzenLabel Text="@Localizer["LogoHeight"]" Class="field-label" />
+                                    <RadzenNumeric TValue="int" @bind-Value="_branchModel.LogoHeight" Style="width:100%" Class="modern-input" />
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="settings-panel rz-p-4">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="Radzen.AlignItems.Center" Gap="1rem">
+                            <RadzenSwitch @bind-Value="_branchModel.Active" Name="activeSwitch" />
+                            <RadzenLabel Text="@Localizer["BranchActiveStatus"]" Component="activeSwitch" Class="rz-m-0 fw-bold" />
+                        </RadzenStack>
+                    </div>
+
+                </RadzenStack>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="modern-footer">
+                <RadzenButton Text="@Localizer["Cancel"]" Click="Cancel" Variant="Radzen.Variant.Text" 
+                              ButtonStyle="ButtonStyle.Light" Class="rz-px-8" />
+                <RadzenButton Text="@Localizer["SaveBranch"]" Click="Save" ButtonStyle="ButtonStyle.Primary" 
+                              Icon="save" Class="rz-px-10 action-save-btn" />
+            </div>
+        </RadzenCard>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .premium-radzen-dialog { border-radius: 20px !important; }
+    .premium-radzen-dialog .mud-dialog-content { padding: 0 !important; }
+
+    .modern-header { 
+        padding: 24px 32px; 
+        background: linear-gradient(90deg, #f8fafc 0%, #eff6ff 100%); 
+        border-bottom: 1px solid #e2e8f0; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+    .header-icon-box { 
+        width: 48px; 
+        height: 48px; 
+        background: #3b82f6; 
+        color: white; 
+        border-radius: 14px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 24px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .fw-fat { font-weight: 900 !important; color: #1e293b; }
+
+    .modern-input { 
+        border-radius: 12px !important; 
+        border: 1px solid #cbd5e1 !important; 
+        background: #fdfdfd !important;
+        transition: all 0.2s;
+    }
+    .modern-input:focus-within { border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important; }
+
+    .field-label { display: block; margin-bottom: 6px; font-weight: 700; color: #475569; font-size: 0.85rem; }
+    .required-marker::after { content: " *"; color: #ef4444; }
+
+    .logo-config-panel { 
+        background: #f8fafc; 
+        border-radius: 16px; 
+        padding: 24px; 
+        border: 1px solid #e2e8f0; 
+    }
+    .upload-action-btn { border-radius: 12px !important; font-weight: 600; border-style: dashed !important; }
+
+    .modern-logo-preview { 
+        position: relative; 
+        width: 100px; 
+        height: 100px; 
+        background: white; 
+        border-radius: 16px; 
+        border: 2px solid #ffffff; 
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06); 
+    }
+    .preview-img { width: 100%; height: 100%; object-fit: contain; border-radius: 14px; }
+    .delete-fab { 
+        position: absolute; 
+        top: -10px; 
+        right: -10px; 
+        border-radius: 50% !important; 
+        min-width: 28px !important; 
+        width: 28px !important; 
+        height: 28px !important; 
+    }
+
+    .settings-panel { background: #f0fdf4; border-radius: 12px; border: 1px solid #dcfce7; }
+
+    .modern-footer { 
+        padding: 24px 32px; 
+        background: #fcfcfc; 
+        border-top: 1px solid #e2e8f0; 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 16px; 
+    }
+    .action-save-btn { border-radius: 14px !important; font-weight: 800; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); }
+</style>
+
+@if (_triggerFileInput)
+{
+    _triggerFileInput = false;
+    <script>document.getElementById('logoUpload').click();</script>
+}
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BranchToReturnDto? Branch { get; set; }
+
+    private BranchDto _branchModel = new();
+    private List<CreateCompanyDto>? _companies;
+    private bool _triggerFileInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var companiesData = await CompanyService.GetCompanies();
+        _companies = companiesData?.ToList();
+
+        if (Branch != null)
+        {
+            _branchModel = new BranchDto
+            {
+                Id = Branch.Id,
+                Name = Branch.Name,
+                Description = Branch.Description,
+                Address = Branch.Address,
+                Phone1 = Branch.Phone1,
+                Phone2 = Branch.Phone2,
+                Active = Branch.Active,
+                LogoWidth = Branch.LogoWidth,
+                LogoHeight = Branch.LogoHeight,
+                ImagePath = Branch.ImagePath,
+                CompanyId = Branch.CompanyId,
+                Currency = Branch.Currency
+            };
+        }
+        else if (_companies != null && _companies.Any())
+        {
+            _branchModel.CompanyId = _companies.First().Id;
+        }
+    }
+
+    private string GetImageSrc()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_branchModel.ImagePath))
+            {
+                var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo", _branchModel.ImagePath);
+                if (!File.Exists(path))
+                    path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo", _branchModel.ImagePath);
+
+                if (File.Exists(path))
+                {
+                    var bytes = File.ReadAllBytes(path);
+                    var extension = Path.GetExtension(path).ToLower();
+                    var mimeType = extension == ".png" ? "image/png" : "image/jpeg";
+                    return $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+                }
+            }
+        }
+        catch { }
+        return "";
+    }
+
+    private async Task UploadLogo(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var folder1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo");
+                var folder2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo");
+
+                if (!Directory.Exists(folder1)) Directory.CreateDirectory(folder1);
+                if (!Directory.Exists(folder2)) Directory.CreateDirectory(folder2);
+
+                string fileName = $"branch_{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+
+                var filePath2 = Path.Combine(folder2, fileName);
+                long maxFileSize = 1024 * 1024 * 5;
+
+                using var stream = file.OpenReadStream(maxFileSize);
+                using var fs = new FileStream(filePath2, FileMode.Create);
+                await stream.CopyToAsync(fs);
+
+                var filePath1 = Path.Combine(folder1, fileName);
+                File.Copy(filePath2, filePath1, true);
+
+                if (!string.IsNullOrEmpty(_branchModel.ImagePath))
+                {
+                    var old1 = Path.Combine(folder1, _branchModel.ImagePath);
+                    var old2 = Path.Combine(folder2, _branchModel.ImagePath);
+                    if (File.Exists(old1)) File.Delete(old1);
+                    if (File.Exists(old2)) File.Delete(old2);
+                }
+
+                _branchModel.ImagePath = fileName;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = Localizer["ErrorSaving"] + ": " + ex.Message
+            });
+        }
+    }
+
+    private void DeleteLogo()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_branchModel.ImagePath))
+            {
+                var folder1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo");
+                var folder2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo");
+                var old1 = Path.Combine(folder1, _branchModel.ImagePath);
+                var old2 = Path.Combine(folder2, _branchModel.ImagePath);
+                if (File.Exists(old1)) File.Delete(old1);
+                if (File.Exists(old2)) File.Delete(old2);
+
+                _branchModel.ImagePath = null;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = Localizer["ErrorSaving"] + ": " + ex.Message
+            });
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_branchModel.Name) || 
+            string.IsNullOrWhiteSpace(_branchModel.Phone1) || 
+            _branchModel.CompanyId == null)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Warning,
+                Summary = Localizer["RequiredFields"]
+            });
+            return;
+        }
+
+        if (Branch == null)
+        {
+            var result = await BranchService.CreateBranch(_branchModel);
+            if (result != null)
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = Localizer["SavedSuccessfully"] });
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = Localizer["ErrorSaving"] });
+            }
+        }
+        else
+        {
+            var updateModel = new UpdatedBranchDto
+            {
+                BranchId = Branch.Id,
+                Name = _branchModel.Name,
+                Description = _branchModel.Description,
+                Address = _branchModel.Address,
+                Phone1 = _branchModel.Phone1,
+                Phone2 = _branchModel.Phone2,
+                Active = _branchModel.Active,
+                LogoWidth = _branchModel.LogoWidth,
+                LogoHeight = _branchModel.LogoHeight,
+                ImagePath = _branchModel.ImagePath,
+                CompanyId = _branchModel.CompanyId,
+                Currency = _branchModel.Currency
+            };
+
+            var result = await BranchService.UpdateBranch(updateModel);
+            if (result != null)
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = Localizer["SavedSuccessfully"] });
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = Localizer["ErrorSaving"] });
+            }
+        }
+    }
+}

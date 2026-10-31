@@ -1,0 +1,49 @@
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+@inject Section4ButtonsServices _section4ButtonsServices
+@inject CartService _cartService
+
+
+<MudGrid Spacing="0" Class="finance-grid-vertical">
+    @foreach (var setting in Settings)
+    {
+        <MudItem xs="12" Class="finance-row">
+            <div class="finance-row-content">
+                <MudText Class="finance-label-vertical finance-label-text-size" Typo="Typo.subtitle2">@Localizer[setting.Label]</MudText>
+                <MudNumericField Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Class="@($"finance-input-vertical finance-input-text-size {(setting.IsTotal ? "finance-total" : "")}")"
+                                 Min="0.00M"
+                                 Culture="@_en"
+                                 @bind-Value="setting.Value"
+                                 HideSpinButtons="true"
+                                 Disabled />
+            </div>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private readonly CultureInfo _en = CultureInfo.GetCultureInfo("en-US");
+    private const string UpdateFontSize = "updateFontSize";
+    private const string ClearSec4FontSizeStorage = "clearSec4FontSizeStorage";
+    private const string FinanceLabelTextSize = "finance-label-text-size";
+    private const string FinanceInputTextSize = "finance-input-text-size";
+
+
+    [Parameter, EditorRequired] public List<FinanceSettings> Settings { get; set; } = [];
+
+    private int GetNumericFieldColumnSize(FinanceSettings setting) => setting.IsTotal ? 8 : 4;
+
+    protected override void OnInitialized()
+    {
+        _section4ButtonsServices.OnChanged += () => InvokeAsync(StateHasChanged);
+        _cartService.OnChange += HandleCartServiceChange;
+    }
+
+    private async void HandleCartServiceChange()
+    => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    => _cartService.OnChange -= HandleCartServiceChange;
+}

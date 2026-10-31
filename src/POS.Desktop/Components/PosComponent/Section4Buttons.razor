@@ -1,0 +1,74 @@
+@inject LocalizationService Localizer
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@using POS.Desktop.Components.PosDialog
+@inject CommonProperties _commonProperties
+@inject Section4ButtonsServices _services
+@inject NavigationManager _navigationManager
+@inject ISnackbar _snackbar
+@inject CartService _cartService
+@inject IAppDateService _appDateService
+@inject IPrintOrderService _printOrderService
+@inject IDialogService _dialogService
+@inject IDineInOrderFrontService _dineInOrderService
+@inject IOrderTrackFrontService _orderTrackService
+@inject HandelDeliveryInvocation _handelDeliveryInvocation
+@inject IAuthorizationService AuthorizationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudGrid Spacing="0" Justify="Justify.Center" Class="action-buttons-grid">
+    @if (_canCancelOrder)
+    {
+        <MudItem xs="4">
+            <MudButton Variant="Variant.Filled"
+                       FullWidth="true"
+                       Class="action-btn cancel-btn special-sec4-button"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       OnClick="CancelOrder">
+                @Localizer["Cancel"]
+            </MudButton>
+        </MudItem>
+    }
+    @if (_canWaitingOrder)
+    {
+        <MudItem xs="4">
+            <MudButton Variant="Variant.Filled"
+                       FullWidth="true"
+                       Class="action-btn waiting-btn special-sec4-button"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.HourglassTop"
+                       OnClick="AddOrderToWaitingQueue">
+                @Localizer["Waiting"]
+            </MudButton>
+        </MudItem>
+    }
+    @if (_canPrintOrder)
+    {
+        @if (_commonProperties.CurrentPosMode == PosModes.DineIn.ToString())
+        {
+            <MudItem xs="4">
+                <MudButton Variant="Variant.Filled"
+                           FullWidth="true"
+                           Class="action-btn print-btn special-sec4-button"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="PrintOrder">
+                    @Localizer["OrderBtn"]
+                </MudButton>
+            </MudItem>
+        }
+        else
+        {
+            <MudItem xs="4">
+                <MudButton Variant="Variant.Filled"
+                           FullWidth="true"
+                           Class="action-btn print-btn special-sec4-button"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintOrder">
+                    @Localizer["Print"]
+                </MudButton>
+            </MudItem>
+        }
+    }
+</MudGrid>

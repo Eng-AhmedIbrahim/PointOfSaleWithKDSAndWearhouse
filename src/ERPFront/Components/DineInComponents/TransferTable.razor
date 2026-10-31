@@ -1,0 +1,57 @@
+﻿@using MudBlazor
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject DineInService _dineInService
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Transfer Table</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12">
+                <MudSelect Label="Select Current Table"
+                           T="int?"
+                           Value="@SelectedCurrentTable"
+                           ValueChanged="OnCurrentTableChanged">
+                    @foreach (var table in OccupiedTables)
+                    {
+                        <MudSelectItem Value="@table.RelatedTableId">
+                            @table.RelatedTableName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect Label="Select Available Table"
+                           T="int?"
+                           Value="@SelectedAvailableTable"
+                           ValueChanged="OnAvailableTableChanged"
+                           Disabled="@(SelectedCurrentTable == null)">
+                    @foreach (var table in AvailableTables)
+                    {
+                        <MudSelectItem Value="@table.Id">
+                            @table.TableName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" Class="text-center">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="TransferTables"
+                           Disabled="@IsTransferDisabled">
+                    <MudIcon Icon="@(Icons.Material.Filled.SwapHoriz)" />
+                    Transfer Table
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="CloseDialog" Color="Color.Secondary">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>

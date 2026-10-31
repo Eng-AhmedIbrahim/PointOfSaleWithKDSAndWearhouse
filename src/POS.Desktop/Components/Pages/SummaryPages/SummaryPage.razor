@@ -1,0 +1,144 @@
+@page "/summary"
+@layout MainLayout
+@inject CommonProperties _commonProperties
+@inject NavigationManager _navigationManager
+@inject LocalizationService Localizer
+@inject IReportingErpService ReportingService
+@inject IAppDateService AppDateService
+@inject ISnackbar Snackbar
+
+@attribute [Authorize(Policy = "CanAccessSummary")]
+@namespace POS.Desktop.Components.Pages.SummaryPages
+
+<div class="summary-container" dir="@(_commonProperties.IsRtl ? "rtl" : "ltr")" style="height: 100vh; width: 100vw;">
+    <div class="summary-header fade-in">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" OnClick="GoBack" Class="mr-4 hover-back" />
+        <MudIcon Icon="@Icons.Material.Filled.AreaChart" Size="Size.Large" Class="mr-2" />
+        <MudText Typo="Typo.h6" Style="font-weight: 700;">@Localizer["SalesSummary"]</MudText>
+        <MudSpacer />
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">@SelectedDate.ToString("yyyy-MM-dd")</MudChip>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="loading-overlay">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    }
+    else
+    {
+        <div class="summary-content">
+            <div class="top-cards-row">
+                <SummaryCard Title="@Localizer["DineIn"]" Icon="@Icons.Material.Filled.TableRestaurant" Color="info" Data="@_summaryData.DineIn" />
+                <SummaryCard Title="@Localizer["Delivery"]" Icon="@Icons.Material.Filled.DeliveryDining" Color="warning" Data="@_summaryData.Delivery" />
+                <SummaryCard Title="@Localizer["TakeAway"]" Icon="@Icons.Material.Filled.DirectionsRun" Color="success" Data="@_summaryData.TakeAway" />
+            </div>
+
+            <div class="overall-summary-card glass fade-in">
+                <div class="top-panel glass fade-in">
+                    <div class="revenue-overview">
+                        <div class="revenue-item primary">
+                            <span class="label">@Localizer["TotalRevenue"]</span>
+                            <div class="value-container">
+                                <span class="value">@_summaryData.Overall.TotalRevenue.ToString("0.##")</span>
+                            </div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="revenue-item secondary">
+                            <span class="label">@Localizer["Collected"]</span>
+                            <div class="value-container">
+                                <span class="value">@_summaryData.Overall.TotalSales.ToString("0.##")</span>
+                            </div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="revenue-item warning">
+                            <span class="label">@Localizer["Uncollected"]</span>
+                            <div class="value-container">
+                                <span class="value">@_summaryData.Overall.PendingAmount.ToString("0.##")</span>
+                            </div>
+                            @if (_summaryData.Overall.PendingAmount > 0)
+                            {
+                                <div class="pending-breakdown fade-in">
+                                    @if (_summaryData.TakeAway.UncollectedAmount > 0)
+                                    {
+                                        <div class="pending-row">
+                                            <span class="lbl">@Localizer["TakeAway"]:</span>
+                                            <span class="val">@_summaryData.TakeAway.UncollectedAmount.ToString("0.##")</span>
+                                        </div>
+                                    }
+                                    @if (_summaryData.DineIn.UncollectedAmount > 0)
+                                    {
+                                        <div class="pending-row">
+                                            <span class="lbl">@Localizer["DineIn"]:</span>
+                                            <span class="val">@_summaryData.DineIn.UncollectedAmount.ToString("0.##")</span>
+                                        </div>
+                                    }
+                                    @if (_summaryData.Delivery.UncollectedAmount > 0)
+                                    {
+                                        <div class="pending-row">
+                                            <span class="lbl">@Localizer["Delivery"]:</span>
+                                            <span class="val">@_summaryData.Delivery.UncollectedAmount.ToString("0.##")</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>    
+                        <div class="payment-methods-grid">
+                            <div class="payment-card cash">
+                                <MudIcon Icon="@Icons.Material.Filled.Payments" />
+                                <div class="info">
+                                    <span class="label">@Localizer["Cash"]</span>
+                                    <span class="value">@_summaryData.Overall.CashAmount.ToString("0.##")</span>
+                                </div>
+                            </div>
+                            <div class="payment-card credit">
+                                <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
+                                <div class="info">
+                                    <span class="label">@Localizer["Credit"]</span>
+                                    <span class="value">@_summaryData.Overall.CreditAmount.ToString("0.##")</span>
+                                </div>
+                            </div>
+                            <div class="payment-card void">
+                                <MudIcon Icon="@Icons.Material.Filled.DeleteForever" />
+                                <div class="info">
+                                    <span class="label">@Localizer["Voids"] (@_summaryData.Overall.VoidCount)</span>
+                                    <span class="value">@_summaryData.Overall.VoidAmount.ToString("0.##")</span>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+
+
+                
+                <div class="sidebar-actions">
+                    <div class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" Color="Color.Warning" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">@Localizer["QuickActions"]</MudText>
+                    </div>
+
+                    <div class="actions-grid">
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Logout" Color="Color.Error" Class="action-btn error" OnClick="GoBack">@Localizer["Close"]</MudButton>
+
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Sync" Color="Color.Secondary" Class="action-btn secondary" OnClick="OnInitializedAsync">@Localizer["Refresh"]</MudButton>
+
+                        @if (_canViewDetailedSales)
+                        {
+                            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.ListAlt" Color="Color.Warning" Class="action-btn warning" OnClick="ShowDetailedSales" Style="background-color: #ff9800; color: white;">@Localizer["DetailedSales"]</MudButton>
+                        }
+                        
+                        @if (_canViewSalesItems)
+                        {
+                            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Analytics" Color="Color.Primary" Class="action-btn primary" OnClick="ShowSalesItems">@Localizer["SalesItems"]</MudButton>
+                        }
+
+                        @if (_canPrint)
+                        {
+                            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.LocalPrintshop" Color="Color.Info" Class="action-btn info" OnClick="PrintSummary">@Localizer["PrintSummary"]</MudButton>
+                        }
+                    </div>
+                </div>
+            </div>
+    }
+</div>

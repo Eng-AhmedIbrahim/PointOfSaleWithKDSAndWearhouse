@@ -1,0 +1,56 @@
+﻿@inject NavigationManager _NaviagtionManager
+@inject ILogger<RedirectToLogin> Logger
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Wait for the Blazor circuit and WebViewNavigationManager to be fully initialized
+        await Task.Yield();
+        
+        // Use InvokeAsync to ensure we're on the correct synchronization context
+        await InvokeAsync(async () =>
+        {
+            await AttemptNavigationWithRetry();
+        });
+    }
+
+    private async Task AttemptNavigationWithRetry()
+    {
+        int maxRetries = 5;
+        int currentRetry = 0;
+        int delayMs = 100;
+
+        while (currentRetry < maxRetries)
+        {
+            try
+            {
+                await Task.Delay(delayMs);
+                
+                if (_NaviagtionManager != null && !string.IsNullOrEmpty(_NaviagtionManager.Uri))
+                {
+                    await InvokeAsync(() => _NaviagtionManager.NavigateTo("/login", forceLoad: false));
+                    Logger?.LogInformation("Successfully redirected to login page");
+                    return;
+                }
+                else
+                {
+                    throw new InvalidOperationException("NavigationManager not yet initialized");
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                currentRetry++;
+                Logger?.LogWarning($"Navigation attempt {currentRetry} failed: {ex.Message}");
+                
+                if (currentRetry >= maxRetries)
+                {
+                    Logger?.LogError("Failed to redirect after {MaxRetries} attempts", maxRetries);
+                    return; // Silent fail - already on login or will redirect naturally
+                }
+                
+                // Exponential backoff
+                delayMs *= 2;
+            }
+        }
+    }
+}

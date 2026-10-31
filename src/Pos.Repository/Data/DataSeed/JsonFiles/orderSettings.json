@@ -1,0 +1,44 @@
+[
+  {
+    "BranchID": 1,
+    "OrderType": "Delivery",
+    "OrderStatement": "اهلا ومرحبا بكم في مطعمنا",
+    "Service": 0.00,
+    "Tax": 0.00,
+    "Tips": 0.00,
+    "JobID": 17,
+    "CustomerReceiptCount": 1,
+    "FullKitchenReceiptCount": 1,
+    "SeparateReceiptCount": 1,
+    "ClosingReceiptCount": 2,
+    "AddServiceToItemPrice": false
+  },
+  {
+    "BranchID": 1,
+    "OrderType": "DineIn",
+    "OrderStatement": "اهلا ومرحبا بكم في مطعمنا",
+    "Service": 12.00,
+    "Tax": 0.00,
+    "Tips": 0.00,
+    "JobID": 5,
+    "CustomerReceiptCount": 1,
+    "FullKitchenReceiptCount": 2,
+    "SeparateReceiptCount": 1,
+    "ClosingReceiptCount": 1,
+    "AddServiceToItemPrice": false
+  },
+  {
+    "BranchID": 1,
+    "OrderType": "TakeAway",
+    "OrderStatement": "اهلا ومرحبا بكم في مطعمنا",
+    "Service": 0.00,
+    "Tax": 0.00,
+    "Tips": 0.00,
+    "JobID": 4,
+    "CustomerReceiptCount": 2,
+    "FullKitchenReceiptCount": 2,
+    "SeparateReceiptCount": 1,
+    "ClosingReceiptCount": null,
+    "AddServiceToItemPrice": false
+  }
+]

@@ -1,0 +1,208 @@
+@using BlazorBase.ERPFrontServices.DeliveryServices
+@using POS.Contract.Dtos.DeliveryDtos.DeliveryCustomerInfo
+@inject IDeliveryServices _deliveryServices
+@inject ISnackbar _snackbar
+@inject LocalizationService Localizer
+
+<MudDialog Class="customer-search-dialog-container">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Style="font-weight: 800;">@(_isArabic ? "البحث عن عميل" : "Customer Search")</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div style="min-height: 420px; display: flex; flex-direction: column; gap: 16px;" dir="@(_isArabic ? "rtl" : "ltr")">
+
+            <!-- Search Bar -->
+            <MudTextField @bind-Value="_searchText"
+                          Immediate="true"
+                          Placeholder="@(_isArabic ? "ابحث بالاسم أو رقم الهاتف..." : "Search by name or phone...")"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          DebounceInterval="300"
+                          OnDebounceIntervalElapsed="HandleSearch"
+                          Class="cs-search-field" />
+
+            <!-- Loading -->
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="flex: 1; min-height: 200px;">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (_filteredCustomers.Count == 0)
+            {
+                <div class="cs-empty-state">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" Class="cs-empty-icon" />
+                    <MudText Typo="Typo.body1" Class="cs-empty-text">
+                        @(_isArabic ? "لا توجد نتائج" : "No results found")
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <!-- Results list -->
+                <div class="cs-results-list">
+                    @foreach (var customer in _filteredCustomers.Take(50))
+                    {
+                        <div class="cs-customer-card @(_selectedCustomer?.Id == customer.Id ? "selected" : "")"
+                             @onclick="() => SelectCustomer(customer)">
+                            <div class="cs-customer-avatar">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" />
+                            </div>
+                            <div class="cs-customer-info">
+                                <div class="cs-customer-name">@customer.CustomerName</div>
+                                <div class="cs-customer-phone">
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="cs-phone-icon" />
+                                    @customer.FirstPhoneNumber
+                                    @if (!string.IsNullOrEmpty(customer.SecondPhoneNumber))
+                                    {
+                                        <span class="cs-phone-sep"> / </span>
+                                        @customer.SecondPhoneNumber
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(customer.ClientTitle))
+                                {
+                                    <div class="cs-customer-badge">@customer.ClientTitle</div>
+                                }
+                            </div>
+                            @if (_selectedCustomer?.Id == customer.Id)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" />
+                            }
+                        </div>
+                    }
+                    @if (_filteredCustomers.Count > 50)
+                    {
+                        <div class="cs-more-hint">
+                            @(_isArabic ? $"يُعرض أول 50 من {_filteredCustomers.Count} — دقق البحث لتضييق النتائج" : $"Showing first 50 of {_filteredCustomers.Count} — refine your search")
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Cancel">
+            @(_isArabic ? "إلغاء" : "Cancel")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="_selectedCustomer == null"
+                   OnClick="Confirm"
+                   StartIcon="@Icons.Material.Filled.CheckCircle">
+            @(_isArabic ? "اختيار" : "Select")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .customer-search-dialog-container .mud-dialog { border-radius: 20px !important; overflow: hidden; }
+
+    .cs-search-field { margin-top: 4px; }
+
+    .cs-empty-state {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        flex: 1; min-height: 200px; gap: 12px; opacity: 0.5;
+    }
+    .cs-empty-icon { font-size: 60px !important; }
+    .cs-empty-text { font-size: 14px; font-weight: 600; }
+
+    .cs-results-list {
+        display: flex; flex-direction: column; gap: 8px;
+        max-height: 360px; overflow-y: auto; padding-right: 4px;
+    }
+    .cs-results-list::-webkit-scrollbar { width: 6px; }
+    .cs-results-list::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 8px; }
+
+    .cs-customer-card {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px; border-radius: 12px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc; cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .cs-customer-card:hover { border-color: #3b82f6; background: #eff6ff; transform: translateX(-2px); }
+    .cs-customer-card.selected { border-color: #10b981; background: #f0fdf4; }
+
+    .cs-customer-avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; color: white;
+    }
+    .cs-customer-info { flex: 1; min-width: 0; }
+    .cs-customer-name { font-size: 14px; font-weight: 800; color: #1e293b; }
+    .cs-customer-phone { font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+    .cs-phone-icon { font-size: 14px !important; }
+    .cs-phone-sep { opacity: 0.5; }
+    .cs-customer-badge {
+        display: inline-block; font-size: 10px; font-weight: 700;
+        background: #dbeafe; color: #1e40af;
+        border-radius: 8px; padding: 1px 6px; margin-top: 4px;
+    }
+    .cs-more-hint {
+        text-align: center; font-size: 11px; color: #94a3b8;
+        padding: 8px; font-weight: 600;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _isArabic => Localizer.GetCurrentLanguage() == "ar";
+    private string _searchText = string.Empty;
+    private bool _loading = false;
+    private List<DeliveryCustomerToReturnDto> _allCustomers = new();
+    private List<DeliveryCustomerToReturnDto> _filteredCustomers = new();
+    private DeliveryCustomerToReturnDto? _selectedCustomer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            var customers = await _deliveryServices.GetAllCustomersAsync();
+            _allCustomers = customers?.ToList() ?? new();
+            _filteredCustomers = _allCustomers;
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add((_isArabic ? "فشل تحميل بيانات العملاء: " : "Failed to load customers: ") + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void HandleSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_searchText))
+        {
+            _filteredCustomers = _allCustomers;
+            return;
+        }
+        var q = _searchText.Trim().ToLower();
+        _filteredCustomers = _allCustomers
+            .Where(c =>
+                (c.CustomerName?.ToLower().Contains(q) ?? false) ||
+                (c.FirstPhoneNumber?.Contains(q) ?? false) ||
+                (c.SecondPhoneNumber?.Contains(q) ?? false))
+            .ToList();
+    }
+
+    private void SelectCustomer(DeliveryCustomerToReturnDto customer)
+    {
+        _selectedCustomer = customer;
+    }
+
+    private void Confirm()
+    {
+        if (_selectedCustomer != null)
+            MudDialog.Close(DialogResult.Ok(_selectedCustomer));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

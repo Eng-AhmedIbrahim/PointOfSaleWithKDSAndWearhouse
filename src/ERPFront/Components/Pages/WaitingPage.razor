@@ -1,0 +1,98 @@
+﻿@page "/waitingPage"
+@layout WaitingLayout
+@inject CommonProperties _commonProperties
+@inject NavigationManager _navigationManager
+@inject ISnackbar Snackbar
+@inject CartService _cartService
+
+<MudGrid Spacing="0" Justify="Justify.Center" Class="overflow-hidden">
+    <!-- Section 1 -->
+    <MudItem xs="3">
+        <MudText Typo="Typo.h6" Class="section-label">Waiting Orders</MudText>
+        <MudPaper Elevation="1" Height="100%" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+            <MudGrid Spacing="0">
+                <MudPaper Width="100%" Elevation="0">
+                    <MudNavMenu>
+                        @foreach (var order in _commonProperties!.WaitingQueue!.WaitingOrders)
+                        {
+                            <MudNavLink Icon="@Icons.Material.Filled.HourglassEmpty" IconColor="Color.Primary"
+                                        Class="waiting-order-link"
+                                        OnClick='()=>ShowWaitingOrder(order.Id)'>
+                                <MudText Class="order-text">Waiting Order @order.Id</MudText>
+                            </MudNavLink>
+                        }
+
+                    </MudNavMenu>
+                </MudPaper>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 2 -->
+
+    <MudItem xs="5" Class="full-height">
+        <MudText Typo="Typo.h6" Class="section-label">Order Details</MudText>
+        <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+            <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" StretchItems="StretchItems.All"
+                      Spacing="0">
+                <Section4Table Disabled="true" Items="Items" OnItemsChanged="OnWaitingItemsChanged" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 3 -->
+    <MudItem xs="4" Class="h-100">
+        <MudText Typo="Typo.h6" Class="section-label">Actions</MudText>
+        <MudPaper Elevation="1" Height="100%" Width="100%"
+                  Class="rounded-0 overflow-hidden full-height border-r border-b border-solid custom-border-color d-flex flex-column justify-center align-center gap-3">
+
+            <MudButton Size="Size.Large" Variant="Variant.Filled" Color="Color.Primary" class="w-75 button-height"
+                       OnClick="()=>CompleteWaitingOrder()">
+                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" class="me-2" /> Complete Order
+            </MudButton>
+
+            <MudButton Size="Size.Large" Variant="Variant.Filled" Color="Color.Secondary" class="w-75 button-height"
+                       OnClick="()=>RemoveWaitingOrder()">
+                <MudIcon Icon="@Icons.Material.Filled.Delete" class="me-2" /> Remove Order
+            </MudButton>
+
+            <MudButton Size="Size.Large" Variant="Variant.Filled" Color="Color.Tertiary" class="w-75 button-height"
+                       OnClick='()=>_navigationManager.NavigateTo("/pos")'>
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack" class="me-2" /> Back To POS
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+<style>
+
+    .button-height {
+        height: 120px;
+    }
+
+    .waiting-order-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: background 0.3s ease-in-out;
+    }
+
+        .waiting-order-link:hover {
+            background: #f1f1f1;
+        }
+
+    .order-text {
+        font-size: 16px;
+        font-weight: bold;
+        color: #143155;
+    }
+
+    .full-height {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        box-sizing: border-box;
+    }
+</style>

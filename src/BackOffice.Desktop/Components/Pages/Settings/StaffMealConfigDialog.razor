@@ -1,0 +1,390 @@
+@using POS.Core.Entities.Item
+@using BlazorBase.ERPFrontServices.AccountServices
+@using POS.Core.Services.Contract
+@using POS.Core.Entities.Identity
+@using System.Threading
+@inject IAccountService AccountService
+@inject IItemService ItemService
+@inject ICategoryServices CategoryService
+@inject IStaffMealService StaffMealService
+@inject LocalizationService Localizer
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight:800;">@(Config.Id > 0 ? Localizer["EditConfig"] : Localizer["AddNewConfig"])</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudRTLProvider RightToLeft="true">
+            <div class="pa-4">
+                <MudGrid>
+                    @* ── Employee Selection (Scrollable List) ── *@
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight:700;">@Localizer["SelectEmployee"]</MudText>
+                        
+                        <div class="d-flex align-center mb-2">
+                             <MudTextField T="string" @bind-Value="_userSearchTerm" Placeholder="..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" FullWidth="true" />
+                        </div>
+
+                        <div class="pa-2 mb-2 rounded border" style="background-color: #f5f5f5;">
+                             <MudCheckBox T="bool" 
+                                          Value="@(_users != null && _users.Any() && FilteredUsers.All(u => _selectedUserIds.Contains(u.UserId!)))" 
+                                          ValueChanged="OnSelectAllChanged"
+                                          Label="@((Localizer.GetCurrentLanguage() == "ar" ? "تحديد الكل" : "Select All") + (_selectedUserIds.Any() ? $" ({_selectedUserIds.Count})" : ""))" 
+                                          Color="Color.Primary" 
+                                          Dense="true" />
+                        </div>
+
+                        <div class="rounded border pa-1" style="height: 180px; overflow-y: auto; background-color: #fafafa;">
+                            @if (_users != null)
+                            {
+                                @foreach (var user in FilteredUsers)
+                                {
+                                    <div class="pa-1 rounded hover-item" style="border-bottom: 1px solid #eee;">
+                                        <MudCheckBox T="bool" 
+                                                     Value="@(_selectedUserIds.Contains(user.UserId!))" 
+                                                     ValueChanged="@(v => OnUserToggled(user.UserId!, v))" 
+                                                     Label="@(user.ArabicName ?? user.DisplayName ?? user.UserName)" 
+                                                     Color="Color.Info" 
+                                                     Dense="true" />
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-center align-center h-100">
+                                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                                </div>
+                            }
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <div class="d-flex flex-wrap justify-center align-center full-width my-2 pa-2 rounded" style="background-color: #f7f9fa; border: 1px solid #e0e0e0;">
+                            <MudRadioGroup @bind-Value="_selectionType" Inline="true">
+                                <MudRadio Value="@("Item")" Color="Color.Primary" Class="mx-1">@Localizer["SpecificItem"]</MudRadio>
+                                <MudRadio Value="@("Category")" Color="Color.Secondary" Class="mx-1">@Localizer["ByCategory"]</MudRadio>
+                                <MudRadio Value="@("Group")" Color="Color.Tertiary" Class="mx-1">@Localizer["ByStaffGroup"]</MudRadio>
+                            </MudRadioGroup>
+                        </div>
+                    </MudItem>
+
+                    @* ── Configurable Target ── *@
+                    <MudItem xs="12">
+                        @if (_selectionType == "Item")
+                        {
+                            <MudAutocomplete T="string" 
+                                              Label="@Localizer["SelectMealItem"]" 
+                                              @bind-Value="Config.ItemId" 
+                                              SearchFunc="SearchItems"
+                                              ToStringFunc="@(id => _items?.FirstOrDefault(i => i.Id.ToString() == id)?.ArabicName ?? id)"
+                                              Variant="MudBlazor.Variant.Filled"
+                                              Required="true"
+                                              ResetValueOnEmptyText="true" />
+                        }
+                        else if (_selectionType == "Category")
+                        {
+                            <MudSelect T="int?" 
+                                       Label="@Localizer["SelectMealCategory"]" 
+                                       @bind-Value="Config.CategoryId" 
+                                       Variant="MudBlazor.Variant.Filled"
+                                       Required="true">
+                                @if (_categories != null)
+                                {
+                                    @foreach (var cat in _categories)
+                                    {
+                                        <MudSelectItem T="int?" Value="@cat.Id">@cat.ArabicName</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                             <MudSelect T="int?" 
+                                       Label="@Localizer["SelectStaffGroup"]" 
+                                       @bind-Value="Config.GroupId" 
+                                       Variant="MudBlazor.Variant.Filled"
+                                       Required="true">
+                                @if (_groups != null)
+                                {
+                                    @foreach (var group in _groups)
+                                    {
+                                        <MudSelectItem T="int?" Value="@group.Id">@group.ArabicName</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        }
+                    </MudItem>
+
+                    @* ── Mode Indicator ── *@
+                    <MudItem xs="12">
+                        <div class="pa-2 rounded-lg d-flex align-center gap-2"
+                             style="background: @(Config.DailyAmountLimit > 0 ? "linear-gradient(135deg,#f3e5f5,#ede7f6)" : "linear-gradient(135deg,#e3f2fd,#e8f5e9)");
+                                    border: 1.5px solid @(Config.DailyAmountLimit > 0 ? "#ab47bc" : "#42a5f5");">
+                            <MudIcon Icon="@(Config.DailyAmountLimit > 0 ? Icons.Material.Filled.AccountBalanceWallet : Icons.Material.Filled.FormatListNumbered)"
+                                     Style="@($"color:{(Config.DailyAmountLimit > 0 ? "#7b1fa2" : "#1565c0")}")"
+                                     Size="Size.Small" />
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @(Config.DailyAmountLimit > 0
+                                    ? $"✅ وضع المبلغ: التحكم بالرصيد اليومي ({Config.DailyAmountLimit:0.##} EGP)"
+                                    : "ℹ️ وضع العدد: التحكم بعدد الوجبات")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    @* ── Limits & Prices ── *@
+                    <MudItem xs="@(Config.DailyAmountLimit > 0 ? 6 : 4)">
+                        <MudNumericField @bind-Value="Config.DailyLimit"
+                                         Label="@Localizer["DailyLimit"]"
+                                         Min="1" Max="20"
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Filled.Today" />
+                    </MudItem>
+
+                    @* MealLimit only relevant in COUNT mode *@
+                    @if (Config.DailyAmountLimit == 0)
+                    {
+                        <MudItem xs="4">
+                            <MudNumericField @bind-Value="Config.MealLimit"
+                                             Label="@Localizer["MealLimit"]"
+                                             Min="1" Max="10"
+                                             Variant="MudBlazor.Variant.Outlined"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Filled.ShoppingCart" />
+                        </MudItem>
+                    }
+
+                    <MudItem xs="@(Config.DailyAmountLimit > 0 ? 6 : 4)">
+                        <MudNumericField @bind-Value="Config.SpecialPrice"
+                                         Label="@Localizer["AssignedPrice"]"
+                                         Min="0"
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         Adornment="Adornment.Start"
+                                         AdornmentText="EGP" />
+                    </MudItem>
+
+                    @* ── Amount Limit box ── *@
+                    <MudItem xs="8">
+                        <MudNumericField @bind-Value="Config.DailyAmountLimit"
+                                         Label="الحد المالي اليومي (0 = وضع عدد)"
+                                         Min="0"
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         Adornment="Adornment.Start" AdornmentText="EGP" />
+                    </MudItem>
+
+                    <MudItem xs="4">
+                        <MudCheckBox T="bool" @bind-Value="Config.IsAllItemsAllowed"
+                                     Label="السماح بكافة الأصناف"
+                                     Color="Color.Secondary"
+                                     Class="mt-3" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="Config.IsActive" Label="@Localizer["IsActive"]" Color="Color.Success" />
+                    </MudItem>
+                </MudGrid>
+            </div>
+        </MudRTLProvider>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="Save" Class="px-8">@Localizer["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public StaffMealConfigDto Config { get; set; } = new();
+
+    private IEnumerable<UserDto>? _users;
+    private IReadOnlyList<MenuSalesItemsToReturnDto>? _items;
+    private IEnumerable<CategoryToReturnDto>? _categories;
+    private IEnumerable<StaffMealGroupDto>? _groups;
+    private string _selectionType = "Item";
+    private HashSet<string> _selectedUserIds = new();
+    private string _userSearchTerm = "";
+
+    private IEnumerable<UserDto> FilteredUsers => string.IsNullOrWhiteSpace(_userSearchTerm) 
+        ? _users ?? Enumerable.Empty<UserDto>() 
+        : (_users?.Where(u => u.UserName!.Contains(_userSearchTerm, StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<UserDto>());
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await AccountService.GetUsers();
+        if (!string.IsNullOrEmpty(Config.UserId))
+        {
+            _selectedUserIds = new HashSet<string> { Config.UserId };
+        }
+        
+        var itemResp = await ItemService.GetAllItemsAsync();
+        _items = itemResp?.Data;
+        
+        var catResp = await CategoryService.GetAllCategories();
+        _categories = catResp?.Data;
+        
+        _groups = await StaffMealService.GetAllGroupsAsync();
+
+        if (!string.IsNullOrEmpty(Config.UserId))
+        {
+            _selectedUserIds = new HashSet<string> { Config.UserId };
+        }
+
+        if (Config.GroupId.HasValue) _selectionType = "Group";
+        else if (Config.CategoryId.HasValue) _selectionType = "Category";
+    }
+
+    private async Task<IEnumerable<string>> SearchUsers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _users?.Select(u => u.UserId!) ?? Array.Empty<string>();
+        return _users?.Where(u => u.UserName!.Contains(value, StringComparison.OrdinalIgnoreCase))
+                     .Select(u => u.UserId!) ?? Array.Empty<string>();
+    }
+
+    private async Task<IEnumerable<string>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _items?.Select(i => i.Id.ToString()) ?? Array.Empty<string>();
+        return _items?.Where(i => i.ArabicName!.Contains(value) || (i.EnglishName?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+                     .Select(i => i.Id.ToString()) ?? Array.Empty<string>();
+    }
+
+    private async Task<IEnumerable<int?>> SearchCategories(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _categories?.Select(c => (int?)c.Id) ?? Array.Empty<int?>();
+        return _categories?.Where(c => (c.ArabicName?.Contains(value) ?? false) || (c.EnglishName?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+                          .Select(c => (int?)c.Id) ?? Array.Empty<int?>();
+    }
+
+    private async Task<IEnumerable<int?>> SearchGroups(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _groups?.Select(c => (int?)c.Id) ?? Array.Empty<int?>();
+        return _groups?.Where(c => (c.ArabicName?.Contains(value) ?? false) || (c.Name?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+                          .Select(c => (int?)c.Id) ?? Array.Empty<int?>();
+    }
+
+    private async Task Save()
+    {
+        if (_selectedUserIds == null || !_selectedUserIds.Any())
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى اختيار موظف واحد على الأقل" : "Please select at least one employee", Severity.Warning);
+            return;
+        }
+
+        if (_selectionType == "Item" && string.IsNullOrEmpty(Config.ItemId))
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الرجاء اختيار الصنف" : "Please select an item", Severity.Warning);
+            return;
+        }
+
+        if (_selectionType == "Category" && !Config.CategoryId.HasValue) 
+        {
+             Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الرجاء اختيار الفئة" : "Please select a category", Severity.Warning);
+             return;
+        }
+
+        if (_selectionType == "Group" && !Config.GroupId.HasValue)
+        {
+             Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الرجاء اختيار المجموعة" : "Please select a group", Severity.Warning);
+             return;
+        }
+
+        // Reset the others
+        if (_selectionType != "Item") Config.ItemId = null;
+        if (_selectionType != "Category") Config.CategoryId = null;
+        if (_selectionType != "Group") Config.GroupId = null;
+
+        if (_selectionType == "Item")
+        {
+            var item = _items?.FirstOrDefault(i => i.Id.ToString() == Config.ItemId);
+            Config.ItemName = item?.ArabicName;
+            Config.CategoryName = null;
+            Config.GroupName = null;
+        }
+        else if (_selectionType == "Category")
+        {
+            var cat = _categories?.FirstOrDefault(c => c.Id == Config.CategoryId);
+            Config.CategoryName = cat?.ArabicName;
+            Config.ItemName = null;
+            Config.GroupName = null;
+        }
+        else if (_selectionType == "Group")
+        {
+            var group = _groups?.FirstOrDefault(g => g.Id == Config.GroupId);
+            Config.GroupName = group?.ArabicName;
+            Config.ItemName = null;
+            Config.CategoryName = null;
+        }
+
+        var selectedConfigs = new List<StaffMealConfigDto>();
+        foreach (var uid in _selectedUserIds.Where(u => !string.IsNullOrEmpty(u)))
+        {
+            var user = _users?.FirstOrDefault(u => u.UserId == uid);
+            selectedConfigs.Add(new StaffMealConfigDto
+            {
+                Id = (uid == Config.UserId) ? Config.Id : 0, 
+                UserId = uid,
+                UserName = user?.ArabicName ?? user?.DisplayName ?? user?.UserName,
+                ItemId = Config.ItemId,
+                ItemName = Config.ItemName,
+                CategoryId = Config.CategoryId,
+                CategoryName = Config.CategoryName,
+                GroupId = Config.GroupId,
+                GroupName = Config.GroupName,
+                DailyLimit = Config.DailyLimit,
+                DailyAmountLimit = Config.DailyAmountLimit,
+                IsAllItemsAllowed = Config.IsAllItemsAllowed,
+                MealLimit = Config.MealLimit,
+                SpecialPrice = Config.SpecialPrice,
+                IsActive = Config.IsActive
+            });
+        }
+
+        // Debug info for the user
+        var msg = Localizer.GetCurrentLanguage() == "ar" ? $"جاري الحفظ لـ {selectedConfigs.Count} موظف..." : $"Saving for {selectedConfigs.Count} employees...";
+        Snackbar.Add(msg, Severity.Info);
+
+        bool success = await StaffMealService.BatchUpsertConfigsAsync(selectedConfigs);
+
+        if (success) 
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم الحفظ بنجاح" : "Saved successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "حدث خطأ أثناء الحفظ" : "Error saving configuration", Severity.Error);
+        }
+    }
+
+    private void OnUserToggled(string userId, bool value)
+    {
+        if (value) _selectedUserIds.Add(userId);
+        else _selectedUserIds.Remove(userId);
+        StateHasChanged();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        if (value)
+        {
+            // Select ONLY filtered users
+            foreach (var u in FilteredUsers)
+            {
+                if (!string.IsNullOrEmpty(u.UserId))
+                    _selectedUserIds.Add(u.UserId);
+            }
+        }
+        else
+        {
+            // Deselect ONLY filtered users
+            foreach (var u in FilteredUsers)
+            {
+                if (!string.IsNullOrEmpty(u.UserId))
+                    _selectedUserIds.Remove(u.UserId);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,251 @@
+@using MudBlazor
+@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject IDialogService _dialogService
+@inject NavigationManager _navigationManager
+@inject Section4ButtonsServices _section4ButtonsServices
+@inject LocalizationService Localizer
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.Small" Class="merge-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.MergeType" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Style="font-family: 'Tajawal', sans-serif; font-weight: 700;">@Localizer["MergeTables"]</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="merge-content">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Dense="true" Class="mb-4 rounded-pill" Style="font-family: 'Tajawal', sans-serif;">
+                @Localizer["SelectAtLeastTwoTablesToMerge"]
+            </MudAlert>
+
+            <MudGrid Spacing="3">
+                @foreach (var table in _tables ?? new())
+                {
+                    <MudItem xs="6">
+                        <MudButton Size="Size.Large"
+                                   Variant="Variant.Outlined"
+                                   Class="@GetButtonClass(table)"
+                                   OnClick="() => ToggleTableSelection(table)">
+                            <div class="table-btn-content">
+                                <MudIcon Icon="@(SelectedTableIds.Contains(table.DatabaseId) ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.TableBar)"
+                                         Size="Size.Medium" 
+                                         Color="@(SelectedTableIds.Contains(table.DatabaseId) ? Color.Success : Color.Default)" />
+                                <MudText Typo="Typo.subtitle1" Class="table-name">@table.RelatedTableName</MudText>
+                                <MudText Typo="Typo.caption" Class="table-total">@Localizer["Total"]: @table.BasicOrderDetails!.Total?.ToString("N2")</MudText>
+                            </div>
+                        </MudButton>
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="d-flex justify-end gap-3 pa-4 w-100">
+            <MudButton OnClick="CloseDialog" 
+                       Variant="Variant.Text" 
+                       Color="Color.Default"
+                       Style="font-family: 'Tajawal', sans-serif;">
+                @Localizer["Cancel"]
+            </MudButton>
+            <MudButton OnClick="MergeSelectedTables"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Disabled="@IsMergeDisabled"
+                       StartIcon="@Icons.Material.Filled.Check"
+                       Class="rounded-pill px-6"
+                       Style="font-family: 'Tajawal', sans-serif; font-weight: 600;">
+                @Localizer["Merge"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private IDineInOrderFrontService _dineInOrderServiceFront { get; set; }
+    private List<DineInOrderDetails> _tables = new();
+    private HashSet<int> SelectedTableIds = new();
+    public List<DineInOrderDetails> TablesToMigrates = new();
+
+    protected override Task OnInitializedAsync()
+    {
+        if (_commonProperties.DineInOrdersDetails != null)
+        {
+            _tables = _commonProperties.DineInOrdersDetails.Values
+                .SelectMany(x => x)
+                .Where(x => !string.IsNullOrEmpty(x.RelatedTableName))
+                .ToList();
+        }
+        return base.OnInitializedAsync();
+    }
+
+    private void ToggleTableSelection(DineInOrderDetails table)
+    {
+        if (table == null) return;
+
+        if (SelectedTableIds.Contains(table.DatabaseId))
+        {
+            SelectedTableIds.Remove(table.DatabaseId);
+            TablesToMigrates.Remove(table);
+            table.IsMigrated = false;
+        }
+        else
+        {
+            SelectedTableIds.Add(table.DatabaseId);
+            TablesToMigrates.Add(table);
+            table.IsMigrated = true;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task MergeSelectedTables()
+    {
+        if (TablesToMigrates.Count < 2)
+        {
+            _snackbar.Add(Localizer["SelectAtLeastTwoTablesToMerge"], Severity.Warning);
+            return;
+        }
+
+        // Primary is the one with the lowest DatabaseId (oldest)
+        var primaryOrder = TablesToMigrates.OrderBy(o => o.DatabaseId).First();
+        var secondaryOrders = TablesToMigrates.Where(o => o.DatabaseId != primaryOrder.DatabaseId).ToList();
+        var secondaryOrderIds = secondaryOrders.Select(o => o.DatabaseId).ToList();
+
+        var success = await _dineInOrderServiceFront.MergeDineInOrdersAsync(primaryOrder.DatabaseId, secondaryOrderIds);
+
+        if (success)
+        {
+            _snackbar.Add(Localizer["TablesMergedSuccessfully"], Severity.Success);
+            
+            // Clear in-memory state to force refresh
+            _commonProperties.CurrentDineInOrder = null;
+            _commonProperties.TableId = 0;
+            
+            CloseDialog();
+            _section4ButtonsServices.NotifyStateChanged();
+            await SafeNavigateAsync("/dineIn");
+        }
+        else
+        {
+            _snackbar.Add(Localizer["ActionFailed"], Severity.Error);
+        }
+    }
+
+    private async Task SafeNavigateAsync(string uri)
+    {
+        int maxRetries = 5;
+        int currentRetry = 0;
+        int delayMs = 50;
+
+        while (currentRetry < maxRetries)
+        {
+            try
+            {
+                await Task.Delay(delayMs);
+                if (_navigationManager != null && !string.IsNullOrEmpty(_navigationManager.Uri))
+                {
+                    await InvokeAsync(() => _navigationManager.NavigateTo(uri, forceLoad: false));
+                    return;
+                }
+                else
+                {
+                    throw new InvalidOperationException("NavigationManager not yet initialized");
+                }
+            }
+            catch (Exception ex)
+            {
+                currentRetry++;
+                if (currentRetry >= maxRetries) 
+                {
+                    _snackbar.Add($"Navigation failed: {ex.Message}", Severity.Error);
+                    return;
+                }
+                delayMs *= 2;
+            }
+        }
+    }
+
+    private bool IsMergeDisabled => SelectedTableIds.Count < 2;
+
+    private string GetButtonClass(DineInOrderDetails table)
+    {
+        if (table == null)
+            return "order-button";
+
+        if (table.IsMigrated)
+        {
+            return "order-button merged";
+        }
+
+        return "order-button";
+    }
+
+    private void CloseDialog()
+    {
+        _commonProperties.DialogReference?.Close();
+    }
+}
+
+
+<style>
+    .merge-dialog {
+        direction: rtl;
+        border-radius: 16px !important;
+    }
+
+    .merge-content {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+
+    .order-button {
+        width: 100%;
+        height: 100px !important;
+        border-radius: 16px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        background: white !important;
+        border: 2px solid #e2e8f0 !important;
+    }
+
+    .order-button:hover {
+        border-color: var(--mud-palette-primary) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .order-button.merged {
+        background: var(--mud-palette-primary-lighten) !important;
+        border-color: var(--mud-palette-primary) !important;
+        box-shadow: 0 0 0 4px var(--mud-palette-primary-hover) !important;
+    }
+
+    .table-btn-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        gap: 4px;
+    }
+
+    .table-name {
+        font-family: 'Tajawal', sans-serif !important;
+        font-weight: 700 !important;
+        color: #1e293b;
+    }
+
+    .table-total {
+        font-family: 'Tajawal', sans-serif !important;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .merged .table-name, .merged .table-total {
+        color: var(--mud-palette-primary-darken) !important;
+    }
+</style>

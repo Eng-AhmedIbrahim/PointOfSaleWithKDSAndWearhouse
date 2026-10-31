@@ -1,0 +1,440 @@
+@using POS.Contract.Dtos.OrderDtos
+@inject LocalizationService Localizer
+@inject ISnackbar Snackbar
+@inject IPrintOrderService _printOrderService
+@inject IPrinterServices PrinterServices
+
+@{
+    var isAr = Localizer.GetCurrentLanguage() == "ar";
+    var dir  = isAr ? "rtl" : "ltr";
+}
+
+<MudDialog Class="settlement-dialog" Style="width: 900px; max-width: 98vw;">
+    <TitleContent>
+        <div class="d-flex align-center gap-3" dir="@dir">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight:900; line-height:1.2;">
+                    @(isAr ? "تسوية الطيار" : "Driver Settlement")
+                </MudText>
+                <MudText Typo="Typo.caption" Style="opacity:.7;">
+                    @PosDate.ToString("yyyy-MM-dd")
+                </MudText>
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div dir="@dir" style="max-height: 65vh; overflow-y: auto; padding: 4px;">
+
+            @if (!Settlements.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="ma-4">
+                    @(isAr ? "لا توجد بيانات للتسوية." : "No settlement data found.")
+                </MudAlert>
+            }
+            else
+            {
+                @* Summary strip *@
+                <div class="ds-summary-strip" dir="@dir">
+                    <div class="ds-summary-card ds-total">
+                        <div class="ds-summary-lbl">@(isAr ? "إجمالي المبيعات" : "Total Sales")</div>
+                        <div class="ds-summary-val">@Settlements.Sum(s => s.TotalAmount).ToString("N3")</div>
+                    </div>
+                    <div class="ds-summary-card ds-bonus">
+                        <div class="ds-summary-lbl">@(isAr ? "إجمالي البونص" : "Total Bonus")</div>
+                        <div class="ds-summary-val">@Settlements.Sum(s => s.TotalBonus).ToString("N3")</div>
+                    </div>
+                    <div class="ds-summary-card ds-count">
+                        <div class="ds-summary-lbl">@(isAr ? "عدد الطيارين" : "Drivers")</div>
+                        <div class="ds-summary-val">@Settlements.Count</div>
+                    </div>
+                    <div class="ds-summary-card ds-orders">
+                        <div class="ds-summary-lbl">@(isAr ? "إجمالي الطلبات" : "Total Orders")</div>
+                        <div class="ds-summary-val">@Settlements.Sum(s => s.OrderCount)</div>
+                    </div>
+                </div>
+
+                @* Per-driver cards *@
+                @foreach (var s in Settlements)
+                {
+                    var expanded = _expandedDrivers.Contains(s.DriverId);
+                    var hasOrders = s.Orders != null && s.Orders.Any();
+
+                    <div class="ds-driver-card">
+                        @* Driver header row *@
+                        <div class="ds-driver-header" dir="@dir">
+                            <div class="ds-driver-name">
+                                <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Color="Color.Primary" Size="Size.Small" Class="me-2" />
+                                @s.DriverName
+                            </div>
+
+                            <div class="ds-driver-stats" dir="@dir">
+                                <div class="ds-stat">
+                                    <span class="ds-stat-lbl">@(isAr ? "طلبات" : "Orders")</span>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled">@s.OrderCount</MudChip>
+                                </div>
+                                <div class="ds-stat">
+                                    <span class="ds-stat-lbl">@(isAr ? "المبلغ" : "Amount")</span>
+                                    <span class="ds-amount">@s.TotalAmount.ToString("N3")</span>
+                                </div>
+                                <div class="ds-stat">
+                                    <span class="ds-stat-lbl">@(isAr ? "البونص" : "Bonus")</span>
+                                    <span class="ds-bonus">@s.TotalBonus.ToString("N3")</span>
+                                </div>
+                            </div>
+
+                            <div class="ds-driver-actions">
+                                @* Expand/collapse *@
+                                @if (hasOrders)
+                                {
+                                    <MudTooltip Text="@(isAr ? "تفاصيل الأوردرات" : "Order Details")">
+                                        <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                                       OnClick="@(() => ToggleExpand(s.DriverId))"
+                                                       Color="Color.Default" Size="Size.Small" Variant="Variant.Filled" />
+                                    </MudTooltip>
+                                }
+                                @* Preview + print *@
+                                <MudTooltip Text="@(isAr ? "معاينة وطباعة" : "Preview & Print")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                   OnClick="@(() => OpenPreview(s))"
+                                                   Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" />
+                                </MudTooltip>
+                                @* Direct print (no preview) *@
+                                <MudTooltip Text="@(isAr ? "طباعة مباشرة" : "Direct Print")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Print"
+                                                   OnClick="@(() => PrintSettlement(s))"
+                                                   Color="Color.Success" Size="Size.Small" Variant="Variant.Filled" />
+                                </MudTooltip>
+                            </div>
+                        </div>
+
+                        @* Collapsible orders table *@
+                        @if (expanded && hasOrders)
+                        {
+                            <div class="ds-orders-table" dir="@dir">
+                                <table class="ds-table">
+                                    <thead>
+                                        <tr>
+                                            @if (isAr)
+                                            {
+                                                <th>الإجمالي</th>
+                                                <th>طريقة الدفع</th>
+                                                <th>العميل</th>
+                                                <th>الوقت</th>
+                                                <th>رقم</th>
+                                            }
+                                            else
+                                            {
+                                                <th>#</th>
+                                                <th>Time</th>
+                                                <th>Customer</th>
+                                                <th>Payment</th>
+                                                <th>Total</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var order in s.Orders!)
+                                        {
+                                            <tr>
+                                                @if (isAr)
+                                                {
+                                                    <td class="ds-td-num ds-green">@order.GrandTotal?.ToString("N3")</td>
+                                                    <td class="ds-td-center">@order.PaymentMethod</td>
+                                                    <td>@(order.CustomerName ?? "—")</td>
+                                                    <td class="ds-td-center">@order.OrderDate?.ToString("hh:mm tt")</td>
+                                                    <td class="ds-td-num">#@order.OrderId</td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="ds-td-num">#@order.OrderId</td>
+                                                    <td class="ds-td-center">@order.OrderDate?.ToString("hh:mm tt")</td>
+                                                    <td>@(order.CustomerName ?? "—")</td>
+                                                    <td class="ds-td-center">@order.PaymentMethod</td>
+                                                    <td class="ds-td-num ds-green">@order.GrandTotal?.ToString("N3")</td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="ds-tfoot-row">
+                                            @if (isAr)
+                                            {
+                                                <td class="ds-td-num ds-bold">@s.Orders!.Sum(o => o.GrandTotal ?? 0).ToString("N3")</td>
+                                                <td colspan="4" class="ds-bold">@(isAr ? "الإجمالي" : "Total")</td>
+                                            }
+                                            else
+                                            {
+                                                <td colspan="4" class="ds-bold">@(isAr ? "الإجمالي" : "Total")</td>
+                                                <td class="ds-td-num ds-bold">@s.Orders!.Sum(o => o.GrandTotal ?? 0).ToString("N3")</td>
+                                            }
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        @* ── Inline Preview Panel ── *@
+        @if (_previewDriver != null)
+        {
+            var pd = _previewDriver;
+            <MudDivider Class="my-3" />
+            <div class="ds-preview-panel" dir="@dir">
+                <div class="ds-preview-header">
+                    <span class="ds-preview-title">
+                        @(isAr ? $"معاينة: {pd.DriverName}" : $"Preview: {pd.DriverName}")
+                    </span>
+                    <div class="d-flex gap-2 align-center">
+                        <MudMenu Label="@(isAr ? "اختر طابعة" : "Printer")"
+                                 EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                                 Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                            @if (_printers.Any())
+                            {
+                                @foreach (var p in _printers)
+                                {
+                                    <MudMenuItem OnClick="@(() => PrintSettlementTo(pd, p))">@p</MudMenuItem>
+                                }
+                            }
+                            else
+                            {
+                                <MudMenuItem Disabled="true">@(isAr ? "لا توجد طابعات" : "No printers found")</MudMenuItem>
+                            }
+                        </MudMenu>
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled"
+                                       OnClick="@(() => PrintSettlement(pd))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => _previewDriver = null)" />
+                    </div>
+                </div>
+
+                @* Receipt-style preview *@
+                <div class="ds-receipt" dir="@dir">
+                    <div class="ds-receipt-store">@(isAr ? "تسوية الطيار" : "Driver Settlement")</div>
+                    <div class="ds-receipt-driver">@pd.DriverName</div>
+                    <div class="ds-receipt-date">@PosDate.ToString("yyyy-MM-dd")</div>
+                    <div class="ds-receipt-hr"></div>
+
+                    <div class="ds-receipt-row ds-receipt-bold">
+                        <span>@(isAr ? "عدد الطلبات" : "Orders")</span>
+                        <span>@pd.OrderCount</span>
+                    </div>
+                    <div class="ds-receipt-row ds-receipt-green">
+                        <span>@(isAr ? "إجمالي المبلغ" : "Total Amount")</span>
+                        <span>@pd.TotalAmount.ToString("N3")</span>
+                    </div>
+                    <div class="ds-receipt-row ds-receipt-gold">
+                        <span>@(isAr ? "البونص" : "Bonus")</span>
+                        <span>@pd.TotalBonus.ToString("N3")</span>
+                    </div>
+
+                    @if (pd.Orders != null && pd.Orders.Any())
+                    {
+                        <div class="ds-receipt-hr-dashed"></div>
+                        <div class="ds-receipt-section-title">@(isAr ? "تفاصيل الطلبات" : "Order Details")</div>
+                        <table class="ds-receipt-table">
+                            <thead>
+                                <tr>
+                                    @if (isAr)
+                                    {
+                                        <th>الإجمالي</th><th>العميل</th><th>الوقت</th><th>رقم</th>
+                                    }
+                                    else
+                                    {
+                                        <th>#</th><th>Time</th><th>Customer</th><th>Total</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in pd.Orders)
+                                {
+                                    <tr>
+                                        @if (isAr)
+                                        {
+                                            <td>@o.GrandTotal?.ToString("N3")</td>
+                                            <td>@(o.CustomerName ?? "—")</td>
+                                            <td>@o.OrderDate?.ToString("hh:mm")</td>
+                                            <td>#@o.OrderId</td>
+                                        }
+                                        else
+                                        {
+                                            <td>#@o.OrderId</td>
+                                            <td>@o.OrderDate?.ToString("hh:mm")</td>
+                                            <td>@(o.CustomerName ?? "—")</td>
+                                            <td>@o.GrandTotal?.ToString("N3")</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="ds-receipt-total-row">
+                                    @if (isAr)
+                                    {
+                                        <td><strong>@pd.Orders.Sum(o => o.GrandTotal ?? 0).ToString("N3")</strong></td>
+                                        <td colspan="3"><strong>@(isAr ? "الإجمالي" : "Total")</strong></td>
+                                    }
+                                    else
+                                    {
+                                        <td colspan="3"><strong>@(isAr ? "الإجمالي" : "Total")</strong></td>
+                                        <td><strong>@pd.Orders.Sum(o => o.GrandTotal ?? 0).ToString("N3")</strong></td>
+                                    }
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
+
+                    <div class="ds-receipt-footer">
+                        @(isAr ? "طُبع في:" : "Printed:") @DateTime.Now.ToString("yyyy-MM-dd HH:mm")
+                    </div>
+                </div>
+            </div>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <div class="d-flex align-center gap-2 pa-2" dir="@dir">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="PrintAll">
+                @(isAr ? "طباعة الكل" : "Print All")
+            </MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="Cancel">
+                @(isAr ? "إغلاق" : "Close")
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .settlement-dialog .mud-dialog-content { padding: 8px 16px 0 !important; }
+
+    /* Summary strip */
+    .ds-summary-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .ds-summary-card  { flex: 1; min-width: 100px; border-radius: 10px; padding: 10px 14px; text-align: center; }
+    .ds-total  { background: #e3f2fd; border-left: 4px solid #1565c0; }
+    .ds-bonus  { background: #fff8e1; border-left: 4px solid #f9a825; }
+    .ds-count  { background: #e8f5e9; border-left: 4px solid #2e7d32; }
+    .ds-orders { background: #fce4ec; border-left: 4px solid #c62828; }
+    .ds-summary-lbl { font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 4px; }
+    .ds-summary-val { font-size: 18px; font-weight: 900; }
+
+    /* Driver card */
+    .ds-driver-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .ds-driver-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: #f9fafb; padding: 10px 16px; gap: 12px; flex-wrap: wrap;
+        border-bottom: 1px solid #eee;
+    }
+    .ds-driver-name { font-size: 15px; font-weight: 900; color: #1a237e; display: flex; align-items: center; }
+    .ds-driver-stats { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    .ds-stat { display: flex; flex-direction: column; align-items: center; }
+    .ds-stat-lbl { font-size: 10px; opacity: .6; font-weight: 700; }
+    .ds-amount { font-size: 16px; font-weight: 900; color: #2e7d32; }
+    .ds-bonus  { font-size: 16px; font-weight: 900; color: #f57f17; }
+    .ds-driver-actions { display: flex; gap: 6px; }
+
+    /* Orders table inside card */
+    .ds-orders-table { padding: 12px 16px; background: #fff; }
+    .ds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ds-table th { background: #eeeeee; padding: 7px 10px; border: 1px solid #bbb; font-weight: 900; text-align: center; }
+    .ds-table td { padding: 6px 10px; border: 1px solid #e0e0e0; }
+    .ds-table tbody tr:nth-child(even) { background: #f9f9f9; }
+    .ds-td-num    { text-align: center; font-weight: 700; }
+    .ds-td-center { text-align: center; }
+    .ds-green { color: #2e7d32; font-weight: 900; }
+    .ds-bold  { font-weight: 900; }
+    .ds-tfoot-row td { background: #e8eaf6; border: 2px solid #3949ab; font-weight: 900; padding: 8px 10px; }
+
+    /* Preview panel */
+    .ds-preview-panel { background: #f5f5f5; border-radius: 10px; padding: 12px 16px; }
+    .ds-preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .ds-preview-title { font-size: 15px; font-weight: 900; color: #1a237e; }
+
+    /* Receipt styles */
+    .ds-receipt {
+        background: #fff;
+        width: 280px; margin: 0 auto;
+        padding: 10px 12px;
+        font-family: 'Courier New', monospace; font-size: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+        border-radius: 6px;
+    }
+    .ds-receipt-store   { text-align: center; font-size: 14px; font-weight: 900; letter-spacing: 1px; }
+    .ds-receipt-driver  { text-align: center; font-size: 13px; font-weight: 700; margin: 2px 0; }
+    .ds-receipt-date    { text-align: center; font-size: 11px; opacity: .65; margin-bottom: 4px; }
+    .ds-receipt-hr      { border-top: 2px solid #000; margin: 5px 0; }
+    .ds-receipt-hr-dashed { border-top: 1.5px dashed #000; margin: 5px 0; }
+    .ds-receipt-section-title { text-align: center; font-weight: 900; background: #000; color: #fff; padding: 2px; margin: 4px 0 2px; font-size: 11px; }
+    .ds-receipt-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .ds-receipt-bold  { font-weight: 900; }
+    .ds-receipt-green { color: #1b5e20; font-weight: 700; }
+    .ds-receipt-gold  { color: #e65100; font-weight: 700; }
+    .ds-receipt-table { width: 100%; border-collapse: collapse; }
+    .ds-receipt-table th { font-size: 10px; font-weight: 900; border: 1px solid #000; padding: 2px; text-align: center; background: #ddd; }
+    .ds-receipt-table td { font-size: 10px; border: 1px solid #ccc; padding: 2px 3px; text-align: center; }
+    .ds-receipt-total-row td { background: #eee; border: 1.5px solid #000; font-size: 11px; }
+    .ds-receipt-footer { text-align: center; font-size: 9px; opacity: .55; border-top: 1px dashed #000; padding-top: 4px; margin-top: 8px; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<DriverSettlementDto> Settlements { get; set; } = new();
+    [Parameter] public DateTime PosDate { get; set; }
+
+    private HashSet<string> _expandedDrivers = new();
+    private DriverSettlementDto? _previewDriver;
+    private List<string> _printers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _printers = await PrinterServices.GetInstalledPrinters();
+    }
+
+    private void ToggleExpand(string driverId)
+    {
+        if (_expandedDrivers.Contains(driverId))
+            _expandedDrivers.Remove(driverId);
+        else
+            _expandedDrivers.Add(driverId);
+    }
+
+    private void OpenPreview(DriverSettlementDto settlement)
+    {
+        _previewDriver = settlement;
+    }
+
+    private async Task PrintSettlement(DriverSettlementDto settlement)
+    {
+        var isAr = Localizer.GetCurrentLanguage() == "ar";
+        Snackbar.Add(isAr ? $"جاري طباعة تسوية {settlement.DriverName}..." : $"Printing {settlement.DriverName} settlement...", Severity.Info);
+        await _printOrderService.PrintDriverSettlementAsync(settlement, PosDate);
+    }
+
+    private async Task PrintSettlementTo(DriverSettlementDto settlement, string printerName)
+    {
+        var isAr = Localizer.GetCurrentLanguage() == "ar";
+        Snackbar.Add(isAr ? $"إرسال إلى {printerName}..." : $"Sending to {printerName}...", Severity.Info);
+        await _printOrderService.PrintDriverSettlementAsync(settlement, PosDate, printerName);
+    }
+
+    private async Task PrintAll()
+    {
+        var isAr = Localizer.GetCurrentLanguage() == "ar";
+        Snackbar.Add(isAr ? "جاري طباعة تقرير الطيارين..." : "Printing driver report...", Severity.Info);
+        await _printOrderService.PrintAllDriversSettlementAsync(Settlements, PosDate);
+        Snackbar.Add(isAr ? "تم إرسال تقرير الطيارين للطباعة" : "Driver report sent to printer", Severity.Success);
+    }
+
+
+    private void Cancel() => MudDialog.Cancel();
+}

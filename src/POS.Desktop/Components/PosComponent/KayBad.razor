@@ -1,0 +1,13 @@
+﻿<div class="button-row">
+    <MudButton Variant="Variant.Filled" Style="height: 100%; width: 50%;">
+        @(number1)
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Style="height: 100%; width: 50%;">
+        @(number2)
+    </MudButton>
+</div>
+
+@code {
+    [Parameter] public int number1 { get; set; }
+    [Parameter] public int number2 { get; set; }
+}

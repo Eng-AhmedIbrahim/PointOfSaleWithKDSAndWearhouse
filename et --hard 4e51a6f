@@ -1,0 +1,92 @@
+[33md99018d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m desk
+[33m06929fd[m Desktop
+[33m4e51a6f[m Refactor code structure and improve performance in key modules
+[33m00be258[m Distrubution
+[33m1fee1a5[m DispatcherUpdated
+[33m5f09a96[m LastUpdate
+[33m08257a3[m Dispatcher
+[33m5758d20[m Dispatcher
+[33m3625072[m CallCenterUpdate
+[33m26041c2[m DeliveryOrder
+[33m47c3bc9[m dispatcher
+[33md6e37d9[m distribution
+[33m1630034[m lastUpdates
+[33mb6e17f5[m delivery
+[33ma3b51dc[m UpdateLineDiscount
+[33m5729d0b[m updateDelivery
+[33m51d97cd[m PosSettingUpdated
+[33m1d2c351[m AddPosSettingController
+[33m006c7aa[m AddNewSplitOrder
+[33m18e6ee3[m lastupdate
+[33mf017ace[m updateReceipt
+[33mc0f6114[m SplitOrder
+[33maf0b100[m SplitOrder
+[33mfb3c44d[m addSplitReceiptDialog
+[33m64fec2a[m UpdateReceiptSettings
+[33m08aa3db[m AddReceiptSettings
+[33m331ed90[m AddPosModel
+[33ma56e42d[m CreateDineInOrderInDateBase
+[33m9d70953[m dineInCustomerReceipt
+[33mf47e32b[m DineIn
+[33m98add44[m dineinUpdates
+[33med55a8f[m updateTakeawayOrder
+[33m1cbccd6[m LastUpdate
+[33m5f0af35[m updateLastChanges
+[33ma9568c8[m up
+[33mff2057a[m Add README.md.
+[33m0c94c78[m LastUpdate
+[33m5d14892[m LastUpdate
+[33m3a42500[m LastUpdate
+[33m7b97bb4[m AddingOrderControllerAndWaitingModule
+[33mc3e2324[m fix ReportController.cs
+[33mebd659e[m add rest of sec 4
+[33m6b9e476[m QuestPDF Report Maker
+[33m3019bb2[m Report
+[33mf83816a[m PrinterDemo
+[33me48e310[m printer
+[33mc5af6dd[m Section4Updated
+[33m0daf8b0[m AddCartService
+[33mc562609[m Section3DisabledSomeButtons
+[33mc8173c9[m CreateCartServices
+[33mf3d8ce7[m LastPosUpdate
+[33m16716a4[m UpdatePosLayoutColors
+[33m2acd0c4[m AddPosModes
+[33m2152335[m fix sec3 and add its Settings To Drawer
+[33m76ba362[m Section4Items
+[33m34b6ad8[m UpdateItemsModifiers
+[33m9bc23d8[m Section4Modifiers
+[33m68d575d[m POS
+[33maab8b47[m adding api service helpers
+[33m7eff848[m OrderSection
+[33m7110f0b[m AddSection4Table
+[33ma94f9ae[m AddSection3AndEditSettingPage
+[33mae3a56e[m updateLoginPage
+[33m8d06948[m AddUserController
+[33m8fa3848[m AddSrttingAction
+[33mb0b4615[m UpdateLoginPageAndPOS
+[33m27b47a6[m AddSeriLog
+[33mdf702c4[m LinkWithApi
+[33m964c60e[m adding mud and bootstrap
+[33m3acfe42[m UpdatePosScreen
+[33ma9612dd[m LastUpdate
+[33mde35037[m AddPOS.CommonFile
+[33m6ff8c15[m AddBlazorFile
+[33m87d8cfd[m UpdatedItemController
+[33m7466ae9[m adding IncludeStrings
+[33m3a93822[m ItemController
+[33m3106f90[m ItemsConfigrations
+[33mb94fb74[m AhmedEdit
+[33mcbeebcc[m Merge branch 'main' of https://github.com/Ibra-himAbdo/PointOfSale
+[33m2d7b92e[m Updated
+[33meb3d2a2[m adding Menu Item and attribute relations
+[33m6a8698f[m test item model need to be handled
+[33m326525f[m Entites
+[33mc98e458[m fix logger
+[33m6d14dbb[m adding Flexible Caching Service
+[33m9061b9a[m adding some improvements and Serilog logger
+[33m273fead[m CreateAll
+[33mc4d5b05[m Delete src/PointOfSale directory
+[33mc84d6e4[m Merge branch 'main' of https://github.com/Ibra-himAbdo/PointOfSale
+[33m5dfb000[m Initial
+[33m981da35[m Initial
+[33md56dc32[m Initial commit

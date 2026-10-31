@@ -1,0 +1,48 @@
+﻿@inject NavigationManager _navigationManager
+@inject IConfiguration _configuration
+@using MudBlazor
+@if (cultures is not null)
+{
+    <div class="m-2 mr-2" style="width: 100px;">
+        <MudSelect T="string"
+                   Placeholder="@cultures[selectedCulture]"
+                   ValueChanged="HandleCultureChanged">
+
+            @foreach (var culture in cultures)
+            {
+                <MudSelectItem Value="@culture.Key">@culture.Value</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+}
+
+@code {
+    private Dictionary<string, string> cultures = new();
+
+    private string selectedCulture = Thread.CurrentThread.CurrentCulture.Name;
+    protected override void OnInitialized()
+        => cultures = _configuration.GetSection("Cultures").GetChildren()
+           .ToDictionary(x => x.Key, x => x.Value ?? x.Key);
+
+    private void HandleCultureChanged(string culture)
+    {
+        selectedCulture = culture;
+        RequestChangeCulture();
+    }
+
+    private void RequestChangeCulture()
+    {
+        if (string.IsNullOrWhiteSpace(selectedCulture))
+            return;
+
+        var uri = new Uri(_navigationManager.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
+
+        var query = $"?culture={Uri.EscapeDataString(selectedCulture)}&" +
+            $"redirectUri={Uri.EscapeDataString(uri)}";
+
+        _navigationManager.NavigateTo("/Cultures/SetCulture" + query, forceLoad: true);
+    }
+
+
+}

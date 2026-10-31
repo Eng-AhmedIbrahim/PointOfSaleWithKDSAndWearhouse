@@ -1,0 +1,80 @@
+﻿@page "/"
+@page "/login"
+@inject IHttpClientFactory _clientFactory
+@inject NavigationManager _navigationManager
+@inject ISnackbar Snackbar
+@inject CommonProperties _commonProperties
+@layout AuthLayout
+
+<div class="container">
+    <div class="left-panel">
+        <div>
+            <h1>New Tech</h1>
+            <p>ERP Management System</p>
+            <img src="/images/logo.png" />
+        </div>
+    </div>
+    <div class="right-panel">
+        <div class="login-form">
+            <label class="login-label">Login</label>
+            <select @onchange="HandelOnChange" class="form-control">
+                <option disabled selected>Select User Name</option>
+                @foreach (var user in Users)
+                {
+                    <option>@user.UserName</option>
+                }
+            </select>
+            <input type="password" class="form-control mt-2" placeholder="Enter PIN" @bind-value="_pin" />
+
+
+            <MudGrid Class="keypad m-0 w-100 mt-3">
+                @for (byte keypadNumber = 1; keypadNumber <= 9; keypadNumber++)
+                {
+                    var number = keypadNumber;
+                    <MudItem xs="4" Class="p-0">
+                        <div class="mud-item">
+                            <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="() => AddDigit(number.ToString())">
+                                @(number.ToString())
+                            </MudButton>
+                        </div>
+                    </MudItem>
+                }
+                <MudItem xs="4" Class="p-0">
+                    <div class="mud-item">
+                        <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="DeleteLastDigit">BS</MudButton>
+                    </div>
+                </MudItem>
+                <MudItem xs="4" Class="p-0">
+                    <div class="mud-item">
+                        <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick='() => AddDigit("0")'>0</MudButton>
+                    </div>
+                </MudItem>
+                <MudItem xs="4" Class="p-0">
+                    <div class="mud-item">
+                        <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="ClearInput">DEL</MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+        </div>
+        <div class="login-btn">
+            <button class="btn btn-primary custom-btn" @onclick="()=>LoginAction()">
+                Login
+            </button>
+            <button class="btn btn-danger custom-btn">
+                Exit
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mud-button-label {
+        font-size: 22px;
+    }
+
+    .mud-snackbar {
+        background-color: #bb2d3b;
+        color: white;
+    }
+</style>

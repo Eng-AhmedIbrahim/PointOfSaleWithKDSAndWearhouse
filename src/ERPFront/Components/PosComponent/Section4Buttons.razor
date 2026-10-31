@@ -1,0 +1,44 @@
+@using BlazorBase.ERPFrontServices.PrintOrderServices
+@inject CommonProperties _commonProperties
+@inject Section4ButtonsServices _services
+@inject NavigationManager _navigationManager
+@inject ISnackbar _snackbar
+@inject CartService _cartService
+@inject AppDateService _appDateService
+@inject PrintOrderService _printOrderService
+@inject IJSRuntime _jsRuntime
+@inject IConfiguration _configuration
+
+
+<MudGrid Spacing="0" Justify="Justify.Center">
+    <MudItem xs="4">
+        <MudButton Variant="Variant.Filled"
+                   FullWidth="true"
+                   Class="special-sec4-button liner-grid-buttons"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Cancel"
+                   OnClick="CancelOrder" >
+            Cancel
+        </MudButton>
+    </MudItem>
+    <MudItem xs="4">
+        <MudButton Variant="Variant.Filled"
+                   FullWidth="true"
+                   Class="special-sec4-button liner-grid-buttons"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.HourglassTop"
+                   OnClick="AddOrderToWaitingQueue">
+            Waiting
+        </MudButton>
+    </MudItem>
+    <MudItem xs="4">
+        <MudButton Variant="Variant.Filled"
+                   FullWidth="true"
+                   Class="special-sec4-button liner-grid-buttons"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   OnClick="PrintOrder">
+            Print
+        </MudButton>
+    </MudItem>
+</MudGrid>

@@ -1,0 +1,44 @@
+﻿@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+
+<MudDialog FullWidth="true" MaxWidth="MaxWidth.None" Class="custom-dialog-width">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Add Discount</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <MudSelect @bind-Value="DiscountType" Label="Discount Type"  FullWidth="true" CloseIcon="@Icons.Material.Filled.Discount" AdornmentColor="Color.Tertiary">
+                <MudSelectItem Value="DiscountPercentage" />
+                <MudSelectItem Value="DiscountValue" />
+            </MudSelect>
+
+
+            <MudTextField T="decimal" Label="Discount Amount"
+                          @bind-Value="DiscountAmount"
+                          Adornment="Adornment.End"
+                          AdornmentText="@GetAdornment()"
+                          Immediate="true"
+                          FullWidth="true" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="ApplyDiscount" Color="Color.Primary" Disabled="@IsApplyDisabled">
+            <MudIcon Icon="@Icons.Material.Filled.Check" />
+            Apply
+        </MudButton>
+        <MudButton OnClick="CloseDialog" Color="Color.Secondary">
+            <MudIcon Icon="@Icons.Material.Filled.Close" />
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .custom-dialog-width {
+        max-width: 90%;
+        width: 500px;
+    }
+</style>

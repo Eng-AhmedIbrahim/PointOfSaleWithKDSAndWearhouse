@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="2026-03-10" ReportInfo.Modified="03/13/2026 19:17:55" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="Summary" ReferenceName="ReportData.Summary" DataType="System.Int32" Enabled="true">
+      <Column Name="Subtotal" DataType="System.Decimal"/>
+      <Column Name="DeliveryFees" DataType="System.Decimal"/>
+      <Column Name="Service" DataType="System.Decimal"/>
+      <Column Name="Tax" DataType="System.Decimal"/>
+      <Column Name="MinCharge" DataType="System.Decimal"/>
+      <Column Name="Reservation" DataType="System.Decimal"/>
+      <Column Name="OutstandingPay" DataType="System.Decimal"/>
+      <Column Name="TotalIncome" DataType="System.Decimal"/>
+      <Column Name="Credit" DataType="System.Decimal"/>
+      <Column Name="OnTable" DataType="System.Decimal"/>
+      <Column Name="Outstanding" DataType="System.Decimal"/>
+      <Column Name="TotalCityLedger" DataType="System.Decimal"/>
+      <Column Name="Expenses" DataType="System.Decimal"/>
+      <Column Name="SalesReturn" DataType="System.Decimal"/>
+      <Column Name="TotalExpenses" DataType="System.Decimal"/>
+      <Column Name="CashDiscount" DataType="System.Decimal"/>
+      <Column Name="TotalDiscount" DataType="System.Decimal"/>
+      <Column Name="NetTotal" DataType="System.Decimal"/>
+      <Column Name="CashPost" DataType="System.Decimal"/>
+      <Column Name="Variance" DataType="System.Decimal"/>
+      <Column Name="NetCash" DataType="System.Decimal"/>
+      <Column Name="GrossSales" DataType="System.Decimal"/>
+      <Column Name="OrderCount" DataType="System.Decimal"/>
+      <Column Name="OrderAVG" DataType="System.Decimal"/>
+      <Column Name="SoldItemsCount" DataType="System.Decimal"/>
+      <Column Name="PartialVoidAmount" DataType="System.Decimal"/>
+      <Column Name="FullVoidAmount" DataType="System.Decimal"/>
+      <Column Name="TakeAwayTotal" DataType="System.Decimal"/>
+      <Column Name="TakeAwayCount" DataType="System.Decimal"/>
+      <Column Name="DineInTotal" DataType="System.Decimal"/>
+      <Column Name="DineInCount" DataType="System.Decimal"/>
+      <Column Name="DeliveryTotal" DataType="System.Decimal"/>
+      <Column Name="DeliveryCount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="Categories" ReferenceName="ReportData.Categories" DataType="System.Int32" Enabled="true">
+      <Column Name="CategoryName" DataType="System.String"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+      <Column Name="Percentage" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="HourlySales" ReferenceName="ReportData.HourlySales" DataType="System.Int32" Enabled="true">
+      <Column Name="HourLabel" DataType="System.String"/>
+      <Column Name="Amount" DataType="System.Decimal"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+    </TableDataSource>
+    <TableDataSource Name="ModeDetails" ReferenceName="ReportData.ModeDetails" DataType="System.Int32" Enabled="true">
+      <Column Name="ModeTitle" DataType="System.String"/>
+      <Column Name="Subtotal" DataType="System.Decimal"/>
+      <Column Name="Discount" DataType="System.Decimal"/>
+      <Column Name="NetSales" DataType="System.Decimal"/>
+      <Column Name="TotalTaxAndService" DataType="System.Decimal"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderCount" DataType="System.Int32"/>
+    </TableDataSource>
+    <TableDataSource Name="VoidedOrders" ReferenceName="ReportData.VoidedOrders" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderType" DataType="System.String"/>
+      <Column Name="OrderState" DataType="System.String"/>
+      <Column Name="VoidAmount" DataType="System.Decimal"/>
+      <Column Name="VoidReason" DataType="System.String"/>
+      <Column Name="VoidByName" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="DetailedOrders" ReferenceName="ReportData.DetailedOrders" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderType" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="ItemsDetails" ReferenceName="ReportData.ItemsDetails" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="TotalAmount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String" AsString=""/>
+    <Parameter Name="ToDate" DataType="System.String" AsString=""/>
+    <Parameter Name="ReportTitle" DataType="System.String" AsString=""/>
+    <Parameter Name="BranchName" DataType="System.String" AsString=""/>
+    <Parameter Name="TotalItemsValue" DataType="System.String" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" FirstPageSource="15">
+    <ReportTitleBand Name="HeaderBand" Width="718.2" Height="140">
+      <TextObject Name="HBranch" Width="718" Height="45" Text="[BranchName]" HorzAlign="Center" VertAlign="Center" Font="Arial, 22pt, style=Bold"/>
+      <TextObject Name="HTitle" Left="184.1" Top="50" Width="350" Height="30" Border.Lines="Bottom" Border.Width="1.5" Text="تقرير ملخص المبيعات الشامل" HorzAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="BoxInfo" Top="95" Width="718" Height="35" Border.Lines="Top, Bottom" Font="Arial, 10pt"/>
+      <TextObject Name="InfoDateRange" Left="10" Top="102" Width="350" Height="20" Text="الفترة من: [FromDate] إلى: [ToDate]" Font="Arial, 10pt"/>
+      <TextObject Name="InfoPrintDate" Left="450" Top="102" Width="258" Height="20" Text="وقت الطباعة: [DateTime.Now]" Format="Date" Format.Format="dd/MM/yyyy HH:mm" HorzAlign="Right" Font="Arial, 9pt"/>
+    </ReportTitleBand>
+    <DataBand Name="MainData" Top="143.2" Width="718.2" Height="580" DataSource="Summary">
+      <TextObject Name="BoxD" Top="10" Width="230" Height="80" Border.Lines="All" Fill.Color="240, 240, 240" Font="Arial, 10pt"/>
+      <TextObject Name="DT" Top="15" Width="230" Height="20" Text="مبيعات الصالة" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="DV2" Left="10" Top="58" Width="210" Height="20" Text="صافي: [Summary.DineInTotal]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="BoxT" Left="244" Top="10" Width="230" Height="80" Border.Lines="All" Fill.Color="240, 240, 240" Font="Arial, 10pt"/>
+      <TextObject Name="TT" Left="244" Top="15" Width="230" Height="20" Text="مبيعات التيك أواي" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="TV2" Left="254" Top="58" Width="210" Height="20" Text="صافي: [Summary.TakeAwayTotal]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="BoxDel" Left="488" Top="10" Width="230" Height="80" Border.Lines="All" Fill.Color="240, 240, 240" Font="Arial, 10pt"/>
+      <TextObject Name="DelT" Left="488" Top="15" Width="230" Height="20" Text="مبيعات التوصيل" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="DelV2" Left="498" Top="58" Width="210" Height="20" Text="صافي: [Summary.DeliveryTotal]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="Sec1T" Left="159" Top="110" Width="400" Height="25" Border.Lines="All" Fill.Color="Black" Text="الملخص المالي العام" HorzAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+      <TableObject Name="TblAccounting" Left="159" Top="135" Width="400" Height="150" Border.Lines="All">
+        <TableColumn Width="200"/>
+        <TableColumn Width="200"/>
+        <TableRow Height="25">
+          <TableCell Border.Lines="Bottom" Text="[Summary.GrossSales]" Padding="5, 0, 0, 0" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" Font="Arial, 10pt"/>
+          <TableCell Border.Lines="Bottom" Text="إجمالي المبيعات (قبل الخصم)" Padding="0, 0, 5, 0" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="25">
+          <TableCell Border.Lines="Bottom" Text="[Summary.TotalDiscount]" Padding="5, 0, 0, 0" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" Font="Arial, 10pt"/>
+          <TableCell Border.Lines="Bottom" Text="إجمالي الخصومات" Padding="0, 0, 5, 0" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="25">
+          <TableCell Border.Lines="Bottom" Text="[Summary.Expenses]" Padding="5, 0, 0, 0" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" Font="Arial, 10pt"/>
+          <TableCell Border.Lines="Bottom" Text="المصروفات" Padding="0, 0, 5, 0" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="25">
+          <TableCell Border.Lines="Bottom" Text="([Summary.SalesReturn])" Padding="5, 0, 0, 0" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" Font="Arial, 10pt"/>
+          <TableCell Border.Lines="Bottom" Text="المرتجعات" Padding="0, 0, 5, 0" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="50">
+          <TableCell Fill.Color="224, 224, 224" Text="[Summary.NetTotal]" Padding="5, 0, 0, 0" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" Font="Arial, 16pt, style=Bold"/>
+          <TableCell Fill.Color="224, 224, 224" Text="صافي الإيرادات النقدية" Padding="0, 0, 5, 0" HorzAlign="Right" Font="Arial, 14pt, style=Bold"/>
+        </TableRow>
+      </TableObject>
+      <TextObject Name="SecStat" Left="159" Top="300" Width="400" Height="25" Border.Lines="All" Fill.Color="Black" Text="إحصائيات التشغيل" HorzAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TableObject Name="TblStats" Left="159" Top="325" Width="400" Height="100" Border.Lines="All">
+        <TableColumn Width="200"/>
+        <TableColumn Width="200"/>
+        <TableRow Height="20">
+          <TableCell Border.Lines="Bottom" Text="[Summary.OrderCount]" HorzAlign="Left" Font="Arial, 10pt, style=Bold"/>
+          <TableCell Border.Lines="Bottom" Text="إجمالي عدد الطلبات" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="20">
+          <TableCell Border.Lines="Bottom" Text="[Summary.DineInCount]" HorzAlign="Left" Font="Arial, 10pt, style=Bold"/>
+          <TableCell Border.Lines="Bottom" Text="عدد طلبات الصالة" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="20">
+          <TableCell Border.Lines="Bottom" Text="[Summary.TakeAwayCount]" HorzAlign="Left" Font="Arial, 10pt, style=Bold"/>
+          <TableCell Border.Lines="Bottom" Text="عدد طلبات التيك أواي" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="20">
+          <TableCell Border.Lines="Bottom" Text="[Summary.DeliveryCount]" HorzAlign="Left" Font="Arial, 10pt, style=Bold"/>
+          <TableCell Border.Lines="Bottom" Text="عدد طلبات التوصيل" HorzAlign="Right" Font="Arial, 10pt"/>
+        </TableRow>
+        <TableRow Height="20">
+          <TableCell Fill.Color="240, 240, 240" Text="[Summary.OrderAVG]" Format="Number" HorzAlign="Left" Font="Arial, 11pt, style=Bold"/>
+          <TableCell Fill.Color="240, 240, 240" Text="متوسط قيمة الطلب" HorzAlign="Right" Font="Arial, 11pt, style=Bold"/>
+        </TableRow>
+      </TableObject>
+      <TextObject Name="AnalHeader" Top="440" Width="718" Height="40" Fill.Color="64, 64, 64" Text="التحليلات البيانية وتوزيع المبيعات" HorzAlign="Center" VertAlign="Center" Font="Arial, 16pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="HrSubHeader" Left="10" Top="490" Width="698" Height="25" Border.Color="Silver" Text="توزيع المبيعات حسب ساعات العمل" ProcessAt="ReportFinished" Font="Arial, 11pt, style=Bold"/>
+    </DataBand>
+    <DataBand Name="HourlyData" Top="626.95" Width="359.1" Height="35" DataSource="HourlySales" Columns.Count="2" Columns.Width="359.1">
+      <TextObject Name="HrBox" Left="10" Top="2" Width="340" Height="30" Border.Lines="All" Border.Color="Silver" Fill.Color="WhiteSmoke" Font="Arial, 10pt"/>
+      <TextObject Name="HrLabel" Left="20" Top="7" Width="60" Height="20" Text="[HourlySales.HourLabel]" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+      <TextObject Name="HrVal" Left="85" Top="7" Width="100" Height="20" Text="[HourlySales.Amount]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="Navy"/>
+      <TextObject Name="HrQty" Left="195" Top="7" Width="145" Height="20" Text="([HourlySales.OrderCount] طلب)" HorzAlign="Right" VertAlign="Center" Font="Arial, 9pt"/>
+    </DataBand>
+    <!-- Operating Segments SECTION -->
+    <DataHeaderBand Name="ModeHeaderBand" Width="718.2" Height="40" StartNewPage="true">
+       <TextObject Name="MT1_Title" Left="0" Top="5" Width="718" Height="30" Text="تحليل المبيعات حسب قطاع التشغيل" Font="Arial, 14pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="Navy" TextFill.Color="White" RTL="true"/>
+    </DataHeaderBand>
+
+    <DataBand Name="ModeData" Width="718.2" Height="75" DataSource="ModeDetails">
+       <TableObject Name="ModeD" Left="0" Top="0" Width="718" Height="75" Border.Lines="All" Border.Color="Silver">
+         <TableColumn Width="150"/><TableColumn Width="120"/><TableColumn Width="120"/><TableColumn Width="120"/><TableColumn Width="208"/>
+         <!-- Header row (Only prints for the first record) -->
+         <TableRow Height="40" PrintIfExpression="[ModeData.IsFirstRow]">
+            <TableCell Text="الإجمالي الصافي" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+            <TableCell Text="الضريبة والخدمة" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+            <TableCell Text="إجمالي الخصم" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+            <TableCell Text="صافي المبيعات" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+            <TableCell Text="النوع" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+         </TableRow>
+         <!-- Data row -->
+         <TableRow Height="35">
+           <TableCell Text="[ModeDetails.GrandTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 11pt, style=Bold" Fill.Color="245, 245, 245"/>
+           <TableCell Text="[ModeDetails.TotalTaxAndService]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 10pt"/>
+           <TableCell Text="[ModeDetails.Discount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 10pt"/>
+           <TableCell Text="[ModeDetails.NetSales]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 10pt"/>
+           <TableCell Text="[ModeDetails.ModeTitle]" Font="Arial, 10pt, style=Bold" RTL="true" Padding="0,5,0,0" HorzAlign="Right" VertAlign="Center"/>
+         </TableRow>
+       </TableObject>
+    </DataBand>
+
+    <!-- VOIDS LIST SECTION -->
+    <DataHeaderBand Name="VoidHeaderBand" Width="718.2" Height="100" StartNewPage="false">
+      <TextObject Name="Sec3T" Left="0" Top="5" Width="718" Height="30" Text="تفاصيل الإلغاءات (Detailed Void Report)" Font="Arial, 14pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="Black" TextFill.Color="White" RTL="true"/>
+      <TableObject Name="TblVoidLH" Left="0" Top="45" Width="718" Height="40" Border.Lines="All" Border.Color="Silver">
+        <TableColumn Width="250"/><TableColumn Width="100"/><TableColumn Width="90"/><TableColumn Width="90"/><TableColumn Width="110"/><TableColumn Width="78"/>
+        <TableRow Height="40">
+          <TableCell Text="سبب الإلغاء" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+          <TableCell Text="بواسطة" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+          <TableCell Text="المبلغ" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+          <TableCell Text="قيمة الطلب" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+          <TableCell Text="تاريخ الإلغاء" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+          <TableCell Text="رقم الطلب" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+        </TableRow>
+      </TableObject>
+    </DataHeaderBand>
+
+    <DataBand Name="VoidListData" Width="718.2" Height="35" DataSource="VoidedOrders">
+       <TableObject Name="TblVoidLD" Left="0" Top="0" Width="718" Height="35" Border.Lines="All" Border.Color="Silver">
+          <TableColumn Width="250"/><TableColumn Width="100"/><TableColumn Width="90"/><TableColumn Width="90"/><TableColumn Width="110"/><TableColumn Width="78"/>
+          <!-- Data row -->
+          <TableRow Height="35">
+            <TableCell Text="[VoidedOrders.VoidReason]" HorzAlign="Right" VertAlign="Center" RTL="true" Padding="0,5,0,0" Font="Arial, 9pt"/>
+            <TableCell Text="[VoidedOrders.VoidByName]" HorzAlign="Right" VertAlign="Center" RTL="true" Padding="0,5,0,0" Font="Arial, 9pt"/>
+            <TableCell Text="[VoidedOrders.VoidAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 10pt, style=Bold" TextFill.Color="Maroon"/>
+            <TableCell Text="[VoidedOrders.GrandTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" VertAlign="Center" Padding="0,0,5,0" Font="Arial, 9pt"/>
+            <TableCell Text="[VoidedOrders.OrderDate]" Format="Date" Format.Format="dd/MM HH:mm" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+            <TableCell Text="[VoidedOrders.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+          </TableRow>
+       </TableObject>
+    </DataBand>
+
+    <!-- DETAILED ORDERS SECTION -->
+    <DataHeaderBand Name="OrdersHeaderBand" Width="718.2" Height="100" StartNewPage="false">
+      <TextObject Name="Sec4T" Left="0" Top="10" Width="718" Height="35" Text="تفاصيل الأوردرات (Orders Details)" Font="Arial, 14pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="Black" TextFill.Color="White" RTL="true"/>
+      <TableObject Name="TblOrdersLH" Left="0" Top="55" Width="718" Height="40" Border.Lines="All" Border.Color="Silver">
+         <TableColumn Width="240"/><TableColumn Width="240"/><TableColumn Width="238"/>
+         <TableRow Height="40">
+           <TableCell Text="الإجمالي" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+           <TableCell Text="النوع" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+           <TableCell Text="رقم الطلب" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+         </TableRow>
+      </TableObject>
+    </DataHeaderBand>
+
+    <DataBand Name="OrdersListData" Width="718.2" Height="35" DataSource="DetailedOrders">
+       <TableObject Name="TblOrdersLD" Left="0" Top="0" Width="718" Height="35" Border.Lines="All" Border.Color="Silver">
+          <TableColumn Width="240"/><TableColumn Width="240"/><TableColumn Width="238"/>
+          <!-- Data row -->
+          <TableRow Height="35">
+            <TableCell Text="[DetailedOrders.GrandTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+            <TableCell Text="[DetailedOrders.OrderType]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+            <TableCell Text="#[DetailedOrders.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+          </TableRow>
+       </TableObject>
+    </DataBand>
+
+    <!-- ITEMS DETAILS SECTION -->
+    <DataHeaderBand Name="ItemsHeaderBand" Width="718.2" Height="100" StartNewPage="false">
+      <TextObject Name="Sec5T" Left="0" Top="10" Width="718" Height="35" Text="تفاصيل الأصناف المباعة (Sold Items)" Font="Arial, 14pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="Black" TextFill.Color="White" RTL="true"/>
+      <TableObject Name="TblItemsLH" Left="0" Top="55" Width="718" Height="40" Border.Lines="All" Border.Color="Silver">
+         <TableColumn Width="150"/><TableColumn Width="418"/><TableColumn Width="150"/>
+         <TableRow Height="40">
+           <TableCell Text="الإجمالي" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+           <TableCell Text="إسم الصنف" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+           <TableCell Text="الكمية" Font="Arial, 11pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="224, 224, 224" RTL="true" Border.Lines="All"/>
+         </TableRow>
+      </TableObject>
+    </DataHeaderBand>
+
+    <DataBand Name="ItemsListData" Width="718.2" Height="35" DataSource="ItemsDetails">
+       <TableObject Name="TblItemsLD" Left="0" Top="0" Width="718" Height="35" Border.Lines="All" Border.Color="Silver">
+          <TableColumn Width="150"/><TableColumn Width="418"/><TableColumn Width="150"/>
+          <!-- Data row -->
+          <TableRow Height="35">
+            <TableCell Text="[ItemsDetails.TotalAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold"/>
+            <TableCell Text="[ItemsDetails.ItemName]" HorzAlign="Right" VertAlign="Center" RTL="true" Padding="0,5,0,0" Font="Arial, 10pt"/>
+            <TableCell Text="[ItemsDetails.Qty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt"/>
+          </TableRow>
+       </TableObject>
+    </DataBand>
+
+    <ReportSummaryBand Name="ItemsFooterBand" Width="718.2" Height="50">
+       <TableObject Name="TblItemsFooter" Left="0" Top="0" Width="718" Height="40" Border.Lines="All" Border.Color="Silver">
+          <TableColumn Width="150"/><TableColumn Width="568"/>
+          <TableRow Height="40">
+            <TableCell Text="[TotalItemsValue]" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" Fill.Color="240, 240, 240"/>
+            <TableCell Text="الإجمالي الكلي" HorzAlign="Right" VertAlign="Center" RTL="true" Padding="0,15,0,0" Font="Arial, 12pt, style=Bold" Fill.Color="240, 240, 240"/>
+          </TableRow>
+       </TableObject>
+    </ReportSummaryBand>
+
+    <PageFooterBand Name="FooterBand" Width="718.2" Height="40">
+      <LineObject Name="LineFooter" Left="0" Top="5" Width="718" Border.Width="1"/>
+      <TextObject Name="FLeft" Left="10" Top="10" Width="200" Height="20" Text="تاريخ الطباعة: [DateTime.Now]" Format="Date" Format.Format="dd/MM/yyyy HH:mm" Font="Arial, 8pt" RTL="true"/>
+      <TextObject Name="FCenter" Left="250" Top="10" Width="218" Height="20" Text="صفحة [Page] من [TotalPages#]" Font="Arial, 9pt" HorzAlign="Center" RTL="true"/>
+      <TextObject Name="FRight" Left="508" Top="10" Width="200" Height="20" Text="[BranchName]" Font="Arial, 8pt" HorzAlign="Right" RTL="true"/>
+    </PageFooterBand>
+
+  </ReportPage>
+</Report>

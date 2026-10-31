@@ -1,0 +1,31 @@
+﻿/* Default label size */
+.setting-label {
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+/* Adjust label size on smaller screens */
+@media (max-width: 768px) {
+    .label-item {
+        width: 30%; /* Reduce label width */
+    }
+
+    .setting-label {
+        font-size: 0.85rem; /* Reduce font size */
+    }
+
+    .switch-item {
+        text-align: left;
+    }
+}
+
+/* Extra small screens (phones) */
+@media (max-width: 480px) {
+    .label-item {
+        width: 25%;
+    }
+
+    .setting-label {
+        font-size: 0.75rem;
+    }
+}

@@ -1,0 +1,56 @@
+@inject NavigationManager Navigation
+@inject ICustomizationSettingsService CustomizationSettingsService
+@inject LocalizationService Localizar
+
+<MudDrawer Open="@Open"
+           OpenChanged="@OnOpenChanged"
+           Anchor="@Anchor"
+           Variant="@DrawerVariant.Temporary"
+           OverlayAutoClose="@OverlayAutoClose"
+           Width="400px"
+           Style="overflow:hidden">
+
+    <div style="display:flex; flex-direction:column; height:100%; width:100%">
+
+        <MudDrawerHeader>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Large" />
+                <MudText Typo="Typo.h6">@Title</MudText>
+            </MudStack>
+        </MudDrawerHeader>
+
+        <!-- 👇 هنا الاسكرول -->
+        <div class="px-0 flex-grow-1 overflow-y-auto">
+            <div class="pa-4 bg-light border-b mb-3">
+                <MudText Typo="Typo.subtitle2" Class="mb-1 grey-text">
+                    Drawer Position
+                </MudText>
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" FullWidth Size="Size.Small">
+                    <MudButton OnClick="() => SetAnchor(Anchor.Start)">Start</MudButton>
+                    <MudButton OnClick="() => SetAnchor(Anchor.End)">End</MudButton>
+                    <MudButton OnClick="() => SetAnchor(Anchor.Top)">Top</MudButton>
+                    <MudButton OnClick="() => SetAnchor(Anchor.Bottom)">Bottom</MudButton>
+                </MudButtonGroup>
+            </div>
+
+            @if (CurrentPageName.Equals(PagesNames.POS))
+            {
+                <LocalizationSettingsComponent />
+                <Section3SettingsComponent />
+                <FinanceSettingsComponent />
+            }
+        </div>
+
+        <MudNavMenu>
+            <MudNavLink OnClick="@CloseDrawer"
+                        Icon="@Icons.Material.Filled.Close"
+                        Class="close-drawer-link">
+                @Localizar["CloseSettings"]
+            </MudNavLink>
+        </MudNavMenu>
+
+    </div>
+</MudDrawer>
+
+
+

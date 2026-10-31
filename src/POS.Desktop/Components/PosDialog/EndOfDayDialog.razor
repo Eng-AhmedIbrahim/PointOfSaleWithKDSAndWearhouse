@@ -1,0 +1,161 @@
+@inject IAppDateService AppDateService
+@inject IReportingErpService ReportingService
+@inject IPrintOrderService PrintOrderService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+@inject CommonProperties _commonProperties
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.EventBusy" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudStack AlignItems="MudBlazor.AlignItems.Center" Class="pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                <MudText>@Localizer["Loading"]...</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                    @Localizer["CurrentPosDate"]: <b>@_currentPosDate.ToShortDateString()</b>
+                </MudAlert>
+
+                @if (_pendingOrders != null && _pendingOrders.Any())
+                {
+                    <MudAlert Severity="Severity.Error" Variant="MudBlazor.Variant.Filled" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1"><b>@Localizer["CannotCloseDay"]</b></MudText>
+                        <MudText>@Localizer["ThereAre"] @_pendingOrders.Count @Localizer["PendingOrders"].</MudText>
+                    </MudAlert>
+
+                    <MudPaper Style="max-height: 230px; overflow-y: auto;" Elevation="0" Outlined="true" Class="pa-2">
+                        <MudList T="string">
+                            @foreach (var order in _pendingOrders)
+                            {
+                                <MudListItem>
+                                    <div class="d-flex justify-space-between">
+                                        <span>#@order.OrderId (@order.OrderType)</span>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(order.OrderState)">@order.OrderState</MudChip>
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudPaper>
+                    
+                    <MudText Color="Color.Error" Typo="Typo.caption" Align="Align.Center">
+                        @Localizer["PleaseCompleteOrVoidAllOrdersBeforeClosing"]
+                    </MudText>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Variant="MudBlazor.Variant.Outlined">
+                        @Localizer["AllOrdersReadyToClose"]
+                    </MudAlert>
+                    
+                    <MudText Align="Align.Center" Class="mt-2">
+                        @Localizer["CloseDayConfirmationMessage"]
+                    </MudText>
+                    
+                    <MudCheckBox @bind-Value="_printReport" Label="@Localizer["PrintEndOfDayReport"]" Color="Color.Primary" Dense="true" />
+
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2 text-center">
+                        @Localizer["ThisActionWillResetOrderCountsAndAdvanceDate"]
+                    </MudAlert>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text">@Localizer["Cancel"]</MudButton>
+        @if (!_isLoading && (_pendingOrders == null || !_pendingOrders.Any()))
+        {
+            <MudButton Color="Color.Error" OnClick="PerformCloseDay" Variant="MudBlazor.Variant.Filled" StartIcon="@Icons.Material.Filled.CheckCircle">@Localizer["ConfirmCloseDay"]</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = "";
+
+    private bool _isLoading = true;
+    private DateTime _currentPosDate;
+    private List<OrderDto> _pendingOrders = new();
+    private bool _printReport = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {
+            var appDate = await AppDateService.GetAppDate();
+            _currentPosDate = appDate.PosDate;
+            
+            _pendingOrders = await ReportingService.GetPendingOrders(_currentPosDate);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error loading data: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(string? status) => status switch
+    {
+        "Pending" => Color.Primary,
+        "Dispatched" => Color.Warning,
+        "Assigned" => Color.Info,
+        "OnTable" => Color.Info,
+        _ => Color.Default
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task PerformCloseDay()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_printReport)
+            {
+                var summary = await ReportingService.GetSalesSummary(_currentPosDate);
+                var items = await ReportingService.GetSalesItemsSummary(_currentPosDate);
+                
+                await PrintOrderService.PrintEndDayReportAsync(summary, items, null, false, true);
+                Snackbar.Add("End of day report sent to printer", Severity.Info);
+            }
+
+            var success = await AppDateService.CloseDay();
+            if (success)
+            {
+                _commonProperties.CurrentOrderId = 0;
+                Snackbar.Add("Day closed successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+                Snackbar.Add("Failed to close day", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

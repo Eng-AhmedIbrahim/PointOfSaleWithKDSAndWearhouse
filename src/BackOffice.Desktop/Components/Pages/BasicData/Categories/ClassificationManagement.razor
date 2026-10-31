@@ -1,0 +1,220 @@
+@page "/basicdata/classifications"
+@using POS.Contract.Dtos.ItemDto
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.ItemServices
+@using Radzen
+@using Radzen.Blazor
+@inject IItemService ItemService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+@inject NavigationManager NavigationManager
+
+<link href="basicdata/categorymanagement.css" rel="stylesheet" />
+
+<div class="category-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.Class" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "أقسام الفئات (Classifications)" : "Category Classifications")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem;">
+                @(IsArabic ? "إضافة قسم فئة جديد" : "Add New Classification")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث بالاسم أو الكود..." : "Search by name or ID...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredClassifications" 
+                            TItem="ItemsClassificationsDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="ItemsClassificationsDto" Property="Id" Title="@(IsArabic ? "كود القسم" : "ID")" Width="100px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="classification">
+                            <span style="font-weight: 900; color: #3b82f6;">#@classification.Id</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ItemsClassificationsDto" Property="ArabicName" Title="@(IsArabic ? "الاسم بالعربي" : "Arabic Name")" Width="200px">
+                        <Template Context="classification">
+                            <span style="font-weight: bold;">@classification.ArabicName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="ItemsClassificationsDto" Property="Name" Title="@(IsArabic ? "الاسم بالإنجليزي" : "English Name")" Width="200px">
+                        <Template Context="classification">
+                            <span style="font-weight: bold;">@classification.Name</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ItemsClassificationsDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="160px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="classification">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => OpenEditDialog(classification))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="MudBlazor.Color.Error" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => DeleteClassification(classification))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ItemsClassificationsDto> Classifications = new();
+    private List<ItemsClassificationsDto> FilteredClassifications = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<ItemsClassificationsDto>? grid;
+    private string SearchTerm = "";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await ItemService.GetAllClassificationsAsync();
+            if (response != null && response.Success && response.Data != null)
+            {
+                Classifications = response.Data.ToList();
+                ApplyFilter();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل أقسام الفئات..." : "Failed to load classifications...", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredClassifications = new List<ItemsClassificationsDto>(Classifications);
+        }
+        else
+        {
+            var term = SearchTerm.ToLower().Trim();
+            FilteredClassifications = Classifications.Where(x => 
+                (x.ArabicName != null && x.ArabicName.ToLower().Contains(term)) ||
+                (x.Name != null && x.Name.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ExistingClassifications"] = Classifications
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<ClassificationDialog>(IsArabic ? "إضافة قسم فئة جديد" : "Add New Classification", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEditDialog(ItemsClassificationsDto classification)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ClassificationToEdit"] = classification
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<ClassificationDialog>(IsArabic ? "تعديل قسم فئة" : "Edit Classification", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteClassification(ItemsClassificationsDto classification)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemName"] = IsArabic ? classification.ArabicName : classification.Name,
+            ["TitleArabic"] = "تأكيد الحذف",
+            ["MessageArabic"] = $"هل أنت متأكد من حذف قسم الفئة '{classification.ArabicName}'؟"
+        };
+        
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<DeleteConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await ItemService.DeleteClassificationAsync(classification.Id);
+            if (response != null && response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add(response?.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+@using BlazorBase
+@using POS.Core.Services.Contract.PosFeatureServices
+@inject CommonProperties _commons
+@inject IPosFeatureSettingsService _featureSettingsService
+
+<Routes />
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Global initialization: Load settings for this computer at the very beginning
+        if (_commons.FeatureSettings == null || !_commons.FeatureSettings.Any())
+        {
+            _commons.FeatureSettings = await _featureSettingsService.GetSettingsByComputerNameAsync(Environment.MachineName);
+        }
+    }
+}
+

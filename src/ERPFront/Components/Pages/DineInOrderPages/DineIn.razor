@@ -1,0 +1,240 @@
+﻿@page "/dineIn"
+@layout MainLayout
+@inject CommonProperties _commonProperties
+@inject IHttpClientFactory _httpClientFactory
+@inject DineInService _DineInService
+@inject Section4ButtonsServices _section4ButtonsServices
+@using ERPFront.Components.DineInComponents
+
+<MudGrid Spacing="0" Class="overflow-hidden">
+    <MudItem xs="6">
+        <MudText Typo="Typo.h6" Class="section-label">Tables</MudText>
+        <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden border-r border-b border-solid custom-border-color">
+
+            <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" StretchItems="StretchItems.None"
+                      Spacing="1">
+
+                <MudItem xs="12" Class="tables-first-section">
+                    <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden tables-first-section">
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" StretchItems="StretchItems.None"
+                                  Spacing="1" Class="sales-items-container">
+                            @foreach (var tableGroup in _tableGroups ?? [])
+                            {
+                                <MudButton Size="Size.Large" Variant="Variant.Filled"
+                                           DisableElevation="true"
+                                           Class="same-width liner-grid-buttons item-button"
+                                           Style="@($"padding:{_commonProperties!.SalesItemsHorizontalSlider * 4}px;font-size:{_commonProperties!.SalesItemsVerticalSlider * 4}px; width:{_commonProperties!.SalesItemsHorizontalSlider * 20}px;font-weight: bolder;margin: 1px;")"
+                                           @onclick='async () => await GetTablesFromGroup(tableGroup.Id)'>
+                                    @tableGroup.GroupName
+                                </MudButton>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" Class="tables-second-section">
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Spacing="2">
+                        @foreach (var table in _tables ?? [])
+                        {
+                            <MudButton Size="Size.Large" Variant="Variant.Filled" DisableElevation="true"
+                                       Class="@GetTableClass(table)"
+                                       Color="_commonProperties!.DineInOrdersDetails!.Keys.Contains(table.Id!.Value) ? Color.Error : Color.Default"
+                                       OnClick="() => ToggleState(tableStates, table!.Id!.Value,table!.TableName!, UpdateState)">
+                                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@( Icons.Material.Filled.TableBar )" Size="Size.Large" />
+                                    <MudText Typo="Typo.subtitle2">@table.TableName</MudText>
+                                </MudStack>
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudItem>
+
+                <!-- Third Section -->
+                <MudItem xs="12" Class="tables-third-section">
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Spacing="1">
+                        @foreach (var captainOrder in _captainOrders ?? [])
+                        {
+                            <MudButton Size="Size.Large" Variant="Variant.Filled" DisableElevation="true"
+                                       Class="@GetButtonClass(captainOrder)"
+                                       OnClick="() => ToggleState(buttonStates!, captainOrder.Id,captainOrder!.ArabicName!, UpdateState)">
+                                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@( Icons.Material.Filled.Person )" Size="Size.Large" />
+                                    <MudText Typo="Typo.subtitle2">@captainOrder.ArabicName</MudText>
+                                </MudStack>
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudItem>
+            
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 2 -->
+
+    <MudItem xs="5" Class="full-height">
+        <MudText Typo="Typo.h6" Class="section-label">Order Details</MudText>
+        <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden full-height border-r border-b border-solid custom-border-color">
+
+            <MudStack Row="false" AlignItems="AlignItems.Start" Spacing="2" Class="full-width">
+                
+                <MudPaper Elevation="1" Class="rounded-0 overflow-y-auto overflow-x-hidden Section4-height border-b border-solid custom-border-color full-width">
+                    <Section4Table Items="Items" Disabled="true" />
+                </MudPaper>
+
+                <MudPaper Elevation="2" Class="order-summary full-width full-height-Section2">
+                    <MudStack Row="false" AlignItems="AlignItems.Stretch" Spacing="2" Height="100%">
+
+                        <MudStack Row="true" Justify="Justify.Center" Spacing="2">
+                            <MudText Typo="Typo.h6" Class="order-id label-color">Order ID #@_commonProperties!.DineInOrderValues!.OrderID </MudText>
+                        </MudStack>
+                        
+                        <MudStack Row="true" JustifyContent="Justify.Start" Spacing="2">
+                            <MudText Typo="Typo.body1" Class="label label-color">Open Time : @_commonProperties!.DineInOrderValues!.TableOpenTime</MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" JustifyContent="Justify.Start" Spacing="2">
+                            <MudText Typo="Typo.body1" Class="label label-color">Table : @_commonProperties!.DineInOrderValues!.TableName</MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" JustifyContent="Justify.Start" Spacing="2">
+                            <MudText Typo="Typo.body1" Class="label label-color">Captain Name : @_commonProperties!.DineInOrderValues!.CaptainName</MudText>
+                        </MudStack>
+
+                        <MudStack AlignItems="AlignItems.Center" Row="true" class="mt-4" Spacing="2">
+                            <MudText Typo="Typo.body1" Class="label label-color">ToTal :</MudText>
+                            <MudTextField FullWidth="true" @bind-Value="@(_commonProperties!.DineInOrderValues!.Total)" Disabled="true" Class="input-field" />
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Section 3 -->
+    <MudItem xs="1">
+        <MudText Typo="Typo.h6" Class="section-label">Actions</MudText>
+        <MudPaper Elevation="1" Height="100%" Class="rounded-0 overflow-hidden border-r border-b border-solid custom-border-color">
+            <MenuButtons />
+        </MudPaper>
+    </MudItem>
+
+
+</MudGrid>
+
+
+<style>
+    .full-height {
+        height: calc(100vh - 41.59px) !important;
+        max-height: calc(100vh - 41.59px) !important;
+        box-sizing: border-box;
+    }
+
+    .tables-first-section {
+        height: calc(30vh - 41.59px) !important;
+        max-height: calc(30vh - 41.59px) !important;
+        box-sizing: border-box;
+        overflow-y: hidden;
+        border-bottom: 1px solid rgb(58 59 59);
+    }
+
+    .tables-second-section {
+        height: calc(55vh - 41.59px) !important;
+        max-height: calc(55vh - 41.59px) !important;
+        box-sizing: border-box;
+        overflow-y: auto;
+        border-bottom: 1px solid rgb(58 59 59);
+        
+    }
+
+    .tables-third-section {
+        height: calc(30vh - 41.59px) !important;
+        max-height: calc(30vh - 41.59px) !important;
+        box-sizing: border-box;
+        overflow-y: auto;
+    }
+
+    .same-width {
+        min-width: 140px;
+    }
+
+
+    .order-button {
+        background-color: rgba(66,66,66,1);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+    .red-button {
+        background-color: #f87207 !important; /* Active button color */
+    }
+
+    .table-button {
+        background-color: rgba(66,66,66,1);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+        .table-button.unavailable {
+            background-color: #f87207 !important; /* Color for unavailable tables */
+        }
+
+    .full-width {
+        width: 100%;
+    }
+
+    .Section4-height {
+        height: calc(60vh - 41.59px) !important;
+        max-height: calc(60vh - 41.59px) !important;
+        box-sizing: border-box;
+    }
+
+    .Account-section {
+        height: calc(44vh - 41.59px) !important;
+        max-height: calc(44vh - 41.59px) !important;
+        box-sizing: border-box;
+    }
+
+    .order-summary {
+        background: #F8FAFC; /* Light blue/grayish background */
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid #D1D5DB; /* Light gray border */
+        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-field {
+        background-color: #ffffff; /* White input fields */
+        border: 1px solid #D1D5DB; /* Light border */
+        border-radius: 4px;
+        padding: 8px;
+    }
+
+    .total-field {
+        font-weight: bold;
+        color: #374151; /* Darker text for total */
+        background: #E5E7EB; /* Light gray background */
+    }
+
+    .full-height-Section2 {
+        height: 100%;
+        overflow:hidden;
+    }
+
+    .label {
+        min-width: 100px; /* Adjust as needed to make labels uniform */
+        padding-right: 8px;
+        font-weight:bold;
+        font-size: 1rem;
+    }
+
+</style>

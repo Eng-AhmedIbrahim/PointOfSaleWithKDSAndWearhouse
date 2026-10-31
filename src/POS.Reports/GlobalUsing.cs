@@ -1,0 +1,16 @@
+global using QuestPDF.Fluent;
+global using QuestPDF.Helpers;
+global using QuestPDF.Infrastructure;
+global using POS.Contract.Models;
+global using System.Data;
+global using ClosedXML.Excel;
+global using POS.Contract.Dtos.ReportingDtos;
+global using POS.Core.Repository.Contract;
+global using POS.Core.Entities.Item;
+global using POS.Core.Services.Contract.InventoryServices;
+global using POS.Core.Services.Contract.ReportingServices;
+global using POS.Core.Services.Contract.CompanyService;
+global using POS.Core.Specifications.InventorySpecs;
+global using POS.Contract.Dtos.OrderDtos;
+global using POS.Reports.ReportsMakerServices;
+global using Unit = QuestPDF.Infrastructure.Unit;

@@ -1,0 +1,26 @@
+@using MudBlazor
+@inject LocalizationService Localizer
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField Label="@Localizer["Order ID"]" 
+                      @bind-Value="OrderId" 
+                      Variant="Variant.Outlined" 
+                      Immediate="true"
+                      Adornment="Adornment.End" 
+                      AdornmentIcon="@Icons.Material.Filled.ConfirmationNumber" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">@Localizer["Print"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    public int OrderId { get; set; }
+
+    void Submit() => MudDialog.Close(DialogResult.Ok(OrderId));
+    void Cancel() => MudDialog.Cancel();
+}

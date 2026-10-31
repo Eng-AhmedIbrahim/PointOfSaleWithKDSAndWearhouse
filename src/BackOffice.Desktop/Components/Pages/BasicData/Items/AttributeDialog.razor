@@ -1,0 +1,534 @@
+@using POS.Core.Entities.Item
+@using POS.Core.Services.Contract.ItemServices
+@inject IAttributeService AttributeService
+@inject ISnackbar Snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+@inject IDialogService DialogService
+
+<MudDialog Class="custom-dialog attribute-dialog" dir="@(IsArabic ? "rtl" : "ltr")">
+    <DialogContent>
+        <RadzenTemplateForm TItem="Attributes" Data="@Model" Submit="@SubmitForm">
+            <div class="p-6">
+                <!-- ID & Basic Info Row -->
+                <div class="d-flex align-items-end gap-3 mb-6">
+                    <div class="id-section">
+                        <label class="field-label-small">ID</label>
+                        <div class="id-badge-large">#@(Model.Id == 0 ? "NEW" : Model.Id)</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label class="field-label">@(IsArabic ? "الاسم بالعربي" : "Arabic Name")</label>
+                        <RadzenTextBox @bind-Value="Model.ArabicName" Name="ArabicName" 
+                                       Style="width:100%; height: 48px; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0;" 
+                                       Placeholder="@(IsArabic ? "مثلاً: الصوصات، الإضافات..." : "Example: Sauces, Extras...")" />
+                        <RadzenRequiredValidator Component="ArabicName" Text="@(IsArabic ? "الاسم مطلوب" : "Name is required")" />
+                    </div>
+                    <div class="flex-grow-1">
+                        <label class="field-label">@(IsArabic ? "الاسم بالإنجليزي" : "English Name")</label>
+                        <RadzenTextBox @bind-Value="Model.EnglishName" Name="EnglishName" 
+                                       Style="width:100%; height: 48px; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0;" 
+                                       Placeholder="@(IsArabic ? "Ex: Sauces, Extras..." : "Ex: Sauces, Extras...")" />
+                        <RadzenRequiredValidator Component="EnglishName" Text="@(IsArabic ? "Required" : "Required")" />
+                    </div>
+                </div>
+
+                <div class="groups-container mb-6">
+                    <div class="d-flex align-center gap-3 mb-4">
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Medium" Variant="MudBlazor.Variant.Filled" 
+                                   Color="MudBlazor.Color.Primary" OnClick="AddGroup" Class="add-group-btn-premium">
+                            @(IsArabic ? "إضافة مجموعة جديدة" : "Add New Group")
+                        </MudButton>
+                        <div class="flex-grow-1">
+                            <p class="section-hint-premium">@(IsArabic ? "المجموعات تظهر كخيارات لتقسيم الأصناف في المنيو (مثل: الاحجام، الاضافات)" : "Groups appear as categories for items in menu (e.g. Sizes, Add-ons)")</p>
+                        </div>
+                    </div>
+
+                    <div class="groups-scroll-area-premium px-2">
+                        @if (Model.AttributeGroups.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach (var group in Model.AttributeGroups.OrderBy(x => x.DisplayOrder))
+                                {
+                                    <div class="group-chip-premium animate__animated animate__fadeIn">
+                                        <div class="group-index-premium">@group.DisplayOrder</div>
+                                        <div class="group-content">
+                                            <span class="group-label-premium">@(IsArabic ? "مجموعة" : "Group") @group.DisplayOrder</span>
+                                            <span class="group-sublabel-premium">@(IsArabic ? "نظام آلي" : "Auto System")</span>
+                                        </div>
+                                        <div class="d-flex animate__animated animate__fadeIn">
+                                            <MudIconButton Icon="@Icons.Material.Filled.AddCircleOutline" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" 
+                                                           Title="@(IsArabic ? "إضافة صنف لهذه المجموعة" : "Add item to this group")"
+                                                           OnClick="@(() => OpenItemSelector(group.Uid))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" 
+                                                           Class="group-delete-btn" OnClick="@(() => RemoveGroup(group))" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                             <div class="empty-state-groups">
+                                 <MudIcon Icon="@Icons.Material.Filled.Category" Size="MudBlazor.Size.Large" Class="mb-2 opacity-20" />
+                                 <div>@(IsArabic ? "لا توجد مجموعات حالياً. سيتم ربط الأصناف مباشرة." : "No groups added. Items will be linked directly.")</div>
+                             </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Linked Items Section -->
+                <div class="section-divider mb-4">
+                    <span class="divider-text">@(IsArabic ? "ربط العناصر (Menu Items)" : "Linked Menu Items")</span>
+                </div>
+
+                <div class="items-header-bar mb-4">
+                    <div class="d-flex align-center gap-3">
+                        <div class="header-icon-box">
+                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" />
+                        </div>
+                        <div>
+                            <div class="header-title">@(IsArabic ? "ربط العناصر بالمنيو" : "Link Menu Items")</div>
+                            <p class="header-subtitle">@(IsArabic ? "حدد الأصناف وأسعارها الإضافية لكل مجموعة" : "Select items and their extra prices")</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-center gap-2">
+                        @if (Model.AttributeItems.Any())
+                        {
+                            <div class="items-count-badge">
+                                @Model.AttributeItems.Count @(IsArabic ? "أصناف" : "Items")
+                            </div>
+                        }
+                        <MudButton StartIcon="@Icons.Material.Filled.AddCircle" Size="MudBlazor.Size.Medium" Variant="MudBlazor.Variant.Filled" 
+                                   Color="MudBlazor.Color.Success" OnClick="@(() => OpenItemSelector())" Class="add-item-btn-premium">
+                            @(IsArabic ? "إضافة صنف" : "Add Item")
+                        </MudButton>
+                    </div>
+                </div>
+
+                <div class="linked-items-grid-premium">
+                    <MudTable Items="@Model.AttributeItems" Dense="false" Hover="true" MaxHeight="300px" Elevation="0" 
+                              Class="border-0 rounded-2xl overflow-hidden shadow-sm items-table-premium">
+                        <HeaderContent>
+                            <MudTh Class="th-premium">ID</MudTh>
+                            <MudTh Class="th-premium">@(IsArabic ? "الصنف" : "Item")</MudTh>
+                            <MudTh Class="th-premium" Style="width: 140px;">@(IsArabic ? "السعر الإضافي" : "Extra Price")</MudTh>
+                            <MudTh Class="th-premium" Style="width: 200px;">@(IsArabic ? "المجموعة" : "Group")</MudTh>
+                            <MudTh Class="th-premium" Style="width: 60px;"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="itemContext">
+                            <MudTd DataLabel="ID">
+                                <span class="id-cell">#@itemContext.RelatedMenuItemId</span>
+                            </MudTd>
+                            <MudTd DataLabel="Item">
+                                <div class="item-cell-content">
+                                    <div class="item-name-main">@(IsArabic ? itemContext.RelatedMenuItem?.ArabicName : itemContext.RelatedMenuItem?.EnglishName)</div>
+                                    <div class="item-type-tag">Menu Item</div>
+                                </div>
+                            </MudTd>
+                            <MudTd DataLabel="Price">
+                                <MudNumericField @bind-Value="itemContext.ExtraPrice" HideSpinButtons="true" Margin="MudBlazor.Margin.Dense" 
+                                                 Variant="MudBlazor.Variant.Outlined" Adornment="Adornment.End" AdornmentText="EGP" 
+                                                 Class="price-input-premium" />
+                            </MudTd>
+                            <MudTd DataLabel="Group">
+                                <MudSelect T="Guid?" 
+                                           Value="@(itemContext.TempGroupUid)"
+                                           ValueChanged="@((Guid? val) => OnGroupChanged(itemContext, val))"
+                                           Dense="true" 
+                                           Placeholder="@(IsArabic ? "بدون مجموعة" : "No Group")"
+                                           Variant="MudBlazor.Variant.Outlined"
+                                           Margin="MudBlazor.Margin.Dense" 
+                                           Class="group-select-premium"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           PopoverClass="group-select-popover">
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Block" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" />
+                                            <span>@(IsArabic ? "بدون مجموعة" : "No Group")</span>
+                                        </div>
+                                    </MudSelectItem>
+                                    @foreach (var g in Model.AttributeGroups.OrderBy(x => x.DisplayOrder))
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@g.Uid">
+                                            <div class="d-flex align-center gap-2">
+                                                <div class="group-select-idx">@g.DisplayOrder</div>
+                                                <span class="font-bold">@(IsArabic ? $"مجموعة {g.DisplayOrder}" : $"Group {g.DisplayOrder}")</span>
+                                            </div>
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteSweep" Size="MudBlazor.Size.Medium" 
+                                               Color="MudBlazor.Color.Error" OnClick="@(() => RemoveItem(itemContext))" 
+                                               Class="item-delete-btn"/>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            </div>
+
+            <div class="dialog-footer-premium">
+                <div class="d-flex gap-2">
+                    <MudButton OnClick="TogglePreview" Variant="MudBlazor.Variant.Outlined" 
+                               Color="@(_showPreview ? MudBlazor.Color.Secondary : MudBlazor.Color.Info)" 
+                               StartIcon="@(_showPreview ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                               Class="footer-btn-utility">
+                        @(IsArabic ? (_showPreview ? "إخفاء العرض" : "عرض مسبق") : (_showPreview ? "Hide Preview" : "Live Preview"))
+                    </MudButton>
+                </div>
+
+                <div class="flex-grow-1"></div>
+
+                <div class="d-flex gap-3">
+                    <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" 
+                               Class="footer-btn-cancel">@(IsArabic ? "إلغاء التغييرات" : "Cancel")</MudButton>
+                    <MudButton ButtonType="MudBlazor.ButtonType.Submit" Variant="MudBlazor.Variant.Filled" 
+                               Color="MudBlazor.Color.Primary" Class="footer-btn-save" Disabled="@_isSaving">
+                        @(_isSaving ? (IsArabic ? "جاري الحفظ..." : "Processing...") : (IsArabic ? "إتمام وحفظ الخاصية" : "Finalize & Save"))
+                    </MudButton>
+                </div>
+            </div>
+
+            @if (_showPreview)
+            {
+                <div class="preview-overlay animate__animated animate__fadeInUp">
+                    <div class="preview-content-card">
+                        <div class="preview-header">
+                            <MudIcon Icon="@Icons.Material.Filled.Insights" Class="mr-2" />
+                            @(IsArabic ? "كيف ستظهر للعميل؟" : "Customer View Preview")
+                        </div>
+                        <div class="preview-body p-6">
+                            <div class="preview-attr-name">@(IsArabic ? Model.ArabicName : Model.EnglishName)</div>
+                            
+                            @if (!Model.AttributeGroups.Any())
+                            {
+                                <div class="preview-items-grid">
+                                    @foreach (var item in Model.AttributeItems)
+                                    {
+                                        <div class="preview-item-card">
+                                            <div class="p-item-name">@(IsArabic ? item.RelatedMenuItem?.ArabicName : item.RelatedMenuItem?.EnglishName)</div>
+                                            <div class="p-item-price">+@item.ExtraPrice EGP</div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var group in Model.AttributeGroups.OrderBy(x => x.DisplayOrder))
+                                {
+                                    <div class="preview-group-section mb-4">
+                                        <div class="preview-group-title">@(IsArabic ? "مجموعة" : "Group") @group.DisplayOrder</div>
+                                        <div class="preview-items-grid">
+                                            @foreach (var item in Model.AttributeItems.Where(x => x.TempGroupUid == group.Uid || (x.AttributeGroupId == group.Id && group.Id > 0)))
+                                            {
+                                                <div class="preview-item-card">
+                                                    <div class="p-item-name">@(IsArabic ? item.RelatedMenuItem?.ArabicName : item.RelatedMenuItem?.EnglishName)</div>
+                                                    <div class="p-item-price">+@item.ExtraPrice EGP</div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                
+                                <div class="preview-group-section mb-4">
+                                     <div class="preview-group-title opacity-50">@(IsArabic ? "بدون مجموعة" : "No Group")</div>
+                                     <div class="preview-items-grid">
+                                         @foreach (var item in Model.AttributeItems.Where(x => x.TempGroupUid == null && (x.AttributeGroupId == null || x.AttributeGroupId == 0)))
+                                         {
+                                             <div class="preview-item-card">
+                                                 <div class="p-item-name">@(IsArabic ? item.RelatedMenuItem?.ArabicName : item.RelatedMenuItem?.EnglishName)</div>
+                                                 <div class="p-item-price">+@item.ExtraPrice EGP</div>
+                                             </div>
+                                         }
+                                     </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </RadzenTemplateForm>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .attribute-dialog { border-radius: 24px !important; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important; }
+    .field-label { display: block; font-weight: 800; color: #64748b; font-size: 0.8rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field-label-small { color: #94a3b8; font-weight: 900; font-size: 0.7rem; letter-spacing: 1px; }
+    
+    .id-badge-large { background: #f8fafc; color: #334155; font-weight: 900; font-size: 1.15rem; padding: 8px 16px; border-radius: 12px; border: 2px solid #e2e8f0; height: 48px; display: flex; align-items: center; }
+
+    .section-divider { position: relative; display: flex; align-items: center; margin: 24px 0; }
+    .divider-text { background: white; padding-inline: 16px; color: #3b82f6; font-weight: 900; font-size: 0.8rem; z-index: 1; border: 2px solid #eff6ff; border-radius: 20px; }
+    .section-divider::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: #f1f5f9; z-index: 0; }
+    
+    /* Groups Section Premium */
+    .groups-container { background: #fafafa; padding: 20px; border-radius: 20px; border: 1px dashed #e2e8f0; }
+    .add-group-btn-premium { border-radius: 12px; font-weight: 800; text-transform: none; padding: 8px 20px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); }
+    .section-hint-premium { font-size: 0.75rem; color: #94a3b8; font-weight: 600; line-height: 1.4; margin: 0; padding-inline: 4px; }
+    
+    .group-chip-premium { 
+        display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; 
+        padding: 6px 10px; border-radius: 16px; min-width: 140px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s;
+    }
+    .group-chip-premium:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .group-index-premium { background: IsArabic ? "#3b82f6" : "#3b82f6"; color: white; width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 900; margin-inline-end: 12px; }
+    .group-content { flex-grow: 1; display: flex; flex-direction: column; }
+    .group-label-premium { font-weight: 800; font-size: 0.85rem; color: #1e293b; line-height: 1.2; }
+    .group-sublabel-premium { font-size: 0.65rem; color: #94a3b8; font-weight: 600; }
+    .group-delete-btn { opacity: 0.3; transition: opacity 0.2s; }
+    .group-chip-premium:hover .group-delete-btn { opacity: 1; }
+
+    /* Table Premium */
+    .items-table-premium { border: 1px solid #f1f5f9 !important; }
+    .th-premium { background: #f8fafc !important; color: #64748b !important; font-weight: 900 !important; font-size: 0.75rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .id-cell { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; }
+    .item-name-main { font-weight: 800; color: #1e293b; font-size: 0.9rem; }
+    .item-type-tag { font-size: 0.65rem; color: #94a3b8; font-weight: 700; }
+    .price-input-premium ::deep .mud-input { background: white !important; border-radius: 12px; font-weight: 700; font-size: 0.9rem; border-color: #e2e8f0; }
+    .group-select-premium { margin-top: 0 !important; }
+    .group-select-premium ::deep .mud-input-control-input-container { background: white !important; border-radius: 12px; }
+    .group-select-premium ::deep .mud-input { font-size: 0.8rem !important; font-weight: 700; color: #334155; }
+    .group-select-idx { background: #3b82f6; color: white; border-radius: 4px; padding: 0 6px; font-size: 0.7rem; font-weight: 900; }
+    
+    .group-select-popover { border-radius: 16px !important; margin-top: 4px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; }
+    
+    .items-count-badge { background: #f0fdf4; color: #166534; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; border: 1px solid #bbf7d0; }
+    .item-delete-btn { transition: transform 0.2s; }
+    .item-delete-btn:hover { transform: scale(1.1); }
+
+    .empty-state-groups { text-align: center; padding: 24px; color: #cbd5e1; font-weight: 700; font-size: 0.85rem; }
+
+    /* Preview Section Premium */
+    .preview-overlay { margin-top: 24px; padding: 20px; background: #f8fafc; border-top: 2px solid #e2e8f0; border-radius: 0 0 24px 24px; }
+    .preview-content-card { background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+    .preview-header { background: #1e293b; color: white; padding: 12px 20px; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; }
+    .preview-attr-name { font-size: 1.1rem; font-weight: 900; color: #1e293b; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+    
+    .preview-group-title { font-size: 0.75rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
+    .preview-items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .preview-item-card { 
+        background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; 
+        display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .p-item-name { font-weight: 800; color: #334155; font-size: 0.8rem; margin-bottom: 4px; }
+    .p-item-price { color: #10b981; font-weight: 900; font-size: 0.75rem; }
+
+    /* Items Header Bar */
+    .items-header-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 16px; border-radius: 16px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+    .header-icon-box { background: #f0f7ff; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .header-title { font-weight: 800; color: #1e293b; font-size: 0.95rem; }
+    .header-subtitle { font-size: 0.7rem; color: #94a3b8; font-weight: 600; margin: 0; }
+    .add-item-btn-premium { border-radius: 10px; font-weight: 800; text-transform: none; padding: 6px 16px; }
+
+    /* Footer Buttons Premium */
+    .dialog-footer-premium { display: flex; align-items: center; padding: 24px; background: #fafafa; border-top: 2px solid #f1f5f9; border-radius: 0 0 24px 24px; }
+    .footer-btn-utility { border-radius: 12px; font-weight: 700; border-color: #cbd5e1; color: #64748b; padding-inline: 16px; }
+    .footer-btn-cancel { border-radius: 12px; font-weight: 800; color: #94a3b8; padding-inline: 20px; }
+    .footer-btn-save { border-radius: 14px; font-weight: 900; padding: 10px 24px; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); letter-spacing: 0.5px; }
+
+    .attribute-dialog [dir='rtl'] .rz-textbox { text-align: right; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsArabic { get; set; }
+    [Parameter] public Attributes? AttributeToEdit { get; set; }
+
+    private Attributes Model = new();
+    private bool _isSaving = false;
+
+    protected override void OnInitialized()
+    {
+        if (AttributeToEdit != null)
+        {
+            Model = AttributeToEdit;
+
+            // 1. Reconstruct groups based on AppearanceIndex if groups are missing (Fallback for existing data)
+            var maxAppearanceIndex = Model.AttributeItems.Any() ? Model.AttributeItems.Max(x => x.AppearanceIndex) : 0;
+            if (!Model.AttributeGroups.Any() && maxAppearanceIndex > 0)
+            {
+                for (int i = 1; i <= maxAppearanceIndex; i++)
+                {
+                    Model.AttributeGroups.Add(new AttributeGroup 
+                    { 
+                        ArabicName = IsArabic ? $"مجموعة {i}" : $"Group {i}", 
+                        EnglishName = $"Group {i}", 
+                        DisplayOrder = i,
+                        AttributeId = Model.Id,
+                        Uid = Guid.NewGuid()
+                    });
+                }
+            }
+
+            // 2. Initialize TempGroupUid for existing items
+            foreach (var item in Model.AttributeItems)
+            {
+                if (item.AttributeGroupId > 0)
+                {
+                    item.TempGroupUid = Model.AttributeGroups.FirstOrDefault(g => g.Id == item.AttributeGroupId)?.Uid;
+                }
+                
+                // Fallback to DisplayOrder if TempGroupUid is still null but we have an AppearanceIndex
+                if (item.TempGroupUid == null && item.AppearanceIndex > 0)
+                {
+                    item.TempGroupUid = Model.AttributeGroups.OrderBy(x => x.DisplayOrder)
+                                                            .Skip(item.AppearanceIndex - 1)
+                                                            .FirstOrDefault()?.Uid;
+                    
+                    // If still null, try exact match on DisplayOrder
+                    if (item.TempGroupUid == null)
+                    {
+                        item.TempGroupUid = Model.AttributeGroups.FirstOrDefault(g => g.DisplayOrder == item.AppearanceIndex)?.Uid;
+                    }
+                }
+            }
+        }
+    }
+
+    private void AddGroup()
+    {
+        int nextOrder = Model.AttributeGroups.Count + 1;
+        Model.AttributeGroups.Add(new AttributeGroup 
+        { 
+            ArabicName = $"مجموعة {nextOrder}", 
+            EnglishName = $"Group {nextOrder}", 
+            DisplayOrder = nextOrder,
+            AttributeId = Model.Id,
+            Uid = Guid.NewGuid() // Ensure unique ID for UI
+        });
+    }
+
+    private void RemoveGroup(AttributeGroup group)
+    {
+        // Clear references from items
+        foreach (var item in Model.AttributeItems.Where(x => x.TempGroupUid == group.Uid || x.AttributeGroupId == group.Id))
+        {
+            item.TempGroupUid = null;
+            item.AttributeGroupId = null;
+        }
+
+        Model.AttributeGroups.Remove(group);
+        // Re-calculate orders and names to keep them sequential
+        var sortedGroups = Model.AttributeGroups.OrderBy(x => x.DisplayOrder).ToList();
+        for (int i = 0; i < sortedGroups.Count; i++)
+        {
+            sortedGroups[i].DisplayOrder = i + 1;
+            sortedGroups[i].ArabicName = $"مجموعة {i + 1}";
+            sortedGroups[i].EnglishName = $"Group {i + 1}";
+        }
+    }
+
+    private async Task OpenItemSelector(Guid? targetGroupUid = null)
+    {
+        var parameters = new DialogParameters { ["IsArabic"] = IsArabic };
+        var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ItemSelectionDialog>(IsArabic ? "اختيار أصناف المنيو" : "Select Menu Items", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is POS.Contract.Dtos.ItemDto.MenuSalesItemsToReturnDto selectedItem)
+        {
+            // Check for duplication in the same group
+            if (Model.AttributeItems.Any(x => x.RelatedMenuItemId == selectedItem.Id && x.TempGroupUid == targetGroupUid))
+            {
+                Snackbar.Add(IsArabic ? "هذا الصنف موجود بالفعل في هذه المجموعة" : "This item already exists in this group", Severity.Warning);
+                return;
+            }
+
+            int appearanceIndex = 0;
+            if (targetGroupUid.HasValue)
+            {
+                appearanceIndex = Model.AttributeGroups.FirstOrDefault(x => x.Uid == targetGroupUid)?.DisplayOrder ?? 0;
+            }
+
+            Model.AttributeItems.Add(new AttributeItem 
+            { 
+                RelatedMenuItemId = selectedItem.Id, 
+                AppearanceIndex = appearanceIndex,
+                AttributeId = Model.Id,
+                ExtraPrice = selectedItem.ExtraPrice ?? 0,
+                TempGroupUid = targetGroupUid,
+                RelatedMenuItem = new MenuSalesItems 
+                { 
+                    ArabicName = selectedItem.ArabicName ?? "", 
+                    EnglishName = selectedItem.EnglishName ?? "" 
+                } 
+            });
+            StateHasChanged();
+        }
+    }
+
+    private void OnGroupChanged(AttributeItem item, Guid? newGroupUid)
+    {
+        // Check if moving to this group (or null) already has this item
+        if (Model.AttributeItems.Any(x => x != item && x.RelatedMenuItemId == item.RelatedMenuItemId && x.TempGroupUid == newGroupUid))
+        {
+            Snackbar.Add(IsArabic ? "هذا الصنف موجود بالفعل في المكان المختار" : "This item already exists in the selected location", Severity.Warning);
+            return;
+        }
+
+        item.TempGroupUid = newGroupUid;
+        StateHasChanged();
+    }
+
+    private bool _showPreview = false;
+    private void TogglePreview() => _showPreview = !_showPreview;
+
+    private void RemoveItem(AttributeItem item)
+    {
+        Model.AttributeItems.Remove(item);
+    }
+
+    private async Task SubmitForm()
+    {
+        _isSaving = true;
+        try 
+        {
+             // Sync UI Temp Links to actual IDs/Entities
+             foreach (var item in Model.AttributeItems)
+             {
+                 if (item.TempGroupUid.HasValue)
+                 {
+                     var group = Model.AttributeGroups.FirstOrDefault(x => x.Uid == item.TempGroupUid);
+                     if (group != null)
+                     {
+                         item.AttributeGroupId = group.Id > 0 ? group.Id : null;
+                         item.AttributeGroup = group; // Navigation property handles Id=0 links
+                         item.AppearanceIndex = group.DisplayOrder; // Ensure index matches group
+                     }
+                 }
+                 else
+                 {
+                     item.AttributeGroupId = null;
+                     item.AttributeGroup = null;
+                     item.AppearanceIndex = 0; // Or keep as is, but 0 is safer for "No Group"
+                 }
+             }
+
+             Attributes? result;
+             if (Model.Id == 0)
+                 result = await AttributeService.CreateAttributeAsync(Model);
+             else
+                 result = await AttributeService.UpdateAttributeAsync(AttributeToEdit!, Model);
+
+             if (result != null)
+             {
+                 Snackbar.Add(IsArabic ? "تم الحفظ بنجاح" : "Saved successfully", Severity.Success);
+                 MudDialog.Close(DialogResult.Ok(true));
+             }
+             else 
+             {
+                 Snackbar.Add(IsArabic ? "خطأ أثناء الحفظ" : "Error saving attribute", Severity.Error);
+             }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _isSaving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

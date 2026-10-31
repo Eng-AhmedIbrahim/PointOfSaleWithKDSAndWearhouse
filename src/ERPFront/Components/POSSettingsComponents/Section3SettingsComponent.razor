@@ -1,0 +1,65 @@
+@inject IJSRuntime Js
+
+<MudButton OnClick="OnExpandCollapseClick"
+           EndIcon="@(_expanded ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)">
+    <MudText Class="section-btn-label" Typo="Typo.h6">Section 3</MudText>
+</MudButton>
+<MudCollapse Class="px-3" Expanded="_expanded">
+
+    <MudGrid Spacing="1" Justify="Justify.Center">
+        @* <MudItem xs="12"> *@
+        @*     <MudText Typo="Typo.h6">Section 3</MudText> *@
+        @* </MudItem> *@
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle1">Resize Keypad</MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButtonGroup Variant="Variant.Filled" OverrideStyles="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="() => IncreaseSize(SpecialKeypadButton)"
+                               Size="Size.Large"/>
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="() => DecreaseSize(SpecialKeypadButton)"
+                               Size="Size.Large"/>
+            </MudButtonGroup>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle1">Resize Icon</MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButtonGroup Variant="Variant.Filled" OverrideStyles="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               OnClick="() => IncreaseSize(SpecialIconBtn)"
+                               Size="Size.Large"/>
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               OnClick="() => DecreaseSize(SpecialIconBtn)"
+                               Size="Size.Large"/>
+            </MudButtonGroup>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton StartIcon="@Icons.Material.Filled.RestartAlt"
+                       OnClick="Reset"
+                       Variant="Variant.Filled"
+                       Class="my-2 rounded-0"
+                       Size="Size.Medium">
+                Reset
+            </MudButton>
+        </MudItem>
+
+
+    </MudGrid>
+
+</MudCollapse>
+
+
+@code {
+    bool _expanded = false;
+
+    private void OnExpandCollapseClick()
+    {
+        _expanded = !_expanded;
+    }
+
+}
+
+

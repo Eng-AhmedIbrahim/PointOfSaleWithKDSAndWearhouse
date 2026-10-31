@@ -1,0 +1,178 @@
+@using POS.Contract.Dtos.DineInDtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.DineInServices
+@inject IDineInService DineInService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="premium-dialog">
+    <DialogContent>
+        <div class="p-4" dir="@(IsArabic ? "rtl" : "ltr")">
+            <RadzenTemplateForm TItem="TableDto" Data="@TableModel" Submit="@HandleSubmit">
+                <div class="row gy-4">
+                    <!-- Table ID header visual -->
+                    <div class="col-12 mb-2">
+                        <div class="id-visual-card d-flex align-items-center">
+                            <div class="id-label">@(IsArabic ? "كود الطاولة" : "Table ID")</div>
+                            <div class="id-value">@(IsEditMode ? TableToEdit.Id.ToString() : "TBN")</div>
+                        </div>
+                    </div>
+
+                    <!-- Table Name -->
+                    <div class="col-md-8">
+                        <RadzenLabel Text="@(IsArabic ? "اسم الطاولة" : "Table Name")" Style="display: block; margin-bottom: 8px; font-weight: 700; color: #475569;" />
+                        <RadzenTextBox @bind-Value="TableModel.TableName" Name="TableName" Style="width: 100%; height: 48px; border-radius: 12px; border: 2px solid #e2e8f0; font-weight: 600; padding: 0 15px;" />
+                        <RadzenRequiredValidator Component="TableName" Text="@(IsArabic ? "الاسم مطلوب" : "Name is required")" Popup="true" />
+                    </div>
+
+                    <!-- Seats Count -->
+                    <div class="col-md-4">
+                        <RadzenLabel Text="@(IsArabic ? "عدد الكراسي" : "Seats")" Style="display: block; margin-bottom: 8px; font-weight: 700; color: #475569;" />
+                        <RadzenNumeric @bind-Value="TableModel.SeatsCount" Style="width: 100%; height: 48px; border-radius: 12px; border: 2px solid #e2e8f0;" Min="1" />
+                    </div>
+
+                    <!-- Table Group Selection -->
+                    <div class="col-12">
+                        <RadzenLabel Text="@(IsArabic ? "مجموعة الطاولات" : "Table Group")" Style="display: block; margin-bottom: 8px; font-weight: 700; color: #475569;" />
+                        <RadzenDropDown @bind-Value="TableModel.GroupID" 
+                                        Data="@TableGroups" 
+                                        TextProperty="GroupName" 
+                                        ValueProperty="Id" 
+                                        Style="width: 100%; height: 48px; border-radius: 12px; border: 2px solid #e2e8f0;" 
+                                        Name="GroupID" />
+                        <RadzenRequiredValidator Component="GroupID" Text="@(IsArabic ? "المجموعة مطلوبة" : "Group is required")" Popup="true" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mt-5">
+                    <RadzenButton Click="@Cancel" Text="@(IsArabic ? "إلغاء" : "Cancel")" ButtonStyle="Radzen.ButtonStyle.Light" Style="border-radius: 12px; padding: 0 25px; height: 48px; font-weight: 600;" />
+                    <RadzenButton ButtonType="Radzen.ButtonType.Submit" 
+                                   ButtonStyle="Radzen.ButtonStyle.Primary" 
+                                   Disabled="@_isSaving"
+                                   Style="border-radius: 12px; font-weight: 800; background: linear-gradient(135deg, #1e90ff, #0070e0); border: none; min-width: 140px; height: 48px;">
+                        @if (_isSaving)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Inherit" />
+                                <span>@(IsArabic ? "جاري..." : "Saving...")</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <span>@(IsArabic ? "حفظ البيانات" : "Save Table")</span>
+                        }
+                    </RadzenButton>
+                </div>
+            </RadzenTemplateForm>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .premium-dialog .mud-dialog-title { display: none; }
+    .premium-dialog .mud-dialog-content { padding: 0 !important; }
+
+    .id-visual-card {
+        background: #f0f9ff;
+        border: 2px dashed #bae6fd;
+        border-radius: 12px;
+        padding: 12px 20px;
+        gap: 15px;
+    }
+
+    .id-label {
+        font-weight: 800;
+        color: #0369a1;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .id-value {
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-weight: 900;
+        font-size: 1.2rem;
+        color: #0284c7;
+        letter-spacing: 2px;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsArabic { get; set; }
+    [Parameter] public TableToReturnDto? TableToEdit { get; set; }
+    [Parameter] public List<TableGroupToReturnDto> TableGroups { get; set; } = new();
+
+    private TableDto TableModel = new();
+    private bool IsEditMode => TableToEdit != null;
+    private bool _isSaving = false;
+
+    protected override void OnInitialized()
+    {
+        if (IsEditMode)
+        {
+            TableModel = new TableDto
+            {
+                TableName = TableToEdit!.TableName,
+                GroupID = TableToEdit.GroupID,
+                SeatsCount = TableToEdit.SeatsCount
+            };
+        }
+        else
+        {
+            TableModel.SeatsCount = 4; // Default
+            if (TableGroups.Any()) TableModel.GroupID = TableGroups.First().Id;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _isSaving = true;
+        try
+        {
+            if (IsEditMode)
+            {
+                var updatedDto = new TableToReturnDto
+                {
+                    Id = TableToEdit!.Id,
+                    TableName = TableModel.TableName,
+                    GroupID = TableModel.GroupID,
+                    SeatsCount = TableModel.SeatsCount,
+                    TableState = TableToEdit.TableState,
+                    BranchID = TableToEdit.BranchID
+                };
+                var response = await DineInService.UpdateTable(TableToEdit.Id ?? 0, updatedDto);
+                if (response.Success)
+                {
+                    Snackbar.Add(IsArabic ? "تم التعديل بنجاح" : "Updated successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add(response.Message ?? (IsArabic ? "فشل التعديل" : "Failed to update"), Severity.Error);
+                }
+            }
+            else
+            {
+                var response = await DineInService.CreateTable(TableModel);
+                if (response.Success)
+                {
+                    Snackbar.Add(IsArabic ? "تمت الإضافة بنجاح" : "Added successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add(response.Message ?? (IsArabic ? "فشل الإضافة" : "Failed to add"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "حدث خطأ غير متوقع" : "Unexpected error", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

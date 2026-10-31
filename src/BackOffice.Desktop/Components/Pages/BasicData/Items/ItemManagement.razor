@@ -1,0 +1,261 @@
+@page "/basicdata/items"
+@inject IItemService ItemService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+@inject NavigationManager NavigationManager
+@inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+
+<link href="basicdata/itemmanagement.css" rel="stylesheet" />
+
+<div class="item-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.Fastfood" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة العناصر (الأصناف)" : "Items Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem;">
+                @(IsArabic ? "إضافة صنف جديد" : "Add New Item")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث بالاسم أو الكود..." : "Search by name or ID...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredItems" 
+                            TItem="MenuSalesItemsToReturnDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Responsive="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="Id" Title="@(IsArabic ? "الكود" : "ID")" Width="80px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            <span style="font-weight: 900; color: #3b82f6;">#@item.Id</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="ArabicName" Title="@(IsArabic ? "الاسم بالعربي" : "Arabic Name")" Width="180px">
+                        <Template Context="item">
+                            <span style="font-weight: bold;">@item.ArabicName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="EnglishName" Title="@(IsArabic ? "الاسم بالإنجليزي" : "English Name")" Width="180px">
+                        <Template Context="item">
+                            <span style="font-weight: bold;">@item.EnglishName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="Price" Title="@(IsArabic ? "السعر الأساسي" : "Main Price")" Width="120px" TextAlign="Radzen.TextAlign.Right">
+                        <Template Context="item">
+                            <span style="font-weight: bold;">@item.Price?.ToString("0.00")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                     <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="CategoryArabicName" Title="@(IsArabic ? "اسم القسم" : "Category")" Width="150px">
+                        <Template Context="item">
+                            <span style="font-weight: bold;">@(IsArabic ? item.CategoryArabicName : item.CategoryEnglishName)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="Invisible" Title="@(IsArabic ? "حالة الظهور" : "Visibility")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            @if (item.Invisible)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Style="font-weight: 900;">@(IsArabic ? "مخفي" : "Hidden")</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Style="font-weight: 900;">@(IsArabic ? "ظاهر" : "Visible")</MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="IsInventory" Title="@(IsArabic ? "تتبع المخزن" : "Inventory Tracking")" Width="140px" TextAlign="Radzen.TextAlign.Center" Visible="@_isInventoryEnabled">
+                        <Template Context="item">
+                            @if (item.IsInventory)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Style="font-weight: 900;">true</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Style="font-weight: 900;">false</MudChip>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="item">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => OpenEditDialog(item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="MudBlazor.Color.Error" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => DeleteItem(item))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MenuSalesItemsToReturnDto> Items = new();
+    private List<MenuSalesItemsToReturnDto> FilteredItems = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<MenuSalesItemsToReturnDto>? grid;
+    private string SearchTerm = "";
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    private bool _isInventoryEnabled;
+    protected override async Task OnInitializedAsync()
+    {
+        _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await ItemService.GetAllItemsAsync();
+            if (response != null && response.Success && response.Data != null)
+            {
+                Items = response.Data.ToList();
+                ApplyFilter();
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل الأصناف..." : "Failed to load items...", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredItems = new List<MenuSalesItemsToReturnDto>(Items);
+        }
+        else
+        {
+            var term = SearchTerm.ToLower().Trim();
+            FilteredItems = Items.Where(x => 
+                (x.ArabicName != null && x.ArabicName.ToLower().Contains(term)) ||
+                (x.EnglishName != null && x.EnglishName.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term) ||
+                (x.CategoryArabicName != null && x.CategoryArabicName.ToLower().Contains(term))
+            ).ToList();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ExistingItems"] = Items // Pass existing items for next ID calculation
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<ItemDialog>(IsArabic ? "إضافة صنف جديد" : "Add New Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEditDialog(MenuSalesItemsToReturnDto item)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemToEdit"] = item,
+            ["ExistingItems"] = Items
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<ItemDialog>(IsArabic ? "تعديل صنف" : "Edit Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteItem(MenuSalesItemsToReturnDto item)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemName"] = IsArabic ? item.ArabicName : item.EnglishName,
+            ["TitleArabic"] = "تأكيد الحذف",
+            ["MessageArabic"] = $"هل أنت متأكد من حذف الصنف '{item.ArabicName}'؟"
+        };
+        
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<DeleteConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var response = await ItemService.DeleteItemAsync(item.Id);
+            if (response != null && response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+            await LoadData();
+            }
+            else
+            {
+                Snackbar.Add(response?.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
+            }
+        }
+    }
+}

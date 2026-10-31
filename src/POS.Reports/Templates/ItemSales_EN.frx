@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/12/2026" ReportInfo.Modified="03/13/2026 23:55:00" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="ItemSales" ReferenceName="ReportData.ItemSales" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemId" DataType="System.Int32"/>
+      <Column Name="ItemTitle" DataType="System.String"/>
+      <Column Name="Category" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="Unit" DataType="System.String"/>
+      <Column Name="Price" DataType="System.Decimal"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+    <Total Name="TotalSales" Expression="[ItemSales.Total]" Evaluator="Data1" PrintOn="Summary1"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightMargin="5" LeftMargin="5">
+    <!-- HEADER -->
+    <ReportTitleBand Name="HeaderBand" Width="756" Height="150">
+      <!-- Title on the Right -->
+      <TextObject Name="TBranch" Left="376" Top="20" Width="350" Height="25" Text="[BranchName]" Font="Arial, 14pt, style=Bold" HorzAlign="Center" VertAlign="Center"/>
+      <TextObject Name="TTitle" Left="376" Top="50" Width="350" Height="40" Text="Item Sales" Font="Arial, 22pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="Top, Bottom" Border.Width="1.5"/>
+      
+      <!-- Info Table on the Left -->
+      <!-- Row 1 -->
+      <TextObject Name="LBranchInfo" Left="0" Top="20" Width="100" Height="25" Text="Branch Name" Font="Arial, 11pt, style=Bold" HorzAlign="Left" VertAlign="Center" Border.Lines="All" Padding="5,0,0,0"/>
+      <TextObject Name="VBranchInfo" Left="100" Top="20" Width="200" Height="25" Text="[BranchName]" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <!-- Row 2 -->
+      <TextObject Name="LDate" Left="0" Top="45" Width="100" Height="25" Text="Print Time" Font="Arial, 11pt, style=Bold" HorzAlign="Left" VertAlign="Center" Border.Lines="All" Padding="5,0,0,0"/>
+      <TextObject Name="VDate" Left="100" Top="45" Width="200" Height="25" Text="[DateTime.Now]" Format="Date" Format.Format="dd/MM/yyyy hh:mm tt" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <!-- Row 3 -->
+      <TextObject Name="LFrom" Left="0" Top="70" Width="100" Height="25" Text="From Date" Font="Arial, 11pt, style=Bold" HorzAlign="Left" VertAlign="Center" Border.Lines="All" Padding="5,0,0,0"/>
+      <TextObject Name="VFrom" Left="100" Top="70" Width="200" Height="25" Text="[FromDate]" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <!-- Row 4 -->
+      <TextObject Name="LTo" Left="0" Top="95" Width="100" Height="25" Text="To Date" Font="Arial, 11pt, style=Bold" HorzAlign="Left" VertAlign="Center" Border.Lines="All" Padding="5,0,0,0"/>
+      <TextObject Name="VTo" Left="100" Top="95" Width="200" Height="25" Text="[ToDate]" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+    </ReportTitleBand>
+
+    <!-- TABLE HEADER -->
+    <PageHeaderBand Name="PageHeader1" Top="155" Width="756" Height="30">
+      <TextObject Name="HID"      Left="0" Top="0" Width="70" Height="30" Text="ID" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HName"    Left="70" Top="0" Width="336" Height="30" Text="Item Name" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HPrice"   Left="406" Top="0" Width="100" Height="30" Text="Unit Price" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HQty"     Left="506" Top="0" Width="100" Height="30" Text="Qty" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HTotal"   Left="606" Top="0" Width="150" Height="30" Text="Total Amount" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+    </PageHeaderBand>
+
+    <!-- DATA -->
+    <DataBand Name="Data1" Top="190" Width="756" Height="30" DataSource="ItemSales">
+      <TextObject Name="VID"      Left="0" Top="0" Width="70" Height="30" Text="[ItemSales.ItemId]" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VName"    Left="70" Top="0" Width="336" Height="30" Text="[ItemSales.ItemTitle]" Font="Arial, 11pt" HorzAlign="Left" VertAlign="Center" Padding="5,0,0,0" Border.Lines="All"/>
+      <TextObject Name="VPrice"   Left="406" Top="0" Width="100" Height="30" Text="[ItemSales.Price]" Format="Custom" Format.Format="0.##" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VQty"     Left="506" Top="0" Width="100" Height="30" Text="[ItemSales.Qty]" Format="Custom" Format.Format="0.##" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VTotal"   Left="606" Top="0" Width="150" Height="30" Text="[ItemSales.Total]" Format="Custom" Format.Format="0.##" Font="Arial, 11pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+    </DataBand>
+
+    <!-- SUMMARY -->
+    <ReportSummaryBand Name="Summary1" Top="225" Width="756" Height="40">
+       <TextObject Name="LSum" Left="506" Top="0" Width="100" Height="30" Text="Total" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+       <TextObject Name="VSum" Left="606" Top="0" Width="150" Height="30" Text="[TotalSales]" Format="Custom" Format.Format="0.##" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+    </ReportSummaryBand>
+
+    <!-- FOOTER -->
+    <PageFooterBand Name="PageFooterBand1" Top="270" Width="756" Height="35">
+      <TextObject Name="TFoo" Left="0" Top="8" Width="756" Height="20" Text="Generated by Smart Restaurant System - Page [Page] of [TotalPages#]" Font="Arial, 9pt" HorzAlign="Center"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

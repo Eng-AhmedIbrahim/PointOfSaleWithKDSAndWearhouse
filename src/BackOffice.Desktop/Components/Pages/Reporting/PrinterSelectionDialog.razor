@@ -1,0 +1,36 @@
+@inject MudBlazor.ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Rounded.Settings" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">إعدادات الطباعة</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Class="mb-4 rounded-lg">
+            قم باختيار الطابعة الافتراضية للكاشير (Thermal). سيتم حفظ هذا الاختيار لاستخدامه في المرات القادمة.
+        </MudAlert>
+        
+        <MudSelect T="string" Label="اختر الطابعة" @bind-Value="SelectedPrinter" AnchorOrigin="Origin.BottomCenter" Variant="MudBlazor.Variant.Outlined">
+            @foreach (var p in Printers)
+            {
+                <MudSelectItem Value="@p">@p</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text">إلغاء</MudButton>
+        <MudButton Color="Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="Submit" Class="px-8 rounded-pill">حفظ وطباعة</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public List<string> Printers { get; set; } = new();
+    [Parameter] public string? SelectedPrinter { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(SelectedPrinter));
+}

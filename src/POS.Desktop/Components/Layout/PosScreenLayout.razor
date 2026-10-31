@@ -1,0 +1,145 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject CommonProperties _commonProperties
+
+<style>
+    html, body {
+        height: 100vh !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+</style>
+
+<link href="settings-styles.css" rel="stylesheet" />
+
+
+@* <TokenInitializer /> *@
+
+@* Required *@
+<MudThemeProvider/>
+<MudPopoverProvider/>
+
+@* Needed for dialogs *@
+<MudDialogProvider/>
+
+@* Needed for snack bars *@
+<MudSnackbarProvider/>
+
+<div dir="@(_commonProperties.IsRtl ? "rtl" : "ltr")" style="height: 100vh;">
+<MudLayout Style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+    <MudStack Spacing="0" Style="height: 100%;" StretchItems="StretchItems.Middle">
+        <div class="make-color p-1">
+            <POSNavbarCommponent />
+        </div>
+        
+        <div class="full-height-for-body">
+            @Body
+        </div>
+        
+        <div class="footer-container-wrapper">
+            <POSFooterCommponent />
+        </div>
+    </MudStack>
+</MudLayout>
+</div>
+
+<style>
+    .make-color {
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        position: relative;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+        flex-shrink: 0;
+    }
+    
+    .full-height-for-body {
+        flex-grow: 1;
+        overflow: hidden; /* Important: prevents body from causing page scroll */
+        background-color: #f0f2f5;
+        position: relative;
+    }
+
+    .footer-container-wrapper {
+        flex-shrink: 0;
+    }
+
+    /* Standardize inner scrollbars */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #bcc0c4;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #1e88e5;
+    }
+</style>
+
+@using POS.Desktop.Services
+
+@code {
+    [Inject] private LocalizationService _localizationService { get; set; } = default!;
+    [Inject] private DesktopFontSizeService _fontSizeService { get; set; } = default!;
+    [Inject] private IPosFeatureSettingsService _featureSettingsService { get; set; } = default!;
+    [Inject] private BlazorBase.HandelDeliveryInvocation _deliveryInvocation { get; set; } = default!;
+    [Inject] private ISnackbar _snackbar { get; set; } = default!;
+    [Inject] private CallCenterNotificationService _callCenterService { get; set; } = default!;
+
+    private Action? _stateChangedHandler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _stateChangedHandler = async () => 
+        {
+            try { await InvokeAsync(StateHasChanged); } catch { }
+        };
+
+        _commonProperties.OnChange += _stateChangedHandler;
+        _deliveryInvocation.OnShowNotification += ShowNotification;
+
+        await _localizationService.InitializeAsync();
+        await _fontSizeService.LoadStoredFontSizes();
+
+        if (_commonProperties.FeatureSettings == null || !_commonProperties.FeatureSettings.Any())
+            _commonProperties.FeatureSettings = await _featureSettingsService.GetSettingsByComputerNameAsync(Environment.MachineName);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var isCallCenter = await _featureSettingsService.IsFeatureEnabledAsync("IsCallCenter", Environment.MachineName);
+                if (isCallCenter)
+                {
+                    await _callCenterService.InitializeAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[PosScreenLayout] Error initializing CallCenterNotificationService");
+            }
+        }
+    }
+
+    private async void ShowNotification(string message, Severity severity)
+    {
+        await InvokeAsync(() => _snackbar.Add(message, severity));
+    }
+
+    public void Dispose()
+    {
+        if (_stateChangedHandler != null)
+            _commonProperties.OnChange -= _stateChangedHandler;
+        _deliveryInvocation.OnShowNotification -= ShowNotification;
+    }
+}

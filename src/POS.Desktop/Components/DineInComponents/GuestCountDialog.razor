@@ -1,0 +1,101 @@
+﻿@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IDineInOrderFrontService DineInOrderFrontService
+@inject LocalizationService Localizar
+
+<MudDialog Class="guest-count-dialog-root">
+    <TitleContent>
+        <div class="d-flex align-center pa-2">
+            <div class="icon-box mr-4" style="background-color: rgba(var(--mud-palette-primary-rgb), 0.1);">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">@Localizar["GuestCountDetails"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@Localizar["AdjustGuestCountDescription"]</MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            <MudGrid Spacing="3">
+                @* Men Count Row *@
+                <MudItem xs="12">
+                    <div class="guest-dialog-card d-flex align-center justify-space-between">
+                        <div class="d-flex align-center">
+                            <div class="icon-box mr-3" style="background-color: rgba(var(--mud-palette-info-rgb), 0.1);">
+                                <MudIcon Icon="@Icons.Material.Filled.Male" Color="Color.Info" Title="Men" />
+                            </div>
+                            <MudText Typo="Typo.h6" Class="ml-2">@Localizar["MenCount"]</MudText>
+                        </div>
+                        <div class="counter-container">
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                           OnClick="@(() => ChangeCount(nameof(MenCount), -1))" 
+                                           Disabled="@(MenCount <= 0)"
+                                           Color="Color.Default" 
+                                           Size="Size.Medium" 
+                                           Class="counter-button" />
+                            
+                            <MudText Typo="Typo.h5" Class="counter-value">@MenCount</MudText>
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                           OnClick="@(() => ChangeCount(nameof(MenCount), 1))" 
+                                           Color="Color.Primary" 
+                                           Size="Size.Medium" 
+                                           Class="counter-button" />
+                        </div>
+                    </div>
+                </MudItem>
+
+                @* Women Count Row *@
+                <MudItem xs="12">
+                    <div class="guest-dialog-card d-flex align-center justify-space-between">
+                        <div class="d-flex align-center">
+                            <div class="icon-box mr-3" style="background-color: rgba(var(--mud-palette-secondary-rgb), 0.1);">
+                                <MudIcon Icon="@Icons.Material.Filled.Female" Color="Color.Secondary" Title="Women" />
+                            </div>
+                            <MudText Typo="Typo.h6" Class="ml-2">@Localizar["WomenCount"]</MudText>
+                        </div>
+                        <div class="counter-container">
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                           OnClick="@(() => ChangeCount(nameof(WomenCount), -1))" 
+                                           Disabled="@(WomenCount <= 0)"
+                                           Color="Color.Default" 
+                                           Size="Size.Medium" 
+                                           Class="counter-button" />
+                            
+                            <MudText Typo="Typo.h5" Class="counter-value">@WomenCount</MudText>
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                           OnClick="@(() => ChangeCount(nameof(WomenCount), 1))" 
+                                           Color="Color.Secondary" 
+                                           Size="Size.Medium" 
+                                           Class="counter-button" />
+                        </div>
+                    </div>
+                </MudItem>
+
+                @* Total Row *@
+                <MudItem xs="12">
+                    <div class="total-card d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold">@Localizar["TotalGuest"]</MudText>
+                            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7)">@Localizar["SumOfAllGuests"]</MudText>
+                        </div>
+                        <div class="d-flex align-center">
+                            <MudText Typo="Typo.h3" Class="font-weight-bold mr-2">@(MenCount + WomenCount)</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Large" />
+                        </div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-end gap-3 pa-4 w-100">
+            <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Class="px-8 py-2">@Localizar["Cancel"]</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Class="px-12 py-2" Style="border-radius: 12px; font-weight: bold;">
+                @Localizar["Save"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>

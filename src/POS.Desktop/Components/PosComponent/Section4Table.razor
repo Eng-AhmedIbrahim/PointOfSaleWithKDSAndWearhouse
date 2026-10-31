@@ -1,0 +1,186 @@
+﻿@inject LocalizationService Localizer
+@inject IJSRuntime Js
+@inject ISnackbar Snackbar
+@inject CommonProperties CommonProperties
+@inject CartService _cartService
+@inject IInventoryFrontService _inventoryService
+@inject IPosFeatureSettingsService _featureSettingsService
+
+<MudTable Items="Items ?? []" Dense="true" Hover="true" FixedHeader="true"
+          RowEditTrigger="@(IsReadOnly ? TableEditTrigger.EditButton : TableEditTrigger.RowClick)"
+          CommitEditTooltip="Commit Edit"
+          OnCommitEditClick="@(() => Snackbar.Add("Commit Edit Handler Invoked"))"
+          RowEditPreview="BackupItem"
+          RowEditCancel="ResetItemToOriginalValues"
+          RowEditCommit="ItemHasBeenCommitted"
+          ApplyButtonPosition="TableApplyButtonPosition.Start"
+          EditButtonPosition="TableEditButtonPosition.End"
+          EditTrigger="TableEditTrigger.RowClick"
+          RowClass="liner-grid-buttons">
+
+    <HeaderContent>
+        <MudTh Style="width: min-content; white-space: nowrap;font-weight:bold;color: #143155">@Localizer["Qty"]</MudTh>
+        <MudTh Style="font-weight:bold;color: #143155">@Localizer["Name"]</MudTh>
+        <MudTh Style="font-weight:bold;color: #143155">@Localizer["Price"]</MudTh>
+        <MudTh Style="font-weight:bold;color: #143155">@Localizer["Total"]</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="Qty" Style="width: min-content;" Class="table-style" @onclick="() => SelectItem(context)">
+            @{
+                var remainingQty = context.Quantity - (context.VoidAmount ?? 0);
+            }
+            @if (remainingQty <= 0)
+            {
+                <MudText Typo="Typo.body1" Class="table-style text-decoration-line-through opacity-50">
+                    @(context.ByWeight && context.WeightQty.HasValue
+                        ? $"{context.WeightQty:0.###} كجم"
+                        : context.Quantity.ToString())
+                </MudText>
+            }
+            else if (context.ByWeight)
+            {
+                <div class="weight-qty-cell">
+                    <MudNumericField T="decimal" Value="@(((context.WeightQty ?? context.Quantity)) - (context.VoidAmount ?? 0))"
+                                     Min="0.001m" Max="999m" Step="0.125m"
+                                     Format="0.###"
+                                     Style="width: 80px;" Immediate="false"
+                                     ValueChanged="@((val) => UpdateWeightQty(context, val))"
+                                     Disabled="context.IsReadOnly" />
+                    <span class="weight-qty-unit">كجم</span>
+                </div>
+            }
+            else
+            {
+                <MudNumericField T="decimal" Value="remainingQty" Min="0" Step="1" Format="0"
+                                 Style="width: 60px;" Immediate="true"
+                                 ValueChanged="@((val) => UpdateQuantity(context, val))"
+                                 Disabled="context.IsReadOnly" />
+            }
+        </MudTd>
+        <MudTd DataLabel="Name" Class="table-style">
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.body1" Class="@(context.Quantity - (context.VoidAmount ?? 0) <= 0 ? "table-style text-decoration-line-through opacity-50" : "table-style")">
+                    @context.Name
+                </MudText>
+                @if (context.Quantity - (context.VoidAmount ?? 0) <= 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled" Class="ml-2 void-chip">@Localizer["Voided"]</MudChip>
+                }
+                @if (context.VoidAmount > 0 && context.Quantity > 0)
+                {
+                    <span style="color: #ef4444; font-size: 0.8rem; margin-right: 8px; font-weight: bold;">(@Localizer["Voided"]: @context.VoidAmount.Value.ToString("0.##"))</span>
+                }
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Price" Class="table-style">
+             <MudText Typo="Typo.body1" Class="@(context.Quantity - (context.VoidAmount ?? 0) <= 0 ? "table-style text-decoration-line-through opacity-50" : "table-style")">
+                @context.Price?.ToString("0.##")
+             </MudText>
+        </MudTd>
+        <MudTd DataLabel="Total" Class="table-style">
+             <MudText Typo="Typo.body1" Class="@(context.Quantity - (context.VoidAmount ?? 0) <= 0 ? "table-style text-decoration-line-through opacity-50" : "table-style")">
+                @context.TotalAmount?.ToString("0.##")
+             </MudText>
+        </MudTd>
+    </RowTemplate>
+
+    <ChildRowContent>
+        @if (context.Attributes?.Any() == true || context.HasDiscount || context.IsVoided)
+        {
+            <MudTr Class="attribute-row">
+                <MudTd></MudTd>
+                <MudTd ColSpan="3" Style="padding-top: 6px;padding-bottom: 0px;">
+                    <div style="font-size: 12px; color:black;">
+                        @if (context.IsVoided)
+                        {
+                            <p class="void-detail" style="margin-bottom: 5px; color: #ef4444; font-weight: bold;">
+                                ✖ @Localizer["VoidedBy"]: @context.VoidByName (@context.VoidTime?.ToString("HH:mm"))
+                                <br/>
+                                ✖ @Localizer["Reason"]: @context.VoidReason
+                            </p>
+                        }
+                        @if (context.HasDiscount)
+                        {
+                            <p class="discount-name" style="margin-right: 0px; margin-bottom: 5px; color: darkred; font-weight: bold;">
+                                ➤ @Localizer["Discount"]: @(context.DiscountPercentage > 0 ? $"{context.DiscountPercentage}%" : context.TotalDiscountPrice?.ToString("0.##")) 
+                                (-@(context.TotalDiscountPrice?.ToString("0.##")))
+                            </p>
+                        }
+                        @{
+                            var groupedAttrs = (context.Attributes ?? new())
+                                .GroupBy(a => a.Name)
+                                .Select(g => new { Name = g.Key, Count = g.Count() * context.Quantity });
+                        }
+                        @foreach (var attr in groupedAttrs)
+                        {
+                            <p class="attribute-name" style="margin-right: 0px; margin-bottom: 5px;font-weight:bold">
+                                ➤ @attr.Name @(attr.Count > 1 && !context.ByWeight ? $"({attr.Count})" : "")
+                            </p>
+                        }
+                    </div>
+                </MudTd>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+
+<style>
+    .table-style {
+        font-size: 1.1rem !important;
+        color: #0f171f !important;
+        font-weight: 800 !important;
+        font-family: 'Cairo', sans-serif !important;
+    }
+
+    .liner-grid-buttons {
+        background: #ffffff !important;
+        color: #0f171f !important;
+        border-bottom: 1px solid #e0e0e0 !important;
+        transition: background-color 0.2s ease !important;
+    }
+
+    .liner-grid-buttons:hover {
+        background: #f8f9fa !important;
+    }
+
+    .mud-table-head .mud-table-cell {
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 1.1rem !important;
+        color: #447cad !important;
+        background-color: #f5f7fa !important;
+        border-bottom: 2px solid #447cad !important;
+    }
+
+    .attribute-name {
+        font-family: 'Cairo', sans-serif !important;
+        color: #0f171f !important;
+        font-weight: 700 !important;
+    }
+
+    /* Improve numeric field styling */
+    .mud-input-root input {
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 1.1rem !important;
+        color: #0f171f !important;
+    }
+
+    /* Weight qty field */
+    .weight-qty-cell {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .weight-qty-unit {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #0369a1;
+        white-space: nowrap;
+        background: #e0f2fe;
+        padding: 2px 6px;
+        border-radius: 6px;
+    }
+</style>

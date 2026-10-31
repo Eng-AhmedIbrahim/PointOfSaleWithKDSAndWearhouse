@@ -1,0 +1,87 @@
+@using MudBlazor
+@using POS.Contract.Dtos.AccountDtos
+
+<style>
+    .delete-dialog {
+        border-radius: 16px !important;
+        overflow: hidden;
+    }
+    .delete-header {
+        background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);
+        color: white;
+        padding: 1.5rem;
+        margin: -16px -24px 16px -24px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+    }
+    .warning-icon-container {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-content {
+        text-align: center;
+        padding: 1rem 0;
+    }
+    .user-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        font-weight: 900;
+        margin: 1rem 0;
+        border: 1px solid #fecaca;
+    }
+</style>
+
+<MudDialog Class="delete-dialog">
+    <TitleContent>
+        <div class="delete-header">
+            <div class="warning-icon-container">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Large" Color="Color.Inherit" />
+            </div>
+            <MudText Typo="Typo.h5" Style="font-weight: 900;">@(IsArabic ? "تأكيد عملية الحذف" : "Confirm Deletion")</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="delete-content">
+            <MudText Typo="Typo.h6" Style="font-weight: 700; color: #475569;">
+                @(IsArabic ? "هل أنت متأكد من رغبتك في حذف المستخدم؟" : "Are you sure you want to delete this user?")
+            </MudText>
+            
+            <div class="user-pill">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                <MudText>@User.UserName</MudText>
+            </div>
+
+            <MudText Typo="Typo.body2" Color="Color.Error" Style="font-weight: 600;">
+                @(IsArabic ? "لا يمكن التراجع عن هذا الإجراء بعد التنفيذ." : "This action cannot be undone once executed.")
+            </MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text" Style="font-weight: 700;">@(IsArabic ? "إلغاء الأمر" : "Cancel")</MudButton>
+        <MudButton OnClick="Submit" Variant="MudBlazor.Variant.Filled" Color="Color.Error" 
+                   Style="font-weight: 900; padding: 0.6rem 2.5rem; border-radius: 12px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">
+            @(IsArabic ? "نعم، احذف!" : "Yes, Delete!")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public UserDto User { get; set; } = new();
+    [Parameter] public bool IsArabic { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+}

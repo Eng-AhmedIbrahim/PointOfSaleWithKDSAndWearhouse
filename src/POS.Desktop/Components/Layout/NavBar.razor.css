@@ -1,0 +1,91 @@
+﻿:root {
+    --blueSky: #7fa7ec61
+}
+
+.navbar {
+    display: flex;
+    background-color: #f1f1f1;
+    height: 60px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--blueSky);
+}
+
+    .navbar ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        gap: 10px;
+    }
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+    .nav-button img {
+        width: 20px;
+        height: 20px;
+        margin-right: 5px;
+    }
+
+    .nav-button:hover {
+        background-color: #ddd;
+    }
+
+.pos-states {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+}
+
+.pos-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.logo-img {
+    height: 44px;
+}
+
+
+@media (max-width: 576px) {
+    /* Styles for extra small screens (phones) */
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+    /* Styles for small screens (tablets) */
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+    .pos-actions {
+        left: 5%;
+    }
+}
+
+
+@media (min-width: 993px) and (max-width: 1200px) {
+    .pos-actions {
+        left: 15%;
+    }
+}
+
+
+
+@media (min-width: 1201px) {
+    .pos-actions {
+        left: 25%;
+    }
+}

@@ -1,0 +1,413 @@
+@using System.IO
+@using QuestPDF.Fluent
+@using global::BackOffice.Desktop.Components.Pages.Reporting
+@inject IReportingErpService ReportingService
+@inject LocalizationService Localizer
+@inject CommonProperties _commonProperties
+@inject IPrintOrderService PrintOrderService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+<MudDialog Class="premium-detailed-sales-dialog" DisableSidePadding="true" Style="border-radius: 24px; overflow: hidden; height: 95vh; background: #fdfdfd;">
+    <DialogContent>
+        <div class="dialog-wrapper d-flex flex-column" style="height: 95vh; overflow: hidden;" dir="@(_commonProperties.IsRtl ? "rtl" : "ltr")">
+            <!-- Premium Header Section -->
+            <div class="header-container glass-header pa-6 mb-4 mt-0">
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <div class="d-flex align-center gap-4">
+                        <div class="header-icon-box">
+                            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Large" Style="color: white;" />
+                        </div>
+                        <div class="text-start">
+                            <MudText Typo="Typo.h5" Class="header-title">@Localizer["DetailedSales"]</MudText>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Color="Color.Surface" />
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.85); font-weight: 500;">@SelectedDate.ToString("dd MMMM yyyy")</MudText>
+                                <span class="header-divider">•</span>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.85); font-weight: 500;">@FilteredOrders.Count() @Localizer["OrdersFound"]</MudText>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <MudButton Variant="MudBlazor.Variant.Filled"
+                                   Color="Color.Surface" 
+                                   StartIcon="@Icons.Material.Filled.LocalPrintshop" 
+                                   OnClick="PrintReport" 
+                                   Class="print-report-btn rounded-pill px-6"
+                                   Elevation="0">
+                            @Localizer["PrintReport"]
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                      OnClick="Close" 
+                                      Style="background: rgba(255,255,255,0.2); color: white;" 
+                                      Size="Size.Medium" 
+                                      Class="rounded-circle hover-scale" />
+                    </div>
+                </div>
+
+                <!-- Search Field Integrated in Header Area -->
+                <div class="search-wrapper">
+                    <MudTextField @bind-Value="_searchText" 
+                                 Placeholder="@Localizer["SearchByOrderIdOrCashier"]" 
+                                 Adornment="Adornment.End" 
+                                 AdornmentIcon="@Icons.Material.Filled.Search" 
+                                 AdornmentColor="Color.Info"
+                                  Variant="MudBlazor.Variant.Filled"
+                                  Margin="Margin.None"
+                                 FullWidth="true" 
+                                 Class="premium-search-field rtl-search"
+                                 Clearable="true" 
+                                 Immediate="true" />
+                </div>
+            </div>
+
+            @if (_isLoading)
+            {
+                <div class="lottie-loader">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" Thickness="5" />
+                    <MudText Typo="Typo.subtitle1" Class="mt-4 pulse-text">@Localizer["LoadingOrders"]...</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="orders-scroll-area flex-grow-1 px-4 pb-4">
+                    <MudExpansionPanels MultiExpansion="false" Class="custom-panels">
+                        @foreach (var order in FilteredOrders)
+                        {
+                            <MudExpansionPanel Class="premium-order-panel mb-3 shadow-sm" HideIcon="false">
+                                <TitleContent>
+                                    <div class="d-flex align-center justify-space-between w-100 pe-2">
+                                        <div class="d-flex align-center gap-3">
+                                            <div class="order-amount-box text-center">
+                                                <MudText Typo="Typo.caption" Class="amount-label">@Localizer["Total"]</MudText>
+                                                <MudText Typo="Typo.h6" Class="amount-value">@order.GrandTotal?.ToString("0.##")</MudText>
+                                            </div>
+
+                                            <MudMenu Label="@Localizer["Actions"]" 
+                                                    StartIcon="@Icons.Material.Filled.Settings" 
+                                                    EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                                                    Color="Color.Default"
+                                                     Variant="MudBlazor.Variant.Text"
+                                                     Dense="true" 
+                                                    Size="Size.Small"
+                                                    Class="rounded-pill px-4"
+                                                    AnchorOrigin="Origin.BottomRight">
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Visibility" IconColor="Color.Info" OnClick="@(() => OpenOrderPreview(order, "Customer"))">@Localizer["View"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Receipt" IconColor="Color.Primary" OnClick="@(() => OpenOrderPreview(order, "Customer"))">@Localizer["CustomerReceipt"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.ShoppingBag" IconColor="Color.Warning" OnClick="@(() => OpenOrderPreview(order, "Kitchen"))">@Localizer["Pickup"]</MudMenuItem>
+                                            </MudMenu>
+                                        </div>
+                                        <div class="d-flex align-center gap-4">
+                                            <div class="d-flex flex-column text-end">
+                                                <div class="d-flex align-center justify-end gap-2">
+                                                    <span class="status-indicator @order.OrderState!.ToLower()">@Localizer[order.OrderState]</span>
+                                                    <MudText Typo="Typo.subtitle1" Class="order-type-text">
+                                                        @(order.OrderType == "TakeAway" ? Localizer["TakeAway"] : 
+                                                          order.OrderType == "Delivery" ? Localizer["Delivery"] : Localizer["DineIn"])
+                                                    </MudText>
+                                                </div>
+                                                <div class="d-flex align-center justify-end gap-2 mt-n1">
+                                                    <MudText Typo="Typo.caption" Class="text-muted">@order.CashierName</MudText>
+                                                    <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small" Class="text-muted" />
+                                                    <MudText Typo="Typo.caption" Class="text-muted ms-2">@order.OrderDate?.ToString("hh:mm tt")</MudText>
+                                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Class="text-muted" />
+                                                </div>
+                                            </div>
+                                            <div class="order-id-badge">#@order.OrderId</div>
+                                        </div>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <div class="order-details-expanded pa-4 border-t">
+                                        <table class="premium-items-table w-100">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-start">@Localizer["ItemName"]</th>
+                                                    <th class="text-center">@Localizer["Qty"]</th>
+                                                    <th class="text-center">@Localizer["UnitPrice"]</th>
+                                                    <th class="text-end">@Localizer["Subtotal"]</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (order.OrderDetails != null)
+                                                {
+                                                    @foreach (var item in order.OrderDetails)
+                                                    {
+                                                        <tr>
+                                                            <td class="text-start font-medium">@(_commonProperties.IsRtl ? item.NameAr : item.Name)</td>
+                                                            <td class="text-center">
+                                                                <span class="qty-badge">@item.Quantity</span>
+                                                            </td>
+                                                            <td class="text-center">@item.Price?.ToString("0.##")</td>
+                                                            <td class="text-end font-bold">@((item.Quantity * (item.Price ?? 0)).ToString("0.##"))</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                        
+                                        <div class="d-flex flex-wrap gap-2 mt-4">
+                                            @if (!string.IsNullOrEmpty(order.VoidReason))
+                                            {
+                                                <div class="info-tag void-tag">
+                                                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                                    <span>@Localizer["Voided"]: @order.VoidReason (@order.VoidByName)</span>
+                                                </div>
+                                            }
+                                            @if (order.TotalDiscount > 0)
+                                            {
+                                                <div class="info-tag discount-tag">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Size="Size.Small" />
+                                                    <span>@Localizer["Discount"]: @order.TotalDiscount?.ToString("0.##") (@order.DiscountReason)</span>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(order.OrderNotice))
+                                            {
+                                                <div class="info-tag note-tag">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Small" />
+                                                    <span>@order.OrderNotice</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                    
+                    @if (!FilteredOrders.Any())
+                    {
+                        <div class="empty-state pa-10 text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Class="text-muted mb-2" Style="font-size: 64px;" />
+                            <MudText Typo="Typo.h6" Class="text-muted">@Localizer["NoOrdersMatched"]</MudText>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .premium-detailed-sales-dialog .mud-dialog-content { padding: 0 !important; background: #f8f9fa; height: 95vh; overflow: hidden !important; }
+    
+    .glass-header {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2a5298 100%);
+        color: white;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border-bottom-left-radius: 32px;
+        border-bottom-right-radius: 32px;
+    }
+    
+    .header-icon-box {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .header-title { font-weight: 900; letter-spacing: -0.5px; }
+    .header-divider { opacity: 0.5; margin: 0 4px; }
+    
+    .print-report-btn {
+        background: white !important;
+        color: #1e3a5f !important;
+        font-weight: 800;
+        text-transform: none;
+    }
+    
+    .premium-search-field {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 16px !important;
+        transition: all 0.3s;
+    }
+    .premium-search-field:focus-within {
+        background: rgba(255,255,255,0.2) !important;
+        transform: translateY(-2px);
+    }
+    .premium-search-field .mud-input-slot { color: white !important; padding-top: 12px; padding-bottom: 12px; text-align: right; }
+    .rtl-search .mud-input-adornment-end { margin-left: 12px; margin-right: 0; }
+    .premium-search-field .mud-input-placeholder { color: rgba(255,255,255,0.6) !important; text-align: right; }
+    
+    .orders-scroll-area { overflow-y: auto; scrollbar-width: thin; }
+    
+    .premium-order-panel {
+        border-radius: 16px !important;
+        border: 1px solid #edf2f7 !important;
+        overflow: hidden;
+        background: white !important;
+    }
+    .premium-order-panel::before { display: none !important; }
+    
+    .order-id-badge {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-weight: 900;
+        font-size: 14px;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    .order-type-text { font-weight: 700; color: #1e293b; }
+    
+    .status-indicator {
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .status-indicator.completed { background: #dcfce7; color: #166534; }
+    .status-indicator.voided { background: #fee2e2; color: #991b1b; }
+    .status-indicator.pending { background: #fef9c3; color: #854d0e; }
+    
+    .order-amount-box {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 4px 16px;
+        min-width: 100px;
+        border: 1px solid #e2e8f0;
+    }
+    .amount-label { font-size: 10px; color: #64748b; font-weight: 700; display: block; }
+    .amount-value { color: #1e3a5f; font-weight: 900; margin-top: -4px; }
+    
+    .action-btn-circle {
+        background: #f1f5f9;
+        transition: all 0.2s;
+    }
+    .action-btn-circle:hover { background: #e2e8f0; transform: translateY(-2px); }
+    
+    .premium-items-table th { padding: 12px 8px; font-size: 12px; color: #94a3b8; border-bottom: 2px solid #f1f5f9; }
+    .premium-items-table td { padding: 12px 8px; border-bottom: 1px solid #f8fafc; }
+    
+    .qty-badge { background: #eff6ff; color: #2563eb; padding: 2px 10px; border-radius: 8px; font-weight: 800; }
+    
+    .info-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .void-tag { background: #fff1f2; color: #e11d48; }
+    .discount-tag { background: #f0fdf4; color: #16a34a; }
+    .note-tag { background: #f8fafc; color: #475569; }
+    
+    .pulse-text { animation: pulse 2s infinite; color: #1e3a5f; font-weight: 700; }
+    @@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    
+    .hover-scale:hover { transform: scale(1.1); }
+</style>
+
+@code {
+    [Parameter] public DateTime SelectedDate { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    private List<OrderDto> _orders = new();
+    private bool _isLoading = true;
+    private string _searchText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {    
+            _orders = await ReportingService.GetTodayOrders(SelectedDate);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private IEnumerable<OrderDto> FilteredOrders => 
+        string.IsNullOrWhiteSpace(_searchText) 
+            ? _orders 
+            : _orders.Where(o => o.OrderId.ToString().Contains(_searchText) || 
+                               (o.CashierName != null && o.CashierName.Contains(_searchText, StringComparison.OrdinalIgnoreCase)));
+
+
+    private async Task PrintReport()
+    {
+        try
+        {
+            if (!_orders.Any())
+            {
+                Snackbar.Add(Localizer["NoOrdersFound"], Severity.Warning);
+                return;
+            }
+
+            // Using the new ReportViewerDialog that supports Excel/PDF saving
+            var parameters = new MudBlazor.DialogParameters<ReportViewerDialog>
+            {
+                { x => x.ReportId, "SalesDetailed" },
+                { x => x.ReportName, Localizer["DetailedSales"] },
+                { x => x.FromDate, SelectedDate },
+                { x => x.ToDate, SelectedDate },
+                { x => x.AdditionalFilters, new Dictionary<string, string> { ["IsDetailed"] = "true" } }
+            };
+
+            var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, FullScreen = true };
+            await DialogService.ShowAsync<ReportViewerDialog>(Localizer["DetailedSales"], parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private string GetLogoPath()
+    {
+        try
+        {
+            var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "images", "ReceiptLogo");
+            if (!Directory.Exists(folderPath))
+                folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "images", "ReceiptLogo");
+
+            if (Directory.Exists(folderPath))
+            {
+                var file = Directory.GetFiles(folderPath, "*.*")
+                    .FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                        f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                        f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase));
+                return file ?? "";
+            }
+        }
+        catch { }
+        return "";
+    }
+
+    private async Task OpenOrderPreview(OrderDto order, string mode = "Customer")
+    {
+        var parameters = new MudBlazor.DialogParameters { ["Order"] = order, ["PreviewMode"] = mode };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        DialogService.Show<global::BackOffice.Desktop.Components.Pages.Transactions.OrderReceiptPreviewDialog>("", parameters, options);
+    }
+
+    private async Task PrintOrderCopy(OrderDto order)
+    {
+        try
+        {
+            await PrintOrderService.ReprintOrderAsync(order.Id, isCopy: true, printCustomer: true, printKitchen:false);
+            Snackbar.Add(Localizer["SentToPrinter"], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}

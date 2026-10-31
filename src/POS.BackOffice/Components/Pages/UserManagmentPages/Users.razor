@@ -1,0 +1,124 @@
+﻿@page "/users"
+@inject HttpClient Http
+
+<h3>User Management</h3>
+
+@* <button @onclick="ShowAddUserDialog">Add User</button> *@
+
+@* <table class="table"> *@
+@*     <thead> *@
+@*         <tr> *@
+@*             <th>Name</th> *@
+@*             <th>Email</th> *@
+@*             <th>Roles</th> *@
+@*             <th>Actions</th> *@
+@*         </tr> *@
+@*     </thead> *@
+@*     <tbody> *@
+@*         @foreach (var user in Users) *@
+@*         { *@
+@*             <tr> *@
+@*                 <td>@user.Name</td> *@
+@*                 <td>@user.Email</td> *@
+@*                 <td>@string.Join(", ", user.Roles)</td> *@
+@*                 <td> *@
+@*                     <button @onclick="() => OpenPermissionsDialog(user)">Manage Permissions</button> *@
+@*                 </td> *@
+@*             </tr> *@
+@*         } *@
+@*     </tbody> *@
+@* </table> *@
+
+@* @if (isAddUserDialogOpen) *@
+@* { *@
+@*     <EditForm Model="newUser" OnValidSubmit="AddUser"> *@
+@*         <div> *@
+@*             <label>Name</label> *@
+@*             <InputText @bind-Value="newUser.Name" /> *@
+@*         </div> *@
+@*         <div> *@
+@*             <label>Email</label> *@
+@*             <InputText @bind-Value="newUser.Email" /> *@
+@*         </div> *@
+@*         <div> *@
+@*             <label>Password</label> *@
+@*             <InputText @bind-Value="newUser.Password" type="password" /> *@
+@*         </div> *@
+@*         <button type="submit">Save</button> *@
+@*         <button @onclick="CloseDialog">Cancel</button> *@
+@*     </EditForm> *@
+@* } *@
+
+@* @if (isPermissionDialogOpen) *@
+@* { *@
+@*     <div class="modal"> *@
+@*         <h3>Assign Permissions</h3> *@
+@*         <ul> *@
+@*             @foreach (var permission in AllPermissions) *@
+@*             { *@
+@*                 <li> *@
+@*                     <input type="checkbox" @bind="permission.IsSelected" /> *@
+@*                     @permission.Name *@
+@*                 </li> *@
+@*             } *@
+@*         </ul> *@
+@*         <button @onclick="SavePermissions">Save</button> *@
+@*         <button @onclick="CloseDialog">Cancel</button> *@
+@*     </div> *@
+@* } *@
+
+@* @code { *@
+@*     private List<UserModel> Users = new(); *@
+@*     private UserModel newUser = new(); *@
+@*     private bool isAddUserDialogOpen = false; *@
+@*     private bool isPermissionDialogOpen = false; *@
+@*     private List<PermissionModel> AllPermissions = new(); *@
+@*     private UserModel selectedUser; *@
+
+@*     private void ShowAddUserDialog() *@
+@*     { *@
+@*         isAddUserDialogOpen = true; *@
+@*         newUser = new(); *@
+@*     } *@
+
+@*     private async Task AddUser() *@
+@*     { *@
+@*         await Http.PostAsJsonAsync("/api/users", newUser); *@
+@*         isAddUserDialogOpen = false; *@
+@*     } *@
+
+@*     private void OpenPermissionsDialog(UserModel user) *@
+@*     { *@
+@*         selectedUser = user; *@
+@*         isPermissionDialogOpen = true; *@
+@*     } *@
+
+@*     private async Task SavePermissions() *@
+@*     { *@
+@*         await Http.PostAsJsonAsync($"/api/users/{selectedUser.Id}/permissions", AllPermissions); *@
+@*         isPermissionDialogOpen = false; *@
+@*     } *@
+
+@*     private void CloseDialog() *@
+@*     { *@
+@*         isAddUserDialogOpen = false; *@
+@*         isPermissionDialogOpen = false; *@
+@*     } *@
+@* } *@
+
+@* @code { *@
+@*     public class UserModel *@
+@*     { *@
+@*         public string Id { get; set; } *@
+@*         public string Name { get; set; } *@
+@*         public string Email { get; set; } *@
+@*         public string Password { get; set; } *@
+@*         public List<string> Roles { get; set; } = new(); *@
+@*     } *@
+
+@*     public class PermissionModel *@
+@*     { *@
+@*         public string Name { get; set; } *@
+@*         public bool IsSelected { get; set; } *@
+@*     } *@
+@* } *@

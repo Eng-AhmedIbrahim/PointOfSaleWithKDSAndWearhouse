@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/12/2026" ReportInfo.Modified="03/14/2026 00:26:00" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="ItemSales" ReferenceName="ReportData.ItemSales" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemId" DataType="System.Int32"/>
+      <Column Name="ItemTitle" DataType="System.String"/>
+      <Column Name="Category" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="Unit" DataType="System.String"/>
+      <Column Name="Price" DataType="System.Decimal"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+    <Total Name="TotalSales" Expression="[ItemSales.Total]" Evaluator="Data1" PrintOn="Summary1"/>
+  </Dictionary>
+  <ReportPage Name="Page1" PaperWidth="80" UnlimitedHeight="true" PrintOnRollPaper="true" LeftMargin="1" RightMargin="1" TopMargin="4" BottomMargin="4">
+    <!-- HEADER -->
+    <ReportTitleBand Name="HeaderBand" Width="294" Height="140">
+      <TextObject Name="TBranch" Left="0" Top="0" Width="294" Height="25" Text="[BranchName]" Font="Arial, 13pt, style=Bold" HorzAlign="Center" VertAlign="Center"/>
+      <TextObject Name="TTitle" Left="0" Top="25" Width="294" Height="25" Text="مبيعات الأصناف" Font="Arial, 12pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="Top, Bottom" Border.Width="1.5"/>
+      <TextObject Name="LDate" Left="0" Top="80" Width="294" Height="20" Text="التاريخ: [DateTime.Now]" Format="Date" Format.Format="dd/MM/yyyy hh:mm tt" Font="Arial, 8pt" HorzAlign="Right" VertAlign="Center" RTL="true"/>
+      <TextObject Name="LFrom" Left="147" Top="100" Width="147" Height="20" Text="من: [FromDate]" Font="Arial, 8pt" HorzAlign="Right" VertAlign="Center" RTL="true"/>
+      <TextObject Name="LTo" Left="0" Top="100" Width="147" Height="20" Text="إلي: [ToDate]" Font="Arial, 8pt" HorzAlign="Right" VertAlign="Center" RTL="true"/>
+    </ReportTitleBand>
+
+    <!-- COLUMN HEADERS -->
+    <PageHeaderBand Name="PageHeader1" Top="150" Width="294" Height="20">
+      <TextObject Name="HTotal" Left="0" Top="0" Width="55" Height="20" Text="الإجمالي" Font="Arial, 9pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HQty"   Left="55" Top="0" Width="42" Height="20" Text="كمية" Font="Arial, 9pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HPrice" Left="97" Top="0" Width="46" Height="20" Text="السعر" Font="Arial, 9pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+      <TextObject Name="HName"  Left="143" Top="0" Width="125" Height="20" Text="الصنف" Font="Arial, 9pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray" RTL="true"/>
+      <TextObject Name="HID"    Left="268" Top="0" Width="26" Height="20" Text="رقم" Font="Arial, 9pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray"/>
+    </PageHeaderBand>
+
+    <!-- DATA -->
+    <DataBand Name="Data1" Top="175" Width="294" Height="20" DataSource="ItemSales">
+      <TextObject Name="VTotal" Left="0" Top="0" Width="55" Height="20" Text="[ItemSales.Total]" Format="Custom" Format.Format="0.##" Font="Arial, 8pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VQty"   Left="55" Top="0" Width="42" Height="20" Text="[ItemSales.Qty]" Format="Custom" Format.Format="0.##" Font="Arial, 8pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VPrice" Left="97" Top="0" Width="46" Height="20" Text="[ItemSales.Price]" Format="Custom" Format.Format="0.##" Font="Arial, 8pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+      <TextObject Name="VItem"  Left="143" Top="0" Width="125" Height="20" Text="[ItemSales.ItemTitle]" Font="Arial, 9pt, style=Bold" HorzAlign="Right" VertAlign="Center" Padding="0,2,2,0" RTL="true" Border.Lines="All"/>
+      <TextObject Name="VID"    Left="268" Top="0" Width="26" Height="20" Text="[ItemSales.ItemId]" Font="Arial, 8pt" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+    </DataBand>
+
+    <!-- SUMMARY -->
+    <ReportSummaryBand Name="Summary1" Top="200" Width="294" Height="50">
+       <TextObject Name="VSum" Left="0" Top="0" Width="136" Height="20" Text="[TotalSales]" Format="Custom" Format.Format="0.##" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All"/>
+       <TextObject Name="LSum" Left="136" Top="0" Width="158" Height="20" Text="الإجمالي" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Border.Lines="All" Fill.Color="LightGray" RTL="true"/>
+
+       <TextObject Name="TFoo" Left="0" Top="25" Width="294" Height="20" Text="تاريخ الطباعة: [DateTime.Now]" Format="Date" Format.Format="dd/MM/yyyy hh:mm tt" Font="Arial, 8pt" HorzAlign="Center" RTL="true"/>
+    </ReportSummaryBand>
+  </ReportPage>
+</Report>

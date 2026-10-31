@@ -1,0 +1,140 @@
+@inherits LayoutComponentBase
+@using MudBlazor.Utilities
+
+<MudThemeProvider Theme="@_customTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@inject CommonProperties _commonProperties
+@inject ISnackbar _snackbar
+@inject BlazorBase.Services.LocalizationService Localizer
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject BlazorBase.ERPFrontServices.LicensingServices.ILicenseService LicenseService
+
+@implements IDisposable
+
+
+<AuthorizeView>
+    <Authorized>
+        <div dir="@(IsArabic ? "rtl" : "ltr")">
+            <MudLayout Style="height: 100vh;">
+                <MudMainContent Class="main-content-wrapper py-0">
+                    <NavMenu IsLicensedForBackOffice="_isLicensed" />
+                    <div class="page-container">
+                        @if (_isLicensed)
+                        {
+                            @Body
+                        }
+                        else
+                        {
+                            <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 6rem;" Color="Color.Error" Class="mb-4" />
+                                <MudText Typo="Typo.h4" Color="Color.Error" Class="mb-2">هذا الجهاز غير مرخص للـ BackOffice</MudText>
+                                <MudText Typo="Typo.body1">برجاء الضغط على زر "التسجيل" في الأعلى لإدخال بيانات التفعيل، أو الرجوع للإدارة.</MudText>
+                            </div>
+                        }
+                    </div>
+                </MudMainContent>
+
+            </MudLayout>
+        </div>
+        <RadzenDialog />
+        <RadzenNotification />
+        <RadzenContextMenu />
+    </Authorized>
+    <NotAuthorized>
+        @Body
+        <RadzenDialog />
+        <RadzenNotification />
+        <RadzenContextMenu />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    bool _drawerOpen = true;
+    bool _isMini = false;
+    bool _isLicensed = true;
+
+    private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
+
+
+    private void ToggleMini()
+    {
+        _isMini = !_isMini;
+    }
+
+    private MudTheme _customTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            DrawerBackground = new MudColor("#0f172a"), // Slate 900
+            DrawerText = new MudColor("#94a3b8"),
+            DrawerIcon = new MudColor("#64748b"),
+            Primary = new MudColor("#1e90ff"), // BlueSky from logo
+            Secondary = new MudColor("#ec4899"),
+            AppbarBackground = new MudColor("#ffffff"),
+            Background = new MudColor("#f8fafc"),
+            TextPrimary = new MudColor("#1e293b")
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Tajawal", "Roboto", "Helvetica", "Arial", "sans-serif" }
+            },
+            Button = new ButtonTypography()
+            {
+                TextTransform = "none"
+            }
+        }
+    };
+
+    private Action? _stateChangedHandler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLicensed = await LicenseService.IsBackOfficeAuthorizedAsync();
+
+        _stateChangedHandler = async () => 
+        {
+            try { await InvokeAsync(StateHasChanged); } catch { }
+        };
+
+        _commonProperties.OnChange += _stateChangedHandler;
+    }
+
+
+    public void Dispose()
+    {
+        if (_stateChangedHandler != null)
+        {
+            _commonProperties.OnChange -= _stateChangedHandler;
+        }
+    }
+}
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+<style>
+    @@import url('fonts.css');
+
+    .main-content-wrapper {
+        background-color: #f8fafc;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-container {
+        height: calc(100vh - 72px);
+        overflow-y: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+</style>

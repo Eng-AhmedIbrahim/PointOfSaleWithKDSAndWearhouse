@@ -1,0 +1,88 @@
+@inject CommonProperties _commonProperties
+@inject Section4ButtonsServices _section4ButtonsServices
+@inject CartService _cartService
+
+
+<MudGrid Spacing="0">
+    @foreach (var setting in Settings)
+    {
+        if (setting.IsTotal)
+        {
+            <MudItem xs="12" Class="m-0">
+                <MudGrid Spacing="0">
+                    <MudItem xs="4" Class="m-0">
+                        <MudText Class="px-2 finance-label-text-size liner-grid-buttons font-weight-bold" Typo="Typo.subtitle1">@setting.Label</MudText>
+                    </MudItem>
+                    <MudItem xs="8" Class="m-0">
+                        <MudNumericField Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Class="finance-input-text-size label-color full-width"
+                                         Min="0.00M"
+                                         Culture="@_en"
+                                         @bind-Value="setting.Value"
+                                         HideSpinButtons="true"
+                                         Disabled />
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+        }
+        else
+        {
+            <MudItem xs="6" Class="m-0">
+                <MudGrid Spacing="0">
+                    <MudItem xs="4" Class="m-0">
+                        <MudText Class="px-2 finance-label-text-size liner-grid-buttons" Typo="Typo.subtitle1">@setting.Label</MudText>
+                    </MudItem>
+                    <MudItem xs="8" Class="m-0">
+                        <MudNumericField Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Class="finance-input-text-size label-color"
+                                         Min="0.00M"
+                                         Culture="@_en"
+                                         @bind-Value="setting.Value"
+                                         HideSpinButtons="true"
+                                         Disabled />
+                    </MudItem>
+                    @if (!setting.IsTotal)
+                    {
+                        <MudItem xs="4" Class="m-0">
+                            @if (setting.HasSwitch)
+                            {
+                                <MudSwitch T="bool"
+                                           Class="mx-3"
+                                           ThumbIcon="@(setting.IsEnabled ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)"
+                                           ThumbIconColor="@(setting.IsEnabled ? Color.Success : Color.Error)"
+                                           @bind-Value="setting.IsEnabled" />
+                            }
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudItem>
+        }
+    }
+</MudGrid>
+
+@code {
+    private readonly CultureInfo _en = CultureInfo.GetCultureInfo("en-US");
+    private const string UpdateFontSize = "updateFontSize";
+    private const string ClearSec4FontSizeStorage = "clearSec4FontSizeStorage";
+    private const string FinanceLabelTextSize = "finance-label-text-size";
+    private const string FinanceInputTextSize = "finance-input-text-size";
+
+
+    [Parameter, EditorRequired] public List<FinanceSettings> Settings { get; set; } = [];
+
+    private int GetNumericFieldColumnSize(FinanceSettings setting) => setting.IsTotal ? 8 : 4;
+
+    protected override void OnInitialized()
+    {
+        _section4ButtonsServices.OnChanged += () => InvokeAsync(StateHasChanged);
+        _cartService.OnChange += HandleCartServiceChange;
+    }
+
+    private async void HandleCartServiceChange()
+    => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    => _cartService.OnChange -= HandleCartServiceChange;
+}

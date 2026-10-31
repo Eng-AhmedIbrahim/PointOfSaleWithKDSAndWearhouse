@@ -1,0 +1,162 @@
+/* Modern Permissions UI Styles - Grouped Cards Design */
+.permissions-management-container {
+    background: #f8fafc;
+    height: calc(100vh - 100px) !important;
+    /* Force explicit height so inner scrolling works */
+    display: flex;
+    flex-direction: column;
+    font-family: 'Cairo', 'Inter', sans-serif !important;
+}
+
+.page-header {
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.page-title {
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: #1e293b;
+}
+
+.role-selector-header {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.permissions-editor-container {
+    flex: 1;
+    overflow-y: auto !important;
+    height: 100%;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.permission-group-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.group-header {
+    background: #2b3648;
+    /* Exact dark slate blue from screenshot */
+    color: white;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.group-header-title {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+}
+
+.group-body {
+    padding: 0;
+    flex: 1;
+}
+
+.permission-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px dashed #e2e8f0;
+    min-height: 56px;
+}
+
+.permission-item:last-child {
+    border-bottom: none;
+}
+
+.permission-item.granted {
+    background-color: #f2fcf5;
+    /* Exact light green background from screenshot */
+}
+
+.permission-name {
+    font-weight: 800;
+    color: #2b3648;
+    font-size: 1.05rem;
+}
+
+/* Tabs */
+::deep .rz-tabs {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    height: 100% !important;
+    min-height: 0;
+}
+
+::deep .rz-tabview-panels {
+    flex: 1;
+    overflow: hidden !important;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+}
+
+::deep .rz-tabview-panel {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+}
+
+::deep .rz-switch {
+    transform: scale(1.1);
+}
+
+/* Scrollbar styling */
+.permissions-editor-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.permissions-editor-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.permissions-editor-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.permissions-editor-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Fix Radzen Dropdown text clipping in Arabic */
+::deep .rz-dropdown-label {
+    line-height: inherit !important;
+    padding-bottom: 0.25rem !important;
+    padding-top: 0.25rem !important;
+}
+
+::deep .rz-dropdown {
+    height: auto !important;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Make tab titles bold */
+::deep .rz-tabview-title {
+    font-weight: 900 !important;
+    font-size: 1.1rem !important;
+}

@@ -1,0 +1,166 @@
+﻿@inject ISnackbar _snackbar
+@inject CommonProperties _commonProperties
+@inject CartService _cartService
+
+<MudDialog Class="custom-dialog">
+    <DialogContent>
+        <MudStack Spacing="3" Class="px-5 pt-3 pb-4">
+
+            <MudText Typo="Typo.h6"
+                     Class="@($"fw-bold header-text {(ShowAvailableDrivers ? "header-available" : "header-unavailable")}")">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-2" />
+                @(ShowAvailableDrivers ? "السائقين المتاحين" : "السائقين غير المتاحين")
+            </MudText>
+
+            @foreach (var driver in _commonProperties.Drivers.Where(d => d.Value.Equals(ShowAvailableDrivers ? "Available" : "Unavailable")))
+            {
+                <MudPaper Class="@($"driver-paper {(ShowAvailableDrivers ? "paper-available" : "paper-unavailable")} d-flex justify-content-between align-items-center px-3 py-2 rounded mb-2 shadow-sm")" Elevation="1">
+                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1" Class="driver-name-stack">
+                        <MudAvatar Icon="@(ShowAvailableDrivers? Icons.Material.Filled.Person : Icons.Material.Filled.PersonOff)"
+                                   Class="@($"avatar {(ShowAvailableDrivers ? "avatar-available" : "avatar-unavailable")}")"
+                                   Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold text-dark name-text">
+                            @(!string.IsNullOrEmpty(driver.Key.ArabicName) ? driver.Key.DisplayName : driver.Key.UserName)
+                        </MudText>
+                    </MudStack>
+
+                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@(ShowAvailableDrivers? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                 Color="@(ShowAvailableDrivers ? Color.Success : Color.Error)" />
+                    </MudStack>
+                </MudPaper>
+
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CloseDialog" Class="mt-4 w-100" Size="Size.Medium">
+                إغلاق
+            </MudButton>
+
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
+
+@code {
+    [Parameter] public bool ShowAvailableDrivers { get; set; }
+
+    private void CloseDialog()
+        => _commonProperties.DriversDialogReference?.Close();
+}
+
+
+
+
+
+<style>
+
+
+    .custom-dialog {
+        width: 650px;
+        max-width: 650px !important;
+        border-radius: 12px;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    .header-text {
+        font-size: 1.6rem;
+        text-align: center;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .header-available {
+        color: var(--mud-palette-success-main);
+        border-color: var(--mud-palette-success-main);
+    }
+
+    .header-unavailable {
+        color: var(--mud-palette-error-main);
+        border-color: var(--mud-palette-error-main);
+    }
+
+    .driver-paper {
+        border-radius: 10px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+        .driver-paper:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+    .paper-available {
+        display: flex !important;
+        justify-content: end !important;
+        background-color: #e8f5e9;
+        border: 1.2px solid var(--mud-palette-success-lighten);
+    }
+
+    .paper-unavailable {
+        display: flex !important;
+        justify-content: end !important;
+        background-color: #ffebee;
+        border: 1.2px solid var(--mud-palette-error-lighten);
+    }
+
+    .avatar {
+        font-size: 20px !important;
+    }
+
+    .avatar-available {
+        background-color: var(--mud-palette-success-main);
+        color: white;
+    }
+
+    .avatar-unavailable {
+        background-color: var(--mud-palette-error-main);
+        color: white;
+    }
+
+    .name-text {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-right: 5px;
+        padding: 4px;
+    }
+
+    .driver-name-stack {
+        direction: rtl;
+        align-items: center;
+    }
+
+    .text-success {
+        color: var(--mud-palette-success-main);
+    }
+
+    .text-danger {
+        color: var(--mud-palette-error-main);
+    }
+
+
+
+    .mud-dialog .mud-dialog-title {
+        display: none;
+        z-index: 1;
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 16px 24px;
+        border-top-left-radius: var(--mud-default-borderradius);
+        border-top-right-radius: var(--mud-default-borderradius);
+    }
+
+    .mud-avatar.mud-avatar-small {
+        width: 24px;
+        height: 24px;
+        font-size: .75rem;
+        display: none;
+    }
+</style>

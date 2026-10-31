@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Inventory" ReferenceName="ReportData.Inventory" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Category" DataType="System.String"/>
+      <Column Name="CurrentQty" DataType="System.Decimal"/>
+      <Column Name="MinQty" DataType="System.Decimal"/>
+      <Column Name="Unit" DataType="System.String"/>
+    </TableDataSource>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt" RightToLeft="true">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="40" Text="نموذج الجرد الفعلي للمخازن" HorzAlign="Center" VertAlign="Center" Font="Arial, 20pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="718.2" Height="25" Text="تاريخ الجرد: [DateTime.Now.ToString(&quot;yyyy-MM-dd hh:mm&quot;)] [IIf(DateTime.Now.Hour < 12, &quot;صباحاً&quot;, &quot;مساءً&quot;)]" HorzAlign="Center" Font="Arial, 11pt"/>
+      <TextObject Name="Text3" Top="65" Width="718.2" Height="20" Text="فرع: [BranchName]" HorzAlign="Center" Font="Arial, 11pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="35" Fill.Color="30, 58, 95">
+      <TextObject Name="TextHeaderNotes" Width="180" Height="35" Border.Lines="All" Border.Color="White" Text="ملاحظات" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeaderActual" Left="180" Width="100" Height="35" Border.Lines="All" Border.Color="White" Text="الجرد الفعلي" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader3" Left="280" Width="90" Height="35" Border.Lines="All" Border.Color="White" Text="الرصيد الدفتري" HorzAlign="Center" VertAlign="Center" Font="Arial, 11pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeaderUnit" Left="370" Width="70" Height="35" Border.Lines="All" Border.Color="White" Text="الوحدة" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader2" Left="440" Width="100" Height="35" Border.Lines="All" Border.Color="White" Text="القسم" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="TextHeader1" Left="540" Width="178.2" Height="35" Border.Lines="All" Border.Color="White" Text="الصنف" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="143.2" Width="718.2" Height="40" DataSource="Inventory">
+      <TextObject Name="TextBodyNotes" Width="180" Height="40" Border.Lines="All" Border.Color="Silver" Text="" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="TextBodyActual" Left="180" Width="100" Height="40" Border.Lines="All" Border.Color="Silver" Text="" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt"/>
+      <TextObject Name="TextBody3" Left="280" Width="90" Height="40" Border.Lines="All" Border.Color="Silver" Text="[Inventory.CurrentQty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="TextBodyUnit" Left="370" Width="70" Height="40" Border.Lines="All" Border.Color="Silver" Text="[Inventory.Unit]" HorzAlign="Center" VertAlign="Center" Font="Arial, 12pt, style=Bold"/>
+      <TextObject Name="TextBody2" Left="440" Width="100" Height="40" Border.Lines="All" Border.Color="Silver" Text="[Inventory.Category]" HorzAlign="Right" VertAlign="Center" Font="Arial, 12pt, style=Bold" Padding="0,0,5,0" RTL="true"/>
+      <TextObject Name="TextBody1" Left="540" Width="178.2" Height="40" Border.Lines="All" Border.Color="Silver" Text="[Inventory.ItemName]" HorzAlign="Right" VertAlign="Center" Font="Arial, 12pt, style=Bold" Padding="0,0,5,0" RTL="true"/>
+    </DataBand>
+    <ReportSummaryBand Name="Summary" Top="187.2" Width="718.2" Height="100">
+      <TextObject Name="Sign3" Top="30" Width="200" Height="20" Text="اعتماد المدير" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="Sign2" Left="250" Top="30" Width="200" Height="20" Text="توقيع لجنة الجرد" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="Sign1" Left="500" Top="30" Width="200" Height="20" Text="توقيع أمين المخزن" HorzAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <LineObject Name="L1" Top="80" Width="180" Border.Style="Dash"/>
+      <LineObject Name="L2" Left="260" Top="80" Width="180" Border.Style="Dash"/>
+      <LineObject Name="L3" Left="510" Top="80" Width="180" Border.Style="Dash"/>
+    </ReportSummaryBand>
+  </ReportPage>
+</Report>

@@ -1,0 +1,10 @@
+[
+  {
+    "BranchId": 1,
+    "KitchenName": "Customer"
+  },
+  {
+    "BranchId": 1,
+    "KitchenName": "Backup"
+  }
+]

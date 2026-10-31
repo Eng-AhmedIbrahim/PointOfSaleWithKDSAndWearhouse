@@ -1,0 +1,170 @@
+﻿@inject NavigationManager _navigationManager
+@inject CommonProperties _commonProperties
+@inject ISnackbar _snackbar
+@inject IDialogService _dialogService
+@inject LocalizationService Localizer
+@inject IDineInOrderFrontService _dineInOrderService
+@inject IOrderTrackFrontService _orderTrackService
+
+<MudGrid Spacing="1" Justify="Justify.Center">
+    @if (_canDineInOrder && _commonProperties.IsFeatureEnabled("DineIn_Button_Order"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button active-button"
+                       Size="Size.Large"
+                       OnClick='CreateDineInOrder'>
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["OrderBtn"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInReceipt && _commonProperties.IsFeatureEnabled("DineIn_Button_Receipt"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="PrintReceipt">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["Receipt"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInCloseTable && _commonProperties.IsFeatureEnabled("DineIn_Button_CloseTable"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="CloseTable"
+                       Disabled="@IsCloseDisabled()">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.TableBar" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["CloseTable"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInSplitOrder && _commonProperties.IsFeatureEnabled("EnableSplitBill"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="OpenSplitOrderDialog">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.CallSplit" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["SplitOrder"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInMergeTable && _commonProperties.IsFeatureEnabled("EnableTableMerge"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="OpenMergeTablesDialog">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["MergeTables"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInTransfer && _commonProperties.IsFeatureEnabled("EnableTableTransfer"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="TransferTable">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["Transfer"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInVoid && _commonProperties.IsFeatureEnabled("DineIn_Button_Void"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="OpenVoidDialog">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.Delete" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["Void"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_canDineInGuestCount && _commonProperties.IsFeatureEnabled("EnableGuestCount"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="OpenGuestCountDialog">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["Guests"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+
+    @if (_commonProperties.IsFeatureEnabled("DineIn_Button_Back"))
+    {
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                       Class="full-height-button special-keypad-button"
+                       Size="Size.Large"
+                       OnClick="BackToPos">
+                <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Class="button-icon" />
+                    <MudText Typo="Typo.subtitle2">@Localizer["Back"]</MudText>
+                </MudStack>
+            </MudButton>
+        </MudItem>
+    }
+</MudGrid>
+
+<style>
+    .full-height-button {
+        height: calc((100vh - 68px) / 9);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: none;
+    }
+
+    .button-icon {
+        font-size: 2rem;
+    }
+
+    .special-keypad-button {
+        background: linear-gradient(135deg, #ffffff, #e7ecf5);
+        color: #143155 !important;
+    }
+
+    .active-button {
+        background: linear-gradient(135deg, #fbd14b, #ffea92);
+        color: black !important;
+    }
+</style>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/10/2026 03:30:00" ReportInfo.Modified="03/10/2026 03:30:00" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="ReportTitle" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="75.6">
+      <TextObject Name="Text1" Left="9.45" Top="9.45" Width="699.3" Height="28.35" Text="[ReportTitle]" Font="Arial, 16pt, style=Bold" HorzAlign="Center"/>
+      <TextObject Name="Text2" Left="9.45" Top="47.25" Width="699.3" Height="18.9" Text="Period: [FromDate] to [ToDate]" Font="Arial, 10pt" HorzAlign="Center"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="79.6" Width="718.2" Height="28.35">
+      <TextObject Name="TextHeader" Left="0" Top="0" Width="718.2" Height="28.35" Text="Generic Data Report" Font="Arial, 10pt, style=Bold"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="111.95" Width="718.2" Height="18.9">
+      <TextObject Name="TextData" Left="0" Top="0" Width="718.2" Height="18.9" Text="Data row goes here" Font="Arial, 10pt"/>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="134.85" Width="718.2" Height="18.9">
+      <TextObject Name="Text3" Left="519.75" Top="0" Width="189" Height="18.9" Text="[PageN]" HorzAlign="Right"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

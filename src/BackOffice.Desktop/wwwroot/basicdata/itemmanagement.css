@@ -1,0 +1,98 @@
+/* file: basicdata/itemmanagement.css */
+.item-management-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background-color: #f8fafc;
+    overflow: hidden;
+    padding: 0.75rem !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .item-management-container {
+        padding: 0.25rem !important;
+    }
+}
+
+.item-management-container.rtl-mode {
+    direction: rtl;
+    text-align: right;
+}
+
+.item-management-container .page-header {
+    background: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.07);
+    flex-shrink: 0;
+    margin-bottom: 1rem !important;
+}
+
+.item-management-container .page-title {
+    font-size: 1.75rem;
+    font-weight: 950;
+    /* Extra bold */
+    color: #0f172a;
+    letter-spacing: -0.04em;
+}
+
+.item-management-container .data-grid-container {
+    background: white;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Premium Radzen DataGrid Styling */
+.data-grid-container .rz-data-grid {
+    border: none !important;
+}
+
+.data-grid-container .rz-column-header {
+    background-color: #f8fafc !important;
+    padding: 1.25rem 1rem !important;
+    border-bottom: 2px solid #edf2f7 !important;
+}
+
+.data-grid-container .rz-column-title {
+    color: #475569 !important;
+    font-weight: 900 !important;
+    font-size: 0.95rem !important;
+    text-transform: none !important;
+}
+
+.data-grid-container .rz-data-row td {
+    padding: 0.85rem 0.75rem !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.data-grid-container .rz-data-row span,
+.data-grid-container .rz-data-row div {
+    font-weight: 800 !important;
+    /* Bold content */
+    color: #1e293b;
+    font-size: 0.95rem;
+}
+
+.data-grid-container .rz-data-row:hover td {
+    background-color: #f1f5f9 !important;
+}
+
+/* Chip Styling */
+.mud-chip-content {
+    font-weight: 900 !important;
+    /* Ultra bold chips */
+    font-size: 0.8rem !important;
+    color: white !important;
+    /* Force white text */
+}
+
+.search-box-wrapper:focus-within {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+}

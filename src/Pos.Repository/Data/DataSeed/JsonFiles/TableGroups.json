@@ -1,0 +1,27 @@
+[
+  {
+    "Id": 1,
+    "BranchID": 1,
+    "GroupName": "الدور الاول",
+    "CreationDate": "2025-03-08T12:00:00Z"
+  },
+  {
+    "Id": 2,
+    "BranchID": 1,
+    "GroupName": "الدور الثاني",
+    "CreationDate": "2025-03-08T12:00:00Z"
+  },
+  {
+    "Id": 3,
+    "BranchID": 1,
+    "GroupName": "Owner",
+    "CreationDate": "2025-03-08T12:00:00Z"
+  },
+  {
+    "Id": 4,
+    "BranchID": 1,
+    "GroupName": "VIP Section",
+    "CreationDate": "2025-03-08T12:00:00Z"
+  }
+
+]

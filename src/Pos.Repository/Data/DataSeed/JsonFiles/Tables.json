@@ -1,0 +1,297 @@
+[
+  {
+    "TableName": "Table  1",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  2",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  3",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  4",
+    "SeatsCount": 2,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  5",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  6",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  7",
+    "SeatsCount": 8,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  8",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table  9",
+    "SeatsCount": 2,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 10",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 11",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 12",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 13",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 14",
+    "SeatsCount": 2,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 15",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 16",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 17",
+    "SeatsCount": 8,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 18",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 19",
+    "SeatsCount": 2,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 20",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 21",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 22",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 23",
+    "SeatsCount": 6,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 24",
+    "SeatsCount": 2,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 25",
+    "SeatsCount": 4,
+    "GroupID": 1
+  },
+  {
+    "TableName": "Table 26",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 27",
+    "SeatsCount": 8,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 28",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 29",
+    "SeatsCount": 2,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 30",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 31",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 32",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 33",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 34",
+    "SeatsCount": 2,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 35",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 36",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 37",
+    "SeatsCount": 8,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 38",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 39",
+    "SeatsCount": 2,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 40",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 41",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 42",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 43",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 44",
+    "SeatsCount": 2,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 45",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 46",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 47",
+    "SeatsCount": 8,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 48",
+    "SeatsCount": 4,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 49",
+    "SeatsCount": 2,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Table 50",
+    "SeatsCount": 6,
+    "GroupID": 2
+  },
+  {
+    "TableName": "Owner Table 1",
+    "SeatsCount": 20,
+    "GroupID": 3
+  },
+  {
+    "TableName": "Owner Table 2",
+    "SeatsCount": 20,
+    "GroupID": 3
+  },
+  {
+    "TableName": "Owner Table 3",
+    "SeatsCount": 20,
+    "GroupID": 3
+  },
+  {
+    "TableName": "Owner Table 4",
+    "SeatsCount": 20,
+    "GroupID": 3
+  },
+  {
+    "TableName": "Owner Table 5",
+    "SeatsCount": 20,
+    "GroupID": 3
+  },
+  {
+    "TableName": "VIP Room 1",
+    "SeatsCount": 10,
+    "GroupID": 4
+  },
+  {
+    "TableName": "VIP Room 2",
+    "SeatsCount": 12,
+    "GroupID": 4
+  },
+  {
+    "TableName": "VIP Room 3",
+    "SeatsCount": 8,
+    "GroupID": 4
+  },
+  {
+    "TableName": "VIP Room 4",
+    "SeatsCount": 8,
+    "GroupID": 4
+  }
+]

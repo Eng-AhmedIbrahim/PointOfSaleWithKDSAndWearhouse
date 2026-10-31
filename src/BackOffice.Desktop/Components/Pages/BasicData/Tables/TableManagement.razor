@@ -1,0 +1,256 @@
+@page "/basicdata/tables"
+@using POS.Contract.Dtos.DineInDtos
+@using BlazorBase.Services
+@using BlazorBase.ERPFrontServices.DineInServices
+@using Radzen
+@using Radzen.Blazor
+@inject IDineInService DineInService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<link href="basicdata/categorymanagement.css" rel="stylesheet" />
+
+<div class="category-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="page-header mb-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <MudIcon Icon="@Icons.Material.Filled.TableBar" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="me-2" />
+            <h2 class="m-0 page-title">@(IsArabic ? "إدارة الطاولات" : "Tables Management")</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem;">
+                @(IsArabic ? "إضافة طاولة جديدة" : "Add New Table")
+            </MudButton>
+        </div>
+    </div>
+
+    <div class="row px-3 mb-3 gy-3">
+        <div class="col-md-5 col-lg-4">
+            <div class="search-box-wrapper d-flex align-items-center" style="background: white; border-radius: 12px; padding: 5px 15px; border: 2px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <RadzenIcon Icon="search" Style="font-size: 1.3rem; color: #94a3b8; margin-inline-end: 10px;" />
+                <RadzenTextBox Placeholder="@(IsArabic ? "بحث باسم أو رقم الطاولة..." : "Search by name or number...")" 
+                               @oninput="OnSearch" 
+                               Style="width: 100%; border: none; background: transparent; font-weight: 600; font-size: 0.95rem; color: #1e293b; height: 35px;" />
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <RadzenDropDown @bind-Value="SelectedGroupId" 
+                            Data="@TableGroups" 
+                            TextProperty="GroupName" 
+                            ValueProperty="Id" 
+                            Placeholder="@(IsArabic ? "تصفية حسب المجموعة" : "Filter by Group")"
+                            Change="@ApplyFilter"
+                            AllowClear="true"
+                            Style="width: 100%; border-radius: 12px; height: 48px; border: 2px solid #e2e8f0;" />
+        </div>
+    </div>
+
+    <div class="px-3" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="data-grid-container" style="flex: 1; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <RadzenDataGrid @ref="grid"
+                            IsLoading="@IsLoading"
+                            Data="@FilteredTables" 
+                            TItem="TableToReturnDto"
+                            AllowFiltering="true" 
+                            AllowColumnResize="true" 
+                            AllowAlternatingRows="false" 
+                            FilterMode="Radzen.FilterMode.Advanced" 
+                            AllowSorting="true" 
+                            PageSize="15" 
+                            AllowPaging="true" 
+                            PagerHorizontalAlign="Radzen.HorizontalAlign.Left" 
+                            ShowPagingSummary="true"
+                            Style="height: 100%; border: none; font-family: inherit;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Property="Id" Title="@(IsArabic ? "الكود" : "ID")" Width="80px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="table">
+                            <span style="font-weight: 900; color: #3b82f6;">#@table.Id</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Property="TableName" Title="@(IsArabic ? "اسم الطاولة" : "Table Name")" Width="200px">
+                        <Template Context="table">
+                            <span style="font-weight: bold;">@table.TableName</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Property="SeatsCount" Title="@(IsArabic ? "عدد المواعيد" : "Seats")" Width="100px" TextAlign="Radzen.TextAlign.Center">
+                         <Template Context="table">
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info" Variant="MudBlazor.Variant.Text">@(table.SeatsCount ?? 0)</MudChip>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Title="@(IsArabic ? "المجموعة" : "Group")" Width="180px">
+                        <Template Context="table">
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Outlined">
+                                @(TableGroups.FirstOrDefault(g => g.Id == table.GroupID)?.GroupName ?? table.GroupID?.ToString() ?? "---")
+                            </MudChip>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Property="TableState" Title="@(IsArabic ? "الحالة" : "Status")" Width="120px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="table">
+                            @if (table.TableState == "0" || table.TableState?.ToLower() == "available")
+                            {
+                                <span style="color: #10b981; font-weight: 800;"><RadzenIcon Icon="check_circle" Style="font-size: 1rem; vertical-align: middle;" /> @(IsArabic ? "متاحة" : "Available")</span>
+                            }
+                            else
+                            {
+                                <span style="color: #ef4444; font-weight: 800;"><RadzenIcon Icon="block" Style="font-size: 1rem; vertical-align: middle;" /> @table.TableState</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="TableToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="140px" TextAlign="Radzen.TextAlign.Center">
+                        <Template Context="table">
+                            <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="MudBlazor.Color.Info" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => OpenEditDialog(table))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="MudBlazor.Color.Error" 
+                                               Size="MudBlazor.Size.Small" 
+                                               OnClick="@(() => DeleteTable(table))" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TableToReturnDto> Tables = new();
+    private List<TableToReturnDto> FilteredTables = new();
+    private List<TableGroupToReturnDto> TableGroups = new();
+    private bool IsLoading = true;
+    private RadzenDataGrid<TableToReturnDto>? grid;
+    private string SearchTerm = "";
+    private int? SelectedGroupId;
+
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialData();
+    }
+
+    private async Task LoadInitialData()
+    {
+        IsLoading = true;
+        try
+        {
+            var groupsTask = DineInService.GetTableGroupsAsync();
+            var tablesTask = DineInService.GetTables();
+            
+            await Task.WhenAll(groupsTask, tablesTask);
+            
+            TableGroups = (await groupsTask).ToList();
+            Tables = (await tablesTask).ToList();
+            
+            ApplyFilter();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات..." : "Failed to load data...", Severity.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnSearch(ChangeEventArgs args)
+    {
+        SearchTerm = args.Value?.ToString() ?? "";
+        ApplyFilter();
+        if (grid != null) await grid.FirstPage();
+    }
+
+    private void ApplyFilter()
+    {
+        var query = Tables.AsEnumerable();
+
+        if (SelectedGroupId.HasValue)
+        {
+            query = query.Where(x => x.GroupID == SelectedGroupId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.ToLower().Trim();
+            query = query.Where(x => 
+                (x.TableName != null && x.TableName.ToLower().Contains(term)) ||
+                x.Id.ToString().Contains(term)
+            );
+        }
+
+        FilteredTables = query.ToList();
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["IsArabic"] = IsArabic, ["TableGroups"] = TableGroups };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<TableDialog>(IsArabic ? "إضافة طاولة" : "Add Table", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadInitialData();
+        }
+    }
+
+    private async Task OpenEditDialog(TableToReturnDto table)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["TableToEdit"] = table,
+            ["TableGroups"] = TableGroups
+        };
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true };
+        var dialog = DialogService.Show<TableDialog>(IsArabic ? "تعديل الطاولة" : "Edit Table", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadInitialData();
+        }
+    }
+
+    private async Task DeleteTable(TableToReturnDto table)
+    {
+        var parameters = new DialogParameters 
+        { 
+            ["IsArabic"] = IsArabic,
+            ["ItemName"] = table.TableName,
+            ["TitleArabic"] = "تأكيد الحذف",
+            ["MessageArabic"] = $"هل أنت متأكد من حذف الطاولة '{table.TableName}'؟"
+        };
+        
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = DialogService.Show<DeleteConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && table.Id.HasValue)
+        {
+            var response = await DineInService.DeleteTable(table.Id.Value);
+            if (response.Success)
+            {
+                Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
+                await LoadInitialData();
+            }
+            else
+            {
+                Snackbar.Add(response.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/12/2026" ReportInfo.Modified="03/24/2026" ReportInfo.CreatorVersion="2026.1.0.0">
+  <Dictionary>
+    <TableDataSource Name="Summary" ReferenceName="ReportData.Summary" DataType="System.Int32" Enabled="true">
+      <Column Name="NetTotal" DataType="System.Decimal"/>
+      <Column Name="TotalIncome" DataType="System.Decimal"/>
+      <Column Name="TotalDiscount" DataType="System.Decimal"/>
+      <Column Name="Expenses" DataType="System.Decimal"/>
+      <Column Name="TotalExpenses" DataType="System.Decimal"/>
+      <Column Name="SalesReturn" DataType="System.Decimal"/>
+      <Column Name="NetCash" DataType="System.Decimal"/>
+      <Column Name="CashPost" DataType="System.Decimal"/>
+      <Column Name="Credit" DataType="System.Decimal"/>
+      <Column Name="TotalCityLedger" DataType="System.Decimal"/>
+      <Column Name="FullVoidAmount" DataType="System.Decimal"/>
+      <Column Name="PartialVoidAmount" DataType="System.Decimal"/>
+      <Column Name="DineInTotal" DataType="System.Decimal"/>
+      <Column Name="DineInCount" DataType="System.Decimal"/>
+      <Column Name="TakeAwayTotal" DataType="System.Decimal"/>
+      <Column Name="TakeAwayCount" DataType="System.Decimal"/>
+      <Column Name="DeliveryTotal" DataType="System.Decimal"/>
+      <Column Name="DeliveryFees" DataType="System.Decimal"/>
+      <Column Name="Service" DataType="System.Decimal"/>
+      <Column Name="Tax" DataType="System.Decimal"/>
+      <Column Name="OrderCount" DataType="System.Decimal"/>
+      <Column Name="OrderAVG" DataType="System.Decimal"/>
+      <Column Name="SoldItemsCount" DataType="System.Decimal"/>
+      <Column Name="GrossSales" DataType="System.Decimal"/>
+      <Column Name="DeliveryCount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="Categories" ReferenceName="ReportData.Categories" DataType="System.Int32" Enabled="true">
+      <Column Name="CategoryName" DataType="System.String"/>
+      <Column Name="Total" DataType="System.Decimal"/>
+      <Column Name="Percentage" DataType="System.Decimal"/>
+    </TableDataSource>
+    <TableDataSource Name="DetailedOrders" ReferenceName="ReportData.DetailedOrders" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="GrandTotal" DataType="System.Decimal"/>
+      <Column Name="OrderType" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="ItemsDetails" ReferenceName="ReportData.ItemsDetails" DataType="System.Int32" Enabled="true">
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Qty" DataType="System.Decimal"/>
+      <Column Name="TotalAmount" DataType="System.Decimal"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+    <Parameter Name="TotalItemsValue" DataType="System.String" AsString=""/>
+  </Dictionary>
+  <ReportPage Name="Page1" PaperWidth="80" LeftMargin="4" RightMargin="4" TopMargin="4" BottomMargin="4">
+
+    <!-- ===== HEADER ===== -->
+    <ReportTitleBand Name="ReportTitleBand1" Width="264.6" Height="110">
+      <TextObject Name="TBranch" Left="0" Top="0" Width="264.6" Height="28"
+                  Text="[BranchName]" Font="Arial, 13pt, style=Bold" HorzAlign="Center" VertAlign="Center"/>
+      <TextObject Name="TTitle" Left="0" Top="30" Width="264.6" Height="26"
+                  Text="Sales Summary" Font="Arial, 12pt, style=Bold" HorzAlign="Center"
+                  Border.Lines="Bottom" Border.Width="1.5"/>
+      <TextObject Name="TFromLbl" Left="0" Top="66" Width="60" Height="18"
+                  Text="From:" Font="Arial, 9pt, style=Bold" HorzAlign="Left"/>
+      <TextObject Name="TFromVal" Left="60" Top="66" Width="204.6" Height="18"
+                  Text="[FromDate]" Font="Arial, 9pt" HorzAlign="Left"/>
+      <TextObject Name="TToLbl" Left="0" Top="84" Width="60" Height="18"
+                  Text="To:" Font="Arial, 9pt, style=Bold" HorzAlign="Left"/>
+      <TextObject Name="TToVal" Left="60" Top="84" Width="204.6" Height="18"
+                  Text="[ToDate]" Font="Arial, 9pt" HorzAlign="Left"/>
+    </ReportTitleBand>
+
+    <!-- ===== SUMMARY DATA BAND ===== -->
+    <DataBand Name="Data1" Top="115" Width="264.6" Height="680" DataSource="Summary">
+
+      <!-- REVENUES SECTION -->
+      <TextObject Name="HSales" Left="0" Top="5" Width="264.6" Height="22"
+                  Text="REVENUES" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+
+      <TextObject Name="LD"   Left="0"   Top="32" Width="154" Height="19" Text="Dine-In Total:"     Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VD"   Left="154" Top="32" Width="110" Height="19" Text="[Summary.DineInTotal]"    Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LT"   Left="0"   Top="51" Width="154" Height="19" Text="Take-Away Total:"   Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VT"   Left="154" Top="51" Width="110" Height="19" Text="[Summary.TakeAwayTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LDel" Left="0"   Top="70" Width="154" Height="19" Text="Delivery Total:"    Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VDel" Left="154" Top="70" Width="110" Height="19" Text="[Summary.DeliveryTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LDelF" Left="0"  Top="89" Width="154" Height="19" Text="Delivery Fees:"     Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VDelF" Left="154" Top="89" Width="110" Height="19" Text="[Summary.DeliveryFees]"  Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt"/>
+
+      <TextObject Name="LSvc" Left="0"   Top="108" Width="154" Height="19" Text="Service:"          Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VSvc" Left="154" Top="108" Width="110" Height="19" Text="[Summary.Service]"       Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt"/>
+
+      <TextObject Name="LTax" Left="0"   Top="127" Width="154" Height="19" Text="Tax:"              Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VTax" Left="154" Top="127" Width="110" Height="19" Text="[Summary.Tax]"           Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt"/>
+
+      <TextObject Name="LInc" Left="0"   Top="150" Width="154" Height="22" Text="Total Revenue:"    Font="Arial, 10pt, style=Bold" HorzAlign="Left" Border.Lines="Top" Border.Width="1"/>
+      <TextObject Name="VInc" Left="154" Top="150" Width="110" Height="22" Text="[Summary.GrossSales]"      Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 10pt, style=Bold" Border.Lines="Top" Border.Width="1"/>
+
+      <!-- EXPENSES SECTION -->
+      <TextObject Name="HExp" Left="0" Top="181" Width="264.6" Height="22"
+                  Text="EXPENSES &amp; DISCOUNTS" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+
+      <TextObject Name="LExp" Left="0"   Top="208" Width="154" Height="19" Text="Expenses:"         Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VExp" Left="154" Top="208" Width="110" Height="19" Text="[Summary.TotalExpenses]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LRet" Left="0"   Top="227" Width="154" Height="19" Text="Returns:"          Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VRet" Left="154" Top="227" Width="110" Height="19" Text="[Summary.SalesReturn]"  Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt"/>
+
+      <TextObject Name="LDis" Left="0"   Top="255" Width="154" Height="19" Text="Total Discount:"   Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VDis" Left="154" Top="255" Width="110" Height="19" Text="[Summary.TotalDiscount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold" TextFill.Color="DarkRed"/>
+
+      <!-- NET CASH -->
+      <LineObject Name="LineNet1" Left="0" Top="285" Width="264.6" Border.Width="1.5"/>
+      <TextObject Name="LNet" Left="0"   Top="293" Width="134" Height="28" Text="Net Revenue:"      Font="Arial, 12pt, style=Bold" HorzAlign="Left"/>
+      <TextObject Name="VNet" Left="134" Top="293" Width="130" Height="28" Text="[Summary.NetTotal]"       Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 12pt, style=Bold"/>
+      <LineObject Name="LineNet2" Left="0" Top="326" Width="264.6" Border.Width="1.5"/>
+
+      <!-- PAYMENT METHODS -->
+      <TextObject Name="HPay" Left="0" Top="336" Width="264.6" Height="22"
+                  Text="COLLECTIONS" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+
+      <TextObject Name="LCash" Left="0"   Top="363" Width="154" Height="19" Text="Cash Collected:"  Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VCash" Left="154" Top="363" Width="110" Height="19" Text="[Summary.CashPost]"       Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold" TextFill.Color="DarkGreen"/>
+
+      <TextObject Name="LCard" Left="0"   Top="382" Width="154" Height="19" Text="Visa / Credit:"   Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VCard" Left="154" Top="382" Width="110" Height="19" Text="[Summary.TotalCityLedger]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold" TextFill.Color="DarkBlue"/>
+
+      <!-- VOIDS -->
+      <TextObject Name="HVoid" Left="0" Top="410" Width="264.6" Height="22"
+                  Text="VOIDS" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="180,30,30" TextFill.Color="White"/>
+
+      <TextObject Name="LVP" Left="0"   Top="437" Width="154" Height="19" Text="Partial Void:"      Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VVP" Left="154" Top="437" Width="110" Height="19" Text="[Summary.PartialVoidAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt" TextFill.Color="DarkRed"/>
+
+      <TextObject Name="LVF" Left="0"   Top="456" Width="154" Height="19" Text="Full Void:"         Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VVF" Left="154" Top="456" Width="110" Height="19" Text="[Summary.FullVoidAmount]"    Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold" TextFill.Color="DarkRed"/>
+
+      <!-- STATISTICS -->
+      <TextObject Name="HStat" Left="0" Top="484" Width="264.6" Height="22"
+                  Text="STATISTICS" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+
+      <TextObject Name="VOC"  Left="0"   Top="511" Width="154" Height="19" Text="Total Orders:"      Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VOCV" Left="154" Top="511" Width="110" Height="19" Text="[Summary.OrderCount]"         Format="Number" Format.DecimalDigits="0" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LDC"  Left="0"   Top="530" Width="154" Height="19" Text="Dine-In Orders:"     Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VDC"  Left="154" Top="530" Width="110" Height="19" Text="[Summary.DineInCount]"       Format="Number" Format.DecimalDigits="0" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LTC"  Left="0"   Top="549" Width="154" Height="19" Text="Take-Away Orders:"   Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VTC"  Left="154" Top="549" Width="110" Height="19" Text="[Summary.TakeAwayCount]"     Format="Number" Format.DecimalDigits="0" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LSI"  Left="0"   Top="568" Width="154" Height="19" Text="Items Sold:"       Font="Arial, 9.5pt" HorzAlign="Left"/>
+      <TextObject Name="VSI"  Left="154" Top="568" Width="110" Height="19" Text="[Summary.SoldItemsCount]"     Format="Number" Format.DecimalDigits="0" HorzAlign="Right" Font="Arial, 9.5pt, style=Bold"/>
+
+      <TextObject Name="LAVG" Left="0"   Top="595" Width="154" Height="22" Text="Average Order:"    Font="Arial, 10pt, style=Bold" HorzAlign="Left" Border.Lines="Top" Border.Color="Silver"/>
+      <TextObject Name="VAVG" Left="154" Top="595" Width="110" Height="22" Text="[Summary.OrderAVG]"       Format="Number" Format.DecimalDigits="2" HorzAlign="Right" Font="Arial, 10pt, style=Bold" Border.Lines="Top" Border.Color="Silver"/>
+
+      <!-- Move Categories header down -->
+      <TextObject Name="HCat" Left="0" Top="630" Width="264.6" Height="22"
+                  Text="SALES BY CATEGORY" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+      <TextObject Name="CHName" Left="0"   Top="653" Width="120" Height="19" Text="Category"  Font="Arial, 9pt, style=Bold" HorzAlign="Left" Fill.Color="210,210,210" Border.Lines="All"/>
+      <TextObject Name="CHSale" Left="120" Top="653" Width="100" Height="19" Text="Sales"     Font="Arial, 9pt, style=Bold" HorzAlign="Center" Fill.Color="210,210,210" Border.Lines="All"/>
+      <TextObject Name="CHPct"  Left="220" Top="653" Width="44"  Height="19" Text="%"         Font="Arial, 9pt, style=Bold" HorzAlign="Center" Fill.Color="210,210,210" Border.Lines="All"/>
+    </DataBand>
+
+    <!-- ===== CATEGORIES DATA BAND ===== -->
+    <DataBand Name="CatBand" Top="790" Width="264.6" Height="20" DataSource="Categories">
+      <TextObject Name="CRName" Left="0"   Top="0" Width="120" Height="20" Text="[Categories.CategoryName]" HorzAlign="Left" Font="Arial, 9pt" Border.Lines="Bottom,Left,Right"/>
+      <TextObject Name="CRSale" Left="120" Top="0" Width="100" Height="20" Text="[Categories.Total]"       Format="Number" Format.DecimalDigits="2" HorzAlign="Center" Font="Arial, 9pt" Border.Lines="Bottom,Left,Right"/>
+      <TextObject Name="CRPct"  Left="220" Top="0" Width="44"  Height="20" Text="[Categories.Percentage]%" Format="Number" Format.DecimalDigits="1" HorzAlign="Center" Font="Arial, 9pt" Border.Lines="Bottom,Left,Right"/>
+    </DataBand>
+
+    <!-- ===== DETAILED ORDERS ===== -->
+    <DataHeaderBand Name="OrdersHeaderBand" Width="264.6" Height="50" StartNewPage="false">
+      <TextObject Name="HO" Left="0" Top="5" Width="264.6" Height="22"
+                  Text="Orders Detailed List" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+      <TableObject Name="TbOrdH" Left="0" Top="27" Width="264.6" Height="23" Border.Lines="All" Border.Color="Silver">
+        <TableColumn Width="70"/>  <!-- ID -->
+        <TableColumn Width="80"/>  <!-- Type -->
+        <TableColumn Width="114.6"/> <!-- Total -->
+        <TableRow Height="23">
+          <TableCell Text="ID"    Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+          <TableCell Text="Type"  Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+          <TableCell Text="Total" Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+        </TableRow>
+      </TableObject>
+    </DataHeaderBand>
+    <DataBand Name="OrdersBand" Top="820" Width="264.6" Height="25" DataSource="DetailedOrders">
+      <TableObject Name="TbOrd" Left="0" Top="0" Width="264.6" Height="25" Border.Lines="Bottom,Left,Right" Border.Color="Silver">
+        <TableColumn Width="70"/>
+        <TableColumn Width="80"/>
+        <TableColumn Width="114.6"/>
+        <TableRow Height="25">
+          <TableCell Text="#[DetailedOrders.OrderId]" HorzAlign="Left" VertAlign="Center" Padding="5,0,0,0" Font="Arial, 10pt, style=Bold"/>
+          <TableCell Text="[DetailedOrders.OrderType]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt"/>
+          <TableCell Text="[DetailedOrders.GrandTotal]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt, style=Bold"/>
+        </TableRow>
+      </TableObject>
+    </DataBand>
+
+    <!-- ===== ITEMS DETAILS ===== -->
+    <DataHeaderBand Name="ItemsHeaderBand" Width="264.6" Height="50" StartNewPage="false">
+      <TextObject Name="HI" Left="0" Top="5" Width="264.6" Height="22"
+                  Text="Sold Items Details" Font="Arial, 11pt, style=Bold" HorzAlign="Center"
+                  Fill.Color="30,30,30" TextFill.Color="White"/>
+      <TableObject Name="TbItmH" Left="0" Top="27" Width="264.6" Height="23" Border.Lines="All" Border.Color="Silver">
+        <TableColumn Width="130"/>
+        <TableColumn Width="50"/>
+        <TableColumn Width="84.6"/>
+        <TableRow Height="23">
+          <TableCell Text="Item"  Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+          <TableCell Text="Qty"   Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+          <TableCell Text="Total" Font="Arial, 8pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240,240,240"/>
+        </TableRow>
+      </TableObject>
+    </DataHeaderBand>
+    <DataBand Name="ItemsBand" Top="860" Width="264.6" Height="25" DataSource="ItemsDetails">
+      <TableObject Name="TbItm" Left="0" Top="0" Width="264.6" Height="25" Border.Lines="Bottom,Left,Right" Border.Color="Silver">
+        <TableColumn Width="130"/>
+        <TableColumn Width="50"/>
+        <TableColumn Width="84.6"/>
+        <TableRow Height="25">
+          <TableCell Text="[ItemsDetails.ItemName]" HorzAlign="Left" VertAlign="Center" Padding="5,0,0,0" Font="Arial, 9.5pt"/>
+          <TableCell Text="[ItemsDetails.Qty]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt"/>
+          <TableCell Text="[ItemsDetails.TotalAmount]" Format="Number" Format.DecimalDigits="2" HorzAlign="Center" VertAlign="Center" Font="Arial, 9.5pt, style=Bold"/>
+        </TableRow>
+      </TableObject>
+    </DataBand>
+
+    <ReportSummaryBand Name="ItemsSummary" Width="264.6" Height="35">
+      <TableObject Name="TbISum" Left="0" Top="0" Width="264.6" Height="30" Border.Lines="All" Border.Color="Silver">
+        <TableColumn Width="150"/>
+        <TableColumn Width="114.6"/>
+        <TableRow Height="30">
+          <TableCell Text="Grand Total" Font="Arial, 10pt, style=Bold" HorzAlign="Left" VertAlign="Center" Padding="5,0,0,0" Fill.Color="240, 240, 240"/>
+          <TableCell Text="[TotalItemsValue]" Font="Arial, 10pt, style=Bold" HorzAlign="Center" VertAlign="Center" Fill.Color="240, 240, 240"/>
+        </TableRow>
+      </TableObject>
+    </ReportSummaryBand>
+
+    <!-- FOOTER -->
+    <PageFooterBand Name="PageFooterBand1" Width="264.6" Height="35">
+      <LineObject Name="LineFoo" Left="0" Top="0" Width="264.6" Border.Width="1"/>
+      <TextObject Name="TFoo" Left="0" Top="8" Width="264.6" Height="20"
+                  Text="Printed: [DateTime.Now]" Format="DateTime" Format.Format="yyyy-MM-dd HH:mm"
+                  Font="Arial, 8pt" HorzAlign="Center"/>
+    </PageFooterBand>
+
+  </ReportPage>
+</Report>

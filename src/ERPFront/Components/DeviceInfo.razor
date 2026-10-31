@@ -1,0 +1,31 @@
+﻿@page "/device-info"
+@inject IJSRuntime JS
+
+<h3>معلومات الجهاز:</h3>
+<p>User Agent: @userAgent</p>
+<p>Platform: @platform</p>
+<p>Language: @language</p>
+
+@code {
+    private string userAgent;
+    private string platform;
+    private string language;
+
+    // استخدم OnAfterRenderAsync بدلاً من OnInitializedAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // استدعاء دالة JavaScript للحصول على معلومات الجهاز فقط عند أول عرض للمكون
+            var deviceInfo = await JS.InvokeAsync<Dictionary<string, string>>("getDeviceInfo");
+
+            // استخراج القيم من الكائن الذي تم إرجاعه
+            userAgent = deviceInfo["userAgent"];
+            platform = deviceInfo["platform"];
+            language = deviceInfo["language"];
+
+            // قم بتحديث المكون لعرض القيم المحدثة
+            StateHasChanged();
+        }
+    }
+}

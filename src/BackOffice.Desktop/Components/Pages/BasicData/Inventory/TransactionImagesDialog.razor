@@ -1,0 +1,57 @@
+@inject LocalizationService Localizer
+
+<MudDialog Class="images-carousel-dialog">
+    <DialogContent>
+        <div class="carousel-container" style="background: #0f172a; border-radius: 12px; overflow: hidden; position: relative; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+            @if (Images != null && Images.Count > 0)
+            {
+                <MudCarousel Class="mud-width-full" Style="height:500px;" ShowArrows="true" ShowBullets="true" AutoCycle="false" TData="string">
+                    @foreach (var img in Images)
+                    {
+                        <MudCarouselItem Transition="Transition.Fade">
+                            <div class="d-flex justify-center align-center h-100">
+                                <img src="@GetImageUrl(img)" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                            </div>
+                        </MudCarouselItem>
+                    }
+                </MudCarousel>
+            }
+            else
+            {
+                <div class="d-flex flex-column align-center text-white p-5">
+                    <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Size="Size.Large" />
+                    <MudText>@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد صور" : "No images available")</MudText>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" OnClick="Close" FullWidth="true" Style="height: 48px; font-weight: 800; border-radius: 12px;">
+            @(Localizer.GetCurrentLanguage() == "ar" ? "إغلاق" : "Close")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .images-carousel-dialog {
+        max-width: 800px !important;
+        border-radius: 20px !important;
+    }
+    .mud-carousel-item-transition-fade-enter { opacity: 0; }
+    .mud-carousel-item-transition-fade-enter-active { opacity: 1; transition: opacity 300ms; }
+    .mud-carousel-item-transition-fade-exit { opacity: 1; }
+    .mud-carousel-item-transition-fade-exit-active { opacity: 0; transition: opacity 300ms; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<string> Images { get; set; } = new();
+
+    private string GetImageUrl(string img)
+    {
+        if (img.StartsWith("data:") || img.Contains("/")) return img;
+        return $"data:image/jpeg;base64,{img}";
+    }
+
+    private void Close() => MudDialog.Close();
+}

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="03/15/2026" ReportInfo.Modified="03/15/2026" ReportInfo.CreatorVersion="2024.2.0.0">
+  <Dictionary>
+    <TableDataSource Name="Comments" ReferenceName="ReportData.Comments" DataType="System.Int32" Enabled="true">
+      <Column Name="OrderId" DataType="System.String"/>
+      <Column Name="OrderDate" DataType="System.DateTime"/>
+      <Column Name="ItemName" DataType="System.String"/>
+      <Column Name="Comment" DataType="System.String"/>
+      <Column Name="Type" DataType="System.String"/>
+    </TableDataSource>
+    <Parameter Name="FromDate" DataType="System.String"/>
+    <Parameter Name="ToDate" DataType="System.String"/>
+    <Parameter Name="BranchName" DataType="System.String"/>
+  </Dictionary>
+  <ReportPage Name="Page1" Watermark.Font="Arial, 60pt">
+    <ReportTitleBand Name="ReportTitleBand1" Width="718.2" Height="100">
+      <TextObject Name="Text1" Width="718.2" Height="40" Text="Order &amp; Item Comments Report" HorzAlign="Center" VertAlign="Center" Font="Arial, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Top="40" Width="718.2" Height="25" Text="Period From: [FromDate] To: [ToDate]" HorzAlign="Center" Font="Arial, 10pt"/>
+      <TextObject Name="Text3" Top="65" Width="718.2" Height="20" Text="Branch: [BranchName]" HorzAlign="Center" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="104.2" Width="718.2" Height="30" Fill.Color="30, 58, 95">
+      <TextObject Name="Text4" Width="80" Height="30" Border.Lines="All" Border.Color="White" Text="Order #" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text5" Left="80" Width="100" Height="30" Border.Lines="All" Border.Color="White" Text="Type" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text6" Left="180" Width="150" Height="30" Border.Lines="All" Border.Color="White" Text="Item/Scope" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+      <TextObject Name="Text10" Left="330" Width="388.2" Height="30" Border.Lines="All" Border.Color="White" Text="Comment Content" HorzAlign="Center" VertAlign="Center" Font="Arial, 10pt, style=Bold" TextFill.Color="White"/>
+    </PageHeaderBand>
+    <DataBand Name="Data1" Top="138.2" Width="718.2" Height="30" DataSource="Comments">
+      <TextObject Name="Text7" Width="80" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Comments.OrderId]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text8" Left="80" Width="100" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Comments.Type]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text9" Left="180" Width="150" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Comments.ItemName]" HorzAlign="Center" VertAlign="Center" Font="Arial, 9pt"/>
+      <TextObject Name="Text11" Left="330" Width="388.2" Height="30" Border.Lines="Bottom, Left, Right" Border.Color="Silver" Text="[Comments.Comment]" Padding="5, 0, 0, 0" VertAlign="Fill" Font="Arial, 9pt" CanGrow="true"/>
+    </DataBand>
+  </ReportPage>
+</Report>
