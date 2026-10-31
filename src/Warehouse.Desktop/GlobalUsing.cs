@@ -72,5 +72,3 @@ global using POS.Contract.Models.ReceiptModels.Delivery;
 global using POS.Contract.Models.ReceiptModels.DineIn;
 global using POS.Contract.Models.ReceiptModels.Kitchen;
 global using BlazorBase.ERPFrontServices.ReportingServices;
-global using Warehouse.Desktop.Components.Pages.Transactions.SummaryPages;
-global using Warehouse.Desktop.Components.Pages.Transactions.AccountingPages;
