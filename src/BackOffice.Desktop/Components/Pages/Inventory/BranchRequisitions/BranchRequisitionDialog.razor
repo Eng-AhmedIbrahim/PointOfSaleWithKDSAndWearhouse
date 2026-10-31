@@ -1,0 +1,266 @@
+﻿@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject CommonProperties CommonProps
+
+<MudDialog dir="rtl">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Rounded.AddShoppingCart" Color="MudBlazor.Color.Warning" />
+            <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800;">
+                إنشاء طلب توريد جديد من المخزن الرئيسي
+            </MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="pa-2">
+            <!-- Header Config -->
+            <MudGrid Class="mb-3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="المستودع المورّد *" @bind-Value="_targetWarehouseId"
+                               Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense">
+                        @foreach (var wh in _warehouses)
+                        {
+                            <MudSelectItem Value="@wh.Id">@wh.NameAr (@wh.Code)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="تاريخ الاحتياج المطلوب" @bind-Date="_requiredDate"
+                                   Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="ملاحظات الطلبية للفرع" @bind-Value="_notes"
+                                  Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Lines="1" />
+                </MudItem>
+            </MudGrid>
+
+            <!-- Add Item Row -->
+            <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+                <MudText Typo="MudBlazor.Typo.subtitle2" Class="mb-2" Style="font-weight: 700; color: #475569;">
+                    + إضافة صنف للطلبية
+                </MudText>
+                <MudGrid Spacing="2" Class="align-center">
+                    <MudItem xs="12" sm="6">
+                        <MudAutocomplete T="ProductLookup" Label="اختر الصنف..." @bind-Value="_selectedProduct"
+                                         SearchFunc="@SearchProducts" ToStringFunc="@(p => p?.NameAr ?? "")"
+                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense"
+                                         ResetValueOnEmptyText="true" CoerceText="false" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudNumericField T="decimal" Label="الكمية المطلوبة" @bind-Value="_newQuantity" Min="0.1m"
+                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Primary" FullWidth="true"
+                                   OnClick="AddItem" StartIcon="@Icons.Material.Rounded.Add" Style="height: 40px;">
+                            إضافة
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Items Table -->
+            <MudTable Items="@_items" Dense="true" Hover="true" Elevation="0" Class="border rounded mb-2">
+                <HeaderContent>
+                    <MudTh>#</MudTh>
+                    <MudTh>الصنف</MudTh>
+                    <MudTh>الكود (SKU)</MudTh>
+                    <MudTh>الوحدة الأساسية</MudTh>
+                    <MudTh>الكمية المطلوبة</MudTh>
+                    <MudTh Style="width: 60px;">حذف</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@(_items.IndexOf(context) + 1)</MudTd>
+                    <MudTd>@context.ProductName</MudTd>
+                    <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Text">@context.SKU</MudChip></MudTd>
+                    <MudTd>@context.UnitName</MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.RequestedQuantity" Min="0.1m"
+                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Style="max-width: 120px;" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => _items.Remove(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-4 text-center text-muted">
+                        لم يتم إضافة أصناف بعد. استخدم النموذج أعلاه لإضافة الأصناف.
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text">إلغاء</MudButton>
+        <MudButton OnClick="SubmitRequisition" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                   Disabled="@(_items.Count == 0 || _targetWarehouseId == 0 || _isSubmitting)"
+                   StartIcon="@Icons.Material.Rounded.Send">
+            @(_isSubmitting ? "جاري الإرسال..." : "إرسال الطلب للمخزن")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private int _targetWarehouseId;
+    private DateTime? _requiredDate = DateTime.Today.AddDays(2);
+    private string? _notes;
+    private bool _isSubmitting = false;
+
+    private List<WarehouseLookup> _warehouses = new();
+    private List<ProductLookup> _allProducts = new();
+    private ProductLookup? _selectedProduct;
+    private decimal _newQuantity = 1;
+
+    private List<RequisitionItemVm> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var whList = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouse/warehouses");
+            if (whList != null) _warehouses = whList;
+
+            // Default warehouse for branch if set
+            var defaultWhId = CommonProps.BranchDetails?.DefaultWarehouseId;
+            if (defaultWhId.HasValue && _warehouses.Any(w => w.Id == defaultWhId.Value))
+            {
+                _targetWarehouseId = defaultWhId.Value;
+            }
+            else if (_warehouses.Any())
+            {
+                _targetWarehouseId = _warehouses.First().Id;
+            }
+
+            var prodList = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/warehouse/products");
+            if (prodList != null) _allProducts = prodList;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل تحميل البيانات: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private Task<IEnumerable<ProductLookup>> SearchProducts(string value, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<ProductLookup>>(_allProducts.Take(20));
+
+        var q = _allProducts.Where(p => 
+            (p.NameAr != null && p.NameAr.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
+            (p.SKU != null && p.SKU.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
+            (p.NameEn != null && p.NameEn.Contains(value, StringComparison.OrdinalIgnoreCase)));
+
+        return Task.FromResult(q);
+    }
+
+    private void AddItem()
+    {
+        if (_selectedProduct == null || _newQuantity <= 0) return;
+
+        if (_items.Any(i => i.ProductId == _selectedProduct.Id))
+        {
+            var existing = _items.First(i => i.ProductId == _selectedProduct.Id);
+            existing.RequestedQuantity += _newQuantity;
+        }
+        else
+        {
+            _items.Add(new RequisitionItemVm
+            {
+                ProductId = _selectedProduct.Id,
+                ProductName = _selectedProduct.NameAr ?? "",
+                SKU = _selectedProduct.SKU ?? "",
+                UnitId = _selectedProduct.BaseUnitId,
+                UnitName = _selectedProduct.BaseUnit?.NameAr ?? "وحدة",
+                RequestedQuantity = _newQuantity
+            });
+        }
+
+        _selectedProduct = null;
+        _newQuantity = 1;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitRequisition()
+    {
+        if (_targetWarehouseId == 0 || _items.Count == 0) return;
+
+        var branchId = CommonProps.BranchDetails?.Id ?? 1;
+        _isSubmitting = true;
+
+        try
+        {
+            var model = new
+            {
+                RequestingBranchId = branchId,
+                TargetWarehouseId = _targetWarehouseId,
+                RequiredDate = _requiredDate,
+                Notes = _notes,
+                Status = 2, // Submitted
+                Lines = _items.Select(i => new
+                {
+                    ProductId = i.ProductId,
+                    UnitId = i.UnitId,
+                    RequestedQuantity = i.RequestedQuantity
+                }).ToList()
+            };
+
+            var res = await Http.PostAsJsonAsync("/api/warehouse/requisitions", model);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم إرسال طلب التوريد إلى المخزن الرئيسي بنجاح", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل إرسال الطلب: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? Code { get; set; }
+        public string? NameAr { get; set; }
+    }
+
+    public class ProductLookup
+    {
+        public int Id { get; set; }
+        public string? SKU { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public int BaseUnitId { get; set; }
+        public UnitLookup? BaseUnit { get; set; }
+    }
+
+    public class UnitLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+    }
+
+    public class RequisitionItemVm
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public string SKU { get; set; } = "";
+        public int UnitId { get; set; }
+        public string UnitName { get; set; } = "";
+        public decimal RequestedQuantity { get; set; }
+    }
+}

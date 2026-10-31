@@ -1,0 +1,145 @@
+﻿@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog dir="rtl">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Rounded.Inventory" Color="MudBlazor.Color.Success" />
+            <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800;">
+                تأكيد استلام الشحنة - @Requisition?.RequisitionNumber
+            </MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (Requisition != null)
+        {
+            <div class="pa-2">
+                <MudAlert Severity="MudBlazor.Severity.Info" Class="mb-3" Variant="MudBlazor.Variant.Outlined">
+                    يرجى فحص الأصناف المستلمة وتأكيد الكميات الفعلية. في حال وجود نقص أو تالف، سجّل الكمية المستلمة بدقة.
+                </MudAlert>
+
+                <MudTable Items="@_lines" Dense="true" Hover="true" Elevation="0" Class="border rounded mb-3">
+                    <HeaderContent>
+                        <MudTh>الصنف</MudTh>
+                        <MudTh>الوحدة</MudTh>
+                        <MudTh>الكمية المشحونة</MudTh>
+                        <MudTh>الكمية المستلمة فعلياً</MudTh>
+                        <MudTh>الفارق (عجز/زيادة)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.ProductName</MudTd>
+                        <MudTd>@context.UnitName</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">
+                                @context.DispatchedQuantity.ToString("N2")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudNumericField T="decimal" @bind-Value="context.ReceivedQuantity" Min="0" Max="100000"
+                                             Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Style="max-width: 140px;" />
+                        </MudTd>
+                        <MudTd>
+                            @{
+                                var diff = context.DispatchedQuantity - context.ReceivedQuantity;
+                            }
+                            @if (diff > 0)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">نقص: @diff.ToString("N2")</MudChip>
+                            }
+                            else if (diff < 0)
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning">زيادة: @(Math.Abs(diff).ToString("N2"))</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success">مطابق ✓</MudChip>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <MudTextField T="string" @bind-Value="_notes" Label="ملاحظات الاستلام (اختياري)" 
+                              Variant="MudBlazor.Variant.Outlined" Lines="2" Class="mb-2" />
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Text">إلغاء</MudButton>
+        <MudButton OnClick="SubmitReceive" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Success" 
+                   Disabled="_isSubmitting" StartIcon="@Icons.Material.Rounded.CheckCircle">
+            @(_isSubmitting ? "جاري التأكيد..." : "تأكيد الاستلام")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BranchRequisitionVm? Requisition { get; set; }
+
+    private List<ReceiveLineVm> _lines = new();
+    private string? _notes;
+    private bool _isSubmitting = false;
+
+    protected override void OnInitialized()
+    {
+        if (Requisition?.Lines != null)
+        {
+            _lines = Requisition.Lines.Select(l => new ReceiveLineVm
+            {
+                LineId = l.Id,
+                ProductId = l.ProductId,
+                ProductName = l.Product?.NameAr ?? $"صنف #{l.ProductId}",
+                UnitName = l.Unit?.NameAr ?? "وحدة",
+                DispatchedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : l.ApprovedQuantity,
+                ReceivedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : l.ApprovedQuantity
+            }).ToList();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitReceive()
+    {
+        if (Requisition == null) return;
+        _isSubmitting = true;
+        try
+        {
+            var dto = new
+            {
+                Lines = _lines.Select(l => new { LineId = l.LineId, ReceivedQuantity = l.ReceivedQuantity }).ToList(),
+                UserId = "BranchUser"
+            };
+
+            var res = await Http.PostAsJsonAsync($"/api/warehouse/requisitions/{Requisition.Id}/receive", dto);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم تأكيد استلام الشحنة بنجاح في الفرع", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل تأكيد الاستلام: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class ReceiveLineVm
+    {
+        public int LineId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public string UnitName { get; set; } = "";
+        public decimal DispatchedQuantity { get; set; }
+        public decimal ReceivedQuantity { get; set; }
+    }
+}

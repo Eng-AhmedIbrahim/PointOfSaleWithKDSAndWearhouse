@@ -21,4 +21,6 @@ public class BranchDto
     public bool Suspend { get; set; } = false;
     public DateTime CreationDate { get; set; }
     public string? Currency { get; set; } = "EGP";
+    public bool HasCentralWarehouse { get; set; } = false;
+    public int? DefaultWarehouseId { get; set; }
 }

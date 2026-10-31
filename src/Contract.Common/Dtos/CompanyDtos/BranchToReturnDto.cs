@@ -17,4 +17,6 @@ public class BranchToReturnDto
     public bool Suspend { get; set; } = false;
     public string? ApiUrl { get; set; }
     public string? Currency { get; set; } = "EGP";
+    public bool HasCentralWarehouse { get; set; } = false;
+    public int? DefaultWarehouseId { get; set; }
 }

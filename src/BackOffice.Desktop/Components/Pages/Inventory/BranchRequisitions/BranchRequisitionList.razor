@@ -1,0 +1,312 @@
+﻿@page "/inventory/branch-requisitions"
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject CommonProperties CommonProps
+@inject LocalizationService Localizer
+
+<PageTitle>طلبات المخزن الرئيسي</PageTitle>
+
+<MudContainer MaxWidth="MudBlazor.MaxWidth.ExtraLarge" Class="mt-6 mb-10" dir="rtl">
+    <!-- Header -->
+    <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
+        <div>
+            <div class="d-flex align-center gap-3">
+                <div class="pa-3 rounded-xl" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                    <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="MudBlazor.Size.Large" />
+                </div>
+                <div>
+                    <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 900; color: #1e293b;">
+                        طلبات التوريد من المخزن الرئيسي
+                    </MudText>
+                    <MudText Typo="MudBlazor.Typo.body2" Color="MudBlazor.Color.Secondary">
+                        متابعة طلبيات الفرع، حالات الشحن، وتأكيد استلام البضائع والمواد الخام
+                    </MudText>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 align-center">
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Default" 
+                       StartIcon="@Icons.Material.Rounded.Refresh" OnClick="LoadRequisitions">
+                تحديث
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large"
+                       StartIcon="@Icons.Material.Rounded.AddShoppingCart" OnClick="OpenNewRequisitionDialog"
+                       Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
+                طلب توريد جديد
+            </MudButton>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 rounded-xl d-flex align-center justify-space-between" Elevation="1" Style="border-right: 4px solid #3b82f6;">
+                <div>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">إجمالي الطلبات</MudText>
+                    <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 800;">@_requisitions.Count</MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 rounded-xl d-flex align-center justify-space-between" Elevation="1" Style="border-right: 4px solid #eab308;">
+                <div>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">قيد المراجعة والاعتماد</MudText>
+                    <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 800; color: #ca8a04;">
+                        @_requisitions.Count(r => r.Status == 2 || r.Status == 3 || r.Status == 4)
+                    </MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Rounded.HourglassTop" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Warning" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 rounded-xl d-flex align-center justify-space-between" Elevation="1" Style="border-right: 4px solid #f97316;">
+                <div>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">قيد الشحن (في الطريق)</MudText>
+                    <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 800; color: #ea580c;">
+                        @_requisitions.Count(r => r.Status == 8)
+                    </MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="MudBlazor.Size.Large" Style="color: #ea580c;" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 rounded-xl d-flex align-center justify-space-between" Elevation="1" Style="border-right: 4px solid #22c55e;">
+                <div>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">تم الاستلام بنجاح</MudText>
+                    <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 800; color: #16a34a;">
+                        @_requisitions.Count(r => r.Status == 9)
+                    </MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Filter Status Chips -->
+    <MudPaper Class="pa-2 mb-4 rounded-xl" Elevation="0" Style="border: 1px solid #e2e8f0; background: #ffffff;">
+        <div class="d-flex gap-2 flex-wrap align-center">
+            <MudText Typo="MudBlazor.Typo.body2" Class="me-2 fw-bold" Color="MudBlazor.Color.Secondary">الحالة:</MudText>
+            @foreach (var tab in _statusTabs)
+            {
+                <MudChip T="string" Color="@(_selectedStatus == tab.Key ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
+                         Variant="@(_selectedStatus == tab.Key ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                         OnClick="@(() => SetStatusFilter(tab.Key))" Style="cursor: pointer; font-weight: 600;">
+                    @tab.Value
+                </MudChip>
+            }
+        </div>
+    </MudPaper>
+
+    <!-- Table -->
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="my-4" />
+    }
+    else
+    {
+        <MudCard Elevation="2" Style="border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <MudTable Items="@FilteredRequisitions" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>رقم الطلب</MudTh>
+                    <MudTh>تاريخ الطلب</MudTh>
+                    <MudTh>المستودع المورّد</MudTh>
+                    <MudTh>الأصناف</MudTh>
+                    <MudTh>الحالة</MudTh>
+                    <MudTh>ملاحظات</MudTh>
+                    <MudTh Style="text-align: center;">الإجراءات</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span style="font-weight: 800; color: #ea580c;">@context.RequisitionNumber</span>
+                    </MudTd>
+                    <MudTd>@context.RequestDate.ToString("yyyy-MM-dd hh:mm tt")</MudTd>
+                    <MudTd>
+                        <div class="d-flex align-center gap-1">
+                            <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Secondary" />
+                            <span>@(context.TargetWarehouse?.NameAr ?? "المخزن الرئيسي")</span>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
+                            @(context.Lines?.Count ?? 0) صنف
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @GetStatusChip(context.Status)
+                    </MudTd>
+                    <MudTd>
+                        <span class="text-truncate" style="max-width: 180px; display: inline-block;">
+                            @(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)
+                        </span>
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        <div class="d-flex justify-center gap-1">
+                            @if (context.Status == 8) @* InTransit *@
+                            {
+                                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small"
+                                           StartIcon="@Icons.Material.Rounded.CheckCircle" OnClick="@(() => OpenReceiveDialog(context))"
+                                           Style="font-weight: 800; border-radius: 8px;">
+                                    استلام الشحنة
+                                </MudButton>
+                            }
+                            @if (context.Status == 1 || context.Status == 2)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Rounded.Cancel" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                               Title="إلغاء الطلب" OnClick="@(() => CancelRequisition(context))" />
+                            }
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-8 text-center text-muted">
+                        <MudIcon Icon="@Icons.Material.Rounded.Inbox" Size="MudBlazor.Size.Large" Class="mb-2" />
+                        <MudText Typo="MudBlazor.Typo.h6">لا توجد طلبات توريد تطابق الفلتر الحالي</MudText>
+                        <MudText Typo="MudBlazor.Typo.body2">اضغط على "طلب توريد جديد" لإنشاء طلبية مواد خام من المخزن الرئيسي</MudText>
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </MudCard>
+    }
+</MudContainer>
+
+@code {
+    private List<BranchRequisitionVm> _requisitions = new();
+    private bool _isLoading = true;
+    private int? _selectedStatus = null;
+
+    private readonly Dictionary<int?, string> _statusTabs = new()
+    {
+        { null, "الكل" },
+        { 2, "تم الإرسال (قيد الانتظار)" },
+        { 5, "معتمد" },
+        { 7, "قيد التجهيز" },
+        { 8, "قيد الشحن (في الطريق)" },
+        { 9, "تم الاستلام" },
+        { 10, "مرفوض" },
+        { 11, "ملغي" }
+    };
+
+    private IEnumerable<BranchRequisitionVm> FilteredRequisitions =>
+        _selectedStatus.HasValue ? _requisitions.Where(r => r.Status == _selectedStatus.Value) : _requisitions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequisitions();
+    }
+
+    private void SetStatusFilter(int? status)
+    {
+        _selectedStatus = status;
+    }
+
+    private async Task LoadRequisitions()
+    {
+        _isLoading = true;
+        try
+        {
+            var branchId = CommonProps.BranchDetails?.Id ?? 1;
+            var result = await Http.GetFromJsonAsync<List<BranchRequisitionVm>>($"/api/warehouse/requisitions?branchId={branchId}");
+            if (result != null)
+            {
+                _requisitions = result.OrderByDescending(r => r.RequestDate).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء تحميل الطلبيات: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenNewRequisitionDialog()
+    {
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<BranchRequisitionDialog>("طلب توريد جديد", options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRequisitions();
+        }
+    }
+
+    private async Task OpenReceiveDialog(BranchRequisitionVm req)
+    {
+        var parameters = new DialogParameters { ["Requisition"] = req };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<BranchReceiveDialog>("استلام الشحنة", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRequisitions();
+        }
+    }
+
+    private async Task CancelRequisition(BranchRequisitionVm req)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد الإلغاء",
+            $"هل أنت متأكد من إلغاء طلب التوريد رقم {req.RequisitionNumber}؟",
+            yesText: "نعم، إلغاء", cancelText: "تراجع");
+
+        if (confirm == true)
+        {
+            var res = await Http.PostAsJsonAsync($"/api/warehouse/requisitions/{req.Id}/cancel", new { Reason = "إلغاء من الفرع" });
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم إلغاء الطلبية بنجاح", MudBlazor.Severity.Success);
+                await LoadRequisitions();
+            }
+            else
+            {
+                Snackbar.Add("فشل إلغاء الطلبية", MudBlazor.Severity.Error);
+            }
+        }
+    }
+
+    private RenderFragment GetStatusChip(int status) => builder =>
+    {
+        string label;
+        MudBlazor.Color color;
+        string icon;
+
+        switch (status)
+        {
+            case 1: // Draft
+                label = "مسودة"; color = MudBlazor.Color.Default; icon = Icons.Material.Rounded.Edit; break;
+            case 2: // Submitted
+                label = "مرسل للمخزن"; color = MudBlazor.Color.Info; icon = Icons.Material.Rounded.Send; break;
+            case 3: // UnderReview
+                label = "قيد المراجعة"; color = MudBlazor.Color.Warning; icon = Icons.Material.Rounded.RateReview; break;
+            case 4: // ModificationProposed
+                label = "تعديل كميات مقترح"; color = MudBlazor.Color.Warning; icon = Icons.Material.Rounded.Warning; break;
+            case 5: // Approved
+                label = "معتمد ✓"; color = MudBlazor.Color.Primary; icon = Icons.Material.Rounded.CheckCircle; break;
+            case 7: // Preparing
+                label = "جاري التجهيز"; color = MudBlazor.Color.Secondary; icon = Icons.Material.Rounded.HourglassBottom; break;
+            case 8: // InTransit
+                label = "في الطريق (قيد الشحن)"; color = MudBlazor.Color.Warning; icon = Icons.Material.Rounded.LocalShipping; break;
+            case 9: // Received
+                label = "تم الاستلام ✓"; color = MudBlazor.Color.Success; icon = Icons.Material.Rounded.DoneAll; break;
+            case 10: // Rejected
+                label = "مرفوض"; color = MudBlazor.Color.Error; icon = Icons.Material.Rounded.Cancel; break;
+            case 11: // Cancelled
+                label = "ملغي"; color = MudBlazor.Color.Dark; icon = Icons.Material.Rounded.Block; break;
+            default:
+                label = "غير محدد"; color = MudBlazor.Color.Default; icon = Icons.Material.Rounded.Help; break;
+        }
+
+        builder.OpenComponent<MudChip<string>>(0);
+        builder.AddAttribute(1, "Color", color);
+        builder.AddAttribute(2, "Size", MudBlazor.Size.Small);
+        builder.AddAttribute(3, "Icon", icon);
+        builder.AddAttribute(4, "ChildContent", (RenderFragment)(b => b.AddContent(5, label)));
+        builder.CloseComponent();
+    };
+}

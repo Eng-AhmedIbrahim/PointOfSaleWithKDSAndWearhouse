@@ -1,4 +1,4 @@
-﻿@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject BlazorBase.Services.LocalizationService LocalizerService
 @inject NavigationManager NavigationManager
 @inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IAuthorizationService AuthorizationService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject CommonProperties CommonProps
 @using BackOffice.Desktop.Components.Transactions
 @using BackOffice.Desktop.Components.Shared
 
@@ -357,6 +358,7 @@
     private string _userInitials = "AD";
     private string ActiveTab = "dashboard";
     private bool IsInventoryEnabled = false;
+    private bool _isCentralWarehouseEnabled = false;
     private bool _canViewDashboard;
     private bool _canManageSettings;
     private bool _canManageCompany;
@@ -479,6 +481,7 @@
 
 
         IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        _isCentralWarehouseEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableCentralWarehouseRequisitions") || (CommonProps.BranchDetails?.HasCentralWarehouse ?? false);
         UpdateActiveTab();
         NavigationManager.LocationChanged += (s, e) => {
             UpdateActiveTab();

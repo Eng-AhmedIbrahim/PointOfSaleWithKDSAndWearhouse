@@ -8,6 +8,7 @@
 @inject ICompanyService CompanyService
 @inject NotificationService NotificationService
 @inject LocalizationService Localizer
+@inject HttpClient Http
 
 <MudDialog Class="premium-radzen-dialog">
     <DialogContent>
@@ -244,12 +245,14 @@
 
     private BranchDto _branchModel = new();
     private List<CreateCompanyDto>? _companies;
+    private List<POS.Contract.Dtos.InventoryDtos.WarehouseLookupVm>? _warehouses;
     private bool _triggerFileInput;
 
     protected override async Task OnInitializedAsync()
     {
         var companiesData = await CompanyService.GetCompanies();
         _companies = companiesData?.ToList();
+        try { _warehouses = await Http.GetFromJsonAsync<List<POS.Contract.Dtos.InventoryDtos.WarehouseLookupVm>>("/api/warehouse/warehouses"); } catch { }
 
         if (Branch != null)
         {
@@ -266,7 +269,9 @@
                 LogoHeight = Branch.LogoHeight,
                 ImagePath = Branch.ImagePath,
                 CompanyId = Branch.CompanyId,
-                Currency = Branch.Currency
+                Currency = Branch.Currency,
+                HasCentralWarehouse = Branch.HasCentralWarehouse,
+                DefaultWarehouseId = Branch.DefaultWarehouseId
             };
         }
         else if (_companies != null && _companies.Any())
@@ -416,7 +421,9 @@
                 LogoHeight = _branchModel.LogoHeight,
                 ImagePath = _branchModel.ImagePath,
                 CompanyId = _branchModel.CompanyId,
-                Currency = _branchModel.Currency
+                Currency = _branchModel.Currency,
+                HasCentralWarehouse = _branchModel.HasCentralWarehouse,
+                DefaultWarehouseId = _branchModel.DefaultWarehouseId
             };
 
             var result = await BranchService.UpdateBranch(updateModel);
