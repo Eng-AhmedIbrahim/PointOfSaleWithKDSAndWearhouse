@@ -1,4 +1,4 @@
-﻿@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject BlazorBase.Services.LocalizationService LocalizerService
 @inject NavigationManager NavigationManager
 @inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
@@ -248,6 +248,12 @@
                     <MudMenuItem Href="/basicdata/inventory"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.Inventory" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "رصيد المخزن العام" : "General Stock")</div></MudMenuItem>
                     @if (_isCentralWarehouseEnabled)
                     {
+                        <MudMenuItem Href="/warehouses">
+                            <div class="menu-item-content">
+                                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="Size.Small" Style="color: #f97316;" />
+                                @(LocalizerService.GetCurrentLanguage() == "ar" ? "المستودعات والمخازن الرئيسية" : "Central Warehouses")
+                            </div>
+                        </MudMenuItem>
                         <MudMenuItem Href="/inventory/branch-requisitions">
                             <div class="menu-item-content">
                                 <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" Style="color: #ea580c;" />

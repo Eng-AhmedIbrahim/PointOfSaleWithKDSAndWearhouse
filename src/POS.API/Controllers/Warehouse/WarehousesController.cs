@@ -75,11 +75,11 @@ public class WarehousesController : ControllerBase
         return Ok(new { message = "تم إلغاء تفعيل المستودع" });
     }
 
-    // Locations
+    // Locations sub-resource
     [HttpGet("{warehouseId}/locations")]
     public async Task<IActionResult> GetLocations(int warehouseId)
     {
-        var locs = await _db.WarehouseLocations.Where(l => l.WarehouseId == warehouseId)
+        var locs = await _db.WarehouseLocations.Where(l => l.WarehouseId == warehouseId && l.IsActive)
             .OrderBy(l => l.Zone).ThenBy(l => l.Shelf).ToListAsync();
         return Ok(locs);
     }

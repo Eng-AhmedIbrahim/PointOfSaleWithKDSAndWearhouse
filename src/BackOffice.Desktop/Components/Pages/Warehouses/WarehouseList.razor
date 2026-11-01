@@ -1,0 +1,226 @@
+@page "/warehouses"
+@using MudBlazor
+@using Variant = MudBlazor.Variant
+@using Color = MudBlazor.Color
+@using DialogOptions = MudBlazor.DialogOptions
+@using Severity = MudBlazor.Severity
+@attribute [Authorize(Policy = "CanViewWarehouses")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>المستودعات والمخازن</PageTitle>
+
+<MudContainer MaxWidth="MudBlazor.MaxWidth.ExtraLarge" Class="mt-6 mb-10" dir="rtl">
+    <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
+        <div class="d-flex align-center gap-3">
+            <div class="pa-3 rounded-xl" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Large" />
+            </div>
+            <div>
+                <MudText Typo="MudBlazor.Typo.h5" Style="font-weight: 900; color: #1e293b;">
+                    المستودعات والمخازن الرئيسية
+                </MudText>
+                <MudText Typo="MudBlazor.Typo.body2" Color="Color.Secondary">
+                    تعريف وإدارة شبكة المستودعات المركزية ومخازن الفروع وأماكن التخزين
+                </MudText>
+            </div>
+        </div>
+
+        <AuthorizeView Policy="CanManageWarehouses">
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="MudBlazor.Size.Large"
+                       StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenAddDialog"
+                       Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
+                مستودع جديد
+            </MudButton>
+        </AuthorizeView>
+    </div>
+
+    <MudPaper Class="pa-4 mb-6 rounded-xl" Elevation="1">
+        <div class="d-flex align-center gap-4 flex-wrap">
+            <MudTextField @bind-Value="_search" Placeholder="بحث بالكود أو الاسم..."
+                          Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          Variant="Variant.Outlined" Class="flex-grow-1" Immediate="true"
+                          OnKeyUp="@(_ => StateHasChanged())" Margin="MudBlazor.Margin.Dense" />
+            <MudSelect T="int?" @bind-Value="_filterType" Label="نوع المستودع" Variant="Variant.Outlined"
+                       Style="min-width: 180px;" Margin="MudBlazor.Margin.Dense">
+                <MudSelectItem Value="@((int?)null)">الكل</MudSelectItem>
+                <MudSelectItem Value="@((int?)1)">مستودع رئيسي (Central)</MudSelectItem>
+                <MudSelectItem Value="@((int?)2)">مستودع فرعي (Branch)</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Rounded.Refresh" OnClick="LoadData">
+                تحديث
+            </MudButton>
+        </div>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <div class="text-center pa-8">
+            <MudProgressCircular Color="Color.Warning" Indeterminate="true" Size="MudBlazor.Size.Large" />
+        </div>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var w in FilteredWarehouses)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="2" Style="border-radius: 16px; border: 1px solid #e2e8f0; height: 100%; display: flex; flex-direction: column;">
+                        <MudCardHeader Style="@(w.Type == 1 ? "background: #fff7ed; border-bottom: 2px solid #fed7aa;" : "background: #f8fafc; border-bottom: 2px solid #e2e8f0;")">
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="@(w.Type == 1 ? Color.Warning : Color.Info)" Variant="Variant.Filled">
+                                    <MudIcon Icon="@(w.Type == 1 ? Icons.Material.Rounded.Domain : Icons.Material.Rounded.Store)" />
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="MudBlazor.Typo.subtitle1" Style="font-weight: 800; color: #1e293b;">@w.NameAr</MudText>
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(w.Type == 1 ? Color.Warning : Color.Info)" Variant="Variant.Outlined">
+                                        @(w.Type == 1 ? "مستودع رئيسي" : "مستودع فرعي")
+                                    </MudChip>
+                                    <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">@w.Code</span>
+                                </div>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <AuthorizeView Policy="CanManageWarehouses">
+                                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="Color.Default" Size="MudBlazor.Size.Small" OnClick="@(() => OpenEditDialog(w))" Title="تعديل" />
+                                </AuthorizeView>
+                            </CardHeaderActions>
+                        </MudCardHeader>
+
+                        <MudCardContent Class="flex-grow-1">
+                            @if (!string.IsNullOrEmpty(w.NameEn))
+                            {
+                                <MudText Typo="MudBlazor.Typo.body2" Color="Color.Secondary" Class="mb-3">@w.NameEn</MudText>
+                            }
+                            <div class="d-flex flex-column gap-2" style="font-size: 0.88rem; color: #475569;">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Person" Size="MudBlazor.Size.Small" Color="Color.Secondary" />
+                                    <span><strong>المدير:</strong> @(w.ManagerName ?? "-")</span>
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Phone" Size="MudBlazor.Size.Small" Color="Color.Secondary" />
+                                    <span><strong>الهاتف:</strong> @(w.Phone ?? "-")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(w.BranchName))
+                                {
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Rounded.Storefront" Size="MudBlazor.Size.Small" Color="Color.Secondary" />
+                                        <span><strong>الفرع التابع:</strong> @w.BranchName</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(w.Address))
+                                {
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Rounded.LocationOn" Size="MudBlazor.Size.Small" Color="Color.Secondary" />
+                                        <span>@w.Address</span>
+                                    </div>
+                                }
+                            </div>
+                        </MudCardContent>
+
+                        <MudCardActions Class="d-flex justify-space-between align-center px-4 py-3" Style="background: #fafafa; border-top: 1px solid #f1f5f9;">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="MudBlazor.Size.Small"
+                                       StartIcon="@Icons.Material.Rounded.GridView" OnClick="@(() => ShowLocations(w))">
+                                أماكن التخزين (@w.LocationCount)
+                            </MudButton>
+                            <MudChip T="string" Color="@(w.IsActive ? Color.Success : Color.Error)" Size="MudBlazor.Size.Small">
+                                @(w.IsActive ? "نشط" : "غير نشط")
+                            </MudChip>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+
+        @if (!FilteredWarehouses.Any())
+        {
+            <div class="text-center pa-10 text-muted">
+                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Style="font-size: 4rem; opacity: 0.3;" />
+                <MudText Typo="MudBlazor.Typo.h6" Class="mt-2">لا توجد مستودعات مطابقة للبحث</MudText>
+            </div>
+        }
+    }
+</MudContainer>
+
+@code {
+    private List<WarehouseDto> _warehouses = new();
+    private bool _loading = true;
+    private string? _search;
+    private int? _filterType;
+
+    private IEnumerable<WarehouseDto> FilteredWarehouses => _warehouses.Where(w =>
+        (string.IsNullOrEmpty(_search) || (w.NameAr?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) || (w.Code?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (!_filterType.HasValue || w.Type == _filterType.Value));
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseDto>>("api/warehouse/warehouses") ?? new();
+        }
+        catch
+        {
+            Snackbar.Add("خطأ في تحميل قائمة المستودعات", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("مستودع جديد", new DialogParameters { ["Warehouse"] = new WarehouseDialog.WarehouseModel() }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(WarehouseDto w)
+    {
+        var model = new WarehouseDialog.WarehouseModel
+        {
+            Id = w.Id,
+            Code = w.Code,
+            NameAr = w.NameAr,
+            NameEn = w.NameEn,
+            Type = w.Type,
+            Phone = w.Phone,
+            ManagerName = w.ManagerName,
+            Address = w.Address,
+            IsActive = w.IsActive
+        };
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("تعديل مستودع", new DialogParameters { ["Warehouse"] = model }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true });
+        var result = await dlg.Result;
+        if (!result!.Canceled) await LoadData();
+    }
+
+    private async Task ShowLocations(WarehouseDto w)
+    {
+        await DialogService.ShowAsync<WarehouseLocationsDialog>(
+            $"أماكن تخزين: {w.NameAr}",
+            new DialogParameters { ["WarehouseId"] = w.Id, ["WarehouseName"] = w.NameAr },
+            new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
+    }
+
+    private record WarehouseDto
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public int Type { get; set; } = 1;
+        public string? Address { get; set; }
+        public string? Phone { get; set; }
+        public string? ManagerName { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public int? DefaultSupplyingWarehouseId { get; set; }
+        public int LocationCount { get; set; }
+    }
+}

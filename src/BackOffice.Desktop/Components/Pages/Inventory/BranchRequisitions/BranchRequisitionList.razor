@@ -247,7 +247,7 @@
         var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
         var dialog = await DialogService.ShowAsync<BranchRequisitionDialog>("طلب توريد جديد", options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (!result!.Canceled)
         {
             await LoadRequisitions();
         }

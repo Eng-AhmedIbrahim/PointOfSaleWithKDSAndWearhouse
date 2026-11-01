@@ -1,0 +1,111 @@
+@using MudBlazor
+@using Variant = MudBlazor.Variant
+@using Color = MudBlazor.Color
+@using DialogOptions = MudBlazor.DialogOptions
+@using Severity = MudBlazor.Severity
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="MudBlazor.Typo.h6">
+            <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Class="me-2" />
+            @(Warehouse?.Id > 0 ? "تعديل مستودع" : "مستودع جديد")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="Warehouse!.Code" Label="كود المستودع" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="Warehouse!.NameAr" Label="الاسم بالعربية" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="Warehouse!.NameEn" Label="الاسم بالإنجليزية" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="Warehouse!.Type" Label="نوع المستودع" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem Value="1">مستودع رئيسي (Central / Main)</MudSelectItem>
+                    <MudSelectItem Value="2">مستودع فرعي (Branch)</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Warehouse!.ManagerName" Label="مدير المستودع" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Warehouse!.Phone" Label="رقم الهاتف" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudCheckBox @bind-Value="Warehouse!.IsActive" Label="نشط" Color="Color.Warning" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان بالتفصيل" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">إلغاء</MudButton>
+        <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Warning" Disabled="_saving">
+            @if (_saving) { <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" /> }
+            حفظ
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public WarehouseModel? Warehouse { get; set; }
+    private bool _saving;
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Warehouse?.Code) || string.IsNullOrWhiteSpace(Warehouse?.NameAr))
+        {
+            Snackbar.Add("يرجى إدخال كود واسم المستودع بالعربية", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            HttpResponseMessage res;
+            if (Warehouse?.Id > 0)
+                res = await Http.PutAsJsonAsync($"api/warehouse/warehouses/{Warehouse.Id}", Warehouse);
+            else
+                res = await Http.PostAsJsonAsync("api/warehouse/warehouses", Warehouse);
+
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حفظ بيانات المستودع بنجاح", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add(string.IsNullOrWhiteSpace(err) ? "حدث خطأ أثناء الحفظ" : err, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    public class WarehouseModel
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public int Type { get; set; } = 1;
+        public string? Phone { get; set; }
+        public string? ManagerName { get; set; }
+        public string? Address { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int? BranchId { get; set; }
+    }
+}

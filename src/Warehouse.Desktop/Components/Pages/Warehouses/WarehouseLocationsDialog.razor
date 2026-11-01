@@ -1,35 +1,52 @@
-﻿@inject HttpClient Http
+@using MudBlazor
+@using Variant = MudBlazor.Variant
+@using Color = MudBlazor.Color
+@using DialogOptions = MudBlazor.DialogOptions
+@using Severity = MudBlazor.Severity
+@inject HttpClient Http
 @inject ISnackbar Snackbar
 
 <MudDialog>
     <TitleContent>
-        <MudText MudBlazor.Typo="MudBlazor.Typo.h6"><MudIcon Icon="@Icons.Material.Rounded.LocationOn" Class="me-2"/>مواقع مستودع: @WarehouseName</MudText>
+        <MudText Typo="MudBlazor.Typo.h6">
+            <MudIcon Icon="@Icons.Material.Rounded.LocationOn" Class="me-2" />
+            أماكن التخزين: @WarehouseName
+        </MudText>
     </TitleContent>
     <DialogContent>
         <MudTable Items="_locations" Dense="true" Hover="true" Striped="true" Class="mb-3">
             <HeaderContent>
-                <MudTh>الكود</MudTh><MudTh>الاسم</MudTh><MudTh>القطاع</MudTh><MudTh>الرف</MudTh><MudTh>الخانة</MudTh><MudTh></MudTh>
+                <MudTh>الكود</MudTh>
+                <MudTh>اسم المكان / الرف</MudTh>
+                <MudTh>المنطقة</MudTh>
+                <MudTh>الرف</MudTh>
+                <MudTh>الخانة (Bin)</MudTh>
+                <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.Code</MudTd>
                 <MudTd>@context.NameAr</MudTd>
-                <MudTd>@(context.Zone ?? "—")</MudTd>
-                <MudTd>@(context.Shelf ?? "—")</MudTd>
-                <MudTd>@(context.Bin ?? "—")</MudTd>
-                <MudTd><MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => DeleteLocation(context))" /></MudTd>
+                <MudTd>@(context.Zone ?? "-")</MudTd>
+                <MudTd>@(context.Shelf ?? "-")</MudTd>
+                <MudTd>@(context.Bin ?? "-")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => DeleteLocation(context))" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
 
-        <MudPaper Class="pa-3" Elevation="0" Style="border:1px dashed var(--wh-accent); border-radius:12px;">
-            <MudText MudBlazor.Typo="MudBlazor.Typo.subtitle2" Class="mb-2">إضافة موقع جديد</MudText>
+        <MudPaper Class="pa-3" Elevation="0" Style="border: 1px dashed #f97316; border-radius: 12px; background: #fffaf5;">
+            <MudText Typo="MudBlazor.Typo.subtitle2" Class="mb-2" Style="font-weight: 700; color: #ea580c;">إضافة مكان تخزين جديد</MudText>
             <MudGrid>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Code" Label="الكود" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
-                <MudItem xs="8"><MudTextField @bind-Value="_newLoc.NameAr" Label="الاسم" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Zone" Label="القطاع" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Shelf" Label="الرف" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Bin" Label="الخانة" Variant="MudBlazor.Variant.Outlined" Dense="true" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Code" Label="الكود" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                <MudItem xs="8"><MudTextField @bind-Value="_newLoc.NameAr" Label="الاسم" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Zone" Label="المنطقة" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Shelf" Label="الرف" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Bin" Label="الخانة" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
             </MudGrid>
-            <MudButton Class="mt-2" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" OnClick="AddLocation" StartIcon="@Icons.Material.Rounded.Add">إضافة</MudButton>
+            <MudButton Class="mt-2" Variant="Variant.Filled" Color="Color.Warning" OnClick="AddLocation" StartIcon="@Icons.Material.Rounded.Add">
+                إضافة المكان
+            </MudButton>
         </MudPaper>
     </DialogContent>
     <DialogActions>
@@ -47,27 +64,44 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await Http.GetFromJsonAsync<List<LocationDto>>($"api/warehouse/warehouses/{WarehouseId}/locations");
-        _locations = result ?? new();
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<LocationDto>>($"api/warehouse/warehouses/{WarehouseId}/locations");
+            _locations = result ?? new();
+        }
+        catch { }
     }
 
     private async Task AddLocation()
     {
-        if (string.IsNullOrWhiteSpace(_newLoc.Code) || string.IsNullOrWhiteSpace(_newLoc.NameAr)) return;
+        if (string.IsNullOrWhiteSpace(_newLoc.Code) || string.IsNullOrWhiteSpace(_newLoc.NameAr))
+        {
+            Snackbar.Add("يرجى إدخال الكود والاسم", Severity.Warning);
+            return;
+        }
+
         var res = await Http.PostAsJsonAsync($"api/warehouse/warehouses/{WarehouseId}/locations", _newLoc);
         if (res.IsSuccessStatusCode)
         {
             var added = await res.Content.ReadFromJsonAsync<LocationDto>();
             if (added != null) _locations.Add(added);
             _newLoc = new();
-            Snackbar.Add("تمت الإضافة", MudBlazor.Severity.Success);
+            Snackbar.Add("تمت إضافة مكان التخزين بنجاح", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("فشل إضافة مكان التخزين", Severity.Error);
         }
     }
 
     private async Task DeleteLocation(LocationDto loc)
     {
         var res = await Http.DeleteAsync($"api/warehouse/warehouses/locations/{loc.Id}");
-        if (res.IsSuccessStatusCode) { _locations.Remove(loc); Snackbar.Add("تم الحذف", MudBlazor.Severity.Info); }
+        if (res.IsSuccessStatusCode)
+        {
+            _locations.Remove(loc);
+            Snackbar.Add("تم الحذف بنجاح", Severity.Info);
+        }
     }
 
     private record LocationDto
