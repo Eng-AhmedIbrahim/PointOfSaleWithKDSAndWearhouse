@@ -6,7 +6,6 @@ using Pos.Repository.Data;
 
 namespace POS.API.Controllers.Warehouse;
 
-[Authorize]
 [ApiController]
 [Route("api/warehouse/products")]
 public class WarehouseProductsController : ControllerBase
@@ -14,6 +13,7 @@ public class WarehouseProductsController : ControllerBase
     private readonly AppDbContext _db;
     public WarehouseProductsController(AppDbContext db) => _db = db;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool? activeOnly = true)
     {
@@ -30,6 +30,7 @@ public class WarehouseProductsController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
