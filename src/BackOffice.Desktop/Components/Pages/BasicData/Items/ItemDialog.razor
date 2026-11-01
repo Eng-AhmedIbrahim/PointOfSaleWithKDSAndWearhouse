@@ -53,6 +53,8 @@
                             </div>
                         </div>
 
+                    @if (_isBarcodeEnabled)
+                    {
                         <div class="field-divider"></div>
 
                         <!-- Barcode -->
@@ -67,6 +69,7 @@
                                                Placeholder="Barcode" />
                             </div>
                         </div>
+                    }
                     </div>
 
                     @if (_isInventoryEnabled)
@@ -657,6 +660,7 @@
     private bool _stayOpen = false;
     private bool _showAdvanced = false;
     private bool _isInventoryEnabled = false;
+    private bool _isBarcodeEnabled = false;
     private ItemFormModel model = new();
 
     private void OnItemTypeChanged(object value)
@@ -715,6 +719,7 @@
     protected override async Task OnInitializedAsync()
     {
         _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        _isBarcodeEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableItemBarcode");
         await Task.WhenAll(LoadCategories(), LoadClassifications(), LoadAttributes(), LoadItemTypes());
 
         if (ItemToEdit != null)

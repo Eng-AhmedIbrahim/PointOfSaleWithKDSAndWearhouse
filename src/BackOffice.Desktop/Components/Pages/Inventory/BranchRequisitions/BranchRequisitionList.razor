@@ -1,4 +1,6 @@
 @page "/inventory/branch-requisitions"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "CanViewBranchRequisitions")]
 @using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -34,11 +36,13 @@
                        StartIcon="@Icons.Material.Rounded.Refresh" OnClick="LoadRequisitions">
                 تحديث
             </MudButton>
-            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large"
-                       StartIcon="@Icons.Material.Rounded.AddShoppingCart" OnClick="OpenNewRequisitionDialog"
-                       Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
-                طلب توريد جديد
-            </MudButton>
+            <AuthorizeView Policy="CanCreateBranchRequisition">
+                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large"
+                           StartIcon="@Icons.Material.Rounded.AddShoppingCart" OnClick="OpenNewRequisitionDialog"
+                           Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
+                    طلب توريد جديد
+                </MudButton>
+            </AuthorizeView>
         </div>
     </div>
 
@@ -121,44 +125,48 @@
                     <MudTh>ملاحظات</MudTh>
                     <MudTh Style="text-align: center;">الإجراءات</MudTh>
                 </HeaderContent>
-                <RowTemplate>
+                <RowTemplate Context="req">
                     <MudTd>
-                        <span style="font-weight: 800; color: #ea580c;">@context.RequisitionNumber</span>
+                        <span style="font-weight: 800; color: #ea580c;">@req.RequisitionNumber</span>
                     </MudTd>
-                    <MudTd>@context.RequestDate.ToString("yyyy-MM-dd hh:mm tt")</MudTd>
+                    <MudTd>@req.RequestDate.ToString("yyyy-MM-dd hh:mm tt")</MudTd>
                     <MudTd>
                         <div class="d-flex align-center gap-1">
                             <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Secondary" />
-                            <span>@(context.TargetWarehouse?.NameAr ?? "المخزن الرئيسي")</span>
+                            <span>@(req.TargetWarehouse?.NameAr ?? "المخزن الرئيسي")</span>
                         </div>
                     </MudTd>
                     <MudTd>
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
-                            @(context.Lines?.Count ?? 0) صنف
+                            @(req.Lines?.Count ?? 0) صنف
                         </MudChip>
                     </MudTd>
                     <MudTd>
-                        @GetStatusChip(context.Status)
+                        @GetStatusChip(req.Status)
                     </MudTd>
                     <MudTd>
                         <span class="text-truncate" style="max-width: 180px; display: inline-block;">
-                            @(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)
+                            @(string.IsNullOrWhiteSpace(req.Notes) ? "-" : req.Notes)
                         </span>
                     </MudTd>
                     <MudTd Style="text-align: center;">
                         <div class="d-flex justify-center gap-1">
-                            @if (context.Status == 8) @* InTransit *@
+                            @if (req.Status == 8) @* InTransit *@
                             {
-                                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small"
-                                           StartIcon="@Icons.Material.Rounded.CheckCircle" OnClick="@(() => OpenReceiveDialog(context))"
-                                           Style="font-weight: 800; border-radius: 8px;">
-                                    استلام الشحنة
-                                </MudButton>
+                                <AuthorizeView Context="authContext" Policy="CanReceiveStockTransfer">
+                                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small"
+                                               StartIcon="@Icons.Material.Rounded.CheckCircle" OnClick="@(() => OpenReceiveDialog(req))"
+                                               Style="font-weight: 800; border-radius: 8px;">
+                                        استلام الشحنة
+                                    </MudButton>
+                                </AuthorizeView>
                             }
-                            @if (context.Status == 1 || context.Status == 2)
+                            @if (req.Status == 1 || req.Status == 2)
                             {
-                                <MudIconButton Icon="@Icons.Material.Rounded.Cancel" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
-                                               Title="إلغاء الطلب" OnClick="@(() => CancelRequisition(context))" />
+                                <AuthorizeView Context="authContext" Policy="CanModifyBranchRequisition">
+                                    <MudIconButton Icon="@Icons.Material.Rounded.Cancel" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                                   Title="إلغاء الطلب" OnClick="@(() => CancelRequisition(req))" />
+                                </AuthorizeView>
                             }
                         </div>
                     </MudTd>

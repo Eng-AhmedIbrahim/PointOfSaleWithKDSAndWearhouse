@@ -331,6 +331,9 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/", () => Results.Ok(new { status = "online", service = "POS & Warehouse API", timestamp = DateTime.UtcNow })).AllowAnonymous();
+app.MapGet("/ping", () => Results.Ok(new { status = "online", timestamp = DateTime.UtcNow })).AllowAnonymous();
+
 app.MapControllers();
 app.MapHub<DeliveryHub>("/callcenterhub");
 app.MapHub<WarehouseHub>("/hubs/warehouse");

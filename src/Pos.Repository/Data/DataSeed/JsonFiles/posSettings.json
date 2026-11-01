@@ -1,4 +1,4 @@
-[
+﻿[
   {
     "FeatureName": "EnableReservation",
     "NameEn": "Enable Reservation System",
@@ -430,5 +430,14 @@
     "ModuleName": "Delivery",
     "ScreenName": "Call Center",
     "Value": false
+  }
+,
+  {
+    "FeatureName": "EnableItemBarcode",
+    "NameEn": "Enable Item Barcode",
+    "NameAr": "Enable Item Barcode",
+    "ModuleName": "BasicData",
+    "ScreenName": "Items",
+    "Value": true
   }
 ]

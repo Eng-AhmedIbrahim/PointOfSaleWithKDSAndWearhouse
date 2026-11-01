@@ -20,7 +20,7 @@
                         </MudChip>
                     </div>
                     <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">
-                        تجهيز بضائع ومواد خام وشحنها من المستودع المركزي للفرع
+                        تحديد بضائع ومواد خام وشحنات من المستودع المركزي للفرع
                     </MudText>
                 </div>
             </div>
@@ -45,7 +45,7 @@
                 {
                     <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
                              Icon="@Icons.Material.Rounded.WifiOff">
-                        سيرفر المخزن غير متصل (سيتم الحفظ معلقاً)
+                        سيرفر المخزن غير متصل (سيتم الحفظ كمعلق)
                     </MudChip>
                 }
             </div>
@@ -57,7 +57,7 @@
             <MudGrid Class="mb-4" Spacing="3">
                 <MudItem xs="12" sm="6">
                     <MudText Typo="MudBlazor.Typo.body2" Class="fw-bold mb-1" Style="color: #334155;">
-                        المستودع الرئيسي المورد المستهدف *
+                        المستودع المورد المستهدف *
                     </MudText>
                     <MudSelect T="int" Value="_targetWarehouseId" ValueChanged="OnTargetWarehouseChanged"
                                Variant="MudBlazor.Variant.Outlined" AnchorOrigin="MudBlazor.Origin.BottomCenter">
@@ -86,23 +86,23 @@
             @if (!string.IsNullOrEmpty(_targetWarehouseApiUrl))
             {
                 <div class="d-flex align-center justify-space-between pa-3 rounded-xl mb-4 @(_isWarehouseOnline ? "bg-light-success" : "bg-light-warning")" 
-                     style="border: 1px solid @(_isWarehouseOnline ? "#86efac" : "#fde047");">
+                     style="border: 1px solid @(_isWarehouseOnline ? "#86efac" : "#fde047"); background-color: @(_isWarehouseOnline ? "#f0fdf4" : "#fefce8");">
                     <div class="d-flex align-center gap-2">
                         <MudIcon Icon="@(_isWarehouseOnline ? Icons.Material.Rounded.CloudDone : Icons.Material.Rounded.CloudQueue)"
                                  Color="@(_isWarehouseOnline ? MudBlazor.Color.Success : MudBlazor.Color.Warning)" />
                         <div>
                             <MudText Typo="MudBlazor.Typo.body2" Style="font-weight: 700;">
-                                سيرفر المخزن: <code style="direction: ltr; display: inline-block;">@_targetWarehouseApiUrl</code>
+                                سيرفر المخزن: <code dir="ltr" style="direction: ltr; unicode-bidi: embed; font-weight: 800; color: #0284c7;">@_targetWarehouseApiUrl</code>
                             </MudText>
                             <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">
                                 @(_isWarehouseOnline 
-                                    ? "سيرفر المخزن الرئيسي يعمل بشكل ممتاز وسيتم إرسال الطلبية له فوراً." 
+                                    ? "سيرفر المخزن الرئيسي متصل ويعمل بشكل ممتاز. سيتم إرسال الطلبية له فوراً." 
                                     : "سيرفر المخزن غير متاح حالياً. سيتم حفظ الطلبية في الانتظار وإرسالها تلقائياً فور عودة الاتصال.")
                             </MudText>
                         </div>
                     </div>
                     <MudButton Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Text" Color="MudBlazor.Color.Default" 
-                               StartIcon="@Icons.Material.Rounded.Refresh" OnClick="CheckWarehouseConnection">
+                               StartIcon="@Icons.Material.Rounded.Refresh" OnClick="RecheckConnection">
                         إعادة فحص
                     </MudButton>
                 </div>
@@ -185,7 +185,7 @@
                     <div class="pa-8 text-center text-muted">
                         <MudIcon Icon="@Icons.Material.Rounded.ShoppingBag" Style="font-size: 3rem; opacity: 0.25;" />
                         <MudText Typo="MudBlazor.Typo.body2" Class="mt-2" Style="color: #64748b; font-weight: 600;">
-                            لم تتم إضافة أصناف بعد. ابحث عن الصنف وحدد وحدته وكميته ثم اضغط إضافة.
+                            لم يتم إضافة أصناف بعد. ابحث عن الصنف وحدد وحدته وكميته ثم اضغط إضافة.
                         </MudText>
                     </div>
                 </NoRecordsContent>
@@ -273,17 +273,31 @@
     {
         if (string.IsNullOrWhiteSpace(_targetWarehouseApiUrl))
         {
-            // محلي (نفس السيرفر) -> متصل دائماً
             _isWarehouseOnline = true;
             return;
         }
 
         _checkingConnection = true;
+        StateHasChanged();
         try
         {
-            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-            var res = await client.GetAsync($"{_targetWarehouseApiUrl.TrimEnd('/')}/api/warehouse/warehouses/ping");
-            _isWarehouseOnline = res.IsSuccessStatusCode;
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(6) };
+            // أي رد HTTP = السيرفر شغال (حتى لو 404 على endpoint معين)
+            // فقط الـ Exception (connection refused / timeout) = السيرفر واقف
+            var res = await client.GetAsync($"{_targetWarehouseApiUrl.TrimEnd('/')}/api/warehouse/warehouses");
+            // السيرفر شغال لو أرجع أي رد - سواء 200 أو 404 أو غيره
+            // (404 يعني السيرفر رد لكن الـ endpoint مش موجود - السيرفر نفسه شغال)
+            _isWarehouseOnline = true;
+        }
+        catch (TaskCanceledException)
+        {
+            // timeout - السيرفر بطيء أو مش موجود
+            _isWarehouseOnline = false;
+        }
+        catch (HttpRequestException)
+        {
+            // connection refused أو network error - السيرفر فعلاً واقف
+            _isWarehouseOnline = false;
         }
         catch
         {
@@ -292,6 +306,17 @@
         finally
         {
             _checkingConnection = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RecheckConnection()
+    {
+        await CheckWarehouseConnection();
+        if (_isWarehouseOnline)
+        {
+            await LoadProducts();
+            StateHasChanged();
         }
     }
 
@@ -332,7 +357,7 @@
         {
             var baseName = !string.IsNullOrWhiteSpace(prod.BaseUnitName) 
                 ? prod.BaseUnitName 
-                : (prod.BaseUnit?.NameAr ?? "وحدة أساسية");
+                : (prod.BaseUnit?.NameAr ?? "الوحدة الأساسية");
 
             _availableUnits.Add(new UnitItemLookup
             {
@@ -447,7 +472,7 @@
                 }
                 catch
                 {
-                    // فشل الاتصال أثناء الإرسال -> سيتم الحفظ محلياً كـ معلق
+                    // فشل الإرسال أثناء الإرسال -> سيتم الحفظ محلياً كـ معلق
                     sentDirectly = false;
                 }
             }
@@ -471,7 +496,7 @@
             }
             else
             {
-                Snackbar.Add("⚠️ تعذر الاتصال بالمخزن الرئيسي. تم حفظ الطلبية كـ «معلقة»، وسيتم إرسالها فور عودة الاتصال بالمخزن.", MudBlazor.Severity.Warning);
+                Snackbar.Add("تعذر الاتصال بالمخزن الرئيسي. تم حفظ الطلبية كـ «معلقة» وسيتم إرسالها فور عودة الاتصال بالمخزن.", MudBlazor.Severity.Warning);
             }
 
             MudDialog.Close(DialogResult.Ok(true));

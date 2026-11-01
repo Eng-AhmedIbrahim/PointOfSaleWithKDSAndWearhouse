@@ -31,7 +31,11 @@ public class WarehousesController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpGet("{id}")]
+    [HttpGet("ping")]
+    public IActionResult Ping() => Ok(new { status = "online", service = "Warehouse Service", timestamp = DateTime.UtcNow });
+
+    [AllowAnonymous]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var w = await _db.Warehouses.Include(x => x.Locations).Include(x => x.Branch)

@@ -109,6 +109,21 @@
                         </Template>
                     </RadzenDataGridColumn>
 
+                    <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Property="Barcode" Title="@(IsArabic ? "باركود" : "Barcode")" Width="140px" TextAlign="Radzen.TextAlign.Center" Visible="@_isBarcodeEnabled">
+                        <Template Context="item">
+                            @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            {
+                                <span style="font-family: monospace; font-weight: 800; background: #f1f5f9; padding: 3px 8px; border-radius: 6px; color: #475569; border: 1px solid #e2e8f0;">
+                                    @item.Barcode
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
                     <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="120px" TextAlign="Radzen.TextAlign.Center">
                         <Template Context="item">
                             <div class="d-flex justify-content-center gap-2">
@@ -139,9 +154,11 @@
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
 
     private bool _isInventoryEnabled;
+    private bool _isBarcodeEnabled;
     protected override async Task OnInitializedAsync()
     {
         _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        _isBarcodeEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableItemBarcode");
         await LoadData();
     }
 
@@ -186,6 +203,7 @@
             FilteredItems = Items.Where(x => 
                 (x.ArabicName != null && x.ArabicName.ToLower().Contains(term)) ||
                 (x.EnglishName != null && x.EnglishName.ToLower().Contains(term)) ||
+                (x.Barcode != null && x.Barcode.ToLower().Contains(term)) ||
                 x.Id.ToString().Contains(term) ||
                 (x.CategoryArabicName != null && x.CategoryArabicName.ToLower().Contains(term))
             ).ToList();
@@ -206,6 +224,7 @@
         if (!result.Canceled)
         {
             _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+            _isBarcodeEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableItemBarcode");
             await LoadData();
         }
     }
@@ -225,6 +244,7 @@
         if (!result.Canceled)
         {
             _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+            _isBarcodeEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableItemBarcode");
             await LoadData();
         }
     }
@@ -250,6 +270,7 @@
             {
                 Snackbar.Add(IsArabic ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
                 _isInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+                _isBarcodeEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableItemBarcode");
             await LoadData();
             }
             else
