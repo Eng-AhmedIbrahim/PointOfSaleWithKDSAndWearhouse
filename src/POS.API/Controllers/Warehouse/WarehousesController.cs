@@ -6,7 +6,6 @@ using Pos.Repository.Data;
 
 namespace POS.API.Controllers.Warehouse;
 
-[Authorize]
 [ApiController]
 [Route("api/warehouse/warehouses")]
 public class WarehousesController : ControllerBase
@@ -14,6 +13,8 @@ public class WarehousesController : ControllerBase
     private readonly AppDbContext _db;
     public WarehousesController(AppDbContext db) => _db = db;
 
+    // GET: مفتوح للجميع — يُستخدم في قوائم الاختيار بالفروع وبدون توثيق
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool? activeOnly = true)
     {
@@ -23,12 +24,13 @@ public class WarehousesController : ControllerBase
         {
             w.Id, w.Code, w.NameAr, w.NameEn, w.Type, w.Address, w.Phone,
             w.ManagerName, w.IsActive, w.BranchId, BranchName = w.Branch != null ? w.Branch.Name : null,
-            w.DefaultSupplyingWarehouseId, w.CreatedAt,
+            w.DefaultSupplyingWarehouseId, w.CreatedAt, w.ApiUrl,
             LocationCount = w.Locations.Count
         }).ToListAsync();
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -38,33 +40,37 @@ public class WarehousesController : ControllerBase
         return Ok(w);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] POS.Core.Entities.Warehouse.Warehouse model)
     {
         if (await _db.Warehouses.AnyAsync(w => w.Code == model.Code))
-            return BadRequest(new { message = "كود المستودع موجود مسبقاً" });
+            return BadRequest(new { message = "كود المستودع مستخدم بالفعل" });
         model.CreatedAt = DateTime.UtcNow;
         _db.Warehouses.Add(model);
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, model);
     }
 
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] POS.Core.Entities.Warehouse.Warehouse model)
     {
         var existing = await _db.Warehouses.FindAsync(id);
         if (existing == null) return NotFound();
         if (await _db.Warehouses.AnyAsync(w => w.Code == model.Code && w.Id != id))
-            return BadRequest(new { message = "كود المستودع مستخدم مسبقاً" });
+            return BadRequest(new { message = "الكود مستخدم لمستودع آخر" });
         existing.Code = model.Code; existing.NameAr = model.NameAr; existing.NameEn = model.NameEn;
         existing.Type = model.Type; existing.Address = model.Address; existing.Phone = model.Phone;
         existing.ManagerName = model.ManagerName; existing.IsActive = model.IsActive;
         existing.BranchId = model.BranchId; existing.DefaultSupplyingWarehouseId = model.DefaultSupplyingWarehouseId;
+        existing.ApiUrl = model.ApiUrl;
         existing.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return Ok(existing);
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -72,10 +78,11 @@ public class WarehousesController : ControllerBase
         if (w == null) return NotFound();
         w.IsActive = false; w.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        return Ok(new { message = "تم إلغاء تفعيل المستودع" });
+        return Ok(new { message = "تم إيقاف تشغيل المستودع" });
     }
 
     // Locations sub-resource
+    [AllowAnonymous]
     [HttpGet("{warehouseId}/locations")]
     public async Task<IActionResult> GetLocations(int warehouseId)
     {
@@ -84,6 +91,7 @@ public class WarehousesController : ControllerBase
         return Ok(locs);
     }
 
+    [Authorize]
     [HttpPost("{warehouseId}/locations")]
     public async Task<IActionResult> AddLocation(int warehouseId, [FromBody] WarehouseLocation loc)
     {
@@ -93,6 +101,7 @@ public class WarehousesController : ControllerBase
         return Ok(loc);
     }
 
+    [Authorize]
     [HttpPut("locations/{id}")]
     public async Task<IActionResult> UpdateLocation(int id, [FromBody] WarehouseLocation model)
     {
@@ -104,6 +113,7 @@ public class WarehousesController : ControllerBase
         return Ok(loc);
     }
 
+    [Authorize]
     [HttpDelete("locations/{id}")]
     public async Task<IActionResult> DeleteLocation(int id)
     {

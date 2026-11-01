@@ -192,6 +192,7 @@
             Phone = w.Phone,
             ManagerName = w.ManagerName,
             Address = w.Address,
+            ApiUrl = w.ApiUrl,
             IsActive = w.IsActive
         };
         var dlg = await DialogService.ShowAsync<WarehouseDialog>("تعديل مستودع", new DialogParameters { ["Warehouse"] = model }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true });
@@ -221,6 +222,7 @@
         public int? BranchId { get; set; }
         public string? BranchName { get; set; }
         public int? DefaultSupplyingWarehouseId { get; set; }
+        public string? ApiUrl { get; set; }
         public int LocationCount { get; set; }
     }
 }

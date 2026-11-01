@@ -1,4 +1,4 @@
-﻿@using MudBlazor
+@using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject CommonProperties CommonProps
@@ -8,7 +8,7 @@
         <div class="d-flex align-center gap-2">
             <MudIcon Icon="@Icons.Material.Rounded.AddShoppingCart" Color="MudBlazor.Color.Warning" />
             <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800;">
-                إنشاء طلب توريد جديد من المخزن الرئيسي
+                إنشاء طلب توريد من المخزن الرئيسي
             </MudText>
         </div>
     </TitleContent>
@@ -17,7 +17,7 @@
             <!-- Header Config -->
             <MudGrid Class="mb-3">
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="المستودع المورّد *" @bind-Value="_targetWarehouseId"
+                    <MudSelect T="int" Label="المستودع المستهدف *" @bind-Value="_targetWarehouseId"
                                Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense">
                         @foreach (var wh in _warehouses)
                         {
@@ -26,23 +26,30 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="تاريخ الاحتياج المطلوب" @bind-Date="_requiredDate"
+                    <MudDatePicker Label="تاريخ التوريد المطلوب" @bind-Date="_requiredDate"
                                    Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField T="string" Label="ملاحظات الطلبية للفرع" @bind-Value="_notes"
+                    <MudTextField T="string" Label="ملاحظات إضافية اختيارية" @bind-Value="_notes"
                                   Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Lines="1" />
                 </MudItem>
             </MudGrid>
 
+            @if (!string.IsNullOrEmpty(_targetWarehouseApiUrl))
+            {
+                <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-3">
+                    سيتم إرسال الطلب إلى: <strong>@_targetWarehouseApiUrl</strong>
+                </MudAlert>
+            }
+
             <!-- Add Item Row -->
             <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
                 <MudText Typo="MudBlazor.Typo.subtitle2" Class="mb-2" Style="font-weight: 700; color: #475569;">
-                    + إضافة صنف للطلبية
+                    + إضافة صنف جديد
                 </MudText>
                 <MudGrid Spacing="2" Class="align-center">
                     <MudItem xs="12" sm="6">
-                        <MudAutocomplete T="ProductLookup" Label="اختر الصنف..." @bind-Value="_selectedProduct"
+                        <MudAutocomplete T="ProductLookup" Label="ابحث بالاسم..." @bind-Value="_selectedProduct"
                                          SearchFunc="@SearchProducts" ToStringFunc="@(p => p?.NameAr ?? "")"
                                          Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense"
                                          ResetValueOnEmptyText="true" CoerceText="false" />
@@ -64,9 +71,9 @@
             <MudTable Items="@_items" Dense="true" Hover="true" Elevation="0" Class="border rounded mb-2">
                 <HeaderContent>
                     <MudTh>#</MudTh>
-                    <MudTh>الصنف</MudTh>
+                    <MudTh>المنتج</MudTh>
                     <MudTh>الكود (SKU)</MudTh>
-                    <MudTh>الوحدة الأساسية</MudTh>
+                    <MudTh>وحدة القياس</MudTh>
                     <MudTh>الكمية المطلوبة</MudTh>
                     <MudTh Style="width: 60px;">حذف</MudTh>
                 </HeaderContent>
@@ -86,7 +93,7 @@
                 </RowTemplate>
                 <NoRecordsContent>
                     <div class="pa-4 text-center text-muted">
-                        لم يتم إضافة أصناف بعد. استخدم النموذج أعلاه لإضافة الأصناف.
+                        لم تتم إضافة أصناف بعد. استخدم محقل البحث أعلاه لإضافة المنتجات.
                     </div>
                 </NoRecordsContent>
             </MudTable>
@@ -97,7 +104,7 @@
         <MudButton OnClick="SubmitRequisition" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
                    Disabled="@(_items.Count == 0 || _targetWarehouseId == 0 || _isSubmitting)"
                    StartIcon="@Icons.Material.Rounded.Send">
-            @(_isSubmitting ? "جاري الإرسال..." : "إرسال الطلب للمخزن")
+            @(_isSubmitting ? "جاري الإرسال..." : "إرسال طلب التوريد")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -106,6 +113,7 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private int _targetWarehouseId;
+    private string? _targetWarehouseApiUrl;
     private DateTime? _requiredDate = DateTime.Today.AddDays(2);
     private string? _notes;
     private bool _isSubmitting = false;
@@ -127,21 +135,25 @@
             // Default warehouse for branch if set
             var defaultWhId = CommonProps.BranchDetails?.DefaultWarehouseId;
             if (defaultWhId.HasValue && _warehouses.Any(w => w.Id == defaultWhId.Value))
-            {
                 _targetWarehouseId = defaultWhId.Value;
-            }
             else if (_warehouses.Any())
-            {
                 _targetWarehouseId = _warehouses.First().Id;
-            }
+
+            // Store the ApiUrl of the selected warehouse
+            UpdateTargetWarehouseApiUrl();
 
             var prodList = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/warehouse/products");
             if (prodList != null) _allProducts = prodList;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"فشل تحميل البيانات: {ex.Message}", MudBlazor.Severity.Error);
+            Snackbar.Add($"خطأ أثناء التحميل: {ex.Message}", MudBlazor.Severity.Error);
         }
+    }
+
+    private void UpdateTargetWarehouseApiUrl()
+    {
+        _targetWarehouseApiUrl = _warehouses.FirstOrDefault(w => w.Id == _targetWarehouseId)?.ApiUrl;
     }
 
     private Task<IEnumerable<ProductLookup>> SearchProducts(string value, CancellationToken cancellationToken)
@@ -149,7 +161,7 @@
         if (string.IsNullOrWhiteSpace(value))
             return Task.FromResult<IEnumerable<ProductLookup>>(_allProducts.Take(20));
 
-        var q = _allProducts.Where(p => 
+        var q = _allProducts.Where(p =>
             (p.NameAr != null && p.NameAr.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
             (p.SKU != null && p.SKU.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
             (p.NameEn != null && p.NameEn.Contains(value, StringComparison.OrdinalIgnoreCase)));
@@ -209,7 +221,24 @@
                 }).ToList()
             };
 
-            var res = await Http.PostAsJsonAsync("/api/warehouse/requisitions", model);
+            // استخدم ApiUrl المخزن الرئيسي إذا كان محدداً (cross-server routing)
+            // وإلا أرسل للـ API المحلي (نفس السيرفر للاختبار)
+            HttpResponseMessage res;
+            var warehouseApiUrl = _warehouses.FirstOrDefault(w => w.Id == _targetWarehouseId)?.ApiUrl;
+
+            if (!string.IsNullOrWhiteSpace(warehouseApiUrl))
+            {
+                // إرسال لسيرفر المخزن الرئيسي عبر الشبكة
+                using var externalClient = new System.Net.Http.HttpClient();
+                externalClient.BaseAddress = new Uri(warehouseApiUrl.TrimEnd('/') + "/");
+                res = await externalClient.PostAsJsonAsync("api/warehouse/requisitions", model);
+            }
+            else
+            {
+                // Fallback: نفس السيرفر (للتطوير والاختبار)
+                res = await Http.PostAsJsonAsync("/api/warehouse/requisitions", model);
+            }
+
             if (res.IsSuccessStatusCode)
             {
                 Snackbar.Add("تم إرسال طلب التوريد إلى المخزن الرئيسي بنجاح", MudBlazor.Severity.Success);
@@ -236,6 +265,7 @@
         public int Id { get; set; }
         public string? Code { get; set; }
         public string? NameAr { get; set; }
+        public string? ApiUrl { get; set; }
     }
 
     public class ProductLookup

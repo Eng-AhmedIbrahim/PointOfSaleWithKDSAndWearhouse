@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,7 @@ public class BranchRequisitionsController : ControllerBase
     public BranchRequisitionsController(AppDbContext db, IHubContext<WarehouseHub> hub)
     { _db = db; _hub = hub; }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] RequisitionStatus? status, [FromQuery] int? branchId, [FromQuery] int? warehouseId)
     {
@@ -39,6 +40,7 @@ public class BranchRequisitionsController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -52,6 +54,7 @@ public class BranchRequisitionsController : ControllerBase
         return Ok(r);
     }
 
+    [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] BranchRequisition model)
     {
@@ -86,13 +89,12 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.Include(x => x.RequestingBranch).Include(x => x.TargetWarehouse).FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.Draft) return BadRequest(new { message = "يمكن إرسال الطلب في حالة المسودة فقط" });
+        if (r.Status != RequisitionStatus.Draft) return BadRequest(new { message = "يمكن تقديم الطلب فقط من حالة مسودة" });
         r.Status = RequisitionStatus.Submitted;
         await _db.SaveChangesAsync();
-        // Notify warehouse
-        await _hub.Clients.Group($"warehouse_{r.TargetWarehouseId}").SendAsync("NewRequisitionReceived", new
-        { RequisitionId = r.Id, RequisitionNumber = r.RequisitionNumber, BranchName = r.RequestingBranch?.Name, Timestamp = DateTime.UtcNow });
-        return Ok(new { message = "تم إرسال الطلب للمخزن الرئيسي" });
+        await _hub.Clients.Group($"warehouse_{r.TargetWarehouseId}").SendAsync("NewRequisitionReceived",
+            new { RequisitionId = r.Id, RequisitionNumber = r.RequisitionNumber, BranchName = r.RequestingBranch?.Name, Timestamp = DateTime.UtcNow });
+        return Ok(new { message = "تم تقديم الطلب بنجاح وإشعار المستودع" });
     }
 
     [HttpPost("{id}/review")]
@@ -100,65 +102,42 @@ public class BranchRequisitionsController : ControllerBase
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.Submitted) return BadRequest(new { message = "الطلب يجب أن يكون في حالة 'تم الإرسال'" });
+        if (r.Status != RequisitionStatus.Submitted) return BadRequest(new { message = "الطلب يجب أن يكون بحالة مقدم" });
         r.Status = RequisitionStatus.UnderReview;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "قيد المراجعة", "الطلب قيد المراجعة من قبل المخزن");
-        return Ok();
-    }
-
-    [HttpPost("{id}/propose-modification")]
-    public async Task<IActionResult> ProposeModification(int id, [FromBody] List<LineModificationDto> modifications)
-    {
-        var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
-        if (r == null) return NotFound();
-        foreach (var mod in modifications)
-        {
-            var line = r.Lines.FirstOrDefault(x => x.Id == mod.LineId);
-            if (line != null) { line.ProposedQuantity = mod.ProposedQuantity; line.ModificationNotes = mod.Notes; }
-        }
-        r.Status = RequisitionStatus.ModificationProposed;
-        await _db.SaveChangesAsync();
-        await NotifyBranch(r, "تعديل مقترح", "المخزن اقترح تعديل الكميات - يرجى المراجعة والموافقة");
-        return Ok(new { message = "تم إرسال اقتراح التعديل للفرع" });
-    }
-
-    [HttpPost("{id}/accept-modification")]
-    public async Task<IActionResult> AcceptModification(int id)
-    {
-        var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
-        if (r == null) return NotFound();
-        foreach (var l in r.Lines.Where(x => x.ProposedQuantity.HasValue))
-            l.RequestedQuantity = l.ProposedQuantity!.Value;
-        r.Status = RequisitionStatus.UnderReview;
-        await _db.SaveChangesAsync();
-        await NotifyWarehouse(r, "موافقة على التعديل", "الفرع وافق على الكميات المعدلة");
-        return Ok(new { message = "تمت الموافقة على التعديل" });
-    }
-
-    [HttpPost("{id}/reject-modification")]
-    public async Task<IActionResult> RejectModification(int id, [FromBody] ReasonDto reason)
-    {
-        var r = await _db.BranchRequisitions.FindAsync(id);
-        if (r == null) return NotFound();
-        r.Status = RequisitionStatus.Cancelled;
-        r.RejectionReason = reason.Reason;
-        await _db.SaveChangesAsync();
-        await NotifyWarehouse(r, "رفض التعديل", $"الفرع رفض التعديل: {reason.Reason}");
+        await NotifyBranch(r, "قيد المراجعة", "بدأ المستودع مراجعة طلبك");
         return Ok();
     }
 
     [HttpPost("{id}/approve")]
-    public async Task<IActionResult> Approve(int id)
+    public async Task<IActionResult> Approve(int id, [FromBody] List<LineModificationDto>? modifications)
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        foreach (var l in r.Lines) l.ApprovedQuantity = l.ProposedQuantity ?? l.RequestedQuantity;
+        if (r.Status != RequisitionStatus.UnderReview) return BadRequest(new { message = "يجب أن يكون الطلب قيد المراجعة أولاً" });
+        if (modifications != null)
+            foreach (var mod in modifications)
+            {
+                var line = r.Lines.FirstOrDefault(l => l.Id == mod.LineId);
+                if (line != null) { line.ProposedQuantity = mod.ProposedQuantity; line.ModificationNotes = mod.Notes; }
+            }
         r.Status = RequisitionStatus.Approved;
         r.ApprovedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "معتمد", "تم اعتماد طلبكم وجاري التحضير");
-        return Ok(new { message = "تم اعتماد الطلب" });
+        await NotifyBranch(r, "معتمد", "تمت الموافقة على طلبك وسيبدأ التجهيز");
+        return Ok(new { message = "تمت الموافقة على الطلب" });
+    }
+
+    [HttpPost("{id}/prepare")]
+    public async Task<IActionResult> StartPrepare(int id)
+    {
+        var r = await _db.BranchRequisitions.FindAsync(id);
+        if (r == null) return NotFound();
+        if (r.Status != RequisitionStatus.Approved) return BadRequest();
+        r.Status = RequisitionStatus.Preparing;
+        await _db.SaveChangesAsync();
+        await NotifyBranch(r, "جاري التجهيز", "المستودع يجهز طلبيتك الآن");
+        return Ok();
     }
 
     [HttpPost("{id}/reroute")]
@@ -170,8 +149,7 @@ public class BranchRequisitionsController : ControllerBase
         r.ReroutedToWarehouseId = dto.TargetWarehouseId;
         r.RerouteReason = dto.Reason;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "محول لمخزن آخر", $"تم تحويل طلبكم لمخزن آخر: {dto.Reason}");
-        // Notify new warehouse
+        await NotifyBranch(r, "تمت إعادة التوجيه", $"تم توجيه طلبك لمستودع آخر: {dto.Reason}");
         await _hub.Clients.Group($"warehouse_{dto.TargetWarehouseId}").SendAsync("NewRequisitionReceived",
             new { RequisitionId = r.Id, RequisitionNumber = r.RequisitionNumber, IsRerouted = true, Timestamp = DateTime.UtcNow });
         return Ok();
@@ -192,7 +170,7 @@ public class BranchRequisitionsController : ControllerBase
         r.DispatchedAt = DateTime.UtcNow;
         r.DispatchedByUserId = dto.UserId;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "في الطريق", "تم شحن الطلبية وهي في الطريق إليكم");
+        await NotifyBranch(r, "في الطريق", "تم شحن طلبيتك وهي الآن في الطريق إليك");
         return Ok(new { message = "تم الشحن" });
     }
 
@@ -215,7 +193,7 @@ public class BranchRequisitionsController : ControllerBase
         r.ReceivedAt = DateTime.UtcNow;
         r.ReceivedByUserId = dto.UserId;
         await _db.SaveChangesAsync();
-        await NotifyWarehouse(r, "مستلم", $"الفرع أكد استلام الشحنة - {DateTime.Now:dd/MM/yyyy}");
+        await NotifyWarehouse(r, "مستلم", $"أكد الفرع استلام الطلبية بتاريخ {DateTime.Now:dd/MM/yyyy}");
         return Ok(new { message = "تم تأكيد الاستلام" });
     }
 
@@ -227,7 +205,7 @@ public class BranchRequisitionsController : ControllerBase
         r.Status = RequisitionStatus.Rejected;
         r.RejectionReason = reason.Reason;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "مرفوض", $"تم رفض الطلب: {reason.Reason}");
+        await NotifyBranch(r, "مرفوض", $"تم رفض طلبك: {reason.Reason}");
         return Ok();
     }
 
@@ -244,9 +222,41 @@ public class BranchRequisitionsController : ControllerBase
         return Ok();
     }
 
+    /// <summary>
+    /// إشعار الفرع بتغيير حالة الطلبية
+    /// 1. عبر SignalR (نفس السيرفر)
+    /// 2. عبر HTTP POST لـ ApiUrl الفرع (cross-server — سيرفر الفرع المنفصل)
+    /// </summary>
     private async Task NotifyBranch(BranchRequisition r, string status, string msg)
-        => await _hub.Clients.Group($"branch_{r.RequestingBranchId}").SendAsync("RequisitionStatusChanged",
-            new { RequisitionId = r.Id, RequisitionNumber = r.RequisitionNumber, Status = status, Message = msg, Timestamp = DateTime.UtcNow });
+    {
+        var payload = new
+        {
+            RequisitionId = r.Id,
+            RequisitionNumber = r.RequisitionNumber,
+            Status = status,
+            Message = msg,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // 1. SignalR — للفروع المتصلة بنفس السيرفر
+        await _hub.Clients.Group($"branch_{r.RequestingBranchId}")
+            .SendAsync("RequisitionStatusChanged", payload);
+
+        // 2. HTTP — للفروع المتصلة بسيرفر مستقل عبر ApiUrl
+        var branch = await _db.Branches.FindAsync(r.RequestingBranchId);
+        if (!string.IsNullOrWhiteSpace(branch?.ApiUrl))
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    await client.PostAsJsonAsync($"{branch.ApiUrl.TrimEnd('/')}/api/warehouse/branch-notify", payload);
+                }
+                catch { /* fire and forget — لا نوقف العملية إذا فشل الإشعار */ }
+            });
+        }
+    }
 
     private async Task NotifyWarehouse(BranchRequisition r, string status, string msg)
     {

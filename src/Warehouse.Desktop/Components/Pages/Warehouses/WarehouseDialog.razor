@@ -39,8 +39,17 @@
             <MudItem xs="12" sm="6">
                 <MudCheckBox @bind-Value="Warehouse!.IsActive" Label="نشط" Color="Color.Warning" />
             </MudItem>
+            @if (Warehouse!.Type == 1)
+            {
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Warehouse!.ApiUrl" Label="رابط API المخزن الرئيسي"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="http://100.79.100.86:5050"
+                                  HelperText="يُستخدم من الفروع لإرسال الطلبيات إلى هذا المخزن عبر الشبكة" />
+                </MudItem>
+            }
             <MudItem xs="12">
-                <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان بالتفصيل" Variant="Variant.Outlined" Lines="2" />
+                <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان بالتفاصيل" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -105,6 +114,7 @@
         public string? Phone { get; set; }
         public string? ManagerName { get; set; }
         public string? Address { get; set; }
+        public string? ApiUrl { get; set; }
         public bool IsActive { get; set; } = true;
         public int? BranchId { get; set; }
     }

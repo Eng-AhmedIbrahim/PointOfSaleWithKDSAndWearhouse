@@ -1,4 +1,4 @@
-﻿namespace POS.Core.Entities.Warehouse;
+namespace POS.Core.Entities.Warehouse;
 
 public enum WarehouseType
 {
@@ -17,11 +17,18 @@ public class Warehouse : BaseEntity
     public string? ManagerName { get; set; }
     public bool IsActive { get; set; } = true;
 
-    // في حالة كان مخزن فرع، يرتبط بالفرع التابع له
+    /// <summary>
+    /// رابط API السيرفر الخاص بالمخزن الرئيسي
+    /// يُستخدم من الفروع لإرسال الطلبيات إلى المخزن المركزي عبر الإنترنت
+    /// مثال: http://100.79.100.86:5050
+    /// </summary>
+    public string? ApiUrl { get; set; }
+
+    // إذا كان المخزن تابعاً لفرع معين
     public int? BranchId { get; set; }
     public POS.Core.Entities.Company.Branch? Branch { get; set; }
 
-    // المخزن المغذي الافتراضي (Default Supplying Warehouse)
+    // المخزن الرئيسي المورد الافتراضي (Default Supplying Warehouse)
     public int? DefaultSupplyingWarehouseId { get; set; }
     public Warehouse? DefaultSupplyingWarehouse { get; set; }
 
