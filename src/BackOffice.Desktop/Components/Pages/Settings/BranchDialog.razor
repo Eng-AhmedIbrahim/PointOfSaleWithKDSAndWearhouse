@@ -1,4 +1,4 @@
-@using Radzen
+﻿@using Radzen
 @using Radzen.Blazor
 @using POS.Contract.Dtos.CompanyDtos
 @using BlazorBase.ERPFrontServices.BranchServices
@@ -138,6 +138,35 @@
                         <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="Radzen.AlignItems.Center" Gap="1rem">
                             <RadzenSwitch @bind-Value="_branchModel.Active" Name="activeSwitch" />
                             <RadzenLabel Text="@Localizer["BranchActiveStatus"]" Component="activeSwitch" Class="rz-m-0 fw-bold" />
+                        </RadzenStack>
+                    </div>
+
+                    <!-- Central Warehouse Settings -->
+                    <div class="settings-panel rz-p-4" style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px;">
+                        <RadzenStack Gap="1rem">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="Radzen.AlignItems.Center" Gap="1rem">
+                                <RadzenSwitch @bind-Value="_branchModel.HasCentralWarehouse" Name="centralWhSwitch" />
+                                <div>
+                                    <RadzenLabel Text="الربط بمخزن رئيسي (Central Warehouse)" Component="centralWhSwitch" Class="rz-m-0 fw-bold" Style="color: #ea580c; font-size: 0.95rem;" />
+                                    <RadzenText TextStyle="TextStyle.Caption" Class="rz-m-0 text-muted">
+                                        تفعيل منظومة طلبات التوريد والشحن من المخازن المركزية لهذا الفرع
+                                    </RadzenText>
+                                </div>
+                            </RadzenStack>
+
+                            @if (_branchModel.HasCentralWarehouse)
+                            {
+                                <div class="form-group rz-mt-2">
+                                    <RadzenLabel Text="المخزن الرئيسي الافتراضي المورد للفرع" Class="field-label required-marker" Component="default_wh" />
+                                    <RadzenDropDown TValue="int?" @bind-Value="_branchModel.DefaultWarehouseId"
+                                                    Data="@_warehouses"
+                                                    TextProperty="@nameof(POS.Contract.Dtos.InventoryDtos.WarehouseLookupVm.NameAr)"
+                                                    ValueProperty="@nameof(POS.Contract.Dtos.InventoryDtos.WarehouseLookupVm.Id)"
+                                                    Name="default_wh"
+                                                    Placeholder="اختر المخزن الرئيسي الافتراضي..."
+                                                    AllowClear="true" Style="width:100%" Class="modern-input" />
+                                </div>
+                            }
                         </RadzenStack>
                     </div>
 
