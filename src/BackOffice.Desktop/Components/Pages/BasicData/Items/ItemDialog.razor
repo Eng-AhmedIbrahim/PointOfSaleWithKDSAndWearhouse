@@ -52,6 +52,21 @@
                                 <RadzenRequiredValidator Component="EnglishName" Text="@(IsArabic ? "الاسم الانجليزي مطلوب" : "English name is required")" Popup="false" Style="font-size: 0.85rem; font-weight: 700; color: #ef4444;" />
                             </div>
                         </div>
+
+                        <div class="field-divider"></div>
+
+                        <!-- Barcode -->
+                        <div class="field-row">
+                            <div class="field-icon-wrap" style="color: #7c3aed;">
+                                <RadzenIcon Icon="qr_code_scanner" Style="font-size: 1rem; color: #7c3aed;" />
+                            </div>
+                            <div class="flex-grow-1">
+                                <RadzenTextBox @bind-Value="model.Barcode"
+                                               Style="width: 100%; border: none; background: transparent; font-size: 1rem; font-weight: 700; padding: 0; letter-spacing: 0.05em;"
+                                               AutoComplete="false"
+                                               Placeholder="Barcode" />
+                            </div>
+                        </div>
                     </div>
 
                     @if (_isInventoryEnabled)
@@ -675,6 +690,7 @@
 
     public class ItemFormModel
     {
+        public string? Barcode { get; set; }
         public int Id { get; set; }
         public string ArabicName { get; set; } = string.Empty;
         public string EnglishName { get; set; } = string.Empty;
@@ -706,6 +722,7 @@
             model.Id = ItemToEdit.Id;
             model.ArabicName = ItemToEdit.ArabicName ?? string.Empty;
             model.EnglishName = ItemToEdit.EnglishName ?? string.Empty;
+            model.Barcode = ItemToEdit.Barcode;
             model.Price = ItemToEdit.Price;
             model.Tax = ItemToEdit.Tax;
             model.Description = ItemToEdit.Description;
@@ -793,6 +810,7 @@
                     Id = model.Id,
                     ArabicName = model.ArabicName,
                     EnglishName = model.EnglishName,
+                    Barcode = model.Barcode,
                     Price = model.Price ?? 0,
                     Tax = model.Tax,
                     Description = model.Description,
@@ -839,6 +857,7 @@
                     ItemId = model.Id,
                     ArabicName = model.ArabicName,
                     EnglishName = model.EnglishName,
+                    Barcode = model.Barcode,
                     Price = model.Price,
                     Tax = model.Tax,
                     Description = model.Description,
