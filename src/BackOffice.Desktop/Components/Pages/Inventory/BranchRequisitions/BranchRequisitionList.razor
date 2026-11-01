@@ -183,6 +183,7 @@
     private readonly (int? Status, string Label)[] _statusTabs = new (int? Status, string Label)[]
     {
         (null, "الكل"),
+        (0, "معلق (بانتظار المخزن)"),
         (2, "تم الإرسال (قيد الانتظار)"),
         (5, "معتمد"),
         (7, "قيد التجهيز"),
@@ -295,6 +296,8 @@
 
         switch (status)
         {
+            case 0: // PendingSync
+                label = "معلق (بانتظار المخزن)"; color = MudBlazor.Color.Dark; icon = Icons.Material.Rounded.CloudOff; break;
             case 1: // Draft
                 label = "مسودة"; color = MudBlazor.Color.Default; icon = Icons.Material.Rounded.Edit; break;
             case 2: // Submitted

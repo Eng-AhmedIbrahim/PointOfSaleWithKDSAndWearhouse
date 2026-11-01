@@ -1,7 +1,8 @@
-﻿namespace POS.Core.Entities.Warehouse;
+namespace POS.Core.Entities.Warehouse;
 
 public enum RequisitionStatus
 {
+    PendingSync = 0,           // معلق محلياً (في انتظار اتصال سيرفر المخزن)
     Draft = 1,                 // مسودة في الفرع
     Submitted = 2,             // تم إرسال الطلب للمخزن
     UnderReview = 3,           // قيد المراجعة في المخزن
