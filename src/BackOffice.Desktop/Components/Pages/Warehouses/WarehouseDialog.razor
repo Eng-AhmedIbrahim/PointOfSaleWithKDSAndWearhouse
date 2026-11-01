@@ -6,59 +6,95 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog dir="rtl" Style="max-width: 650px; border-radius: 16px;">
     <TitleContent>
-        <MudText Typo="MudBlazor.Typo.h6">
-            <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Class="me-2" />
-            @(Warehouse?.Id > 0 ? "تعديل مستودع" : "مستودع جديد")
-        </MudText>
+        <div class="d-flex align-center gap-3 pa-1">
+            <div class="pa-2 rounded-lg" style="background: rgba(249, 115, 22, 0.12); color: #ea580c;">
+                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800; color: #1e293b;">
+                    @(Warehouse?.Id > 0 ? "تعديل بيانات المستودع" : "إضافة مستودع جديد")
+                </MudText>
+                <MudText Typo="MudBlazor.Typo.caption" Color="Color.Secondary">
+                    @(Warehouse?.Id > 0 ? $"كود المستودع: {Warehouse?.Code}" : "أدخل تفاصيل المستودع أدناه")
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="Warehouse!.Code" Label="كود المستودع" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="Warehouse!.NameAr" Label="الاسم بالعربية" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="Warehouse!.NameEn" Label="الاسم بالإنجليزية" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int" @bind-Value="Warehouse!.Type" Label="نوع المستودع" Variant="Variant.Outlined" Required="true">
-                    <MudSelectItem Value="1">مستودع رئيسي (Central / Main)</MudSelectItem>
-                    <MudSelectItem Value="2">مستودع فرعي (Branch)</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Warehouse!.ManagerName" Label="مدير المستودع" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Warehouse!.Phone" Label="رقم الهاتف" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudCheckBox @bind-Value="Warehouse!.IsActive" Label="نشط" Color="Color.Warning" />
-            </MudItem>
-            @if (Warehouse!.Type == 1)
-            {
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="Warehouse!.ApiUrl" Label="رابط API المخزن الرئيسي"
-                                  Variant="Variant.Outlined"
-                                  Placeholder="http://100.79.100.86:5050"
-                                  HelperText="يُستخدم من الفروع لإرسال الطلبيات إلى هذا المخزن عبر الشبكة" />
+        <div class="py-2">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Warehouse!.Code" Label="كود المستودع *" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
                 </MudItem>
-            }
-            <MudItem xs="12">
-                <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان بالتفاصيل" Variant="Variant.Outlined" Lines="2" />
-            </MudItem>
-        </MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Warehouse!.NameAr" Label="الاسم بالعربية *" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Warehouse!.NameEn" Label="الاسم بالإنجليزية" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="Warehouse!.Type" Label="نوع المستودع *" 
+                               Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true">
+                        <MudSelectItem Value="1">مستودع رئيسي (Central / Main)</MudSelectItem>
+                        <MudSelectItem Value="2">مستودع فرعي (Branch)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Warehouse!.ManagerName" Label="مدير المستودع" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Warehouse!.Phone" Label="رقم الهاتف للتواصل" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center">
+                    <MudCheckBox @bind-Value="Warehouse!.IsActive" Label="المستودع نشط" Color="Color.Warning" Dense="true" />
+                </MudItem>
+
+                @if (Warehouse!.Type == 1)
+                {
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-3 rounded-lg" Elevation="0" Style="background: #fff7ed; border: 1px dashed #fdba74;">
+                            <div class="d-flex align-center gap-2 mb-1">
+                                <MudIcon Icon="@Icons.Material.Rounded.Link" Size="MudBlazor.Size.Small" Color="Color.Warning" />
+                                <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 700; color: #c2410c;">
+                                    الربط الشبكي للمخزن الرئيسي
+                                </MudText>
+                            </div>
+                            <MudTextField @bind-Value="Warehouse!.ApiUrl" Label="رابط API السيرفر الخارجي" 
+                                          Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense"
+                                          Placeholder="http://100.79.100.86:5050"
+                                          HelperText="يُستخدم من الفروع لإرسال الطلبيات مباشرة عبر الإنترنت إلى هذا المخزن" />
+                        </MudPaper>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان التفصيلي" 
+                                  Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">إلغاء</MudButton>
-        <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Warning" Disabled="_saving">
-            @if (_saving) { <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" /> }
-            حفظ
-        </MudButton>
+        <div class="d-flex justify-space-between align-center w-100 px-4 pb-3">
+            <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+                إلغاء
+            </MudButton>
+            <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Warning" Disabled="_saving"
+                       StartIcon="@Icons.Material.Rounded.Save"
+                       Style="border-radius: 10px; font-weight: 700; min-width: 120px;">
+                @if (_saving) { <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" /> }
+                حفظ
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>
 

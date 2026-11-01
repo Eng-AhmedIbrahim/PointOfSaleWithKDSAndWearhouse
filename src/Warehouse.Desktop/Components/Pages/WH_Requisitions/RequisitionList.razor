@@ -1,4 +1,4 @@
-﻿@page "/requisitions"
+@page "/requisitions"
 @attribute [Authorize(Policy = "CanViewBranchRequisitions")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -33,10 +33,10 @@
         <div class="d-flex gap-2 flex-wrap">
             @foreach (var tab in _statusTabs)
             {
-                <MudChip T="string" Color="@(_selectedStatus == tab.Key ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
-                         Variant="@(_selectedStatus == tab.Key ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
-                         OnClick="@(() => FilterByStatus(tab.Key))" Size="MudBlazor.Size.Small">
-                    @tab.Value (@GetStatusCount(tab.Key))
+                <MudChip T="string" Color="@(_selectedStatus == tab.Status ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
+                         Variant="@(_selectedStatus == tab.Status ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                         OnClick="@(() => FilterByStatus(tab.Status))" Size="MudBlazor.Size.Small">
+                    @tab.Label (@GetStatusCount(tab.Status))
                 </MudChip>
             }
         </div>
@@ -96,12 +96,17 @@
     private string? _selectedStatus;
     private int _pendingCount;
 
-    private readonly Dictionary<string?, string> _statusTabs = new()
+    private readonly (string? Status, string Label)[] _statusTabs = new (string? Status, string Label)[]
     {
-        { null, "الكل" }, { "Submitted", "جديدة" }, { "UnderReview", "قيد المراجعة" },
-        { "ModificationProposed", "تعديل مقترح" }, { "Approved", "معتمدة" },
-        { "Preparing", "جاري التحضير" }, { "InTransit", "في الطريق" },
-        { "Received", "مستلمة" }, { "Rejected", "مرفوضة" }
+        (null, "الكل"),
+        ("Submitted", "جديد"),
+        ("UnderReview", "قيد المراجعة"),
+        ("ModificationProposed", "تعديل مقترح"),
+        ("Approved", "معتمد"),
+        ("Preparing", "قيد التجهيز"),
+        ("InTransit", "في الطريق"),
+        ("Received", "مستلم"),
+        ("Rejected", "مرفوض")
     };
 
     private IEnumerable<RequisitionDto> FilteredRequisitions => string.IsNullOrEmpty(_selectedStatus)

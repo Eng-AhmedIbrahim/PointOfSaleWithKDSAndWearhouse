@@ -91,29 +91,40 @@ public class WarehousesController : ControllerBase
         return Ok(locs);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("{warehouseId}/locations")]
     public async Task<IActionResult> AddLocation(int warehouseId, [FromBody] WarehouseLocation loc)
     {
-        loc.WarehouseId = warehouseId;
-        _db.WarehouseLocations.Add(loc);
-        await _db.SaveChangesAsync();
-        return Ok(loc);
+        try
+        {
+            loc.WarehouseId = warehouseId;
+            if (string.IsNullOrWhiteSpace(loc.NameEn))
+            {
+                loc.NameEn = loc.NameAr ?? loc.Code;
+            }
+            _db.WarehouseLocations.Add(loc);
+            await _db.SaveChangesAsync();
+            return Ok(loc);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.InnerException?.Message ?? ex.Message });
+        }
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPut("locations/{id}")]
     public async Task<IActionResult> UpdateLocation(int id, [FromBody] WarehouseLocation model)
     {
         var loc = await _db.WarehouseLocations.FindAsync(id);
         if (loc == null) return NotFound();
-        loc.Code = model.Code; loc.NameAr = model.NameAr; loc.NameEn = model.NameEn;
+        loc.Code = model.Code; loc.NameAr = model.NameAr; loc.NameEn = string.IsNullOrWhiteSpace(model.NameEn) ? model.NameAr : model.NameEn;
         loc.Zone = model.Zone; loc.Shelf = model.Shelf; loc.Bin = model.Bin; loc.IsActive = model.IsActive;
         await _db.SaveChangesAsync();
         return Ok(loc);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpDelete("locations/{id}")]
     public async Task<IActionResult> DeleteLocation(int id)
     {

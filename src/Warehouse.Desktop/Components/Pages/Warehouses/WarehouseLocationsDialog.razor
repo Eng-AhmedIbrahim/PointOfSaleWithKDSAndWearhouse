@@ -6,51 +6,103 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog dir="rtl" Style="max-width: 800px; border-radius: 16px;">
     <TitleContent>
-        <MudText Typo="MudBlazor.Typo.h6">
-            <MudIcon Icon="@Icons.Material.Rounded.LocationOn" Class="me-2" />
-            أماكن التخزين: @WarehouseName
-        </MudText>
+        <div class="d-flex align-center gap-3 pa-1">
+            <div class="pa-2 rounded-lg" style="background: rgba(249, 115, 22, 0.12); color: #ea580c;">
+                <MudIcon Icon="@Icons.Material.Rounded.FmdGood" Size="MudBlazor.Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800; color: #1e293b;">
+                    أماكن التخزين: @WarehouseName
+                </MudText>
+                <MudText Typo="MudBlazor.Typo.caption" Color="Color.Secondary">
+                    تقسيم المستودع إلى مناطق ورفوف وخانات لتحديد مكان كل صنف بدقة
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudTable Items="_locations" Dense="true" Hover="true" Striped="true" Class="mb-3">
-            <HeaderContent>
-                <MudTh>الكود</MudTh>
-                <MudTh>اسم المكان / الرف</MudTh>
-                <MudTh>المنطقة</MudTh>
-                <MudTh>الرف</MudTh>
-                <MudTh>الخانة (Bin)</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.Code</MudTd>
-                <MudTd>@context.NameAr</MudTd>
-                <MudTd>@(context.Zone ?? "-")</MudTd>
-                <MudTd>@(context.Shelf ?? "-")</MudTd>
-                <MudTd>@(context.Bin ?? "-")</MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => DeleteLocation(context))" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <div class="py-2">
+            <!-- Add New Location Form -->
+            <MudPaper Class="pa-4 mb-4 rounded-xl" Elevation="0" Style="border: 1px dashed #f97316; background: #fffaf5;">
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudIcon Icon="@Icons.Material.Rounded.AddLocationAlt" Size="MudBlazor.Size.Small" Color="Color.Warning" />
+                    <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 800; color: #ea580c;">
+                        إضافة مكان تخزين جديد داخل المستودع
+                    </MudText>
+                </div>
+                
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="3">
+                        <MudTextField @bind-Value="_newLoc.Code" Label="كود المكان *" Placeholder="مثال: A-01-1" 
+                                      Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudTextField @bind-Value="_newLoc.NameAr" Label="اسم المكان / الوصف *" Placeholder="مثال: رف الزيوت الرئيسي" 
+                                      Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_newLoc.Zone" Label="المنطقة / الجناح (Zone)" Placeholder="مثال: الجناح أ" 
+                                      Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4">
+                        <MudTextField @bind-Value="_newLoc.Shelf" Label="الرف (Shelf)" Placeholder="مثال: رف 3" 
+                                      Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4">
+                        <MudTextField @bind-Value="_newLoc.Bin" Label="الخانة / الصندوق (Bin)" Placeholder="مثال: خانة ب" 
+                                      Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AddLocation" 
+                                   StartIcon="@Icons.Material.Rounded.Add" FullWidth="true" Disabled="_isAdding"
+                                   Style="height: 40px; border-radius: 8px; font-weight: 700;">
+                            @if (_isAdding) { <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" /> }
+                            إضافة المكان
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
 
-        <MudPaper Class="pa-3" Elevation="0" Style="border: 1px dashed #f97316; border-radius: 12px; background: #fffaf5;">
-            <MudText Typo="MudBlazor.Typo.subtitle2" Class="mb-2" Style="font-weight: 700; color: #ea580c;">إضافة مكان تخزين جديد</MudText>
-            <MudGrid>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Code" Label="الكود" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
-                <MudItem xs="8"><MudTextField @bind-Value="_newLoc.NameAr" Label="الاسم" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Zone" Label="المنطقة" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Shelf" Label="الرف" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
-                <MudItem xs="4"><MudTextField @bind-Value="_newLoc.Bin" Label="الخانة" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
-            </MudGrid>
-            <MudButton Class="mt-2" Variant="Variant.Filled" Color="Color.Warning" OnClick="AddLocation" StartIcon="@Icons.Material.Rounded.Add">
-                إضافة المكان
-            </MudButton>
-        </MudPaper>
+            <!-- Locations Table -->
+            <MudTable Items="_locations" Dense="true" Hover="true" Elevation="1" Class="rounded-xl border">
+                <HeaderContent>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الكود</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">اسم المكان / الرف</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">المنطقة</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الرف</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الخانة (Bin)</MudTh>
+                    <MudTh Style="width: 60px; background: #f8fafc;">إجراء</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@context.Code</MudChip></MudTd>
+                    <MudTd Style="font-weight: 600;">@context.NameAr</MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Zone) ? "-" : context.Zone)</MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Shelf) ? "-" : context.Shelf)</MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Bin) ? "-" : context.Bin)</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Size="MudBlazor.Size.Small" 
+                                       OnClick="@(() => DeleteLocation(context))" Title="حذف المكان" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center text-muted">
+                        <MudIcon Icon="@Icons.Material.Rounded.Inventory2" Style="font-size: 3rem; opacity: 0.3;" />
+                        <MudText Typo="MudBlazor.Typo.body2" Class="mt-2" Style="color: #64748b;">
+                            لا توجد أماكن تخزين مسجلة لهذا المستودع بعد. استخدم النموذج أعلاه لتقسيم المستودع إلى رفوف وخانات.
+                        </MudText>
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => MudDialog!.Close())">إغلاق</MudButton>
+        <div class="d-flex justify-end w-100 px-4 pb-3">
+            <MudButton OnClick="@(() => MudDialog!.Close())" Variant="Variant.Outlined" Color="Color.Default" Style="border-radius: 8px;">
+                إغلاق
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>
 
@@ -61,46 +113,75 @@
 
     private List<LocationDto> _locations = new();
     private LocationDto _newLoc = new();
+    private bool _isAdding = false;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadLocations();
+    }
+
+    private async Task LoadLocations()
     {
         try
         {
             var result = await Http.GetFromJsonAsync<List<LocationDto>>($"api/warehouse/warehouses/{WarehouseId}/locations");
             _locations = result ?? new();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في جلب أماكن التخزين: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task AddLocation()
     {
         if (string.IsNullOrWhiteSpace(_newLoc.Code) || string.IsNullOrWhiteSpace(_newLoc.NameAr))
         {
-            Snackbar.Add("يرجى إدخال الكود والاسم", Severity.Warning);
+            Snackbar.Add("يرجى إدخال كود واسم مكان التخزين", Severity.Warning);
             return;
         }
 
-        var res = await Http.PostAsJsonAsync($"api/warehouse/warehouses/{WarehouseId}/locations", _newLoc);
-        if (res.IsSuccessStatusCode)
+        _isAdding = true;
+        try
         {
-            var added = await res.Content.ReadFromJsonAsync<LocationDto>();
-            if (added != null) _locations.Add(added);
-            _newLoc = new();
-            Snackbar.Add("تمت إضافة مكان التخزين بنجاح", Severity.Success);
+            var res = await Http.PostAsJsonAsync($"api/warehouse/warehouses/{WarehouseId}/locations", _newLoc);
+            if (res.IsSuccessStatusCode)
+            {
+                var added = await res.Content.ReadFromJsonAsync<LocationDto>();
+                if (added != null) _locations.Add(added);
+                _newLoc = new();
+                Snackbar.Add("تمت إضافة مكان التخزين بنجاح", Severity.Success);
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل إضافة مكان التخزين: {err}", Severity.Error);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            Snackbar.Add("فشل إضافة مكان التخزين", Severity.Error);
+            Snackbar.Add($"حدث خطأ: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isAdding = false;
         }
     }
 
     private async Task DeleteLocation(LocationDto loc)
     {
-        var res = await Http.DeleteAsync($"api/warehouse/warehouses/locations/{loc.Id}");
-        if (res.IsSuccessStatusCode)
+        try
         {
-            _locations.Remove(loc);
-            Snackbar.Add("تم الحذف بنجاح", Severity.Info);
+            var res = await Http.DeleteAsync($"api/warehouse/warehouses/locations/{loc.Id}");
+            if (res.IsSuccessStatusCode)
+            {
+                _locations.Remove(loc);
+                Snackbar.Add("تم الحذف بنجاح", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ أثناء الحذف: {ex.Message}", Severity.Error);
         }
     }
 
