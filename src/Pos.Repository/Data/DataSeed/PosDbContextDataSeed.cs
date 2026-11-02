@@ -171,6 +171,16 @@ public static class PosDbContextDataSeed
             }
         }
 
+        if (!_dbContext.WarehouseUnits.Any())
+        {
+            var whUnits = await GetDataFromJsonFile<POS.Core.Entities.Warehouse.WarehouseUnit>("warehouseUnits.json");
+            if (whUnits != null && whUnits.Any())
+            {
+                await _dbContext.WarehouseUnits.AddRangeAsync(whUnits);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
         if (!_dbContext.ItemTypes.Any())
         {
             var itemTypes = await GetDataFromJsonFile<ItemType>("itemTypes.json");

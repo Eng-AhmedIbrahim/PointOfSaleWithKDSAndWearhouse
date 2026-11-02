@@ -1,4 +1,4 @@
-using POS.API.Controllers;
+﻿using POS.API.Controllers;
 using POS.Contract.Dtos.InventoryDtos;
 using POS.Core.Entities.Item;
 using POS.Core.Services.Contract.InventoryServices;
@@ -6,6 +6,7 @@ using Unit = POS.Core.Entities.Item.Unit;
 
 namespace POS.API.Controllers;
 
+[Route("api/units")]
 public class UnitController : BaseApiController
 {
     private readonly IUnitService _unitService;
@@ -78,5 +79,12 @@ public class UnitController : BaseApiController
     {
         await _unitService.DeleteUnitAsync(id);
         return Ok(true);
+    }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> GetLookup()
+    {
+        var units = await _unitService.GetAllUnitsAsync();
+        return Ok(units.Select(u => new { u.Id, Name = u.ArabicName ?? u.EnglishName, NameAr = u.ArabicName, NameEn = u.EnglishName }));
     }
 }

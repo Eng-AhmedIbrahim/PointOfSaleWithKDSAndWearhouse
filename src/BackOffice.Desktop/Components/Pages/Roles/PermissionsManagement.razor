@@ -1,4 +1,4 @@
-@page "/basicdata/permissions"
+﻿@page "/basicdata/permissions"
 @using Radzen
 @using Radzen.Blazor
 @using BlazorBase.ERPFrontServices.AccountServices
@@ -6,6 +6,7 @@
 @attribute [Authorize]
 @inject IAccountService AccountService
 @inject ISnackbar Snackbar
+@inject HttpClient Http
 @inject BlazorBase.Services.LocalizationService LocalizerService
 
 <div class="permissions-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
@@ -63,6 +64,12 @@
                             <RadzenTabsItem Text="@(IsArabic ? "صلاحيات Back Office" : "Back Office Permissions")" Icon="desktop_windows">
                                 @RenderRolePermissionsEditor(BackOfficePermissions)
                             </RadzenTabsItem>
+                            @if (_isWarehouseSystem && WarehousePermissions.Any())
+                            {
+                                <RadzenTabsItem Text="@(IsArabic ? "صلاحيات المخزن الرئيسي" : "Warehouse Permissions")" Icon="warehouse">
+                                    @RenderRolePermissionsEditor(WarehousePermissions)
+                                </RadzenTabsItem>
+                            }
                         </Tabs>
                     </RadzenTabs>
                 </div>
@@ -130,7 +137,7 @@
     };
 
     RenderFragment RenderVoidAndSecuritySummary() => __builder => {
-        var allPerms = PosPermissions.Concat(BackOfficePermissions).ToList();
+        var allPerms = PosPermissions.Concat(BackOfficePermissions).Concat(WarehousePermissions).ToList();
         var allVoidDetails = GetAllVoidItemDetails();
 
         // Count granted vs locked
@@ -706,6 +713,8 @@
 
     private List<RoleToReturnDto> AllRoles = new();
     private List<PermissionDto> BackOfficePermissions = new();
+    private List<PermissionDto> WarehousePermissions = new();
+    private bool _isWarehouseSystem = false;
     private List<PermissionDto> PosPermissions = new();
     private Dictionary<string, HashSet<string>> RolePermissionsMap = new();
     private bool IsLoading = true;
@@ -747,8 +756,19 @@
             AllRoles = (await AccountService.GetRoles()).ToList();
             
             var allPerms = (await AccountService.GetAllPermissions()).ToList();
-            BackOfficePermissions = allPerms.Where(p => p.IsBackOffice).ToList();
-            PosPermissions = allPerms.Where(p => !p.IsBackOffice).ToList();
+            WarehousePermissions = allPerms.Where(p => p.IsWarehouse).ToList();
+            BackOfficePermissions = allPerms.Where(p => p.IsBackOffice && !p.IsWarehouse).ToList();
+            PosPermissions = allPerms.Where(p => !p.IsBackOffice && !p.IsWarehouse).ToList();
+
+            try
+            {
+                var res = await Http.GetAsync("api/warehouses");
+                _isWarehouseSystem = res.IsSuccessStatusCode;
+            }
+            catch
+            {
+                _isWarehouseSystem = WarehousePermissions.Any();
+            }
             
             foreach (var role in AllRoles)
             {

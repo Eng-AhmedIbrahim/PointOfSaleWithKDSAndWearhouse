@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject CommonProperties CommonProps
@@ -23,31 +23,7 @@
                         تحديد بضائع ومواد خام وشحنات من المستودع المركزي للفرع
                     </MudText>
                 </div>
-            </div>
 
-            <!-- Warehouse Connection Badge -->
-            <div>
-                @if (_checkingConnection)
-                {
-                    <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Default">
-                        <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" />
-                        فحص الاتصال بالمخزن...
-                    </MudChip>
-                }
-                else if (_isWarehouseOnline)
-                {
-                    <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Success"
-                             Icon="@Icons.Material.Rounded.Wifi">
-                        سيرفر المخزن متصل (Online)
-                    </MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
-                             Icon="@Icons.Material.Rounded.WifiOff">
-                        سيرفر المخزن غير متصل (سيتم الحفظ كمعلق)
-                    </MudChip>
-                }
             </div>
         </div>
     </TitleContent>
@@ -144,7 +120,7 @@
                             الكمية *
                         </MudText>
                         <MudNumericField T="decimal" @bind-Value="_newQuantity" Min="0.1m" Step="1"
-                                         Variant="MudBlazor.Variant.Outlined" Dense="true" />
+                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" HideSpinButtons="true" />
                     </MudItem>
                     <MudItem xs="6" sm="3" md="2">
                         <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" FullWidth="true"
@@ -174,7 +150,7 @@
                     <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Default">@context.UnitName</MudChip></MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.RequestedQuantity" Min="0.1m" Step="1"
-                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Style="max-width: 110px;" />
+                                         Variant="MudBlazor.Variant.Outlined" Margin="MudBlazor.Margin.Dense" Style="max-width: 110px;" HideSpinButtons="true" />
                     </MudTd>
                     <MudTd>
                         <MudIconButton Icon="@Icons.Material.Rounded.DeleteOutline" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
@@ -211,6 +187,20 @@
         </div>
     </DialogActions>
 </MudDialog>
+
+<style>
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none !important; 
+        margin: 0 !important; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield !important; 
+    }
+    .mud-input-numeric-spin {
+        display: none !important; 
+    }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;

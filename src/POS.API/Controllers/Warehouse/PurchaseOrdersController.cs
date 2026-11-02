@@ -9,6 +9,7 @@ namespace POS.API.Controllers.Warehouse;
 [Authorize]
 [ApiController]
 [Route("api/warehouse/purchase-orders")]
+[Route("api/purchaseorders")]
 public class PurchaseOrdersController : ControllerBase
 {
     private readonly AppDbContext _db;

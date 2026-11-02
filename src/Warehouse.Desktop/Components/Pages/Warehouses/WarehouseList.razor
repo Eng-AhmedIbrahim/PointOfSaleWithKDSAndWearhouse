@@ -175,7 +175,7 @@
 
     private async Task OpenAddDialog()
     {
-        var dlg = await DialogService.ShowAsync<WarehouseDialog>("مستودع جديد", new DialogParameters { ["Warehouse"] = new WarehouseDialog.WarehouseModel() }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true });
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("مستودع جديد", new DialogParameters { ["Warehouse"] = new WarehouseDialog.WarehouseModel() }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
         var result = await dlg.Result;
         if (!result!.Canceled) await LoadData();
     }
@@ -195,7 +195,7 @@
             ApiUrl = w.ApiUrl,
             IsActive = w.IsActive
         };
-        var dlg = await DialogService.ShowAsync<WarehouseDialog>("تعديل مستودع", new DialogParameters { ["Warehouse"] = model }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Small, FullWidth = true });
+        var dlg = await DialogService.ShowAsync<WarehouseDialog>("تعديل مستودع", new DialogParameters { ["Warehouse"] = model }, new DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
         var result = await dlg.Result;
         if (!result!.Canceled) await LoadData();
     }

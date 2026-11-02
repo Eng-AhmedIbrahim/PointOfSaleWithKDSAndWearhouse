@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
@@ -8,6 +8,7 @@ namespace POS.API.Controllers.Warehouse;
 
 [ApiController]
 [Route("api/warehouse/warehouses")]
+[Route("api/warehouses")]
 public class WarehousesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -87,6 +88,24 @@ public class WarehousesController : ControllerBase
 
     // Locations sub-resource
     [AllowAnonymous]
+    [HttpGet("locations")]
+    public async Task<IActionResult> GetAllLocations()
+    {
+        var locs = await _db.WarehouseLocations.Where(l => l.IsActive)
+            .OrderBy(l => l.WarehouseId).ThenBy(l => l.NameAr).Select(l => new {
+                l.Id,
+                Name = l.NameAr ?? l.Code,
+                l.Code,
+                l.NameAr,
+                l.NameEn,
+                l.WarehouseId,
+                l.Zone,
+                l.Shelf,
+                l.Bin,
+                l.IsActive
+            }).ToListAsync();
+        return Ok(locs);
+    }
     [HttpGet("{warehouseId}/locations")]
     public async Task<IActionResult> GetLocations(int warehouseId)
     {

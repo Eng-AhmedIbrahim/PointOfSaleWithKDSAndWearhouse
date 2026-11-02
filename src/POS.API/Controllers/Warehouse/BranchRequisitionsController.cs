@@ -11,6 +11,7 @@ namespace POS.API.Controllers.Warehouse;
 [Authorize]
 [ApiController]
 [Route("api/warehouse/requisitions")]
+[Route("api/requisitions")]
 public class BranchRequisitionsController : ControllerBase
 {
     private readonly AppDbContext _db;

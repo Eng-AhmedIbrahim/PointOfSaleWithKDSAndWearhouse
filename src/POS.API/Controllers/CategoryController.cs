@@ -2,6 +2,7 @@
 
 namespace POS.API.Controllers;
 
+[Route("api/categories")]
 public class CategoryController : BaseApiController
 {
     private readonly ICategoryService _categoryService;
@@ -39,6 +40,7 @@ public class CategoryController : BaseApiController
     [ProducesResponseType(typeof(IReadOnlyList<CategoryToReturnDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [HttpGet("GetAllCategories")]
+    [HttpGet]
     public async Task<IActionResult?> GetAllCategories()
     {
         var categories = await _categoryService.GetCategoriesAsync();

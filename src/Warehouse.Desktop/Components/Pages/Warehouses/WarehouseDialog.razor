@@ -6,14 +6,14 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudDialog dir="rtl" Style="max-width: 650px; border-radius: 16px;">
+<MudDialog dir="rtl" Style="max-width: 880px; width: 95vw; border-radius: 20px;">
     <TitleContent>
-        <div class="d-flex align-center gap-3 pa-1">
-            <div class="pa-2 rounded-lg" style="background: rgba(249, 115, 22, 0.12); color: #ea580c;">
+        <div class="d-flex align-center gap-3 pa-2 border-b pb-3">
+            <div class="pa-3 rounded-xl" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
                 <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Medium" />
             </div>
             <div>
-                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800; color: #1e293b;">
+                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 900; color: #1e293b;">
                     @(Warehouse?.Id > 0 ? "تعديل بيانات المستودع" : "إضافة مستودع جديد")
                 </MudText>
                 <MudText Typo="MudBlazor.Typo.caption" Color="Color.Secondary">
@@ -23,61 +23,70 @@
         </div>
     </TitleContent>
     <DialogContent>
-        <div class="py-2">
-            <MudGrid Spacing="2">
+        <div class="py-3 wh-dialog-rtl" dir="rtl">
+            <MudGrid Spacing="3">
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="Warehouse!.Code" Label="كود المستودع *" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">كود المستودع *</MudText>
+                    <MudTextField @bind-Value="Warehouse!.Code" Placeholder="مثال: WH-01" 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="Warehouse!.NameAr" Label="الاسم بالعربية *" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالعربية *</MudText>
+                    <MudTextField @bind-Value="Warehouse!.NameAr" Placeholder="مثال: المخزن الرئيسي العام" 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="Warehouse!.NameEn" Label="الاسم بالإنجليزية" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالإنجليزية</MudText>
+                    <MudTextField @bind-Value="Warehouse!.NameEn" Placeholder="Main Warehouse" 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" @bind-Value="Warehouse!.Type" Label="نوع المستودع *" 
-                               Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">نوع المستودع *</MudText>
+                    <MudSelect T="int" @bind-Value="Warehouse!.Type"
+                               Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Required="true"
+                               AnchorOrigin="MudBlazor.Origin.BottomRight" TransformOrigin="MudBlazor.Origin.TopRight"
+                               Class="wh-select-rtl">
                         <MudSelectItem Value="1">مستودع رئيسي (Central / Main)</MudSelectItem>
                         <MudSelectItem Value="2">مستودع فرعي (Branch)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Warehouse!.ManagerName" Label="مدير المستودع" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">مدير المستودع</MudText>
+                    <MudTextField @bind-Value="Warehouse!.ManagerName" Placeholder="اسم المسؤول..." 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                 </MudItem>
 
                 <MudItem xs="12" sm="8">
-                    <MudTextField @bind-Value="Warehouse!.Phone" Label="رقم الهاتف للتواصل" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">رقم الهاتف للتواصل</MudText>
+                    <MudTextField @bind-Value="Warehouse!.Phone" Placeholder="01xxxxxxxxx" 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudItem xs="12" sm="4" Class="d-flex align-center pt-5">
                     <MudCheckBox @bind-Value="Warehouse!.IsActive" Label="المستودع نشط" Color="Color.Warning" Dense="true" />
                 </MudItem>
 
                 @if (Warehouse!.Type == 1)
                 {
                     <MudItem xs="12">
-                        <MudPaper Class="pa-3 rounded-lg" Elevation="0" Style="background: #fff7ed; border: 1px dashed #fdba74;">
-                            <div class="d-flex align-center gap-2 mb-1">
+                        <MudPaper Class="pa-4 rounded-xl" Elevation="0" Style="background: #fff7ed; border: 1.5px dashed #fdba74;">
+                            <div class="d-flex align-center gap-2 mb-2">
                                 <MudIcon Icon="@Icons.Material.Rounded.Link" Size="MudBlazor.Size.Small" Color="Color.Warning" />
-                                <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 700; color: #c2410c;">
+                                <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 800; color: #c2410c;">
                                     الربط الشبكي للمخزن الرئيسي
                                 </MudText>
                             </div>
                             <MudTextField @bind-Value="Warehouse!.ApiUrl" Label="رابط API السيرفر الخارجي" 
                                           Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense"
-                                          Placeholder="Enter Warehouse Url"
+                                          Placeholder="http://100.79.100.86:5050"
                                           HelperText="يُستخدم من الفروع لإرسال الطلبيات مباشرة عبر الإنترنت إلى هذا المخزن" />
                         </MudPaper>
                     </MudItem>
                 }
 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="Warehouse!.Address" Label="العنوان التفصيلي" 
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block text-muted">العنوان التفصيلي</MudText>
+                    <MudTextField @bind-Value="Warehouse!.Address" Placeholder="العنوان وموقع المخزن..." 
                                   Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Lines="2" />
                 </MudItem>
             </MudGrid>
@@ -90,13 +99,35 @@
             </MudButton>
             <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Warning" Disabled="_saving"
                        StartIcon="@Icons.Material.Rounded.Save"
-                       Style="border-radius: 10px; font-weight: 700; min-width: 120px;">
+                       Style="border-radius: 12px; font-weight: 800; min-width: 140px; height: 42px;">
                 @if (_saving) { <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Class="me-2" /> }
                 حفظ
             </MudButton>
         </div>
     </DialogActions>
 </MudDialog>
+
+<style>
+    .wh-dialog-rtl {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    .wh-dialog-rtl .mud-input-control {
+        text-align: right !important;
+    }
+    .wh-dialog-rtl .mud-input-slot {
+        text-align: right !important;
+        direction: rtl !important;
+    }
+    .wh-select-rtl .mud-select-input {
+        text-align: right !important;
+        direction: rtl !important;
+    }
+    .wh-select-rtl .mud-input-adornment {
+        margin-right: 0 !important;
+        margin-left: 12px !important;
+    }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }

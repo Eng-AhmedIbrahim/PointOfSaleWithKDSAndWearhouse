@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
@@ -9,6 +9,7 @@ namespace POS.API.Controllers.Warehouse;
 [Authorize]
 [ApiController]
 [Route("api/warehouse/suppliers")]
+[Route("api/suppliers")]
 public class SuppliersController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -117,5 +118,96 @@ public class SuppliersController : ControllerBase
         _db.SupplierPayments.Add(model);
         await _db.SaveChangesAsync();
         return Ok(model);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("lookup")]
+    public async Task<IActionResult> GetLookup()
+    {
+        var suppliers = await _db.WH_Suppliers.Where(s => s.IsActive)
+            .OrderBy(s => s.NameAr)
+            .Select(s => new {
+                s.Id,
+                Name = s.NameAr ?? s.NameEn,
+                s.Code,
+                s.Phone
+            }).ToListAsync();
+        return Ok(suppliers);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("price-contracts")]
+    public async Task<IActionResult> GetAllPriceContracts()
+    {
+        var contracts = await _db.SupplierPriceContracts
+            .Include(c => c.Supplier)
+            .Include(c => c.Product)
+            .Include(c => c.Unit)
+            .Where(c => c.IsActive)
+            .OrderByDescending(c => c.ValidFrom)
+            .Select(c => new {
+                c.Id,
+                c.SupplierId,
+                SupplierName = c.Supplier != null ? c.Supplier.NameAr : null,
+                c.ProductId,
+                ProductName = c.Product != null ? c.Product.NameAr : null,
+                UnitName = c.Unit != null ? c.Unit.NameAr : null,
+                UnitPrice = c.AgreedPrice,
+                StartDate = (DateTime?)c.ValidFrom,
+                EndDate = c.ValidTo,
+                IsPreferred = true,
+                c.IsActive
+            }).ToListAsync();
+        return Ok(contracts);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("price-contracts")]
+    public async Task<IActionResult> CreatePriceContractGeneral([FromBody] SupplierPriceContract model)
+    {
+        model.ValidFrom = model.ValidFrom == default ? DateTime.UtcNow : model.ValidFrom;
+        model.IsActive = true;
+        _db.SupplierPriceContracts.Add(model);
+        await _db.SaveChangesAsync();
+        return Ok(model);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{supplierId}/accounts")]
+    public async Task<IActionResult> GetAccountsHistory(int supplierId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var invoices = await _db.SupplierInvoices.Where(i => i.SupplierId == supplierId).ToListAsync();
+        var payments = await _db.SupplierPayments.Where(p => p.SupplierId == supplierId).ToListAsync();
+
+        var list = new List<object>();
+        decimal running = 0;
+
+        foreach (var inv in invoices.OrderBy(i => i.InvoiceDate))
+        {
+            running += inv.TotalAmount;
+            list.Add(new {
+                Date = inv.InvoiceDate,
+                TransactionType = "فاتورة مشتريات",
+                Reference = inv.InvoiceNumber,
+                Debit = inv.TotalAmount,
+                Credit = 0m,
+                RunningBalance = running
+            });
+        }
+
+        foreach (var p in payments.OrderBy(p => p.PaymentDate))
+        {
+            running -= p.Amount;
+            list.Add(new {
+                Date = p.PaymentDate,
+                TransactionType = "سند صرف / سداد",
+                Reference = p.PaymentNumber,
+                Debit = 0m,
+                Credit = p.Amount,
+                RunningBalance = running
+            });
+        }
+
+        return Ok(list);
     }
 }

@@ -172,6 +172,37 @@
                 </MudMenuItem>
             </ChildContent>
         </MudMenu>
+
+        <!-- 9. Staff & Permissions -->
+        <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
+            <ActivatorContent>
+                <div class="tab-item @(IsActivePrefix("/basicdata/users") || IsActivePrefix("/basicdata/roles") || IsActivePrefix("/basicdata/permissions") ? "active" : "")">
+                    <MudIcon Icon="@Icons.Material.Rounded.Badge" Size="Size.Small" Class="tab-icon" />
+                    <span class="tab-text">@(IsArabic ? "الموظفين والصلاحيات" : "Staff & Roles")</span>
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
+                </div>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Href="/basicdata/users">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.ManageAccounts" Size="Size.Small" />
+                        @(IsArabic ? "إدارة الموظفين والمستخدمين" : "User Management")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem Href="/basicdata/roles">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.AdminPanelSettings" Size="Size.Small" />
+                        @(IsArabic ? "الأدوار الوظيفية" : "Role Management")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem Href="/basicdata/permissions">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.Security" Size="Size.Small" />
+                        @(IsArabic ? "صلاحيات النظام والمخزن" : "Permissions Management")
+                    </div>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
     </div>
 
     <!-- Actions: Language & User & Logout -->
