@@ -1,3 +1,4 @@
+@using POS.Contract.Dtos.InventoryDtos
 @using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -205,6 +206,7 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BranchRequisitionVm? RequisitionToEdit { get; set; }
 
     private int _targetWarehouseId;
     private string? _targetWarehouseApiUrl;
@@ -248,6 +250,31 @@
             UpdateTargetWarehouseApiUrl();
             await CheckWarehouseConnection();
             await LoadProducts();
+
+            if (RequisitionToEdit != null)
+            {
+                _targetWarehouseId = RequisitionToEdit.TargetWarehouseId;
+                _requiredDate = RequisitionToEdit.RequiredDate;
+                _notes = RequisitionToEdit.Notes;
+
+                try
+                {
+                    var fullReq = await Http.GetFromJsonAsync<BranchRequisitionVm>($"api/warehouse/requisitions/{RequisitionToEdit.Id}");
+                    if (fullReq?.Lines != null && fullReq.Lines.Any())
+                    {
+                        _items = fullReq.Lines.Select(l => new RequisitionItemVm
+                        {
+                            ProductId = l.ProductId,
+                            ProductName = l.Product?.NameAr ?? $"ØµÙ†Ù #{l.ProductId}",
+                            SKU = l.Product?.SKU ?? "",
+                            UnitId = l.UnitId,
+                            UnitName = l.Unit?.NameAr ?? "ÙˆØ­Ø¯Ø©",
+                            RequestedQuantity = l.RequestedQuantity
+                        }).ToList();
+                    }
+                }
+                catch { }
+            }
         }
         catch (Exception ex)
         {
@@ -478,51 +505,34 @@
                 }).ToList()
             };
 
-            bool sentDirectly = false;
-
-            // 1. إذا كان المخزن أونلاين وله API مستقل -> أرسل لسيرفر المخزن
-            if (_isWarehouseOnline && !string.IsNullOrWhiteSpace(_targetWarehouseApiUrl))
+            if (RequisitionToEdit != null)
             {
-                try
+                var updateRes = await Http.PutAsJsonAsync($"api/warehouse/requisitions/{RequisitionToEdit.Id}", model);
+                if (updateRes.IsSuccessStatusCode)
                 {
-                    using var externalClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-                    externalClient.BaseAddress = new Uri(_targetWarehouseApiUrl.TrimEnd('/') + "/");
-                    var res = await externalClient.PostAsJsonAsync("api/warehouse/requisitions", model);
-                    if (res.IsSuccessStatusCode)
-                    {
-                        sentDirectly = true;
-                    }
+                    Snackbar.Add("تم حفظ تعديل طلب التوريد بنجاح!", MudBlazor.Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
                 }
-                catch
+                else
                 {
-                    // فشل الإرسال أثناء الإرسال -> سيتم الحفظ محلياً كـ معلق
-                    sentDirectly = false;
+                    var msg = await updateRes.Content.ReadAsStringAsync();
+                    Snackbar.Add($"فشل التعديل: {msg}", MudBlazor.Severity.Error);
                 }
+                return;
             }
 
-            // 2. احفظ أيضاً في قاعدة بيانات الفرع المحلية لمتابعة الحالة
-            var localModel = new
-            {
-                model.RequestingBranchId,
-                model.TargetWarehouseId,
-                model.RequiredDate,
-                model.Notes,
-                Status = sentDirectly ? 2 : 0, // إذا أرسل أونلاين = مقدم، إذا تعذر = معلق
-                model.Lines
-            };
-
-            await Http.PostAsJsonAsync("api/warehouse/requisitions", localModel);
-
-            if (sentDirectly)
+            // Normal creation - Send ONCE through Http
+            var res = await Http.PostAsJsonAsync("api/warehouse/requisitions", model);
+            if (res.IsSuccessStatusCode)
             {
                 Snackbar.Add("تم إرسال طلب التوريد إلى سيرفر المخزن بنجاح!", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
             }
             else
             {
-                Snackbar.Add("تعذر الاتصال بالمخزن الرئيسي. تم حفظ الطلبية كـ «معلقة» وسيتم إرسالها فور عودة الاتصال بالمخزن.", MudBlazor.Severity.Warning);
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل إرسال الطلبية: {err}", MudBlazor.Severity.Error);
             }
-
-            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {

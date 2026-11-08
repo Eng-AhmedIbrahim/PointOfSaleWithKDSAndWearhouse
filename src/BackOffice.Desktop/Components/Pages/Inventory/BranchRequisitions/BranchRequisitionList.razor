@@ -139,7 +139,7 @@
                     </MudTd>
                     <MudTd>
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
-                            @(req.Lines?.Count ?? 0) صنف
+                            @(req.LineCount > 0 ? req.LineCount : (req.Lines?.Count ?? 0)) صنف
                         </MudChip>
                     </MudTd>
                     <MudTd>
@@ -150,8 +150,20 @@
                             @(string.IsNullOrWhiteSpace(req.Notes) ? "-" : req.Notes)
                         </span>
                     </MudTd>
-                    <MudTd Style="text-align: center;">
+                    <MudTd Style="text-align: center;" @onclick:stopPropagation="true">
                         <div class="d-flex justify-center gap-1">
+                            <MudIconButton Icon="@Icons.Material.Rounded.Visibility" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small"
+                                           Title="عرض تفاصيل الطلبية" OnClick="@(() => OpenDetailDialog(req))" />
+                            @if (req.Status == 0 || req.Status == 1 || req.Status == 2 || req.Status == 4)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+                                               Title="تعديل الطلبية" OnClick="@(() => OpenEditDialog(req))" />
+                            }
+                            @if (req.Status == 0)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Rounded.Send" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small"
+                                               Title="إرسال الآن إلى المخزن" OnClick="@(() => SubmitPendingRequisition(req))" />
+                            }
                             @if (req.Status == 8) @* InTransit *@
                             {
                                 <AuthorizeView Context="authContext" Policy="CanReceiveStockTransfer">
@@ -162,12 +174,10 @@
                                     </MudButton>
                                 </AuthorizeView>
                             }
-                            @if (req.Status == 1 || req.Status == 2)
+                            @if (req.Status == 0 || req.Status == 1 || req.Status == 2 || req.Status == 3 || req.Status == 4)
                             {
-                                <AuthorizeView Context="authContext" Policy="CanModifyBranchRequisition">
-                                    <MudIconButton Icon="@Icons.Material.Rounded.Cancel" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
-                                                   Title="إلغاء الطلب" OnClick="@(() => CancelRequisition(req))" />
-                                </AuthorizeView>
+                                <MudIconButton Icon="@Icons.Material.Rounded.Cancel" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                                               Title="إلغاء الطلب" OnClick="@(() => CancelRequisition(req))" />
                             }
                         </div>
                     </MudTd>
@@ -293,6 +303,50 @@
         if (!result.Canceled)
         {
             await LoadRequisitions();
+        }
+    }
+
+    
+    private async Task OpenDetailDialog(BranchRequisitionVm req)
+    {
+        var parameters = new DialogParameters { ["Requisition"] = req };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<BranchRequisitionDetailDialog>("تفاصيل الطلبية", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is string action)
+        {
+            if (action == "edit")
+                await OpenEditDialog(req);
+            else if (action == "cancel")
+                await CancelRequisition(req);
+            else if (action == "receive")
+                await OpenReceiveDialog(req);
+        }
+    }
+
+    private async Task OpenEditDialog(BranchRequisitionVm req)
+    {
+        var parameters = new DialogParameters { ["RequisitionToEdit"] = req };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<BranchRequisitionDialog>($"تعديل طلبية {req.RequisitionNumber}", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRequisitions();
+        }
+    }
+
+    private async Task SubmitPendingRequisition(BranchRequisitionVm req)
+    {
+        var res = await Http.PostAsync($"/api/warehouse/requisitions/{req.Id}/submit", null);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("تم إرسال الطلبية إلى المخزن بنجاح!", MudBlazor.Severity.Success);
+            await LoadRequisitions();
+        }
+        else
+        {
+            Snackbar.Add("تعذر إرسال الطلبية", MudBlazor.Severity.Error);
         }
     }
 

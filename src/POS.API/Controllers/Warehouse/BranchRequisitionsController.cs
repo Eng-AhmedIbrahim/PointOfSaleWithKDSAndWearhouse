@@ -102,16 +102,66 @@ public class BranchRequisitionsController : ControllerBase
         if (model.Status == RequisitionStatus.Submitted)
         {
             var branch = await _db.Branches.FindAsync(model.RequestingBranchId);
-            await _hub.Clients.Group($"warehouse_{model.TargetWarehouseId}").SendAsync("NewRequisitionReceived", new
+            var payload = new
             {
                 RequisitionId = model.Id,
                 RequisitionNumber = model.RequisitionNumber,
-                BranchName = branch?.Name,
+                BranchName = branch?.Name ?? "Ø§Ù„ÙØ±Ø¹",
                 Timestamp = DateTime.UtcNow
-            });
+            };
+            await _hub.Clients.All.SendAsync("NewRequisitionReceived", payload);
         }
 
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, new { model.Id, model.RequisitionNumber });
+    }
+
+    [AllowAnonymous]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] BranchRequisition model)
+    {
+        var existing = await _db.BranchRequisitions
+            .Include(r => r.Lines)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (existing == null) return NotFound();
+
+        if (existing.Status != RequisitionStatus.Draft 
+            && existing.Status != RequisitionStatus.Submitted 
+            && existing.Status != RequisitionStatus.PendingSync
+            && existing.Status != RequisitionStatus.ModificationProposed)
+        {
+            return BadRequest(new { message = "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© Ø¨Ø¹Ø¯ Ø§Ø¹ØªÙ…Ø§Ø¯Ù‡Ø§ Ø£Ùˆ Ø´Ø­Ù†Ù‡Ø§" });
+        }
+
+        existing.RequiredDate = model.RequiredDate;
+        existing.Notes = model.Notes;
+        if (model.TargetWarehouseId > 0)
+            existing.TargetWarehouseId = model.TargetWarehouseId;
+
+        // Replace lines
+        _db.BranchRequisitionLines.RemoveRange(existing.Lines);
+        existing.Lines = model.Lines.Select(l => new BranchRequisitionLine
+        {
+            RequisitionId = existing.Id,
+            ProductId = l.ProductId,
+            UnitId = l.UnitId,
+            RequestedQuantity = l.RequestedQuantity
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+
+        // Notify warehouse of requisition update
+        var branch = await _db.Branches.FindAsync(existing.RequestingBranchId);
+        await _hub.Clients.All.SendAsync("RequisitionUpdated", new
+        {
+            RequisitionId = existing.Id,
+            RequisitionNumber = existing.RequisitionNumber,
+            Status = "Modified",
+            Message = $"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© {existing.RequisitionNumber} Ù…Ù† ÙØ±Ø¹ {branch?.Name}",
+            Timestamp = DateTime.UtcNow
+        });
+
+        return Ok(new { message = "ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­" });
     }
 
     [HttpPost("{id}/submit")]

@@ -1,4 +1,4 @@
-﻿namespace POS.Contract.Dtos.InventoryDtos;
+namespace POS.Contract.Dtos.InventoryDtos;
 
 public class BranchRequisitionVm
 {
@@ -12,6 +12,7 @@ public class BranchRequisitionVm
     public DateTime? RequiredDate { get; set; }
     public string? Notes { get; set; }
     public string? RejectionReason { get; set; }
+    public int LineCount { get; set; }
     public List<BranchRequisitionLineVm> Lines { get; set; } = new();
 }
 

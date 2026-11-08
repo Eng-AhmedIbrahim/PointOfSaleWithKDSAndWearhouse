@@ -49,11 +49,13 @@ public class WarehouseNotificationService : IDisposable, IAsyncDisposable
                     string branchName = root.TryGetProperty("branchName", out var bn) ? bn.GetString() ?? "" : "";
                     string requisitionNumber = root.TryGetProperty("requisitionNumber", out var rn) ? rn.GetString() ?? "" : "";
 
+                    try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
+
                     _warehouseInvocation.TriggerNewRequisitionReceived(requisitionId, branchName, requisitionNumber);
                     _warehouseInvocation.TriggerShowWarehouseNotification(
-                        "طلبية جديدة من فرع",
-                        $"طلبية {requisitionNumber} من {branchName}",
-                        Severity.Info);
+                        "🔔 طلبية توريد جديدة",
+                        $"وصلت طلبية توريد جديدة رقم {requisitionNumber} من {branchName}",
+                        Severity.Warning);
                     _warehouseInvocation.TriggerRequisitionListRefresh();
                 }
                 catch (Exception ex)
