@@ -21,6 +21,7 @@ public partial class POS
     private MudTextField<string> _barcodeField = default!;
     private string? _barcode;
     private bool _barcodeEnabled;
+    private Dictionary<string, MenuSalesItemsToReturnDto> _barcodeItemMap = new(StringComparer.OrdinalIgnoreCase);
 
     private bool canChangeBranch => _dynamicDispatcherSettings?.IsDispatcher ?? false;
 
@@ -35,6 +36,10 @@ public partial class POS
         {
             _barcodeEnabled = 
                 await _featureSettingsService.IsFeatureEnabledAsync("EnableItemBarcodeForPOS", Environment.MachineName) == true;
+            if (_barcodeEnabled)
+            {
+                await LoadBarcodeItemsMapAsync();
+            }
             _dynamicDispatcherSettings = await _systemSettingsServices.GetDispatcherSettingsAsync();
             _categories = await _categoryServices.GetAllCategoriesAsync();
             if (_categories != null)
@@ -925,6 +930,46 @@ public partial class POS
         }
     }
 
+    private async Task LoadBarcodeItemsMapAsync()
+    {
+        try
+        {
+            var response = await _itemService.GetAllItemsAsync();
+            if (response.Success && response.Data != null)
+            {
+                _barcodeItemMap.Clear();
+                foreach (var item in response.Data)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.Barcode))
+                    {
+                        _barcodeItemMap[item.Barcode.Trim()] = item;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading barcode items: {ex.Message}");
+        }
+    }
+
+    private async Task OnBarcodeChanged(string val)
+    {
+        _barcode = val;
+        if (string.IsNullOrWhiteSpace(val)) return;
+
+        var code = val.Trim();
+        // Instant barcode matching without pressing enter
+        if (code.Length >= 3 && _barcodeItemMap.TryGetValue(code, out var item))
+        {
+            _barcode = string.Empty;
+            await AddItemToSection4(item);
+            if (_barcodeField is not null)
+                await _barcodeField.FocusAsync();
+            StateHasChanged();
+        }
+    }
+
     private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
     {
         if (e.Key != "Enter") return;
@@ -937,29 +982,28 @@ public partial class POS
 
         if (_barcodeField is not null)
             await _barcodeField.FocusAsync();
-
     }
 
     private async Task AddByBarcodeAsync(string barcode)
     {
-        var response = await _itemService.GetAllItemsAsync();
-        if (!response.Success || response.Data == null)
+        if (string.IsNullOrWhiteSpace(barcode)) return;
+
+        var code = barcode.Trim();
+        if (_barcodeItemMap.TryGetValue(code, out var matched))
         {
-            _snackbar.Add("لم يتم العثور على الصنف", Severity.Warning);
+            await AddItemToSection4(matched);
             return;
         }
 
-        var item = response.Data.FirstOrDefault(i =>
-            !string.IsNullOrEmpty(i.Barcode) &&
-            i.Barcode.Trim() == barcode);
-
-        if (item == null)
+        // Reload map in case items were updated/added
+        await LoadBarcodeItemsMapAsync();
+        if (_barcodeItemMap.TryGetValue(code, out matched))
         {
-            _snackbar.Add($"لم يتم العثور على صنف بالباركود: {barcode}", Severity.Warning);
+            await AddItemToSection4(matched);
             return;
         }
 
-        await AddItemToSection4(item);
+        _snackbar.Add($"لم يتم العثور على صنف بالباركود: {code}", Severity.Warning);
     }
 
 
