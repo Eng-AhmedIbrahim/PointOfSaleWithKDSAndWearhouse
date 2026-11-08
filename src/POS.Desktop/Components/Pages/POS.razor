@@ -86,23 +86,10 @@
 
     <!-- Section 4 -->
     <MudItem xs="5" Class="section-container border-l border-solid custom-border-color">
-        <div class="section4-header-wrapper d-flex align-center justify-space-between">
+        <div class="section4-header-wrapper d-flex align-center justify-space-between px-3">
             @if (_barcodeEnabled)
             {
-                <div class="pos-barcode-wrapper">
-                    <MudTextField @ref="_barcodeField"
-                                  T="string"
-                                  Value="@_barcode"
-                                  ValueChanged="OnBarcodeChanged"
-                                  Immediate="true"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  Placeholder="مسح الباركود..."
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.QrCodeScanner"
-                                  Class="pos-barcode-input"
-                                  OnKeyDown="OnBarcodeKeyDown" />
-                </div>
+                <div style="width: 230px;" class="d-none d-lg-block"></div>
             }
 
             <div class="d-flex align-center justify-center flex-grow-1 gap-2">
@@ -130,7 +117,20 @@
 
             @if (_barcodeEnabled)
             {
-                <div style="width: 220px;" class="d-none d-lg-block"></div>
+                <div class="pos-barcode-wrapper">
+                    <MudTextField @ref="_barcodeField"
+                                  T="string"
+                                  Value="@_barcode"
+                                  ValueChanged="OnBarcodeChanged"
+                                  Immediate="true"
+                                  Variant="Variant.Text"
+                                  Margin="Margin.None"
+                                  Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "مسح الباركود..." : "Scan Barcode...")"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.QrCodeScanner"
+                                  Class="pos-barcode-field"
+                                  OnKeyDown="OnBarcodeKeyDown" />
+                </div>
             }
         </div>
 
