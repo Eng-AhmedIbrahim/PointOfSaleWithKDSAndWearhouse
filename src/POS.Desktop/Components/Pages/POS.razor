@@ -1,4 +1,4 @@
-@page "/pos"
+﻿@page "/pos"
 @layout PosScreenLayout
 @inject CommonProperties _commonProperties
 @inject Section4ButtonsServices _section4ButtonsServices
@@ -15,6 +15,7 @@
 @inject IPosFeatureSettingsService _featureSettingsService
 @inject IInventoryFrontService _inventoryService
 @inject IDialogService DialogService
+@inject BlazorBase.ERPFrontServices.ItemServices.IItemService _itemService
 @implements IDisposable
 
 <link href="section4-footer.css" rel="stylesheet" />
@@ -51,7 +52,7 @@
                                 @onclick="@(() => AddItemToSection4(item))">
                             @if (item.ByWeight)
                             {
-                                <span class="item-weight-badge">⚖️</span>
+                                <span class="item-weight-badge">âš–ï¸</span>
                             }
                             <span class="item-text" style="@(item.TextSize.HasValue ? $"font-size:{item.TextSize}px" : "")">@(Localizer.GetCurrentLanguage() == "ar" ? item.ArabicName : (item.EnglishName ?? item.ArabicName))</span>
                         </button>
@@ -59,7 +60,7 @@
                     <TooltipContent>
                         <div style="text-align:right; direction:rtl; min-width:120px; padding:4px 2px;">
                             <div style="font-weight:900; font-size:1rem; color:#4ade80; letter-spacing:0.5px;">
-                                @((item.ExtraPrice > 0 ? item.ExtraPrice : item.Price)?.ToString("0.##")) <span style="font-size:0.75rem; opacity:0.8;">ج.م</span>
+                                @((item.ExtraPrice > 0 ? item.ExtraPrice : item.Price)?.ToString("0.##")) <span style="font-size:0.75rem; opacity:0.8;">Ø¬.Ù…</span>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Description))
                             {
@@ -87,6 +88,21 @@
     <MudItem xs="5" Class="section-container border-l border-solid custom-border-color">
         <div class="d-flex align-center gap-1">
             <MudText Typo="Typo.h6" Class="section4-label flex-grow-1">
+                @if (_barcodeEnabled)
+                {
+                    <MudTextField @ref="_barcodeField"
+                                  T="string"
+                                  @bind-Value="_barcode"
+                                  Immediate="true"
+                                  AutoFocus="true"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Ø§Ù…Ø³Ø­ Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯ Ù‡Ù†Ø§"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.QrCodeScanner"
+                                  Class="barcode-field"
+                                  OnKeyDown="OnBarcodeKeyDown" />
+                }
                 @if (_commonProperties.CurrentStaffMeal != null)
                 {
                     <MudChip T="string" Color="@(_commonProperties.CurrentStaffMeal.DailyAmountLimit > 0 ? Color.Secondary : Color.Info)" Size="Size.Small" Icon="@Icons.Material.Filled.Badge" Class="mr-2">
@@ -96,13 +112,13 @@
                             @* AMOUNT MODE: show remaining balance *@
                             var spentNow = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => (i.OriginalPrice ?? 0) * i.Quantity) ?? 0;
                             var displayBalance = _commonProperties.RemainingStaffMealAmount - spentNow;
-                            <span> | الرصيد: @displayBalance.ToString("0.##") EGP</span>
+                            <span> | Ø§Ù„Ø±ØµÙŠØ¯: @displayBalance.ToString("0.##") EGP</span>
                         }
                         else
                         {
                             @* COUNT MODE: show remaining meal count *@
                             var spentQty = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => i.Quantity) ?? 0;
-                            <span> | المتبقي: @(_commonProperties.RemainingStaffMeals - (int)spentQty)</span>
+                            <span> | Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ: @(_commonProperties.RemainingStaffMeals - (int)spentQty)</span>
                         }
                     </MudChip>
                 }
