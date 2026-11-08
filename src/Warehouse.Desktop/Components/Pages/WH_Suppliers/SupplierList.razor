@@ -52,11 +52,11 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.Code</MudTd>
-                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.DisplayName</MudTd>
                     <MudTd>@context.ContactPerson</MudTd>
                     <MudTd>@context.Phone</MudTd>
                     <MudTd>@context.Email</MudTd>
-                    <MudTd>@context.City</MudTd>
+                    <MudTd>@context.DisplayCity</MudTd>
                     <MudTd>@context.TaxNumber</MudTd>
                     <MudTd>
                         <MudText Style="@(context.CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
@@ -95,8 +95,25 @@
     private List<SupplierDto> Suppliers = new();
     private List<SupplierDto> FilteredSuppliers = new();
 
-    record SupplierDto(int Id, string Code, string Name, string ContactPerson, string Phone,
-        string Email, string City, string TaxNumber, decimal CurrentBalance, bool IsActive);
+    private class SupplierDto
+    {
+        public int Id { get; set; }
+        public string? Code { get; set; }
+        public string? NameAr { get; set; }
+        public string? Name { get; set; }
+        public string? NameEn { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? TaxNumber { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? ""));
+        public string DisplayCity => !string.IsNullOrWhiteSpace(City) ? City : (Address ?? "");
+    }
 
     protected override async Task OnInitializedAsync() => await LoadSuppliers();
 
@@ -105,13 +122,22 @@
         IsLoading = true;
         try
         {
-            var result = await Http.GetFromJsonAsync<List<SupplierDto>>("/api/suppliers");
+            var result = await Http.GetFromJsonAsync<List<SupplierDto>>("api/suppliers");
             Suppliers = result ?? new();
             FilterSuppliers();
         }
-        catch (Exception ex)
+        catch
         {
-            Snackbar.Add($"خطأ في تحميل الموردين: {ex.Message}", MudBlazor.Severity.Error);
+            try
+            {
+                var result = await Http.GetFromJsonAsync<List<SupplierDto>>("api/warehouse/suppliers");
+                Suppliers = result ?? new();
+                FilterSuppliers();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"خطأ في تحميل الموردين: {ex.Message}", MudBlazor.Severity.Error);
+            }
         }
         finally { IsLoading = false; }
     }
@@ -120,9 +146,9 @@
     {
         FilteredSuppliers = Suppliers
             .Where(s =>
-                (string.IsNullOrWhiteSpace(SearchName) || s.Name.Contains(SearchName, StringComparison.OrdinalIgnoreCase)) &&
-                (string.IsNullOrWhiteSpace(SearchPhone) || s.Phone.Contains(SearchPhone)) &&
-                (string.IsNullOrWhiteSpace(SearchCity) || s.City.Contains(SearchCity, StringComparison.OrdinalIgnoreCase)))
+                (string.IsNullOrWhiteSpace(SearchName) || (!string.IsNullOrEmpty(s.DisplayName) && s.DisplayName.Contains(SearchName, StringComparison.OrdinalIgnoreCase))) &&
+                (string.IsNullOrWhiteSpace(SearchPhone) || (!string.IsNullOrEmpty(s.Phone) && s.Phone.Contains(SearchPhone))) &&
+                (string.IsNullOrWhiteSpace(SearchCity) || (!string.IsNullOrEmpty(s.DisplayCity) && s.DisplayCity.Contains(SearchCity, StringComparison.OrdinalIgnoreCase))))
             .ToList();
     }
 

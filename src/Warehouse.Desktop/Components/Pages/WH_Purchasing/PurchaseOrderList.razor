@@ -47,10 +47,10 @@
                         <MudTh>الإجراءات</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="رقم الأمر">@context.PONumber</MudTd>
+                        <MudTd DataLabel="رقم الأمر">@context.DisplayPONumber</MudTd>
                         <MudTd DataLabel="المورد">@context.SupplierName</MudTd>
-                        <MudTd DataLabel="تاريخ الأمر">@context.OrderDate.ToString("yyyy/MM/dd")</MudTd>
-                        <MudTd DataLabel="تاريخ التسليم المتوقع">@context.ExpectedDeliveryDate?.ToString("yyyy/MM/dd")</MudTd>
+                        <MudTd DataLabel="تاريخ الأمر">@context.OrderDate.ToString(IsArabic ? "dd/MM/yyyy" : "MM/dd/yyyy", IsArabic ? new System.Globalization.CultureInfo("ar-SA") : new System.Globalization.CultureInfo("en-US"))</MudTd>
+                        <MudTd DataLabel="تاريخ التسليم المتوقع">@context.ExpectedDeliveryDate?.ToString(IsArabic ? "dd/MM/yyyy" : "MM/dd/yyyy", IsArabic ? new System.Globalization.CultureInfo("ar-SA") : new System.Globalization.CultureInfo("en-US"))</MudTd>
                         <MudTd DataLabel="المبلغ الإجمالي">@context.TotalAmount.ToString("N2")</MudTd>
                         <MudTd DataLabel="الحالة">
                             <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetStatusColor(context.Status)" Variant="MudBlazor.Variant.Filled">
@@ -114,12 +114,20 @@
         _loading = true;
         try
         {
-            var result = await Http.GetFromJsonAsync<List<PurchaseOrderDto>>("/api/purchaseorders");
+            var result = await Http.GetFromJsonAsync<List<PurchaseOrderDto>>("api/purchaseorders");
             _orders = result ?? new();
         }
-        catch (Exception ex)
+        catch
         {
-            Snackbar.Add($"خطأ في تحميل أوامر الشراء: {ex.Message}", MudBlazor.Severity.Error);
+            try
+            {
+                var result = await Http.GetFromJsonAsync<List<PurchaseOrderDto>>("api/warehouse/purchase-orders");
+                _orders = result ?? new();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"خطأ في تحميل أوامر الشراء: {ex.Message}", MudBlazor.Severity.Error);
+            }
         }
         finally { _loading = false; }
     }
@@ -145,7 +153,7 @@
     {
         try
         {
-            var resp = await Http.PutAsync($"/api/purchaseorders/{po.Id}/approve", null);
+            var resp = await Http.PostAsync($"/api/purchaseorders/{po.Id}/approve", null);
             if (resp.IsSuccessStatusCode)
             {
                 Snackbar.Add("تم اعتماد أمر الشراء بنجاح", MudBlazor.Severity.Success);
@@ -169,7 +177,7 @@
     {
         try
         {
-            var resp = await Http.PutAsync($"/api/purchaseorders/{po.Id}/cancel", null);
+            var resp = await Http.PostAsync($"/api/purchaseorders/{po.Id}/cancel", null);
             if (resp.IsSuccessStatusCode)
             {
                 Snackbar.Add("تم إلغاء أمر الشراء", MudBlazor.Severity.Info);
@@ -199,8 +207,20 @@
     };
 
     // DTOs
-    private record PurchaseOrderDto(
-        int Id, string PONumber, string SupplierName, DateTime OrderDate,
-        DateTime? ExpectedDeliveryDate, decimal TotalAmount, string Status, int GRNsCount);
+    private class PurchaseOrderDto
+    {
+        public int Id { get; set; }
+        public string? PONumber { get; set; }
+        public string? OrderNumber { get; set; }
+        public string? SupplierName { get; set; }
+        public DateTime OrderDate { get; set; }
+        public DateTime? ExpectedDeliveryDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string? Status { get; set; }
+        public int GRNsCount { get; set; }
+
+        public string DisplayPONumber => !string.IsNullOrEmpty(PONumber) ? PONumber : (OrderNumber ?? $"PO-{Id}");
+        public string DisplayStatus => Status ?? "Draft";
+    }
 }
 

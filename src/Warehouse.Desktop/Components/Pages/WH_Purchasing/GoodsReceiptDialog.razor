@@ -23,7 +23,8 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ الاستلام" @bind-Date="_model.ReceiptDate"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
+                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense"
+                                   Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField Label="ملاحظات الاستلام" @bind-Value="_model.Notes"

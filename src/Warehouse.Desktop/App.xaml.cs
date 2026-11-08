@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Threading;
 using BlazorBase.ERPFrontServices.OrderTrackServices;
 using BlazorBase.ERPFrontServices.ComplaintServices;
@@ -197,7 +197,8 @@ public partial class App : Application
         // Configure supported cultures
         var storage = new DesktopFileStorageService();
         var cultureCode = storage.GetItemAsync<string>("culture").GetAwaiter().GetResult() ?? "ar";
-        var culture = new System.Globalization.CultureInfo(cultureCode);
+        var effectiveCulture = cultureCode.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar-EG" : "en-US";
+        var culture = new System.Globalization.CultureInfo(effectiveCulture);
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
         System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
 

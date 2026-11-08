@@ -1,5 +1,8 @@
-﻿namespace POS.API.Controllers;
+namespace POS.API.Controllers;
 
+[Route("api/account")]
+[Route("api/branches")]
+[Route("api/branch")]
 public class BranchController : BaseApiController
 {
     private readonly IBranchService _branchService;
@@ -34,10 +37,13 @@ public class BranchController : BaseApiController
     [ProducesResponseType(typeof(IReadOnlyList<BranchToReturnDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [HttpGet("GetAllBranches")]
+    [HttpGet]
+    [HttpGet("lookup")]
+    [HttpGet("branches")]
     public async Task<IActionResult> GetAllBranches()
     {
         var branches = await _branchService.GetBranchesAsync();
-        var mappedBranchs = _mapper.Map<IReadOnlyList<Branch>, IReadOnlyList<BranchToReturnDto>>(branches);
+        var mappedBranchs = _mapper.Map<IReadOnlyList<Branch>, IReadOnlyList<BranchToReturnDto>>(branches!);
 
         if (mappedBranchs is null)
             return NotFound(new ApiResponse(404));

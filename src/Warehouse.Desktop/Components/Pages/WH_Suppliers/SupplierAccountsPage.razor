@@ -27,11 +27,13 @@
                 </MudItem>
                 <MudItem xs="12" sm="3">
                     <MudDatePicker Date="DateFrom" Label="من تاريخ"
-                                   DateChanged="@((DateTime? d) => { DateFrom = d; _ = LoadAccounts(); })" />
+                                   DateChanged="@((DateTime? d) => { DateFrom = d; _ = LoadAccounts(); })"
+                                   Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
                     <MudDatePicker Date="DateTo" Label="إلى تاريخ"
-                                   DateChanged="@((DateTime? d) => { DateTo = d; _ = LoadAccounts(); })" />
+                                   DateChanged="@((DateTime? d) => { DateTo = d; _ = LoadAccounts(); })"
+                                   Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                 </MudItem>
                 <MudItem xs="12" sm="2" Class="d-flex align-center">
                     <MudButton StartIcon="@Icons.Material.Filled.Search" Class="wh-btn-primary"

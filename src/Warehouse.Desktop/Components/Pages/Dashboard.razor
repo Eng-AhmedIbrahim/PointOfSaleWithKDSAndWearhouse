@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject HttpClient Http
 
 <div class="warehouse-dashboard" dir="@(IsArabic ? "rtl" : "ltr")">
     <!-- Header Bar -->
@@ -33,55 +34,60 @@
                 <MudIcon Icon="@Icons.Material.Rounded.CompareArrows" Size="Size.Small" Class="me-1" />
                 @(IsArabic ? "تحويل مخزني" : "Stock Transfer")
             </button>
-            <button class="quick-btn secondary" @onclick='() => NavigateTo("/purchasing")'>
+            <button class="quick-btn secondary" @onclick='() => NavigateTo("/purchasing/grn")'>
                 <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Small" Class="me-1" />
                 @(IsArabic ? "إذن استلام GRN" : "New GRN")
             </button>
         </div>
     </div>
 
+    @if (_loading)
+    {
+        <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="mb-3" />
+    }
+
     <!-- KPI Metric Cards Grid -->
     <div class="metrics-grid">
-        <div class="metric-card card-orange">
+        <div class="metric-card card-orange" style="cursor: pointer;" @onclick='() => NavigateTo("/reports/stock-valuation")'>
             <div class="metric-header">
                 <span class="metric-label">@(IsArabic ? "قيمة المخزون الإجمالية" : "Total Stock Valuation")</span>
                 <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.AccountBalanceWallet" /></div>
             </div>
-            <div class="metric-value">428,750 <span class="unit">@(IsArabic ? "ج.م" : "EGP")</span></div>
+            <div class="metric-value">@_stats.TotalValuation.ToString("N0") <span class="unit">@(IsArabic ? "ج.م" : "EGP")</span></div>
             <div class="metric-footer positive">
                 <MudIcon Icon="@Icons.Material.Rounded.TrendingUp" Size="Size.Small" />
-                <span>@(IsArabic ? "محدث لحظياً عبر Stock Ledger" : "Weighted Avg Costing")</span>
+                <span>@(IsArabic ? "محدث لحظياً عبر سجل المخزون" : "Weighted Avg Costing")</span>
             </div>
         </div>
 
-        <div class="metric-card card-amber">
+        <div class="metric-card card-amber" style="cursor: pointer;" @onclick='() => NavigateTo("/warehouses")'>
             <div class="metric-header">
                 <span class="metric-label">@(IsArabic ? "المستودعات والفروع" : "Active Warehouses")</span>
                 <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.HomeWork" /></div>
             </div>
-            <div class="metric-value">7 <span class="unit">@(IsArabic ? "مستودع" : "Locations")</span></div>
+            <div class="metric-value">@_stats.ActiveWarehouses <span class="unit">@(IsArabic ? "مستودع" : "Locations")</span></div>
             <div class="metric-footer neutral">
-                <span>@(IsArabic ? "2 رئيسي (مركزي) + 5 فروع" : "2 Main + 5 Branches")</span>
+                <span>@(_stats.MainWarehouses) @(IsArabic ? "رئيسي +" : "Main +") @(_stats.BranchWarehouses) @(IsArabic ? "فروع" : "Branches")</span>
             </div>
         </div>
 
-        <div class="metric-card card-blue">
+        <div class="metric-card card-blue" style="cursor: pointer;" @onclick='() => NavigateTo("/requisitions")'>
             <div class="metric-header">
                 <span class="metric-label">@(IsArabic ? "بضائع في الطريق" : "In-Transit Shipments")</span>
                 <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.LocalShipping" /></div>
             </div>
-            <div class="metric-value">3 <span class="unit">@(IsArabic ? "شحنات" : "Shipments")</span></div>
+            <div class="metric-value">@_stats.InTransitCount <span class="unit">@(IsArabic ? "شحنات" : "Shipments")</span></div>
             <div class="metric-footer info">
                 <span>@(IsArabic ? "بانتظار تأكيد استلام الفروع" : "Pending Branch Receipts")</span>
             </div>
         </div>
 
-        <div class="metric-card card-rose">
+        <div class="metric-card card-rose" style="cursor: pointer;" @onclick='() => NavigateTo("/reports/reorder-alerts")'>
             <div class="metric-header">
                 <span class="metric-label">@(IsArabic ? "نواقص تحتاج طلب" : "Low Stock Alerts")</span>
                 <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.WarningAmber" /></div>
             </div>
-            <div class="metric-value">5 <span class="unit">@(IsArabic ? "أصناف" : "Items")</span></div>
+            <div class="metric-value">@_stats.LowStockCount <span class="unit">@(IsArabic ? "أصناف" : "Items")</span></div>
             <div class="metric-footer negative">
                 <MudIcon Icon="@Icons.Material.Rounded.ArrowDownward" Size="Size.Small" />
                 <span>@(IsArabic ? "أقل من حد إعادة الطلب" : "Below Reorder Point")</span>
@@ -98,7 +104,7 @@
                     <MudIcon Icon="@Icons.Material.Rounded.PendingActions" Class="panel-icon text-orange" />
                     <h2 class="panel-title">@(IsArabic ? "طلبات الفروع المعلقة" : "Pending Branch Requisitions")</h2>
                 </div>
-                <span class="badge-count">3 @(IsArabic ? "طلبات" : "orders")</span>
+                <span class="badge-count">@_stats.PendingRequisitions.Count @(IsArabic ? "طلبات" : "orders")</span>
             </div>
             <div class="panel-body">
                 <div class="custom-table">
@@ -108,24 +114,24 @@
                         <span>@(IsArabic ? "التاريخ" : "Date")</span>
                         <span>@(IsArabic ? "الحالة" : "Status")</span>
                     </div>
-                    <div class="table-row">
-                        <span class="code">REQ-2026-0042</span>
-                        <span>فرع التجمع الأول</span>
-                        <span>اليوم 10:30 ص</span>
-                        <span class="status-pill warning">@(IsArabic ? "قيد المراجعة" : "Submitted")</span>
-                    </div>
-                    <div class="table-row">
-                        <span class="code">REQ-2026-0041</span>
-                        <span>فرع المعادي</span>
-                        <span>اليوم 09:15 ص</span>
-                        <span class="status-pill info">@(IsArabic ? "جاري التجهيز" : "Approved")</span>
-                    </div>
-                    <div class="table-row">
-                        <span class="code">REQ-2026-0039</span>
-                        <span>فرع مدينة نصر</span>
-                        <span>أمس 04:20 م</span>
-                        <span class="status-pill purple">@(IsArabic ? "في الطريق" : "In-Transit")</span>
-                    </div>
+                    @if (!_stats.PendingRequisitions.Any())
+                    {
+                        <div class="pa-4 text-center text-muted">
+                            @(IsArabic ? "لا توجد طلبات فروع معلقة حالياً" : "No pending requisitions")
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var req in _stats.PendingRequisitions)
+                        {
+                            <div class="table-row" style="cursor: pointer;" @onclick='() => NavigateTo("/requisitions")'>
+                                <span class="code">@req.RequisitionNumber</span>
+                                <span>@req.BranchName</span>
+                                <span>@req.Date.ToString("yyyy/MM/dd HH:mm")</span>
+                                <span class="status-pill @GetStatusClass(req.Status)">@GetStatusText(req.Status)</span>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
@@ -137,7 +143,9 @@
                     <MudIcon Icon="@Icons.Material.Rounded.Receipt" Class="panel-icon text-orange" />
                     <h2 class="panel-title">@(IsArabic ? "أحدث حركات المخزون (Stock Ledger)" : "Live Stock Ledger")</h2>
                 </div>
-                <span class="sub-link">@(IsArabic ? "عرض السجل الكامل" : "View Full Ledger")</span>
+                <span class="sub-link" style="cursor:pointer;" @onclick='() => NavigateTo("/inventory/ledger")'>
+                    @(IsArabic ? "عرض السجل الكامل" : "View Full Ledger")
+                </span>
             </div>
             <div class="panel-body">
                 <div class="custom-table">
@@ -147,24 +155,24 @@
                         <span>@(IsArabic ? "النوع" : "Type")</span>
                         <span>@(IsArabic ? "الكمية" : "Qty")</span>
                     </div>
-                    <div class="table-row">
-                        <span class="fw-bold">زيت نخيل ممتاز 20 لتر</span>
-                        <span>المستودع المركزي الرئيسي</span>
-                        <span class="type-in">+ وارد (GRN)</span>
-                        <span class="qty-in">+50 كرتون</span>
-                    </div>
-                    <div class="table-row">
-                        <span class="fw-bold">أرز بسمتي هندي درجة 1</span>
-                        <span>المستودع المركزي الرئيسي</span>
-                        <span class="type-out">- صرف فرع</span>
-                        <span class="qty-out">-15 كيس</span>
-                    </div>
-                    <div class="table-row">
-                        <span class="fw-bold">لحم بقري مجمد برازيلي</span>
-                        <span>مستودع فرع المعادي</span>
-                        <span class="type-in">+ استلام تحويل</span>
-                        <span class="qty-in">+80 كغ</span>
-                    </div>
+                    @if (!_stats.RecentMovements.Any())
+                    {
+                        <div class="pa-4 text-center text-muted">
+                            @(IsArabic ? "لا توجد حركات مخزون مسجلة مؤخراً" : "No recent stock movements")
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var mov in _stats.RecentMovements)
+                        {
+                            <div class="table-row">
+                                <span class="fw-bold">@mov.ProductName</span>
+                                <span>@mov.WarehouseName</span>
+                                <span class="@(mov.Qty >= 0 ? "type-in" : "type-out")">@GetMovementTypeText(mov.MovementType)</span>
+                                <span class="@(mov.Qty >= 0 ? "qty-in" : "qty-out")">@(mov.Qty >= 0 ? $"+{mov.Qty:N2}" : $"{mov.Qty:N2}")</span>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
@@ -173,9 +181,106 @@
 
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading = true;
+    private DashboardStatsDto _stats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        _loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<DashboardStatsDto>("api/warehouse/reports/dashboard-stats");
+            if (res != null)
+            {
+                _stats = res;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Fallback try without leading /
+            try
+            {
+                var res = await Http.GetFromJsonAsync<DashboardStatsDto>("api/warehousereports/dashboard-stats");
+                if (res != null) _stats = res;
+            }
+            catch { }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
     private void NavigateTo(string url)
     {
         NavigationManager.NavigateTo(url);
+    }
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Submitted" or "PendingSync" or "UnderReview" => "warning",
+        "Approved" or "Preparing" => "info",
+        "InTransit" => "purple",
+        "Received" => "positive",
+        _ => "neutral"
+    };
+
+    private string GetStatusText(string status) => status switch
+    {
+        "Submitted" => IsArabic ? "مرسل" : "Submitted",
+        "PendingSync" => IsArabic ? "في انتظار المزامنة" : "Pending Sync",
+        "UnderReview" => IsArabic ? "قيد المراجعة" : "Under Review",
+        "Approved" => IsArabic ? "معتمد" : "Approved",
+        "Preparing" => IsArabic ? "جاري التجهيز" : "Preparing",
+        "InTransit" => IsArabic ? "في الطريق" : "In-Transit",
+        "Received" => IsArabic ? "مستلم" : "Received",
+        "Rejected" => IsArabic ? "مرفوض" : "Rejected",
+        "Cancelled" => IsArabic ? "ملغي" : "Cancelled",
+        _ => status
+    };
+
+    private string GetMovementTypeText(string type) => type switch
+    {
+        "GoodsReceipt" => IsArabic ? "+ وارد (GRN)" : "+ GRN",
+        "BranchIssue" => IsArabic ? "- صرف فرع" : "- Branch Issue",
+        "TransferIn" => IsArabic ? "+ تحويل وارد" : "+ Transfer In",
+        "TransferOut" => IsArabic ? "- تحويل صادر" : "- Transfer Out",
+        "InventoryAdjustment" => IsArabic ? "تسوية جردية" : "Adjustment",
+        "SupplierReturn" => IsArabic ? "- مردود مورد" : "- Supplier Return",
+        _ => type
+    };
+
+    public class DashboardStatsDto
+    {
+        public decimal TotalValuation { get; set; }
+        public int ActiveWarehouses { get; set; }
+        public int MainWarehouses { get; set; }
+        public int BranchWarehouses { get; set; }
+        public int InTransitCount { get; set; }
+        public int LowStockCount { get; set; }
+        public List<DashboardRequisitionDto> PendingRequisitions { get; set; } = new();
+        public List<DashboardMovementDto> RecentMovements { get; set; } = new();
+    }
+
+    public class DashboardRequisitionDto
+    {
+        public int Id { get; set; }
+        public string RequisitionNumber { get; set; } = "";
+        public string BranchName { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Status { get; set; } = "";
+    }
+
+    public class DashboardMovementDto
+    {
+        public string ProductName { get; set; } = "";
+        public string WarehouseName { get; set; } = "";
+        public string MovementType { get; set; } = "";
+        public decimal Qty { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using System.Drawing.Printing;
+﻿using System.Drawing.Printing;
 using System.Windows;
 using Microsoft.Win32;
 using PdfiumViewer;
@@ -70,6 +70,14 @@ public class DesktopPrintingService : IDesktopPrintingService
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
+            if (!string.IsNullOrEmpty(filter) && filter.Contains("*.xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                defaultFileName = System.IO.Path.ChangeExtension(defaultFileName, ".xlsx");
+            }
+            else if (!string.IsNullOrEmpty(filter) && filter.Contains("*.pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                defaultFileName = System.IO.Path.ChangeExtension(defaultFileName, ".pdf");
+            }
             var dialog = new SaveFileDialog
             {
                 Title = title,

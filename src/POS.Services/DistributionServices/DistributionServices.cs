@@ -1,4 +1,4 @@
-namespace POS.Services.DistributionServices;
+﻿namespace POS.Services.DistributionServices;
 
 public class DistributionServices : IDistributionServices
 {

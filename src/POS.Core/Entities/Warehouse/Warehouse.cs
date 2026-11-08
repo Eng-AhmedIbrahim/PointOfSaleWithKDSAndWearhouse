@@ -1,4 +1,4 @@
-namespace POS.Core.Entities.Warehouse;
+﻿namespace POS.Core.Entities.Warehouse;
 
 public enum WarehouseType
 {

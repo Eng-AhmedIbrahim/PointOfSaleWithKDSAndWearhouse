@@ -49,10 +49,17 @@ public class AppDbContext : DbContext
             l.HasOne(x => x.Warehouse).WithMany(w => w.Locations).HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<WarehouseCategory>(c =>
+        {
+            c.Property(x => x.Id).ValueGeneratedNever();
+            c.HasKey(x => x.Id);
+        });
+
         modelBuilder.Entity<WarehouseProduct>(p =>
         {
             p.HasIndex(x => x.SKU).IsUnique();
             p.HasOne(x => x.BaseUnit).WithMany().HasForeignKey(x => x.BaseUnitId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne(x => x.Category).WithMany(c => c.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<WarehouseProductUnit>(pu =>
@@ -188,6 +195,7 @@ public class AppDbContext : DbContext
     public DbSet<Warehouse> Warehouses { get; set; }
     public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
     public DbSet<WarehouseUnit> WarehouseUnits { get; set; }
+    public DbSet<WarehouseCategory> WarehouseCategories { get; set; }
     public DbSet<WarehouseProduct> WarehouseProducts { get; set; }
     public DbSet<WarehouseProductUnit> WarehouseProductUnits { get; set; }
     public DbSet<Supplier> WH_Suppliers { get; set; }

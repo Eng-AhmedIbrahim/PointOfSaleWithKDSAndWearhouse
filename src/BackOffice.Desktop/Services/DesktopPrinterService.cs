@@ -1,4 +1,4 @@
-namespace BackOffice.Desktop.Services;
+﻿namespace BackOffice.Desktop.Services;
 
 public class DesktopPrinterService : IPrinterServices
 {

@@ -1,0 +1,411 @@
+﻿#nullable enable
+@page "/inventory/adjustments"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">
+                <MudIcon Icon="@Icons.Material.Rounded.Rule" Class="me-2" />
+                @(IsArabic ? "الجرد الدوري والتسويات المخزنية" : "Stocktake & Adjustments")
+            </MudText>
+            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
+                @(IsArabic ? "مطابقة الرصيد الدفتري مع الرصيد الفعلي وإجراء تسويات العجز، الزيادة، أو الهالك والتالف" : "Reconcile system stock with physical count and record adjustments")
+            </MudText>
+        </div>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="OpenNewAdjustmentDialog"
+                   Style="height: 40px; border-radius: 8px; font-weight: 700;">
+            @(IsArabic ? "تسوية جرد جديدة" : "New Adjustment")
+        </MudButton>
+    </div>
+
+    <!-- Filters -->
+    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="3" Class="align-end">
+            <MudItem xs="12" sm="5">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">
+                    @(IsArabic ? "المستودع" : "Warehouse")
+                </MudText>
+                <MudSelect T="int?" @bind-Value="_selectedWarehouseId" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">@(IsArabic ? "-- كل المستودعات --" : "-- All Warehouses --")</MudSelectItem>
+                    @foreach (var w in _warehouses)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">
+                    @(IsArabic ? "نوع التسوية" : "Adjustment Type")
+                </MudText>
+                <MudSelect T="string?" @bind-Value="_selectedType" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="string?" Value="@((string?)null)">@(IsArabic ? "الكل" : "All")</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Surplus")">@(IsArabic ? "زيادة مخزنية (+)" : "Surplus (+)")</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Deficit")">@(IsArabic ? "عجز مخزني (-)" : "Deficit (-)")</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("Damage")">@(IsArabic ? "تالف / هالك (-)" : "Damage (-)")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3" Class="d-flex align-end pb-1">
+                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadAdjustments"
+                           Style="height: 40px; border-radius: 8px; font-weight: 700; width: 100%;">
+                    @(IsArabic ? "بحث" : "Search")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Table -->
+    <MudPaper Class="wh-card" Elevation="1">
+        @if (_loading)
+        {
+            <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
+        }
+        <MudTable Items="FilteredAdjustments" Dense="true" Hover="true" Striped="true" Bordered="true">
+            <HeaderContent>
+                <MudTh Style="text-align:right;">@(IsArabic ? "رقم المرجع" : "Ref #")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "التاريخ" : "Date")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "المستودع" : "Warehouse")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "الصنف" : "Product")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "نوع الحركة" : "Type")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "فرق الكمية" : "Qty Diff")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "الرصيد بعد التسوية" : "New Balance")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "السبب / ملاحظات" : "Notes")</MudTh>
+                <MudTh Style="text-align:right;">@(IsArabic ? "بواسطة" : "Created By")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
+                        @context.Reference
+                    </MudChip>
+                </MudTd>
+                <MudTd>@context.Date.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                <MudTd>@context.WarehouseName</MudTd>
+                <MudTd><b>@context.ProductName</b></MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetAdjustmentColor(context.Qty, context.TypeLabel)">
+                        @context.TypeLabel
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <span class="fw-bold @(context.Qty >= 0 ? "text-success" : "text-danger")">
+                        @(context.Qty >= 0 ? $"+{context.Qty:N2}" : $"{context.Qty:N2}")
+                    </span>
+                </MudTd>
+                <MudTd><b>@context.RunningBalance.ToString("N2")</b></MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)</MudTd>
+                <MudTd>@context.CreatedBy</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-6 text-center text-muted">
+                    @(IsArabic ? "لا توجد تسويات جردية مسجلة حالياً" : "No stock adjustments found")
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</div>
+
+<!-- Dialog تسوية جرد جديدة -->
+<MudDialog @bind-Visible="_showNewDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 800;">
+            <MudIcon Icon="@Icons.Material.Filled.Tune" Class="me-2" />
+            @(IsArabic ? "إجراء تسوية جردية لصنف" : "New Stock Adjustment")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div dir="rtl">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المستودع *</MudText>
+                    <MudSelect T="int" @bind-Value="_adjWarehouseId" SelectedValuesChanged="OnWarehouseOrProductChanged"
+                               Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem Value="@w.Id">@w.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الصنف *</MudText>
+                    <MudSelect T="int" @bind-Value="_adjProductId" SelectedValuesChanged="OnWarehouseOrProductChanged"
+                               Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var p in _products)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الرصيد الدفتري الحالي</MudText>
+                    <MudTextField Value="@_currentSystemQty.ToString("N2")" ReadOnly="true"
+                                  Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Style="background:#f8fafc;" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الرصيد الفعلي (الجرد) *</MudText>
+                    <MudNumericField @bind-Value="_actualCountQty" Variant="MudBlazor.Variant.Outlined"
+                                     Margin="Margin.Dense" Min="0" HideSpinButtons="true" Format="N2" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">فرق التسوية الناتج</MudText>
+                    <MudTextField Value="@((_actualCountQty - _currentSystemQty).ToString("N2"))" ReadOnly="true"
+                                  Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                  Style="@((_actualCountQty - _currentSystemQty) >= 0 ? "background:#f0fdf4; color:#16a34a; font-weight:bold;" : "background:#fef2f2; color:#dc2626; font-weight:bold;")" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">سبب التسوية</MudText>
+                    <MudSelect T="string" @bind-Value="_adjReason" Variant="MudBlazor.Variant.Outlined"
+                               Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@("جرد دوري مجدول")">جرد دوري مجدول</MudSelectItem>
+                        <MudSelectItem Value="@("عجز ناتج عن فاقد")">عجز ناتج عن فاقد</MudSelectItem>
+                        <MudSelectItem Value="@("زيادة غير مسجلة")">زيادة غير مسجلة</MudSelectItem>
+                        <MudSelectItem Value="@("بضاعة تالفة / منتهية الصلاحية")">بضاعة تالفة / منتهية الصلاحية</MudSelectItem>
+                        <MudSelectItem Value="@("تصحيح خطأ دفتري")">تصحيح خطأ دفتري</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudCheckBox T="bool" @bind-Value="_adjIsDamage" Color="MudBlazor.Color.Error"
+                                 Label="اعتبار الفرق هالك / تالف (Waste & Damage)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">ملاحظات التسوية</MudText>
+                    <MudTextField @bind-Value="_adjNotes" Variant="MudBlazor.Variant.Outlined" Lines="2"
+                                  Placeholder="أدخل أي ملاحظات توثيقية إضافية للتسوية..." />
+                </MudItem>
+            </MudGrid>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showNewDialog = false)" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                   OnClick="SubmitAdjustment" Disabled="_submitting">
+            @if (_submitting)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" />
+            }
+            تأكيد وترحيل التسوية
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading = true;
+    private bool _showNewDialog = false;
+    private bool _submitting = false;
+
+    private int? _selectedWarehouseId;
+    private string? _selectedType;
+
+    private List<AdjustmentItemDto> _adjustments = new();
+    private List<WarehouseLookup> _warehouses = new();
+    private List<ProductLookup> _products = new();
+
+    // Dialog state
+    private int _adjWarehouseId;
+    private int _adjProductId;
+    private decimal _currentSystemQty = 0;
+    private decimal _actualCountQty = 0;
+    private string _adjReason = "جرد دوري مجدول";
+    private bool _adjIsDamage = false;
+    private string? _adjNotes;
+
+    private MudBlazor.DialogOptions _dialogOptions = new MudBlazor.DialogOptions
+    {
+        MaxWidth = MudBlazor.MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true
+    };
+
+    private IEnumerable<AdjustmentItemDto> FilteredAdjustments => _adjustments.Where(a =>
+        (!_selectedWarehouseId.HasValue || a.WarehouseName == _warehouses.FirstOrDefault(w => w.Id == _selectedWarehouseId)?.DisplayName) &&
+        (string.IsNullOrWhiteSpace(_selectedType) ||
+         (_selectedType == "Surplus" && a.Qty > 0) ||
+         (_selectedType == "Deficit" && a.Qty < 0 && !a.TypeLabel.Contains("تالف")) ||
+         (_selectedType == "Damage" && a.TypeLabel.Contains("تالف")))
+    );
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        await LoadAdjustments();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses") ?? new();
+        }
+        catch
+        {
+            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new(); } catch { }
+        }
+
+        try
+        {
+            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("api/warehouseproducts/lookup") ?? new();
+        }
+        catch
+        {
+            try { _products = await Http.GetFromJsonAsync<List<ProductLookup>>("api/products/lookup") ?? new(); } catch { }
+        }
+    }
+
+    private async Task LoadAdjustments()
+    {
+        _loading = true;
+        try
+        {
+            var url = "api/warehouseproducts/adjustments";
+            if (_selectedWarehouseId.HasValue) url += $"?warehouseId={_selectedWarehouseId.Value}";
+            _adjustments = await Http.GetFromJsonAsync<List<AdjustmentItemDto>>(url) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ أثناء تحميل سجل التسويات: {ex.Message}", MudBlazor.Severity.Warning);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenNewAdjustmentDialog()
+    {
+        if (_warehouses.Any() && _adjWarehouseId == 0) _adjWarehouseId = _warehouses.First().Id;
+        if (_products.Any() && _adjProductId == 0) _adjProductId = _products.First().Id;
+        await UpdateCurrentStock();
+        _showNewDialog = true;
+    }
+
+    private async Task OnWarehouseOrProductChanged()
+    {
+        await UpdateCurrentStock();
+    }
+
+    private async Task UpdateCurrentStock()
+    {
+        if (_adjWarehouseId <= 0 || _adjProductId <= 0) return;
+        try
+        {
+            var balances = await Http.GetFromJsonAsync<List<StockBalanceMiniDto>>($"api/warehouseproducts/stock-balances?warehouseId={_adjWarehouseId}");
+            var b = balances?.FirstOrDefault(x => x.ProductId == _adjProductId);
+            _currentSystemQty = b?.QuantityOnHand ?? 0m;
+            _actualCountQty = _currentSystemQty;
+        }
+        catch
+        {
+            _currentSystemQty = 0;
+            _actualCountQty = 0;
+        }
+    }
+
+    private async Task SubmitAdjustment()
+    {
+        if (_adjWarehouseId <= 0 || _adjProductId <= 0)
+        {
+            Snackbar.Add("يرجى اختيار المستودع والصنف", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        var diff = _actualCountQty - _currentSystemQty;
+        if (diff == 0)
+        {
+            Snackbar.Add("الرصيد الفعلي يطابق الرصيد الدفتري، لا يوجد فرق تسوية لترحيله", MudBlazor.Severity.Info);
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var payload = new
+            {
+                WarehouseId = _adjWarehouseId,
+                ProductId = _adjProductId,
+                ActualQuantity = _actualCountQty,
+                CurrentQuantity = _currentSystemQty,
+                Reason = _adjReason,
+                IsDamage = _adjIsDamage,
+                Notes = _adjNotes
+            };
+
+            var res = await Http.PostAsJsonAsync("api/warehouseproducts/adjust", payload);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم ترحيل وتحديث التسوية المخزنية بنجاح", MudBlazor.Severity.Success);
+                _showNewDialog = false;
+                await LoadAdjustments();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل ترحيل التسوية: {err}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private MudBlazor.Color GetAdjustmentColor(decimal qty, string typeLabel)
+    {
+        if (typeLabel.Contains("تالف")) return MudBlazor.Color.Dark;
+        return qty >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error;
+    }
+
+    public class AdjustmentItemDto
+    {
+        public int Id { get; set; }
+        public string Reference { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string WarehouseName { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public string TypeLabel { get; set; } = "";
+        public decimal Qty { get; set; }
+        public decimal RunningBalance { get; set; }
+        public decimal UnitCost { get; set; }
+        public decimal TotalCost { get; set; }
+        public string? Notes { get; set; }
+        public string CreatedBy { get; set; } = "";
+    }
+
+    private class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
+
+    private class ProductLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? SKU { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? $"{NameAr} ({SKU})" : $"{NameEn} ({SKU})";
+    }
+
+    private class StockBalanceMiniDto
+    {
+        public int ProductId { get; set; }
+        public decimal QuantityOnHand { get; set; }
+    }
+}

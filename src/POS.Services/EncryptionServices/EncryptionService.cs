@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using POS.Core.Services.Contract.EncryptionServices;
 using System.Security.Cryptography;
 using System.Text;

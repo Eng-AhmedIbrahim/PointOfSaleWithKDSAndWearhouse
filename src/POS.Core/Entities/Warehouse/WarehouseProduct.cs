@@ -17,6 +17,10 @@ public class WarehouseProduct : BaseEntity
     public string? Description { get; set; }
     public string? CategoryName { get; set; }
 
+    // ربط الصنف بالفئة المخزنية المستقلة
+    public int? CategoryId { get; set; }
+    public WarehouseCategory? Category { get; set; }
+
     // الوحدة الأساسية للتخزين والحسابات في الـ Stock Ledger (مثل كغ أو لتر أو قطعة)
     public int BaseUnitId { get; set; }
     public WarehouseUnit? BaseUnit { get; set; }

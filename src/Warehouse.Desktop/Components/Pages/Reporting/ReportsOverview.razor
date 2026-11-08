@@ -1,4 +1,4 @@
-@page "/reports/overview"
+﻿@page "/reports/overview"
 @inject IReportingErpService ReportingService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -170,6 +170,7 @@
                     new ReportInfo { Id = "CustomerDirectory", Name = IsArabic ? "دليل العملاء" : "Customer Directory", Description = IsArabic ? "سجل كافة العملاء وبياناتهم" : "Log of all customers and their info", Icon = Icons.Material.Rounded.ContactPhone },
                     new ReportInfo { Id = "DeliveryOrders", Name = IsArabic ? "طلبات التوصيل" : "Delivery Orders", Description = IsArabic ? "سجل طلبات الدليفري وتفاصيلها" : "Log of delivery orders and details", Icon = Icons.Material.Rounded.DeliveryDining },
                     new ReportInfo { Id = "DeliveryAreas", Name = IsArabic ? "مناطق التوصيل (المناطق الأكثر طلباً)" : "Delivery Areas", Description = IsArabic ? "تحليل مبيعات وطلبات كل منطقة" : "Analysis of sales and orders by zone", Icon = Icons.Material.Rounded.Map },
+                    new ReportInfo { Id = "DeliveryBonusReport", Name = IsArabic ? "خدمة التوصيل وبونص الطيارين" : "Delivery Fees & Driver Bonus", Description = IsArabic ? "إجمالي رسوم التوصيل والبونص وتوزيعه على الطيارين" : "Total delivery fees, driver bonuses, and breakdown per driver", Icon = Icons.Material.Rounded.TwoWheeler },
                     new ReportInfo { Id = "VipCustomers", Name = IsArabic ? "العملاء الأكثر طلباً (VIP)" : "VIP Customers", Description = IsArabic ? "ترتيب العملاء حسب عدد الطلبات" : "Customers ranked by order count", Icon = Icons.Material.Rounded.WorkspacePremium },
                     new ReportInfo { Id = "DormantCustomers", Name = IsArabic ? "العملاء المنقطعين" : "Dormant Customers", Description = IsArabic ? "العملاء الذين لم يطلبوا منذ فترة" : "Customers inactive for a specified period", Icon = Icons.Material.Rounded.Snooze }
                 }
@@ -201,7 +202,39 @@
                     new ReportInfo { Id = "VoidedOrders", Name = IsArabic ? "عمليات الحذف (Void)" : "Voids Log", Description = IsArabic ? "تقرير الطلبات المحذوفة والأسباب" : "Report of voided orders and reasons", Icon = Icons.Material.Rounded.DeleteSweep },
                     new ReportInfo { Id = "DetailedVoidReport", Name = IsArabic ? "المحذوفات التفصيلية" : "Detailed Voids", Description = IsArabic ? "عرض كل صنف تم حذفه والسبب" : "View every voided item and reason", Icon = Icons.Material.Rounded.History },
                     new ReportInfo { Id = "DiscountedOrders", Name = IsArabic ? "تقرير الخصومات" : "Discounts Log", Description = IsArabic ? "جميع الطلبات التي تحتوي على خصم" : "All orders containing discounts", Icon = Icons.Material.Rounded.Redeem },
+                    new ReportInfo { Id = "DetailedDiscountsReport", Name = IsArabic ? "الخصومات التفصيلية" : "Detailed Discounts", Description = IsArabic ? "عرض تفاصيل الخصم على الطلبات والأصناف والمسؤول" : "View discount details on orders and items with reasons", Icon = Icons.Material.Rounded.Discount },
                     new ReportInfo { Id = "CommentsReport", Name = IsArabic ? "تقرير الملاحظات" : "Comments Report", Description = IsArabic ? "كل التعليقات المسجلة على الأصناف" : "All recorded notes and item comments", Icon = Icons.Material.Rounded.Comment }
+                }
+            },
+            new ReportCategory
+            {
+                Title = IsArabic ? "المخزن الرئيسي والطلبيات" : "Central Warehouse & Requisitions",
+                Icon = Icons.Material.Rounded.Warehouse,
+                Color = Color.Warning,
+                ColorHex = "#ea580c",
+                Reports = new List<ReportInfo>
+                {
+                    new ReportInfo
+                    {
+                        Id = "BranchRequisitionsSummary",
+                        Name = IsArabic ? "طلبيات المخزن الرئيسي" : "Warehouse Requisitions",
+                        Description = IsArabic ? "سجل طلبيات التوريد وحالاتها ومسؤول الطلب والاعتماد" : "Branch requisitions log, statuses, requested & approved by",
+                        Icon = Icons.Material.Rounded.Assignment
+                    },
+                    new ReportInfo
+                    {
+                        Id = "DetailedBranchRequisitions",
+                        Name = IsArabic ? "تفاصيل وتعديلات الطلبيات" : "Detailed Requisitions",
+                        Description = IsArabic ? "تفاصيل الأصناف والكميات المطلوبة والمعدلة من المخزن والمستلمة" : "Item details, requested vs proposed vs approved vs received qty",
+                        Icon = Icons.Material.Rounded.FactCheck
+                    },
+                    new ReportInfo
+                    {
+                        Id = "CentralWarehouseStockMovement",
+                        Name = IsArabic ? "توريدات المخزن للفرع" : "Warehouse Stock Movements",
+                        Description = IsArabic ? "حركة توريد واستلام الأصناف والخامات من المخزن الرئيسي للفرع" : "Stock incoming transactions from central warehouse to branch",
+                        Icon = Icons.Material.Rounded.MoveToInbox
+                    }
                 }
             }
         };

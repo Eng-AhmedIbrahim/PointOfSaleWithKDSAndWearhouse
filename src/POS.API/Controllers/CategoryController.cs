@@ -1,7 +1,6 @@
-﻿using POS.Core.Entities.Categorie;
-
 namespace POS.API.Controllers;
 
+[Route("api/[controller]")]
 [Route("api/categories")]
 public class CategoryController : BaseApiController
 {

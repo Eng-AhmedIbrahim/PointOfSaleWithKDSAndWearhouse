@@ -67,7 +67,7 @@
                                                Change="@OnBarcodeChanged"
                                                Style="width: 100%; border: none; background: transparent; font-size: 1rem; font-weight: 700; padding: 0; letter-spacing: 0.05em;"
                                                AutoComplete="false"
-                                               Placeholder="@(IsArabic ? "Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯ (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)..." : "Barcode (optional)...")" />
+                                                Placeholder="@(IsArabic ? "الباركود (اختياري)..." : "Barcode (optional)...")" />
                                 @if (!string.IsNullOrEmpty(_barcodeDuplicateError))
                                 {
                                     <div class="mt-1 d-flex align-center gap-1" style="color: #ef4444; font-size: 0.82rem; font-weight: 800;">

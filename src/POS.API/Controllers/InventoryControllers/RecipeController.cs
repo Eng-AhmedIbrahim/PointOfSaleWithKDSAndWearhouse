@@ -1,4 +1,4 @@
-using POS.Contract.Dtos.InventoryDtos;
+﻿using POS.Contract.Dtos.InventoryDtos;
 using POS.Core.Services.Contract.InventoryServices;
 
 namespace POS.API.Controllers.InventoryControllers;

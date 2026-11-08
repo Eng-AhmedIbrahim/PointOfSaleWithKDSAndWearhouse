@@ -25,25 +25,37 @@
     <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="4">
-                <MudSelect T="int?" Label="المخزن" @bind-Value="_filterWarehouseId"
-                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المخزن</MudText>
+                <MudSelect T="int?" @bind-Value="_filterWarehouseId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- كل المخازن --</MudSelectItem>
                     @foreach (var w in _warehouses)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudDatePicker Label="من تاريخ" @bind-Date="_filterFromDate"
-                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">من تاريخ</MudText>
+                <MudDatePicker @bind-Date="_filterFromDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
+                               Margin="Margin.Dense"
+                               Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudDatePicker Label="إلى تاريخ" @bind-Date="_filterToDate"
-                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">إلى تاريخ</MudText>
+                <MudDatePicker @bind-Date="_filterToDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
+                               Margin="Margin.Dense"
+                               Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudSelect T="string?" Label="الحالة" @bind-Value="_filterStatus"
-                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الحالة</MudText>
+                <MudSelect T="string?" @bind-Value="_filterStatus"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="string?" Value="@((string?)null)">الكل</MudSelectItem>
                     <MudSelectItem T="string?" Value="@("Pending")">معلق</MudSelectItem>
                     <MudSelectItem T="string?" Value="@("Completed")">مكتمل</MudSelectItem>
                     <MudSelectItem T="string?" Value="@("Cancelled")">ملغي</MudSelectItem>
@@ -127,11 +139,18 @@
     {
         try
         {
-            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses") ?? new();
         }
         catch
         {
-            Snackbar.Add("حدث خطأ أثناء تحميل المخازن", MudBlazor.Severity.Error);
+            try
+            {
+                _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new();
+            }
+            catch
+            {
+                Snackbar.Add("حدث خطأ أثناء تحميل المخازن", MudBlazor.Severity.Warning);
+            }
         }
     }
 
@@ -197,7 +216,14 @@
     };
 
     // DTOs
-    private record WarehouseLookup(int Id, string Name);
+    private class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
     private record StockTransferDto(
         int Id, string TransferNumber, string FromWarehouseName, string ToWarehouseName,
         DateTime TransferDate, string Status, int TotalItems, string CreatedBy);

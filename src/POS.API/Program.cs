@@ -1,4 +1,4 @@
-using POS.API.Hubs;
+﻿using POS.API.Hubs;
 QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);

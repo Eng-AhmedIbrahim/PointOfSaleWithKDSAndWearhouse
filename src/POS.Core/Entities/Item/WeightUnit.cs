@@ -1,4 +1,4 @@
-namespace POS.Core.Entities.Item;
+﻿namespace POS.Core.Entities.Item;
 
 /// <summary>
 /// وحدات الوزن للأصناف التي تُباع بالوزن

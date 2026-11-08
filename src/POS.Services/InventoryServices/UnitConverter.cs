@@ -1,4 +1,4 @@
-using POS.Core.Entities.Item;
+﻿using POS.Core.Entities.Item;
 
 namespace POS.Services.InventoryServices;
 

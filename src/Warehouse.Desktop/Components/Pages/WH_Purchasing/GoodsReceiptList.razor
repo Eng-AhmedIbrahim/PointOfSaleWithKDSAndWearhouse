@@ -21,22 +21,27 @@
 
     <MudCard Class="wh-card mb-4">
         <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" sm="4">
+            <MudGrid Spacing="3" Class="align-end">
+                <MudItem xs="12" sm="5">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">بحث</MudText>
                     <MudTextField @bind-Value="_search" Placeholder="بحث برقم الإذن أو المورد..." MudBlazor.Adornment="MudBlazor.Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
+                                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense" InputClass="text-end" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect T="int?" Label="المستودع" @bind-Value="_warehouseFilter" Variant="MudBlazor.Variant.Outlined" Dense="true" Clearable="true">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المستودع</MudText>
+                    <MudSelect T="int?" @bind-Value="_warehouseFilter" Variant="MudBlazor.Variant.Outlined"
+                               Margin="Margin.Dense" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="int?" Value="@((int?)null)">-- كل المستودعات --</MudSelectItem>
                         @foreach (var w in _warehouses)
                         {
-                            <MudSelectItem Value="@((int?)w.Id)">@w.NameAr</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.NameAr</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" sm="4" Class="d-flex align-center">
-                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Default" StartIcon="@Icons.Material.Filled.Refresh"
-                               OnClick="LoadData">تحديث</MudButton>
+                <MudItem xs="12" sm="3" Class="d-flex align-end pb-1">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="LoadData" Style="height: 40px; border-radius: 8px; font-weight: 700; width: 100%;">تحديث</MudButton>
                 </MudItem>
             </MudGrid>
         </MudCardContent>

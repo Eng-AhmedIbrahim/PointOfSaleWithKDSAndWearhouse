@@ -1,4 +1,4 @@
-namespace BackOffice.Desktop.Services;
+﻿namespace BackOffice.Desktop.Services;
 
 public class CallCenterNotificationService : IDisposable, IAsyncDisposable
 {

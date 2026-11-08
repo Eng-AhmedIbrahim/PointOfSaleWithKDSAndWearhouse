@@ -5,57 +5,96 @@
 @inject BlazorBase.Services.LocalizationService LocalizerService
 
 <MudDialog DisableSidePadding="true">
+    <TitleContent>
+        <MudText MudBlazor.Typo="Typo.h6" Style="font-weight:800;">
+            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="me-2" />
+            إنشاء أمر شراء جديد
+        </MudText>
+    </TitleContent>
     <DialogContent>
-        <div class="pa-4" dir="@(IsArabic ? "rtl" : "ltr")">
-            <MudGrid>
+        <div class="pa-4" dir="rtl">
+            <MudGrid Spacing="3">
+                <!-- المورد -->
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="المورد" @bind-Value="_model.SupplierId" Required="true"
-                               AnchorOrigin="MudBlazor.Origin.BottomCenter" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المورد *</MudText>
+                    <MudSelect T="int" @bind-Value="_model.SupplierId" Required="true"
+                               AnchorOrigin="MudBlazor.Origin.BottomCenter"
+                               Variant="MudBlazor.Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Placeholder="اختر المورد">
                         @foreach (var s in _suppliers)
                         {
                             <MudSelectItem Value="@s.Id">@s.NameAr</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
+
+                <!-- المستودع المستلم -->
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="المستودع المستلم" @bind-Value="_model.WarehouseId" Required="true"
-                               AnchorOrigin="MudBlazor.Origin.BottomCenter" Variant="MudBlazor.Variant.Outlined" Dense="true">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المستودع المستلم *</MudText>
+                    <MudSelect T="int" @bind-Value="_model.WarehouseId" Required="true"
+                               AnchorOrigin="MudBlazor.Origin.BottomCenter"
+                               Variant="MudBlazor.Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Placeholder="اختر المستودع">
                         @foreach (var w in _warehouses)
                         {
                             <MudSelectItem Value="@w.Id">@w.NameAr</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
+
+                <!-- تاريخ التوريد المتوقع -->
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="تاريخ التوريد المتوقع" @bind-Date="_model.ExpectedDeliveryDate"
-                                   Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">تاريخ التوريد المتوقع</MudText>
+                    <MudDatePicker @bind-Date="_model.ExpectedDeliveryDate"
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="yyyy/MM/dd"
+                                   Culture="@(new System.Globalization.CultureInfo("ar-EG"))" />
                 </MudItem>
+
+                <!-- ملاحظات -->
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="ملاحظات" @bind-Value="_model.Notes" Variant="MudBlazor.Variant.Outlined" MudBlazor.Margin="Margin.Dense" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">ملاحظات</MudText>
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="ملاحظات اختيارية..."
+                                  InputClass="text-end" />
                 </MudItem>
             </MudGrid>
 
             <MudDivider Class="my-4" />
 
-            <div class="d-flex justify-space-between align-center mb-2">
-                <MudText MudBlazor.Typo="Typo.subtitle1" Class="fw-bold">بنود أمر الشراء</MudText>
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary"
-                           Size="MudBlazor.Size.Small" OnClick="AddLine">إضافة صنف</MudButton>
+            <!-- بنود أمر الشراء -->
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudButton StartIcon="@Icons.Material.Filled.Add"
+                           Variant="MudBlazor.Variant.Outlined"
+                           Color="MudBlazor.Color.Warning"
+                           Size="MudBlazor.Size.Small"
+                           OnClick="AddLine">إضافة صنف</MudButton>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Style="font-weight:800; color:#1e293b;">بنود أمر الشراء</MudText>
             </div>
 
-            <MudTable Items="_model.Lines" Dense="true" Hover="true" Elevation="0">
+            <MudTable Items="_model.Lines" Dense="true" Hover="true" Elevation="0"
+                      Style="border:1px solid #e2e8f0; border-radius:8px;">
                 <HeaderContent>
-                    <MudTh>الصنف</MudTh>
-                    <MudTh>الوحدة</MudTh>
-                    <MudTh Style="width:110px">الكمية المطلوبة</MudTh>
-                    <MudTh Style="width:110px">سعر الوحدة</MudTh>
-                    <MudTh Style="width:110px">الإجمالي</MudTh>
-                    <MudTh Style="width:50px"></MudTh>
+                    <MudTh Style="text-align:right;">الصنف</MudTh>
+                    <MudTh Style="text-align:right; width:120px;">الوحدة</MudTh>
+                    <MudTh Style="text-align:right; width:120px;">الكمية المطلوبة</MudTh>
+                    <MudTh Style="text-align:right; width:130px;">سعر الوحدة (ج.م)</MudTh>
+                    <MudTh Style="text-align:right; width:120px;">الإجمالي</MudTh>
+                    <MudTh Style="width:50px;"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <MudSelect T="int" Value="@context.ProductId" ValueChanged="@((int val) => OnProductChanged(context, val))"
-                                   Dense="true" MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined">
+                        <MudSelect T="int" Value="@context.ProductId"
+                                   ValueChanged="@((int val) => OnProductChanged(context, val))"
+                                   Margin="Margin.Dense"
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   AnchorOrigin="MudBlazor.Origin.BottomCenter"
+                                   Placeholder="اختر الصنف">
                             @foreach (var p in _products)
                             {
                                 <MudSelectItem Value="@p.Id">@p.NameAr (@p.SKU)</MudSelectItem>
@@ -63,47 +102,76 @@
                         </MudSelect>
                     </MudTd>
                     <MudTd>
-                        <MudText MudBlazor.Typo="Typo.body2">@context.UnitName</MudText>
+                        <MudText MudBlazor.Typo="Typo.body2" Style="font-weight:600; color:#475569;">
+                            @context.UnitName
+                        </MudText>
                     </MudTd>
                     <MudTd>
-                        <MudNumericField T="decimal" @bind-Value="@context.OrderedQuantity" Min="0.01m" MudBlazor.Margin="Margin.Dense"
-                                         Variant="MudBlazor.Variant.Outlined" />
+                        <MudNumericField T="decimal" @bind-Value="@context.OrderedQuantity"
+                                         Min="0.01m"
+                                         Margin="Margin.Dense"
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         HideSpinButtons="true" />
                     </MudTd>
                     <MudTd>
-                        <MudNumericField T="decimal" @bind-Value="@context.UnitPrice" Min="0m" MudBlazor.Margin="Margin.Dense"
-                                         Variant="MudBlazor.Variant.Outlined" />
+                        <MudNumericField T="decimal" @bind-Value="@context.UnitPrice"
+                                         Min="0m"
+                                         Margin="Margin.Dense"
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         HideSpinButtons="true"
+                                         Format="N2" />
                     </MudTd>
                     <MudTd>
-                        <MudText MudBlazor.Typo="Typo.body2" Class="fw-bold">@((context.OrderedQuantity * context.UnitPrice).ToString("N2"))</MudText>
+                        <MudText MudBlazor.Typo="Typo.body2" Style="font-weight:800; color:#ea580c;">
+                            @((context.OrderedQuantity * context.UnitPrice).ToString("N2")) ج.م
+                        </MudText>
                     </MudTd>
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="MudBlazor.Color.Error"
+                                       Size="MudBlazor.Size.Small"
                                        OnClick="@(() => RemoveLine(context))" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
 
-            <div class="d-flex justify-end gap-6 mt-4 pa-3" style="background:#fef5ee; border-radius:8px;">
-                <div>
-                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">المجموع قبل الضريبة</MudText>
-                    <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold">@SubTotal.ToString("N2") ج.م</MudText>
+            <!-- الإجماليات -->
+            <div class="d-flex justify-end gap-6 mt-4 pa-4"
+                 style="background:#fef5ee; border-radius:8px; border:1px solid #fed7aa;">
+                <div class="text-end">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#92400e;">الإجمالي النهائي</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Style="font-weight:900; color:#ea580c;">
+                        @TotalAmount.ToString("N2") ج.م
+                    </MudText>
                 </div>
-                <div>
-                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">ضريبة القيمة المضافة</MudText>
-                    <MudNumericField T="decimal" @bind-Value="_model.TaxAmount" Min="0m" MudBlazor.Margin="Margin.Dense"
-                                     Variant="MudBlazor.Variant.Outlined" Style="width:120px" />
+                <div class="text-end" style="min-width:150px;">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#92400e;">ضريبة القيمة المضافة (ج.م)</MudText>
+                    <MudNumericField T="decimal" @bind-Value="_model.TaxAmount"
+                                     Min="0m"
+                                     Margin="Margin.Dense"
+                                     Variant="MudBlazor.Variant.Outlined"
+                                     HideSpinButtons="true"
+                                     Format="N2"
+                                     Style="width:140px;" />
                 </div>
-                <div>
-                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">الإجمالي النهائي</MudText>
-                    <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold text-orange">@TotalAmount.ToString("N2") ج.م</MudText>
+                <div class="text-end">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#92400e;">المجموع قبل الضريبة</MudText>
+                    <MudText MudBlazor.Typo="Typo.h6" Style="font-weight:800; color:#1e293b;">
+                        @SubTotal.ToString("N2") ج.م
+                    </MudText>
                 </div>
             </div>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">إلغاء</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Filled" OnClick="SaveOrder" Disabled="_saving">
-            @if (_saving) { <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" /> }
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
+                   OnClick="SaveOrder" Disabled="_saving"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" />
+            }
             حفظ أمر الشراء
         </MudButton>
     </DialogActions>

@@ -23,7 +23,7 @@
                                For="@(() => Model.FromWarehouseId)">
                         @foreach (var w in _warehouses)
                         {
-                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -33,13 +33,14 @@
                                For="@(() => Model.ToWarehouseId)">
                         @foreach (var w in _warehouses.Where(w => w.Id != (Model.FromWarehouseId ?? -1)))
                         {
-                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ التحويل" @bind-Date="Model.TransferDate"
-                                   Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                                   Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
+                                   Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField T="string" Label="ملاحظات عامة" @bind-Value="Model.Notes"
@@ -66,7 +67,7 @@
                                    Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
                             @foreach (var p in _products)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
@@ -75,7 +76,7 @@
                                    Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
                             @foreach (var u in _units)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
@@ -89,7 +90,7 @@
                                    Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
                             @foreach (var l in _locations)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
@@ -98,7 +99,7 @@
                                    Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
                             @foreach (var l in _locations)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
@@ -156,15 +157,39 @@
     {
         try
         {
-            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
-            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup") ?? new();
-            _units = await Http.GetFromJsonAsync<List<UnitLookup>>("/api/units/lookup") ?? new();
-            _locations = await Http.GetFromJsonAsync<List<LocationLookup>>("/api/warehouses/locations") ?? new();
+            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses") ?? new();
         }
         catch
         {
-            Snackbar.Add("حدث خطأ أثناء تحميل البيانات", MudBlazor.Severity.Error);
+            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new(); }
+            catch { }
         }
+
+        try
+        {
+            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("api/products/lookup") ?? new();
+        }
+        catch
+        {
+            try { _products = await Http.GetFromJsonAsync<List<ProductLookup>>("api/warehouseproducts/lookup") ?? new(); }
+            catch { }
+        }
+
+        try
+        {
+            _units = await Http.GetFromJsonAsync<List<UnitLookup>>("api/units/lookup") ?? new();
+        }
+        catch
+        {
+            try { _units = await Http.GetFromJsonAsync<List<UnitLookup>>("api/units") ?? new(); }
+            catch { }
+        }
+
+        try
+        {
+            _locations = await Http.GetFromJsonAsync<List<LocationLookup>>("api/warehouses/locations") ?? new();
+        }
+        catch { }
     }
 
     private void AddLine() => _lines.Add(new TransferLineDto());
@@ -238,10 +263,45 @@
     private void Cancel() => MudDialog.Cancel();
 
     // DTOs
-    private record WarehouseLookup(int Id, string Name);
-    private record ProductLookup(int Id, string Name);
-    private record UnitLookup(int Id, string Name);
-    private record LocationLookup(int Id, string Name);
+    private class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
+
+    private class ProductLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string? SKU { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? SKU ?? $"صنف {Id}"));
+    }
+
+    private class UnitLookup
+    {
+        public int Id { get; set; }
+        public string? ArabicName { get; set; }
+        public string? EnglishName { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(ArabicName) ? ArabicName : (!string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (EnglishName ?? NameEn ?? $"وحدة {Id}")));
+    }
+
+    private class LocationLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string? Code { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (Code ?? $"موقع {Id}"));
+    }
 
     private class StockTransferCreateDto
     {

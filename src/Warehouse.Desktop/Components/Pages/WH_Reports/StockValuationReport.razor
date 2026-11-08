@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @using MudBlazor
 @using System.Net.Http.Json
+@using System.Text.Json
+@using System.Globalization
 @using BlazorBase.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -11,9 +13,9 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
-        <MudText MudBlazor.Typo="Typo.h5">
-            <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
-            تقرير تقييم المخزون
+        <MudText MudBlazor.Typo="Typo.h5" Style="font-weight: 800;">
+            <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="me-2" />
+            تقرير تقييم المخزون (Stock Valuation)
         </MudText>
         <div class="d-flex gap-2">
             <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
@@ -25,32 +27,42 @@
 
     <!-- Filters -->
     <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
-        <MudGrid Spacing="2" AlignItems="Center">
+        <MudGrid Spacing="3" Class="align-end">
             <MudItem xs="12" sm="4">
-                <MudSelect T="int?" Label="المخزن" @bind-Value="_filterWarehouseId"
-                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">المخزن</MudText>
+                <MudSelect T="int?" @bind-Value="_filterWarehouseId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- كل المخازن --</MudSelectItem>
                     @foreach (var w in _warehouses)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudSelect T="int?" Label="الفئة" @bind-Value="_filterCategoryId"
-                           Clearable="true" Variant="MudBlazor.Variant.Outlined">
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">الفئة</MudText>
+                <MudSelect T="int?" @bind-Value="_filterCategoryId"
+                           Clearable="true" Variant="MudBlazor.Variant.Outlined"
+                           Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- كل الفئات --</MudSelectItem>
                     @foreach (var c in _categories)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.DisplayName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudDatePicker Label="بتاريخ" @bind-Date="_filterAsOfDate"
-                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">بتاريخ</MudText>
+                <MudDatePicker @bind-Date="_filterAsOfDate"
+                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
+                               Margin="Margin.Dense"
+                               Culture="@(IsArabic ? new CultureInfo("ar-EG") : new CultureInfo("en-US"))" />
             </MudItem>
-            <MudItem xs="12" sm="1">
+            <MudItem xs="12" sm="1" Class="d-flex align-end pb-1">
                 <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
-                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadReport">
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="LoadReport"
+                           Style="height: 40px; border-radius: 8px; font-weight: 700; width: 100%;">
                     بحث
                 </MudButton>
             </MudItem>
@@ -101,39 +113,31 @@
                 <MudTh>إجمالي القيمة</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.ProductCode
+                <MudTd DataLabel="كود الصنف">
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
+                        @context.ProductCode
+                    </MudChip>
                 </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15); font-weight:bold;" : "")">
-                    @context.ProductName
+                <MudTd DataLabel="اسم الصنف"><b>@context.ProductName</b></MudTd>
+                <MudTd DataLabel="الفئة">@context.Category</MudTd>
+                <MudTd DataLabel="المخزن">@context.WarehouseName</MudTd>
+                <MudTd DataLabel="الكمية المتاحة">
+                    <span class="font-weight-bold" style="color: @(context.OnHandQty > 0 ? "#16a34a" : "#dc2626");">
+                        @context.OnHandQty.ToString("N2")
+                    </span>
                 </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.Category
-                </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.WarehouseName
-                </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.OnHandQty.ToString("N2")
-                </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.UnitName
-                </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15);" : "")">
-                    @context.AvgCostPrice.ToString("N2")
-                </MudTd>
-                <MudTd Style="@(context.TotalValue > 10000 ? "background-color: rgba(255,152,0,0.15); color:#E65100; font-weight:bold;" : "font-weight:bold;")">
-                    @context.TotalValue.ToString("N2")
+                <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                <MudTd DataLabel="متوسط التكلفة">@context.AvgCostPrice.ToString("N2")</MudTd>
+                <MudTd DataLabel="إجمالي القيمة">
+                    <b style="color: #ea580c;">@context.TotalValue.ToString("N2")</b>
                 </MudTd>
             </RowTemplate>
             <FooterContent>
-                <MudTd colspan="7" Style="font-weight:bold; text-align:end;">الإجمالي الكلي</MudTd>
-                <MudTd Style="font-weight:bold; color:var(--mud-palette-warning);">
-                    @_items.Sum(x => x.TotalValue).ToString("N2")
-                </MudTd>
+                <MudTd colspan="7"><b>الإجمالي الكلي</b></MudTd>
+                <MudTd><b style="color: #ea580c;">@_summary.TotalValue.ToString("N2")</b></MudTd>
             </FooterContent>
             <NoRecordsContent>
-                <MudText Class="pa-4 text-center">لا توجد بيانات مخزون</MudText>
+                <MudText Class="pa-6 text-center text-muted">لا توجد بيانات مخزون مطابقة للبحث</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>
@@ -141,16 +145,16 @@
 
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
-    private bool _loading;
-
-    private List<StockValuationItemDto> _items = new();
-    private StockValuationSummary _summary = new();
-    private List<WarehouseLookup> _warehouses = new();
-    private List<CategoryLookup> _categories = new();
+    private bool _loading = true;
 
     private int? _filterWarehouseId;
     private int? _filterCategoryId;
     private DateTime? _filterAsOfDate = DateTime.Today;
+
+    private List<WarehouseLookup> _warehouses = new();
+    private List<CategoryLookup> _categories = new();
+    private List<StockValuationItemDto> _items = new();
+    private StockValuationSummary _summary = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,10 +166,25 @@
     {
         try
         {
-            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
-            _categories = await Http.GetFromJsonAsync<List<CategoryLookup>>("/api/categories/lookup") ?? new();
+            var whs = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses");
+            _warehouses = whs ?? new();
         }
-        catch { }
+        catch
+        {
+            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new(); }
+            catch { }
+        }
+
+        try
+        {
+            var cats = await Http.GetFromJsonAsync<List<CategoryLookup>>("api/categories");
+            _categories = cats ?? new();
+        }
+        catch
+        {
+            try { _categories = await Http.GetFromJsonAsync<List<CategoryLookup>>("api/Category/GetAllCategories") ?? new(); }
+            catch { }
+        }
     }
 
     private async Task LoadReport()
@@ -175,18 +194,45 @@
         {
             var query = new List<string>();
             if (_filterWarehouseId.HasValue) query.Add($"warehouseId={_filterWarehouseId}");
-            if (_filterCategoryId.HasValue) query.Add($"categoryId={_filterCategoryId}");
-            if (_filterAsOfDate.HasValue) query.Add($"asOfDate={_filterAsOfDate:yyyy-MM-dd}");
 
-            var url = "/api/warehousereports/stock-valuation" + (query.Any() ? "?" + string.Join("&", query) : "");
-            _items = await Http.GetFromJsonAsync<List<StockValuationItemDto>>(url) ?? new();
+            var url = "api/warehousereports/stock-valuation" + (query.Any() ? "?" + string.Join("&", query) : "");
 
-            _summary = new StockValuationSummary
+            HttpResponseMessage response;
+            try
             {
-                TotalValue = _items.Sum(x => x.TotalValue),
-                TotalItems = _items.Count,
-                AvgCostPrice = _items.Any() ? _items.Average(x => x.AvgCostPrice) : 0
-            };
+                response = await Http.GetAsync(url);
+            }
+            catch
+            {
+                response = await Http.GetAsync("api/warehouse/reports/stock-valuation" + (query.Any() ? "?" + string.Join("&", query) : ""));
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                if (content.TrimStart().StartsWith("["))
+                {
+                    _items = JsonSerializer.Deserialize<List<StockValuationItemDto>>(content, options) ?? new();
+                }
+                else
+                {
+                    var paged = JsonSerializer.Deserialize<PagedReportResult>(content, options);
+                    _items = paged?.Items ?? new();
+                }
+
+                _summary = new StockValuationSummary
+                {
+                    TotalValue = _items.Sum(x => x.TotalValue),
+                    TotalItems = _items.Count,
+                    AvgCostPrice = _items.Any() ? _items.Average(x => x.AvgCostPrice) : 0
+                };
+            }
+            else
+            {
+                Snackbar.Add("تعذر تحميل تقرير تقييم المخزون", MudBlazor.Severity.Warning);
+            }
         }
         catch
         {
@@ -198,13 +244,42 @@
         }
     }
 
-    // DTOs
-    private record WarehouseLookup(int Id, string Name);
-    private record CategoryLookup(int Id, string Name);
+    private class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
 
-    private record StockValuationItemDto(
-        string ProductCode, string ProductName, string Category, string WarehouseName,
-        decimal OnHandQty, string UnitName, decimal AvgCostPrice, decimal TotalValue);
+    private class CategoryLookup
+    {
+        public int Id { get; set; }
+        public string? ArabicName { get; set; }
+        public string? EnglishName { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(ArabicName) ? ArabicName : (!string.IsNullOrWhiteSpace(Name) ? Name : (EnglishName ?? $"فئة {Id}"));
+    }
+
+    public class StockValuationItemDto
+    {
+        public string ProductCode { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string WarehouseName { get; set; } = "";
+        public decimal OnHandQty { get; set; }
+        public string UnitName { get; set; } = "";
+        public decimal AvgCostPrice { get; set; }
+        public decimal TotalValue { get; set; }
+    }
+
+    private class PagedReportResult
+    {
+        public decimal TotalValue { get; set; }
+        public int ItemCount { get; set; }
+        public List<StockValuationItemDto>? Items { get; set; }
+    }
 
     private class StockValuationSummary
     {
@@ -213,4 +288,3 @@
         public decimal AvgCostPrice { get; set; }
     }
 }
-

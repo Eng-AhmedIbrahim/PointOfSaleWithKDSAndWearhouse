@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +8,11 @@ using POS.API.Hubs;
 
 namespace POS.API.Controllers.Warehouse;
 
-[Authorize]
+//[Authorize]
 [ApiController]
 [Route("api/warehouse/requisitions")]
 [Route("api/requisitions")]
+[Route("api/branchrequisitions")]
 public class BranchRequisitionsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -231,7 +232,26 @@ public class BranchRequisitionsController : ControllerBase
             if (menuItem == null && !string.IsNullOrWhiteSpace(product.NameAr))
                 menuItem = await _db.MenuSalesItems.FirstOrDefaultAsync(m => m.ArabicName == product.NameAr);
 
-            if (menuItem == null) continue; // No matching branch sales item found
+            if (menuItem == null)
+            {
+                // Auto-create raw material menu item so the branch inventory is never skipped
+                menuItem = new POS.Core.Entities.Item.MenuSalesItems
+                {
+                    ArabicName = product.NameAr,
+                    EnglishName = !string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.NameAr,
+                    NormalizedEnglishName = (!string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.NameAr).ToUpperInvariant(),
+                    Barcode = product.Barcode,
+                    Price = 0,
+                    Invisible = true,
+                    ItemTypeId = 2, // Raw Material
+                    IsInventory = true,
+                    CreationDate = DateTime.UtcNow,
+                    HasAttribute = false,
+                    ByWeight = false
+                };
+                _db.MenuSalesItems.Add(menuItem);
+                await _db.SaveChangesAsync();
+            }
 
             // Find or create InventoryItem for this branch
             int branchId = r.RequestingBranchId;

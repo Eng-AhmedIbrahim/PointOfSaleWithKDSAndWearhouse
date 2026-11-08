@@ -28,7 +28,7 @@
                                AdornmentIcon="@Icons.Material.Filled.Warehouse">
                         @foreach (var wh in Warehouses)
                         {
-                            <MudSelectItem T="int?" Value="wh.Id">@wh.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)wh.Id)">@wh.DisplayName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -68,24 +68,24 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="كود المنتج">
-                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.ProductCode</MudChip>
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.DisplayProductCode</MudChip>
                     </MudTd>
-                    <MudTd DataLabel="اسم المنتج">@context.ProductName</MudTd>
+                    <MudTd DataLabel="اسم المنتج">@context.DisplayProductName</MudTd>
                     <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
                     <MudTd DataLabel="الموقع">@context.LocationName</MudTd>
                     <MudTd DataLabel="الكمية الفعلية">
-                        <MudText Color="@(context.OnHandQty <= context.ReorderLevel ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
+                        <MudText Color="@(context.DisplayOnHand <= context.DisplayReorder ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
                                  Class="font-weight-bold">
-                            @context.OnHandQty
+                            @context.DisplayOnHand
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="المحجوز">@context.ReservedQty</MudTd>
+                    <MudTd DataLabel="المحجوز">@context.DisplayReserved</MudTd>
                     <MudTd DataLabel="المتاح">
                         <MudText Color="MudBlazor.Color.Success" Class="font-weight-bold">
-                            @(context.OnHandQty - context.ReservedQty)
+                            @(context.DisplayOnHand - context.DisplayReserved)
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                    <MudTd DataLabel="الوحدة">@context.DisplayUnit</MudTd>
                     <MudTd DataLabel="آخر تحديث">@context.LastUpdated.ToString("yyyy/MM/dd HH:mm")</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
@@ -108,16 +108,16 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="كود المنتج">
-                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">@context.ProductCode</MudChip>
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">@context.DisplayProductCode</MudChip>
                     </MudTd>
-                    <MudTd DataLabel="اسم المنتج">@context.ProductName</MudTd>
+                    <MudTd DataLabel="اسم المنتج">@context.DisplayProductName</MudTd>
                     <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
                     <MudTd DataLabel="الكمية الفعلية">
-                        <MudText Color="MudBlazor.Color.Error" Class="font-weight-bold">@context.OnHandQty</MudText>
+                        <MudText Color="MudBlazor.Color.Error" Class="font-weight-bold">@context.DisplayOnHand</MudText>
                     </MudTd>
-                    <MudTd DataLabel="حد إعادة الطلب">@context.ReorderLevel</MudTd>
-                    <MudTd DataLabel="المتاح">@(context.OnHandQty - context.ReservedQty)</MudTd>
-                    <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
+                    <MudTd DataLabel="حد إعادة الطلب">@context.DisplayReorder</MudTd>
+                    <MudTd DataLabel="المتاح">@(context.DisplayOnHand - context.DisplayReserved)</MudTd>
+                    <MudTd DataLabel="الوحدة">@context.DisplayUnit</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="pa-4 mud-text-secondary" Color="MudBlazor.Color.Success">
@@ -130,11 +130,40 @@
 </div>
 
 @code {
-    private record WarehouseDto(int Id, string Name);
-    private record StockBalanceDto(
-        string ProductCode, string ProductName, string WarehouseName,
-        string LocationName, decimal OnHandQty, decimal ReservedQty,
-        decimal ReorderLevel, string UnitName, DateTime LastUpdated);
+    private class WarehouseDto
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? Name { get; set; }
+        public string? NameEn { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
+
+    private class StockBalanceDto
+    {
+        public int Id { get; set; }
+        public string? ProductCode { get; set; }
+        public string? ProductSKU { get; set; }
+        public string? ProductName { get; set; }
+        public string? WarehouseName { get; set; }
+        public string? LocationName { get; set; }
+        public decimal OnHandQty { get; set; }
+        public decimal QuantityOnHand { get; set; }
+        public decimal ReservedQty { get; set; }
+        public decimal QuantityReserved { get; set; }
+        public decimal ReorderLevel { get; set; }
+        public decimal ReorderPoint { get; set; }
+        public string? UnitName { get; set; }
+        public string? BaseUnit { get; set; }
+        public DateTime LastUpdated { get; set; }
+
+        public string DisplayProductCode => !string.IsNullOrWhiteSpace(ProductCode) ? ProductCode : (ProductSKU ?? "");
+        public string DisplayProductName => ProductName ?? "";
+        public decimal DisplayOnHand => OnHandQty > 0 ? OnHandQty : QuantityOnHand;
+        public decimal DisplayReserved => ReservedQty > 0 ? ReservedQty : QuantityReserved;
+        public decimal DisplayReorder => ReorderLevel > 0 ? ReorderLevel : ReorderPoint;
+        public string DisplayUnit => !string.IsNullOrWhiteSpace(UnitName) ? UnitName : (BaseUnit ?? "");
+    }
 
     private List<WarehouseDto> Warehouses = new();
     private List<StockBalanceDto> AllBalances = new();
@@ -151,10 +180,18 @@
     {
         try
         {
-            var whs = await Http.GetFromJsonAsync<List<WarehouseDto>>("/api/warehouses");
+            var whs = await Http.GetFromJsonAsync<List<WarehouseDto>>("api/warehouses");
             Warehouses = whs ?? new();
         }
-        catch (Exception ex) { Snackbar.Add($"خطأ في تحميل المستودعات: {ex.Message}", MudBlazor.Severity.Error); }
+        catch
+        {
+            try
+            {
+                var whs = await Http.GetFromJsonAsync<List<WarehouseDto>>("api/warehouse/warehouses");
+                Warehouses = whs ?? new();
+            }
+            catch (Exception ex) { Snackbar.Add($"خطأ في تحميل المستودعات: {ex.Message}", MudBlazor.Severity.Error); }
+        }
         await LoadBalances();
     }
 
@@ -164,9 +201,16 @@
         StateHasChanged();
         try
         {
-            var url = "/api/warehouseproducts/stock-balances";
-            if (SelectedWarehouseId.HasValue) url += $"?warehouseId={SelectedWarehouseId}";
-            var data = await Http.GetFromJsonAsync<List<StockBalanceDto>>(url);
+            var query = SelectedWarehouseId.HasValue ? $"?warehouseId={SelectedWarehouseId}" : "";
+            List<StockBalanceDto>? data = null;
+            try
+            {
+                data = await Http.GetFromJsonAsync<List<StockBalanceDto>>($"api/warehouseproducts/stock-balances{query}");
+            }
+            catch
+            {
+                data = await Http.GetFromJsonAsync<List<StockBalanceDto>>($"api/warehouse/products/stock-balances{query}");
+            }
             AllBalances = data ?? new();
             ApplyFilter();
         }
@@ -176,12 +220,13 @@
 
     private void ApplyFilter()
     {
+        var text = SearchText?.Trim() ?? "";
         FilteredBalances = AllBalances.Where(b =>
-            string.IsNullOrWhiteSpace(SearchText) ||
-            b.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-            b.ProductCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+            string.IsNullOrWhiteSpace(text) ||
+            (!string.IsNullOrEmpty(b.DisplayProductName) && b.DisplayProductName.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(b.DisplayProductCode) && b.DisplayProductCode.Contains(text, StringComparison.OrdinalIgnoreCase))
         ).ToList();
-        LowStockItems = FilteredBalances.Where(b => b.OnHandQty <= b.ReorderLevel).ToList();
+        LowStockItems = FilteredBalances.Where(b => b.DisplayOnHand <= b.DisplayReorder).ToList();
         StateHasChanged();
     }
 
@@ -192,8 +237,8 @@
         ApplyFilter();
     }
 
-    private string RowClass(StockBalanceDto row, int _)
-        => row.OnHandQty <= row.ReorderLevel ? "low-stock-row" : string.Empty;
+    private string RowClass(StockBalanceDto? row, int _)
+        => (row != null && row.OnHandQty <= row.ReorderLevel) ? "low-stock-row" : string.Empty;
 
     private void Export() => Snackbar.Add("جاري التصدير...", MudBlazor.Severity.Info);
 }

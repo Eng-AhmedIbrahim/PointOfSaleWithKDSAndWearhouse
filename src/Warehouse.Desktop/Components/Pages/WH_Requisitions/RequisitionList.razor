@@ -1,5 +1,5 @@
-@page "/requisitions"
-@attribute [Authorize(Policy = "CanViewBranchRequisitions")]
+﻿@page "/requisitions"
+@attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -21,10 +21,8 @@
                     <MudChip T="string" Color="MudBlazor.Color.Warning" Icon="@Icons.Material.Rounded.Notifications">طلبيات معلقة</MudChip>
                 </MudBadge>
             }
-            <AuthorizeView Policy="CanCreateBranchRequisition">
-                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Rounded.Add"
-                           OnClick="OpenNewDialog">طلبية جديدة</MudButton>
-            </AuthorizeView>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Rounded.Add"
+                       OnClick="OpenNewDialog">طلبية جديدة</MudButton>
         </div>
     </div>
 
@@ -75,10 +73,8 @@
                                        OnClick="@(() => OpenDetail(context))" Title="تفاصيل" />
                         @if (context.Status == "Submitted" || context.Status == "UnderReview")
                         {
-                            <AuthorizeView Policy="CanApproveBranchRequisitions" Context="authContext">
-                                <MudIconButton Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
-                                               OnClick="@(() => QuickApprove(context))" Title="موافقة سريعة" />
-                            </AuthorizeView>
+                            <MudIconButton Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
+                                           OnClick="@(() => QuickApprove(context))" Title="موافقة سريعة" />
                         }
                     </div>
                 </MudTd>

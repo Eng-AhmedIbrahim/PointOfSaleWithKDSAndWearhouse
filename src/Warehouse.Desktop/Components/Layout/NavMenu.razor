@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <div class="top-nav-professional" dir="@(IsArabic ? "rtl" : "ltr")">
     <!-- Brand & Warehouse Badge -->
@@ -224,17 +225,35 @@
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
 
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
     private bool IsActive(string path)
     {
-        var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        if (string.IsNullOrEmpty(relative) && path == "/") return true;
-        return "/" + relative.TrimEnd('/') == path.TrimEnd('/');
+        var relative = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/');
+        if (relative == "/" && path == "/") return true;
+        if (path == "/") return relative == "/";
+        return relative.Equals(path.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsActivePrefix(string prefix)
     {
-        var relative = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return relative.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+        var relative = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/');
+        if (relative == "/" && prefix == "/") return true;
+        if (prefix == "/") return relative == "/";
+        return relative.StartsWith(prefix.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
     }
 
     private void NavigateTo(string url)
@@ -245,6 +264,8 @@
     private async Task ToggleLanguage()
     {
         var targetLang = IsArabic ? "en" : "ar";
+        await LocalizerService.SetLanguage(targetLang);
+        await LocalStorage.SetItemAsync("culture", targetLang);
         await LocalStorage.SetItemAsync("currentLanguage", targetLang);
         NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }

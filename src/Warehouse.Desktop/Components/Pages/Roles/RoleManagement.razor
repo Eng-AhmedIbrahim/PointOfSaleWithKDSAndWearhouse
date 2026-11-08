@@ -12,11 +12,11 @@
 <div class="role-management-container @(IsArabic ? "rtl-mode" : "") py-2" dir="@(IsArabic ? "rtl" : "ltr")">
     <RadzenTabs RenderMode="Radzen.TabRenderMode.Client">
         <Tabs>
-            <RadzenTabsItem Text="@(IsArabic ? "Ø¹Ø±Ø¶ Ø§Ù„Ø£Ø¯ÙˆØ§Ø±" : "Search & List Roles")" Icon="security">
+            <RadzenTabsItem Text="@TitleRolesTab" Icon="security">
                 <div class="tab-content">
                     <div class="search-container mb-3" style="max-width: 500px;">
                         <MudTextField @bind-Value="SearchTerm" 
-                                      Placeholder="@(IsArabic ? "Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ø¯ÙˆØ±..." : "Search by role name...")"
+                                      Placeholder="@(IsArabic ? "بحث باسم الدور..." : "Search by role name...")"
                                       Variant="MudBlazor.Variant.Outlined" 
                                       Adornment="Adornment.Start" 
                                       AdornmentIcon="@Icons.Material.Filled.Search" 
@@ -33,7 +33,7 @@
                         {
                             <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white;">
                                 <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 1rem;" />
-                                <h4 style="color: #64748b; font-weight: 700;">@(IsArabic ? "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª..." : "Loading data...")</h4>
+                                <h4 style="color: #64748b; font-weight: 700;">@(IsArabic ? "جاري تحميل البيانات..." : "Loading data...")</h4>
                             </div>
                         }
                         else
@@ -46,20 +46,20 @@
                                             SelectionMode="DataGridSelectionMode.Single"
                                             Style="flex: 1; min-height: 0; font-size: 1.05rem;">
                                 <Columns>
-                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Property="Id" Title="Id" Width="100px" TextAlign="Radzen.TextAlign.Center" />
-                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Property="Name" Title="@(IsArabic ? "Ø§Ø³Ù… Ø§Ù„Ø¯ÙˆØ±" : "Role Name")" />
-                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Context="role" Filterable="false" Sortable="false" TextAlign="Radzen.TextAlign.Center" Width="200px" Title="@(IsArabic ? "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª" : "Actions")">
+                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Property="Id" Title="@TitleColId" Width="100px" TextAlign="Radzen.TextAlign.Center" />
+                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Property="Name" Title="@TitleColName" />
+                                    <RadzenDataGridColumn TItem="RoleToReturnDto" Context="role" Filterable="false" Sortable="false" TextAlign="Radzen.TextAlign.Center" Width="200px" Title="@TitleColActions">
                                         <Template Context="role">
                                             <RadzenSplitButton Click="@((args) => OnActionClick(args, role))"
-                                                               Text="@(IsArabic ? "ØªØ¹Ø¯ÙŠÙ„" : "Edit")"
+                                                               Text="@TitleEditBtn"
                                                                Icon="edit"
                                                                ButtonStyle="ButtonStyle.Primary"
                                                                Variant="Radzen.Variant.Filled"
                                                                Size="ButtonSize.Medium"
                                                                Style="font-weight: 900; font-size: 1.1rem; width: 140px;">
                                                 <ChildContent>
-                                                    <RadzenSplitButtonItem Text="@(IsArabic ? "ØªØ¹Ø¯ÙŠÙ„" : "Edit")" Value="edit" Icon="edit" />
-                                                    <RadzenSplitButtonItem Text="@(IsArabic ? "Ø­Ø°Ù" : "Delete")" Value="delete" Icon="delete" />
+                                                    <RadzenSplitButtonItem Text="@TitleEditItem" Value="edit" Icon="edit" />
+                                                    <RadzenSplitButtonItem Text="@TitleDeleteItem" Value="delete" Icon="delete" />
                                                 </ChildContent>
                                             </RadzenSplitButton>
                                         </Template>
@@ -71,24 +71,24 @@
                 </div>
             </RadzenTabsItem>
 
-            <RadzenTabsItem Text="@(IsArabic ? "Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ± Ø¬Ø¯ÙŠØ¯" : "Create New Role")" Icon="add_moderator">
+            <RadzenTabsItem Text="@TitleCreateTab" Icon="add_moderator">
                 <div class="tab-content">
                     <RadzenTemplateForm TItem="RoleToReturnDto" Data="@NewRole" Submit="@OnSubmit">
                         <RadzenRow Gap="1rem">
                             <RadzenColumn Size="12" SizeMD="6">
-                                <RadzenFieldset Text="@(IsArabic ? "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯ÙˆØ±" : "Role Info")">
+                                <RadzenFieldset Text="@TitleRoleInfo">
                                     <div class="mb-3">
-                                        <RadzenLabel Text="@(IsArabic ? "Ø§Ø³Ù… Ø§Ù„Ø¯ÙˆØ±" : "Role Name")" Style="font-weight: 900;" />
+                                        <RadzenLabel Text="@TitleRoleName" Style="font-weight: 900;" />
                                         <RadzenTextBox @bind-Value="NewRole.Name" Name="RoleName" Style="width: 100%; font-weight: 800;" />
-                                        <RadzenRequiredValidator Component="RoleName" Text="@(IsArabic ? "Ø§Ø³Ù… Ø§Ù„Ø¯ÙˆØ± Ù…Ø·Ù„ÙˆØ¨" : "Role Name is required")" />
+                                        <RadzenRequiredValidator Component="RoleName" Text="@TitleRoleNameReq" />
                                     </div>
                                 </RadzenFieldset>
                             </RadzenColumn>
                         </RadzenRow>
                         <div class="mt-4 text-center">
-                            <RadzenButton ButtonType="Radzen.ButtonType.Submit" Text="@(IsArabic ? "Ø¥Ù†Ø´Ø§Ø¡" : "Create")" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" BusyText="@(IsArabic ? "Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡..." : "Creating...")" IsBusy="@IsSaving" 
+                            <RadzenButton ButtonType="Radzen.ButtonType.Submit" Text="@TitleCreate" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" BusyText="@TitleCreating" IsBusy="@IsSaving" 
                                          Style="font-weight: 900; padding: 0 2rem;"/>
-                            <RadzenButton ButtonType="Radzen.ButtonType.Button" Text="@(IsArabic ? "Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ†" : "Reset")" Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Large" Click="@ResetForm" Class="ms-2"
+                            <RadzenButton ButtonType="Radzen.ButtonType.Button" Text="@TitleReset" Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Large" Click="@ResetForm" Class="ms-2"
                                          Style="font-weight: 900;"/>
                         </div>
                     </RadzenTemplateForm>
@@ -134,7 +134,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(IsArabic ? "ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª" : "Failed to load data", Severity.Error);
+            Snackbar.Add(IsArabic ? "فشل تحميل البيانات" : "Failed to load data", Severity.Error);
         }
         finally
         {
@@ -163,7 +163,7 @@
     private async Task OpenEditDialog(RoleToReturnDto role)
     {
         // Add Edit Logic here
-        Snackbar.Add(IsArabic ? "Ø³ÙŠØªÙ… Ø¥Ø¶Ø§ÙØ© Ø®Ø§ØµÙŠØ© Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù‚Ø±ÙŠØ¨Ø§Ù‹" : "Edit functionality coming soon", Severity.Info);
+        Snackbar.Add(IsArabic ? "سيتم إضافة خاصية التعديل قريباً" : "Edit functionality coming soon", Severity.Info);
     }
 
     private async Task ConfirmDelete(RoleToReturnDto role)
@@ -175,7 +175,7 @@
         };
 
         var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<DeleteRoleConfirmDialog>(IsArabic ? "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù" : "Confirm Deletion", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteRoleConfirmDialog>(IsArabic ? "تأكيد الحذف" : "Confirm Deletion", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -183,12 +183,12 @@
             var success = await AccountService.DeleteRole(role.Name);
             if (success)
             {
-                Snackbar.Add(IsArabic ? "ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¯ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­" : "Role deleted successfully", Severity.Success);
+                Snackbar.Add(IsArabic ? "تم حذف الدور بنجاح" : "Role deleted successfully", Severity.Success);
                 await LoadData();
             }
             else
             {
-                Snackbar.Add(IsArabic ? "ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø¯ÙˆØ±" : "Failed to delete role", Severity.Error);
+                Snackbar.Add(IsArabic ? "فشل حذف الدور" : "Failed to delete role", Severity.Error);
             }
         }
     }
@@ -203,12 +203,12 @@
             var success = await AccountService.CreateRole(NewRole.Name);
             if (success)
             {
-                Snackbar.Add(IsArabic ? "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¯ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­" : "Role created successfully", Severity.Success);
+                Snackbar.Add(IsArabic ? "تم إنشاء الدور بنجاح" : "Role created successfully", Severity.Success);
                 ResetForm();
                 await LoadData();
             }
             else
-                Snackbar.Add(IsArabic ? "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¯ÙˆØ±" : "Failed to create role", Severity.Error);
+                Snackbar.Add(IsArabic ? "فشل إنشاء الدور" : "Failed to create role", Severity.Error);
         }
         catch (Exception ex)
         {
@@ -244,5 +244,21 @@
         => NewRole = new RoleToReturnDto();
 
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
-}
 
+    private string TitleRolesTab => IsArabic ? "عرض الأدوار" : "Search & List Roles";
+    private string TitleCreateTab => IsArabic ? "إنشاء دور جديد" : "Create New Role";
+    private string TitleColId => "ID";
+    private string TitleColName => IsArabic ? "اسم الدور" : "Role Name";
+    private string TitleColActions => IsArabic ? "الإجراءات" : "Actions";
+    private string TitleEditBtn => IsArabic ? "تعديل" : "Edit";
+    private string TitleEditItem => IsArabic ? "تعديل" : "Edit";
+    private string TitleDeleteItem => IsArabic ? "حذف" : "Delete";
+    private string TitleRoleInfo => IsArabic ? "بيانات الدور" : "Role Info";
+    private string TitleRoleName => IsArabic ? "اسم الدور" : "Role Name";
+    private string TitleRoleNameReq => IsArabic ? "اسم الدور مطلوب" : "Role Name is required";
+    private string TitleCreate => IsArabic ? "إنشاء" : "Create";
+    private string TitleCreating => IsArabic ? "جاري الإنشاء..." : "Creating...";
+    private string TitleReset => IsArabic ? "إعادة تعيين" : "Reset";
+    private string TitleLoading => IsArabic ? "جاري تحميل البيانات..." : "Loading data...";
+    private string TitleSearchPlaceholder => IsArabic ? "بحث باسم الدور..." : "Search by role name...";
+}

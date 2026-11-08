@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Pos.Repository.Data;
 using POS.Core.Entities.Settings;
 using System.Threading.Tasks;

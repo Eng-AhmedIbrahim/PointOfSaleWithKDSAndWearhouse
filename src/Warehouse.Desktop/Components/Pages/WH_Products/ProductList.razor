@@ -19,24 +19,38 @@
                    OnClick="OpenAddDialog">إضافة منتج</MudButton>
     </div>
 
-    <MudCard Class="wh-card mb-4">
+    <MudCard Class="wh-card mb-4" Elevation="1">
         <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" md="4">
-                    <MudTextField @bind-Value="SearchText" Label="بحث (اسم / كود / باركود)"
+            <MudGrid Spacing="3" Class="align-end">
+                <MudItem xs="12" sm="6" md="5">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">
+                        <MudIcon Icon="@Icons.Material.Filled.QrCodeScanner" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub;" />
+                        بحث (اسم / كود / باركود)
+                    </MudText>
+                    <MudTextField @bind-Value="SearchText" Placeholder="ابحث بالاسم، الكود، أو امسح الباركود..."
                                   MudBlazor.Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Immediate="true" OnKeyUp="ApplyFilter" Variant="MudBlazor.Variant.Outlined" />
+                                  AdornmentColor="MudBlazor.Color.Warning"
+                                  Immediate="true" OnKeyUp="ApplyFilter" Variant="MudBlazor.Variant.Outlined"
+                                  Margin="MudBlazor.Margin.Dense" Clearable="true" />
                 </MudItem>
-                <MudItem xs="12" md="3">
-                    <MudSelect T="bool?" @bind-Value="ActiveFilter" Label="الحالة" Variant="MudBlazor.Variant.Outlined">
-                        <MudSelectItem T="bool?" Value="null">الكل</MudSelectItem>
-                        <MudSelectItem T="bool?" Value="true">نشط</MudSelectItem>
-                        <MudSelectItem T="bool?" Value="false">غير نشط</MudSelectItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">
+                        <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub;" />
+                        الحالة
+                    </MudText>
+                    <MudSelect T="bool?" @bind-Value="ActiveFilter" Variant="MudBlazor.Variant.Outlined"
+                               Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="bool?" Value="null">جميع الحالات</MudSelectItem>
+                        <MudSelectItem T="bool?" Value="true">نشط فقط</MudSelectItem>
+                        <MudSelectItem T="bool?" Value="false">غير نشط فقط</MudSelectItem>
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" md="2" Class="d-flex align-center">
-                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary" OnClick="LoadProducts"
-                               StartIcon="@Icons.Material.Filled.Refresh">تحديث</MudButton>
+                <MudItem xs="12" sm="12" md="4" Class="d-flex align-end gap-2 pb-1">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" OnClick="LoadProducts"
+                               StartIcon="@Icons.Material.Filled.Refresh" Style="height: 40px; border-radius: 8px; font-weight: 700;">تحديث</MudButton>
+                    <MudChip T="string" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined" Style="height: 40px;">
+                        إجمالي المنتجات: @FilteredProducts.Count
+                    </MudChip>
                 </MudItem>
             </MudGrid>
         </MudCardContent>
@@ -65,29 +79,40 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="كود المنتج">
-                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.ProductCode</MudChip>
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined" Style="font-weight: 700;">@context.DisplayCode</MudChip>
+                        @if (!string.IsNullOrEmpty(context.Barcode) && context.Barcode != context.DisplayCode)
+                        {
+                            <div class="mud-text-secondary mt-1" style="font-size:0.75rem; font-family: monospace;">
+                                <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="MudBlazor.Size.Small" Style="font-size: 0.85rem; vertical-align: middle;" />
+                                @context.Barcode
+                            </div>
+                        }
                     </MudTd>
                     <MudTd DataLabel="اسم المنتج">
-                        <div class="font-weight-bold">@context.Name</div>
+                        <div class="font-weight-bold" style="font-size: 0.95rem;">@context.DisplayName</div>
                         @if (!string.IsNullOrEmpty(context.NameEn))
                         {
                             <div class="mud-text-secondary" style="font-size:0.78rem;">@context.NameEn</div>
                         }
                     </MudTd>
-                    <MudTd DataLabel="الفئة">@context.CategoryName</MudTd>
+                    <MudTd DataLabel="الفئة">
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Text">
+                            @(context.CategoryName ?? "-")
+                        </MudChip>
+                    </MudTd>
                     <MudTd DataLabel="وحدة الأساس">
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Outlined">
-                            وحدة الأساس: @context.BaseUnitName
+                            @(string.IsNullOrEmpty(context.BaseUnitName) ? "-" : $"وحدة الأساس: {context.BaseUnitName}")
                         </MudChip>
                     </MudTd>
                     <MudTd DataLabel="المخزون الحالي">
-                        <MudText Color="@(context.CurrentStock <= context.ReorderLevel ? MudBlazor.Color.Error : MudBlazor.Color.Success)"
+                        <MudText Color="@(context.CurrentStock <= context.DisplayReorderLevel ? MudBlazor.Color.Error : MudBlazor.Color.Success)"
                                  Class="font-weight-bold">
                             @context.CurrentStock
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="حد إعادة الطلب">@context.ReorderLevel</MudTd>
-                    <MudTd DataLabel="سعر التكلفة">@context.CostPrice.ToString("N2")</MudTd>
+                    <MudTd DataLabel="حد إعادة الطلب">@context.DisplayReorderLevel</MudTd>
+                    <MudTd DataLabel="سعر التكلفة">@context.DisplayCost.ToString("N2")</MudTd>
                     <MudTd DataLabel="الحالة">
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.IsActive ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
                             @(context.IsActive ? "نشط" : "غير نشط")
@@ -96,9 +121,9 @@
                     <MudTd DataLabel="الإجراءات">
                         <MudButtonGroup Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Outlined">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Warning"
-                                           OnClick="() => OpenEditDialog(context)" />
+                                           OnClick="() => OpenEditDialog(context)" Title="تعديل" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
-                                           OnClick="() => DeleteProduct(context)" />
+                                           OnClick="() => DeleteProduct(context)" Title="حذف" />
                         </MudButtonGroup>
                     </MudTd>
                 </RowTemplate>
@@ -111,10 +136,29 @@
 </div>
 
 @code {
-    private record ProductDto(
-        int Id, string ProductCode, string Name, string? NameEn,
-        string CategoryName, string BaseUnitName, decimal CurrentStock,
-        decimal ReorderLevel, decimal CostPrice, bool IsActive);
+    private class ProductDto
+    {
+        public int Id { get; set; }
+        public string? SKU { get; set; }
+        public string? ProductCode { get; set; }
+        public string? Barcode { get; set; }
+        public string? NameAr { get; set; }
+        public string? Name { get; set; }
+        public string? NameEn { get; set; }
+        public string? CategoryName { get; set; }
+        public string? BaseUnitName { get; set; }
+        public decimal CurrentStock { get; set; }
+        public decimal ReorderPoint { get; set; }
+        public decimal ReorderLevel { get; set; }
+        public decimal WeightedAverageCost { get; set; }
+        public decimal CostPrice { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        public string DisplayCode => !string.IsNullOrWhiteSpace(SKU) ? SKU : (!string.IsNullOrWhiteSpace(ProductCode) ? ProductCode : (!string.IsNullOrWhiteSpace(Barcode) ? Barcode : $"PRD-{Id:D4}"));
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"منتج {Id}"));
+        public decimal DisplayCost => WeightedAverageCost > 0 ? WeightedAverageCost : CostPrice;
+        public decimal DisplayReorderLevel => ReorderPoint > 0 ? ReorderPoint : ReorderLevel;
+    }
 
     private List<ProductDto> AllProducts = new();
     private List<ProductDto> FilteredProducts = new();
@@ -131,7 +175,7 @@
         StateHasChanged();
         try
         {
-            var result = await Http.GetFromJsonAsync<List<ProductDto>>("/api/warehouseproducts");
+            var result = await Http.GetFromJsonAsync<List<ProductDto>>("api/warehouseproducts");
             AllProducts = result ?? new();
             ApplyFilter();
         }
@@ -144,18 +188,23 @@
 
     private void ApplyFilter()
     {
+        var text = SearchText?.Trim() ?? "";
         FilteredProducts = AllProducts.Where(p =>
-            (string.IsNullOrWhiteSpace(SearchText) ||
-             p.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-             p.ProductCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-             (p.NameEn?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+            p != null &&
+            (string.IsNullOrWhiteSpace(text) ||
+             (!string.IsNullOrEmpty(p.DisplayName) && p.DisplayName.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(p.DisplayCode) && p.DisplayCode.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(p.Barcode) && p.Barcode.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(p.SKU) && p.SKU.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(p.NameEn) && p.NameEn.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(p.CategoryName) && p.CategoryName.Contains(text, StringComparison.OrdinalIgnoreCase))) &&
             (ActiveFilter == null || p.IsActive == ActiveFilter)
         ).ToList();
         StateHasChanged();
     }
 
-    private string RowClass(ProductDto row, int _)
-        => row.CurrentStock <= row.ReorderLevel ? "low-stock-row" : string.Empty;
+    private string RowClass(ProductDto? row, int _)
+        => (row != null && row.CurrentStock <= row.DisplayReorderLevel) ? "low-stock-row" : string.Empty;
 
     private async Task OpenAddDialog()
     {
@@ -175,7 +224,7 @@
     private async Task DeleteProduct(ProductDto product)
     {
         bool confirmed = await DialogService.ShowMessageBox(
-            "تأكيد الحذف", $"هل تريد حذف المنتج '{product.Name}'؟",
+            "تأكيد الحذف", $"هل تريد حذف المنتج '{product.DisplayName}'؟",
             yesText: "حذف", cancelText: "إلغاء") ?? false;
         if (!confirmed) return;
         try

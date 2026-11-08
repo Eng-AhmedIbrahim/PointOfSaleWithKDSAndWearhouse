@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using POS.Core.Services.Contract.InventoryServices;
 using POS.Core.Entities.Item;
 namespace POS.Services.DineInOrderServices;

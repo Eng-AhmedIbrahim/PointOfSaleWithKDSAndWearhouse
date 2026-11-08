@@ -1,4 +1,4 @@
-global using QuestPDF.Fluent;
+﻿global using QuestPDF.Fluent;
 global using QuestPDF.Helpers;
 global using QuestPDF.Infrastructure;
 global using POS.Contract.Models;
@@ -14,3 +14,5 @@ global using POS.Core.Specifications.InventorySpecs;
 global using POS.Contract.Dtos.OrderDtos;
 global using POS.Reports.ReportsMakerServices;
 global using Unit = QuestPDF.Infrastructure.Unit;
+
+global using POS.Core.Entities.Warehouse;

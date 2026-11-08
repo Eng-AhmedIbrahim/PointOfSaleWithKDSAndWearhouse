@@ -6,15 +6,18 @@ using Pos.Repository.Data;
 
 namespace POS.API.Controllers.Warehouse;
 
-[Authorize]
+//[Authorize]
 [ApiController]
 [Route("api/warehouse/suppliers")]
+[Route("api/warehouse/supplier")]
 [Route("api/suppliers")]
+[Route("api/supplier")]
 public class SuppliersController : ControllerBase
 {
     private readonly AppDbContext _db;
     public SuppliersController(AppDbContext db) => _db = db;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool? activeOnly = true)
     {
@@ -22,7 +25,7 @@ public class SuppliersController : ControllerBase
         if (activeOnly == true) query = query.Where(s => s.IsActive);
         return Ok(await query.OrderBy(s => s.NameAr).Select(s => new
         {
-            s.Id, s.Code, s.NameAr, s.NameEn, s.Phone, s.Email, s.Address,
+            s.Id, s.Code, Name = s.NameAr, s.NameAr, s.NameEn, s.Phone, s.Email, Address = s.Address, City = s.Address, ContactPerson = s.NameEn ?? "",
             s.TaxNumber, s.CommercialRegister, s.DefaultPaymentTerm,
             s.CreditLimit, s.CurrentBalance, s.IsActive, s.CreatedAt
         }).ToListAsync());

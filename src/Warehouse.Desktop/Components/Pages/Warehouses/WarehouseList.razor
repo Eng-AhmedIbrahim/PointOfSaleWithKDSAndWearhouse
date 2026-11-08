@@ -1,10 +1,10 @@
-@page "/warehouses"
+﻿@page "/warehouses"
 @using MudBlazor
 @using Variant = MudBlazor.Variant
 @using Color = MudBlazor.Color
 @using DialogOptions = MudBlazor.DialogOptions
 @using Severity = MudBlazor.Severity
-@attribute [Authorize(Policy = "CanViewWarehouses")]
+@attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -27,13 +27,11 @@
             </div>
         </div>
 
-        <AuthorizeView Policy="CanManageWarehouses">
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="MudBlazor.Size.Large"
-                       StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenAddDialog"
-                       Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
-                مستودع جديد
-            </MudButton>
-        </AuthorizeView>
+        <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="MudBlazor.Size.Large"
+                   StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenAddDialog"
+                   Style="border-radius: 12px; font-weight: 800; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
+            مستودع جديد
+        </MudButton>
     </div>
 
     <MudPaper Class="pa-4 mb-6 rounded-xl" Elevation="1">
@@ -83,9 +81,7 @@
                                 </div>
                             </CardHeaderContent>
                             <CardHeaderActions>
-                                <AuthorizeView Policy="CanManageWarehouses">
-                                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="Color.Default" Size="MudBlazor.Size.Small" OnClick="@(() => OpenEditDialog(w))" Title="تعديل" />
-                                </AuthorizeView>
+                                <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="Color.Default" Size="MudBlazor.Size.Small" OnClick="@(() => OpenEditDialog(w))" Title="تعديل" />
                             </CardHeaderActions>
                         </MudCardHeader>
 
@@ -151,6 +147,7 @@
     private int? _filterType;
 
     private IEnumerable<WarehouseDto> FilteredWarehouses => _warehouses.Where(w =>
+        w != null &&
         (string.IsNullOrEmpty(_search) || (w.NameAr?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) || (w.Code?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)) &&
         (!_filterType.HasValue || w.Type == _filterType.Value));
 

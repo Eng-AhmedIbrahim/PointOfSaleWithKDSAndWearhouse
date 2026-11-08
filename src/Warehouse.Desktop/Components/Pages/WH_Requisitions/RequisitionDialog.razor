@@ -1,117 +1,201 @@
 ﻿@using MudBlazor
-@using System.Net.Http.Json
-@using BlazorBase.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
 
-<MudDialog>
+<MudDialog dir="rtl" Style="max-width: 900px; width: 95vw; border-radius: 16px;">
     <TitleContent>
-        <MudText MudBlazor.Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Class="mr-2" />
-            طلب توريد جديد من الفرع
-        </MudText>
+        <div class="d-flex align-center gap-2 pa-2 border-b pb-2">
+            <div class="pa-2 rounded-lg" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Size="MudBlazor.Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 800; color: #1e293b;">طلب توريد جديد من الفرع</MudText>
+                <MudText Typo="MudBlazor.Typo.caption" Class="mud-text-secondary">إنشاء طلب احتياج أصناف من المخزن وتوجيهه للصرف</MudText>
+            </div>
+        </div>
     </TitleContent>
     <DialogContent>
-        <div dir="@(IsArabic ? "rtl" : "ltr")">
-            <MudGrid Spacing="2">
+        <div dir="@(IsArabic ? "rtl" : "ltr")" class="py-2" style="min-width: 580px;">
+            <MudGrid Spacing="3">
+                <!-- 1. الفرع الطالب -->
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Label="الفرع الطالب" @bind-Value="Model.FromBranchId"
-                               Required="true" Variant="MudBlazor.Variant.Outlined"
-                               For="@(() => Model.FromBranchId)">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #334155;">
+                        <MudIcon Icon="@Icons.Material.Filled.Store" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub; color: #f97316;" />
+                        الفرع الطالب <span style="color: #ef4444;">*</span>
+                    </MudText>
+                    <MudSelect T="int?" @bind-Value="Model.FromBranchId"
+                               Variant="MudBlazor.Variant.Outlined"
+                               Margin="MudBlazor.Margin.Dense"
+                               AnchorOrigin="Origin.BottomCenter"
+                               Placeholder="اختر الفرع الطالب...">
                         @foreach (var b in _branches)
                         {
                             <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
+
+                <!-- 2. المخزن المورد -->
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Label="المخزن المورد" @bind-Value="Model.ToWarehouseId"
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #334155;">
+                        <MudIcon Icon="@Icons.Material.Filled.Warehouse" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub; color: #64748b;" />
+                        المخزن المورد
+                        <span class="mud-text-secondary" style="font-size: 0.75rem; font-weight: normal;">(اختياري - يحدد تلقائياً)</span>
+                    </MudText>
+                    <MudSelect T="int?" @bind-Value="Model.ToWarehouseId"
                                Variant="MudBlazor.Variant.Outlined"
-                               HelperText="سيتم اختيار المخزن الأنسب تلقائياً إذا كان المخزن المختار غير قادر على التوريد">
+                               Margin="MudBlazor.Margin.Dense"
+                               AnchorOrigin="Origin.BottomCenter"
+                               Placeholder="-- اختياري (تلقائي) --">
+                        <MudSelectItem T="int?" Value="@((int?)null)">-- اختياري (المخزن الأنسب) --</MudSelectItem>
                         @foreach (var w in _warehouses)
                         {
-                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
+
+                <!-- 3. تاريخ التسليم المطلوب -->
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="تاريخ التسليم المطلوب" @bind-Date="Model.RequestedDeliveryDate"
-                                   Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #334155;">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub; color: #f97316;" />
+                        تاريخ التسليم المطلوب
+                    </MudText>
+                    <MudDatePicker @bind-Date="Model.RequestedDeliveryDate"
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Margin="MudBlazor.Margin.Dense"
+                                   DateFormat="yyyy-MM-dd"
+                                   Culture="@(IsArabic ? new CultureInfo("ar-EG") : new CultureInfo("en-US"))"
+                                   MinDate="DateTime.Today" />
                 </MudItem>
+
+                <!-- 4. الأولوية -->
                 <MudItem xs="12" sm="6">
-                    <MudText MudBlazor.Typo="Typo.body2" Class="mb-1">الأولوية</MudText>
-                    <MudToggleGroup T="string" @bind-Value="Model.Priority" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Medium">
-                        <MudToggleItem Value="@("Normal")">عادي</MudToggleItem>
-                        <MudToggleItem Value="@("Urgent")">عاجل</MudToggleItem>
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #334155;">
+                        <MudIcon Icon="@Icons.Material.Filled.Flag" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub; color: #f97316;" />
+                        الأولوية
+                    </MudText>
+                    <MudToggleGroup T="string" @bind-Value="Model.Priority"
+                                    Color="MudBlazor.Color.Warning"
+                                    Size="MudBlazor.Size.Small"
+                                    Style="width: 100%; height: 40px;">
+                        <MudToggleItem Value="@("Normal")" Style="flex: 1; font-weight: 700;">عادي</MudToggleItem>
+                        <MudToggleItem Value="@("Urgent")" Style="flex: 1; font-weight: 700; color: #dc2626;">⚡ عاجل</MudToggleItem>
                     </MudToggleGroup>
                 </MudItem>
+
+                <!-- 5. ملاحظات -->
                 <MudItem xs="12">
-                    <MudTextField T="string" Label="ملاحظات" @bind-Value="Model.Notes"
-                                  Lines="2" Variant="MudBlazor.Variant.Outlined" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #334155;">
+                        <MudIcon Icon="@Icons.Material.Filled.Notes" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: sub;" />
+                        ملاحظات إضافية
+                    </MudText>
+                    <MudTextField T="string" @bind-Value="Model.Notes"
+                                  Lines="2" Variant="MudBlazor.Variant.Outlined"
+                                  Margin="MudBlazor.Margin.Dense"
+                                  Placeholder="مثال: يرجى التوريد في الصباح الباكر قبل موعد الافتتاح..." />
                 </MudItem>
             </MudGrid>
 
             <MudDivider Class="my-4" />
-            <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2"><b>أصناف الطلب</b></MudText>
 
-            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3">
+            <div class="d-flex align-center justify-space-between mb-3">
+                <div class="d-flex align-center gap-2">
+                    <MudText Typo="MudBlazor.Typo.subtitle1" Style="font-weight: 800; color: #ea580c;">
+                        <MudIcon Icon="@Icons.Material.Filled.FormatListBulleted" Class="me-1" Style="vertical-align: middle;" />
+                        أصناف الطلب
+                    </MudText>
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled">
+                        @_lines.Count صنف
+                    </MudChip>
+                </div>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Warning"
+                           Variant="MudBlazor.Variant.Filled" Size="MudBlazor.Size.Small"
+                           OnClick="AddLine" Style="border-radius: 8px; font-weight: 700;">
+                    إضافة صنف جديد
+                </MudButton>
+            </div>
+
+            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-2"
+                      Style="border-radius: 10px; overflow: hidden; border: 1px solid #fed7aa;">
                 <HeaderContent>
-                    <MudTh>المنتج</MudTh>
-                    <MudTh>الوحدة</MudTh>
-                    <MudTh>الكمية المطلوبة</MudTh>
-                    <MudTh>ملاحظات</MudTh>
-                    <MudTh></MudTh>
+                    <MudTh Style="background: #fff7ed; font-weight: 800; color: #9a3412; width: 40%;">المنتج *</MudTh>
+                    <MudTh Style="background: #fff7ed; font-weight: 800; color: #9a3412; width: 20%;">الوحدة *</MudTh>
+                    <MudTh Style="background: #fff7ed; font-weight: 800; color: #9a3412; width: 15%;">الكمية *</MudTh>
+                    <MudTh Style="background: #fff7ed; font-weight: 800; color: #9a3412; width: 20%;">ملاحظات</MudTh>
+                    <MudTh Style="background: #fff7ed; width: 5%; text-align: center;"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <MudSelect T="int?" @bind-Value="context.ProductId" Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
+                        <MudSelect T="int?" @bind-Value="context.ProductId"
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Margin="MudBlazor.Margin.Dense"
+                                   Placeholder="اختر المنتج..."
+                                   AnchorOrigin="Origin.BottomCenter">
                             @foreach (var p in _products)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
                     <MudTd>
-                        <MudSelect T="int?" @bind-Value="context.UnitId" Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
+                        <MudSelect T="int?" @bind-Value="context.UnitId"
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Margin="MudBlazor.Margin.Dense"
+                                   Placeholder="اختر الوحدة..."
+                                   AnchorOrigin="Origin.BottomCenter">
                             @foreach (var u in _units)
                             {
-                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.RequestedQty"
-                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Min="0.01m" />
+                                         Variant="MudBlazor.Variant.Outlined"
+                                         Margin="MudBlazor.Margin.Dense" Min="0.01m"
+                                         HideSpinButtons="true" />
                     </MudTd>
                     <MudTd>
                         <MudTextField T="string" @bind-Value="context.Notes"
-                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" />
+                                      Variant="MudBlazor.Variant.Outlined"
+                                      Margin="MudBlazor.Margin.Dense"
+                                      Placeholder="ملاحظة خاصة بالصنف..." />
                     </MudTd>
-                    <MudTd>
+                    <MudTd Style="text-align: center;">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
-                                       Size="MudBlazor.Size.Small" OnClick="@(() => RemoveLine(context))" />
+                                       Size="MudBlazor.Size.Small" OnClick="@(() => RemoveLine(context))"
+                                       Title="حذف السطر" />
                     </MudTd>
                 </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Style="opacity: 0.3; font-size: 2rem;" /><br />
+                        لم يتم إضافة أصناف بعد. اضغط على زر "إضافة صنف جديد" أعلاه.
+                    </MudText>
+                </NoRecordsContent>
             </MudTable>
-
-            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
-                       Variant="MudBlazor.Variant.Outlined" Size="MudBlazor.Size.Small" OnClick="AddLine">
-                إضافة صنف
-            </MudButton>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined"
+                   Style="border-radius: 8px;">إلغاء</MudButton>
         <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
-                   Class="wh-btn-primary" OnClick="Submit" Disabled="_submitting">
+                   OnClick="Submit" Disabled="_submitting"
+                   Style="border-radius: 8px; font-weight: 800; min-width: 140px; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);">
             @if (_submitting)
             {
-                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" />
+                <span>جاري الإرسال...</span>
             }
-            إرسال الطلب
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Send" Class="me-1" />
+                <span>إرسال الطلب</span>
+            }
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -122,7 +206,7 @@
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
     private bool _submitting;
 
-    private RequisitionCreateDto Model = new() { Priority = "Normal" };
+    private RequisitionCreateDto Model = new() { Priority = "Normal", RequestedDeliveryDate = DateTime.Today.AddDays(1) };
     private List<RequisitionLineDto> _lines = new();
 
     private List<BranchLookup> _branches = new();
@@ -133,37 +217,105 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadLookups();
-        AddLine();
+        if (!_lines.Any())
+        {
+            AddLine();
+        }
     }
 
     private async Task LoadLookups()
     {
+        // 1. الفروع
         try
         {
-            _branches = await Http.GetFromJsonAsync<List<BranchLookup>>("/api/account/branches") ?? new();
-            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
-            _products = await Http.GetFromJsonAsync<List<ProductLookup>>("/api/products/lookup") ?? new();
-            _units = await Http.GetFromJsonAsync<List<UnitLookup>>("/api/units/lookup") ?? new();
+            var branchResult = await Http.GetFromJsonAsync<List<BranchToReturnDto>>("api/branch/GetAllBranches");
+            Log.Information("Loaded branches: {@Branches}", branchResult);
+            _branches = branchResult?.Select(b => new BranchLookup(b.Id, b!.Name!,b!.ApiUrl!)).ToList() ?? new();
         }
         catch
         {
-            Snackbar.Add("حدث خطأ أثناء تحميل البيانات", MudBlazor.Severity.Error);
+            try
+            {
+                var branchResult = await Http.GetFromJsonAsync<List<BranchToReturnDto>>("api/branches");
+                _branches = branchResult?.Select(b => new BranchLookup(b.Id, b!.Name!,b.ApiUrl!)).ToList() ?? new();
+            }
+            catch { Snackbar.Add("تعذر تحميل الفروع", MudBlazor.Severity.Warning); }
+        }
+
+        // 2. المستودعات
+        try
+        {
+            var whResult = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses");
+            _warehouses = whResult ?? new();
+        }
+        catch
+        {
+            try
+            {
+                var whResult = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses");
+                _warehouses = whResult ?? new();
+            }
+            catch { Snackbar.Add("تعذر تحميل المستودعات", MudBlazor.Severity.Warning); }
+        }
+
+        // 3. المنتجات
+        try
+        {
+            var prodResult = await Http.GetFromJsonAsync<List<ProductLookup>>("api/products/lookup");
+            _products = prodResult ?? new();
+        }
+        catch
+        {
+            try
+            {
+                var prodResult = await Http.GetFromJsonAsync<List<ProductLookup>>("api/warehouseproducts/lookup");
+                _products = prodResult ?? new();
+            }
+            catch
+            {
+                try
+                {
+                    var prodResult = await Http.GetFromJsonAsync<List<ProductLookup>>("api/warehouseproducts");
+                    _products = prodResult ?? new();
+                }
+                catch { Snackbar.Add("تعذر تحميل المنتجات", MudBlazor.Severity.Warning); }
+            }
+        }
+
+        // 4. الوحدات
+        try
+        {
+            var unitResult = await Http.GetFromJsonAsync<List<UnitLookup>>("api/units/lookup");
+            _units = unitResult ?? new();
+        }
+        catch
+        {
+            try
+            {
+                var unitResult = await Http.GetFromJsonAsync<List<UnitLookup>>("api/units");
+                _units = unitResult ?? new();
+            }
+            catch { Snackbar.Add("تعذر تحميل الوحدات", MudBlazor.Severity.Warning); }
         }
     }
 
     private void AddLine() => _lines.Add(new RequisitionLineDto());
-    private void RemoveLine(RequisitionLineDto line) => _lines.Remove(line);
+    private void RemoveLine(RequisitionLineDto line)
+    {
+        _lines.Remove(line);
+        if (!_lines.Any()) AddLine();
+    }
 
     private async Task Submit()
     {
         if (Model.FromBranchId is null)
         {
-            Snackbar.Add("يرجى اختيار الفرع الطالب", MudBlazor.Severity.Warning);
+            Snackbar.Add("يرجى اختيار الفرع الطالب أولاً", MudBlazor.Severity.Warning);
             return;
         }
         if (!_lines.Any() || _lines.All(l => l.ProductId is null))
         {
-            Snackbar.Add("يرجى إضافة صنف واحد على الأقل", MudBlazor.Severity.Warning);
+            Snackbar.Add("يرجى إضافة صنف واحد على الأقل وتحديده", MudBlazor.Severity.Warning);
             return;
         }
 
@@ -172,24 +324,33 @@
         {
             var payload = new
             {
-                Model.FromBranchId,
-                Model.ToWarehouseId,
-                RequestedDeliveryDate = Model.RequestedDeliveryDate?.ToString("yyyy-MM-dd"),
-                Model.Priority,
-                Model.Notes,
+                RequestingBranchId = Model.FromBranchId.Value,
+                TargetWarehouseId = Model.ToWarehouseId ?? 1,
+                Status = 2,
+                RequiredDate = Model.RequestedDeliveryDate ?? DateTime.UtcNow.AddDays(1),
+                Notes = $"[أولوية: {Model.Priority}] {Model.Notes}".Trim(),
                 Lines = _lines.Where(l => l.ProductId.HasValue).Select(l => new
                 {
-                    l.ProductId,
-                    l.UnitId,
-                    l.RequestedQty,
-                    l.Notes
+                    ProductId = l.ProductId!.Value,
+                    UnitId = l.UnitId ?? _units.FirstOrDefault()?.Id ?? 1,
+                    RequestedQuantity = l.RequestedQty,
+                    Notes = l.Notes
                 }).ToList()
             };
 
-            var response = await Http.PostAsJsonAsync("/api/branchrequisitions", payload);
+            HttpResponseMessage response;
+            try
+            {
+                response = await Http.PostAsJsonAsync("api/warehouse/requisitions", payload);
+            }
+            catch
+            {
+                response = await Http.PostAsJsonAsync("api/branchrequisitions", payload);
+            }
+
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("تم إرسال الطلبية بنجاح وجاري مراجعتها من قِبَل المخزن", MudBlazor.Severity.Success);
+                Snackbar.Add("تم إرسال طلبية الفرع بنجاح للمستودع", MudBlazor.Severity.Success);
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
@@ -200,7 +361,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"خطأ في الاتصال: {ex.Message}", MudBlazor.Severity.Error);
+            Snackbar.Add($"خطأ في الاتصال بالخادم: {ex.Message}", MudBlazor.Severity.Error);
         }
         finally
         {
@@ -210,11 +371,45 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    // DTOs
-    private record BranchLookup(int Id, string Name);
-    private record WarehouseLookup(int Id, string Name);
-    private record ProductLookup(int Id, string Name);
-    private record UnitLookup(int Id, string Name);
+    private class BranchLookup
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ApiUrl { get; set; } = string.Empty;
+        public BranchLookup(int id, string name, string apiUrl) { Id = id; Name = name; ApiUrl = apiUrl; }
+    }
+
+    private class WarehouseLookup
+    {
+        public int Id { get; set; }
+        public string? Code { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? $"مستودع {Id}"));
+    }
+
+    private class ProductLookup
+    {
+        public int Id { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? Name { get; set; }
+        public string? SKU { get; set; }
+        public string? Barcode { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? SKU ?? $"صنف {Id}"));
+    }
+
+    private class UnitLookup
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
+        public string? ArabicName { get; set; }
+        public string? EnglishName { get; set; }
+        public string DisplayName => !string.IsNullOrWhiteSpace(ArabicName) ? ArabicName : (!string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (EnglishName ?? NameEn ?? $"وحدة {Id}")));
+    }
 
     private class RequisitionCreateDto
     {
@@ -233,4 +428,3 @@
         public string? Notes { get; set; }
     }
 }
-

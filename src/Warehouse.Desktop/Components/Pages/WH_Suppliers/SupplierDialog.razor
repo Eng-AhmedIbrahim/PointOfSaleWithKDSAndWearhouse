@@ -4,77 +4,185 @@
 @inject ISnackbar Snackbar
 @inject LocalizationService LocalizerService
 
+<style>
+    .supplier-dialog-rtl .mud-input-root input,
+    .supplier-dialog-rtl .mud-input-root textarea {
+        text-align: right !important;
+        direction: rtl !important;
+    }
+    .supplier-dialog-rtl .mud-input-label {
+        right: 0 !important;
+        left: auto !important;
+        transform-origin: top right !important;
+    }
+    .supplier-dialog-rtl .mud-input-label-inputcontrol {
+        right: 0 !important;
+        left: auto !important;
+    }
+    .supplier-dialog-rtl .mud-input-adornment-start {
+        order: 2;
+    }
+</style>
+
 <MudDialog>
     <TitleContent>
-        <MudText MudBlazor.Typo="Typo.h6">@(SupplierId == 0 ? "إضافة مورد جديد" : "تعديل بيانات المورد")</MudText>
+        <MudText MudBlazor.Typo="Typo.h6" Style="font-weight:800;">
+            <MudIcon Icon="@Icons.Material.Filled.Storefront" Class="me-2" />
+            @(SupplierId == 0 ? "إضافة مورد جديد" : "تعديل بيانات المورد")
+        </MudText>
     </TitleContent>
     <DialogContent>
-        <div dir="@(IsArabic ? "rtl" : "ltr")">
+        <div dir="rtl" class="supplier-dialog-rtl">
             @if (IsLoading)
             {
-                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="mb-2" />
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" Class="mb-3" />
             }
-            <MudGrid>
+
+            <MudGrid Spacing="3">
+                <!-- Row 1: اسم المورد + الكود -->
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Code" Label="كود المورد" ReadOnly="@(SupplierId != 0)" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">اسم المورد *</MudText>
+                    <MudTextField @bind-Value="Model.Name"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  Placeholder="أدخل اسم المورد"
+                                  InputClass="text-end" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Name" Label="اسم المورد" Required="true" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">كود المورد</MudText>
+                    <MudTextField @bind-Value="Model.Code"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  ReadOnly="@(SupplierId != 0)"
+                                  Placeholder="مثال: SUP-001"
+                                  InputClass="text-end" />
+                </MudItem>
+
+                <!-- Row 2: الهاتف + جهة الاتصال -->
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الهاتف</MudText>
+                    <MudTextField @bind-Value="Model.Phone"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="05xxxxxxxx"
+                                  InputClass="text-end" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.ContactPerson" Label="جهة الاتصال" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">جهة الاتصال</MudText>
+                    <MudTextField @bind-Value="Model.ContactPerson"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="اسم الشخص المسؤول"
+                                  InputClass="text-end" />
+                </MudItem>
+
+                <!-- Row 3: البريد الإلكتروني + المدينة -->
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">البريد الإلكتروني</MudText>
+                    <MudTextField @bind-Value="Model.Email"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Email"
+                                  Placeholder="example@email.com"
+                                  InputClass="text-start" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Phone" Label="الهاتف" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المدينة</MudText>
+                    <MudTextField @bind-Value="Model.City"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="الرياض / جدة / القاهرة..."
+                                  InputClass="text-end" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Email" Label="البريد الإلكتروني" InputType="InputType.Email" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.City" Label="المدينة" />
-                </MudItem>
+
+                <!-- Row 4: العنوان (full width) -->
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="Model.Address" Label="العنوان" Lines="2" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">العنوان</MudText>
+                    <MudTextField @bind-Value="Model.Address"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Lines="2"
+                                  Placeholder="العنوان التفصيلي للمورد"
+                                  InputClass="text-end" />
+                </MudItem>
+
+                <!-- Row 5: أيام السداد + الرقم الضريبي -->
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">أيام السداد</MudText>
+                    <MudNumericField @bind-Value="Model.PaymentTermsDays"
+                                     Variant="MudBlazor.Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Placeholder="30" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.TaxNumber" Label="الرقم الضريبي" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الرقم الضريبي</MudText>
+                    <MudTextField @bind-Value="Model.TaxNumber"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="الرقم الضريبي للمورد"
+                                  InputClass="text-end" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField @bind-Value="Model.PaymentTermsDays" Label="أيام السداد" Min="0" />
-                </MudItem>
+
+                <!-- Row 6: ملاحظات -->
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="Model.Notes" Label="ملاحظات" Lines="3" />
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">ملاحظات</MudText>
+                    <MudTextField @bind-Value="Model.Notes"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  Lines="3"
+                                  Placeholder="أي ملاحظات إضافية عن المورد..."
+                                  InputClass="text-end" />
                 </MudItem>
-                <MudItem xs="12">
-                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="MudBlazor.Color.Warning" Label="نشط" />
+
+                <!-- نشط -->
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive"
+                               Color="MudBlazor.Color.Warning"
+                               Label="نشط" />
                 </MudItem>
             </MudGrid>
 
+            <!-- عقود الأسعار -->
             <MudDivider Class="my-4" />
-            <div class="d-flex align-center justify-space-between mb-2">
-                <MudText MudBlazor.Typo="Typo.subtitle1" Style="font-weight:bold">عقود الأسعار</MudText>
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+            <div class="d-flex align-center justify-space-between mb-3">
+                <MudButton StartIcon="@Icons.Material.Filled.Add"
+                           Color="MudBlazor.Color.Warning"
+                           Variant="MudBlazor.Variant.Text"
+                           Size="MudBlazor.Size.Small"
                            OnClick="AddPriceContract">إضافة سعر</MudButton>
+                <MudText MudBlazor.Typo="Typo.subtitle1" Style="font-weight:800; color:#1e293b;">
+                    <MudIcon Icon="@Icons.Material.Filled.RequestQuote" Class="me-1" Size="MudBlazor.Size.Small" />
+                    عقود الأسعار
+                </MudText>
             </div>
 
             @if (PriceContracts.Count == 0)
             {
-                <MudText Color="MudBlazor.Color.Secondary" Class="mb-2">لا توجد عقود أسعار</MudText>
+                <div class="d-flex align-center justify-center pa-4" style="border:1px dashed #e2e8f0; border-radius:8px;">
+                    <MudText Color="MudBlazor.Color.Secondary">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-1" Size="MudBlazor.Size.Small" />
+                        لا توجد عقود أسعار — اضغط "إضافة سعر" لتحديد سعر اتفاقي لكل صنف
+                    </MudText>
+                </div>
             }
             else
             {
-                <MudTable Items="PriceContracts" Dense="true" Hover="true">
+                <MudTable Items="PriceContracts" Dense="true" Hover="true" Striped="true" Bordered="true">
                     <HeaderContent>
-                        <MudTh>المنتج</MudTh>
-                        <MudTh>سعر الوحدة</MudTh>
-                        <MudTh>تاريخ البداية</MudTh>
-                        <MudTh>تاريخ النهاية</MudTh>
-                        <MudTh>مفضل</MudTh>
-                        <MudTh></MudTh>
+                        <MudTh Style="text-align:right;">الصنف</MudTh>
+                        <MudTh Style="text-align:right;">سعر الوحدة (ج.م)</MudTh>
+                        <MudTh Style="text-align:right;">تاريخ البداية</MudTh>
+                        <MudTh Style="text-align:right;">تاريخ الانتهاء</MudTh>
+                        <MudTh Style="text-align:center;">مفضل</MudTh>
+                        <MudTh Style="text-align:center;">حذف</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
-                            <MudSelect @bind-Value="context.ProductId" Dense="true" MudBlazor.Margin="Margin.Dense">
+                            <MudSelect @bind-Value="context.ProductId"
+                                       Variant="MudBlazor.Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Placeholder="اختر الصنف">
                                 @foreach (var p in Products)
                                 {
                                     <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
@@ -82,19 +190,34 @@
                             </MudSelect>
                         </MudTd>
                         <MudTd>
-                            <MudNumericField @bind-Value="context.UnitPrice" Dense="true" MudBlazor.Margin="Margin.Dense" Min="0" />
+                            <MudNumericField @bind-Value="context.UnitPrice"
+                                             Variant="MudBlazor.Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0"
+                                             Format="N2"
+                                             HideSpinButtons="true" />
                         </MudTd>
                         <MudTd>
-                            <MudDatePicker @bind-Date="context.StartDate" Dense="true" />
+                            <MudDatePicker @bind-Date="context.StartDate"
+                                           Variant="MudBlazor.Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           DateFormat="yyyy/MM/dd"
+                                           Culture="@(new System.Globalization.CultureInfo("ar-EG"))" />
                         </MudTd>
                         <MudTd>
-                            <MudDatePicker @bind-Date="context.EndDate" Dense="true" />
+                            <MudDatePicker @bind-Date="context.EndDate"
+                                           Variant="MudBlazor.Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           DateFormat="yyyy/MM/dd"
+                                           Culture="@(new System.Globalization.CultureInfo("ar-EG"))" />
                         </MudTd>
-                        <MudTd>
+                        <MudTd Style="text-align:center;">
                             <MudSwitch T="bool" @bind-Value="context.IsPreferred" Color="MudBlazor.Color.Warning" />
                         </MudTd>
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small"
+                        <MudTd Style="text-align:center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="MudBlazor.Color.Error"
+                                           Size="MudBlazor.Size.Small"
                                            OnClick="@(() => PriceContracts.Remove(context))" />
                         </MudTd>
                     </RowTemplate>
@@ -103,8 +226,9 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">إلغاء</MudButton>
-        <MudButton Class="wh-btn-primary" OnClick="Save" Disabled="IsSaving">
+        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+        <MudButton Class="wh-btn-primary" OnClick="Save" Disabled="IsSaving"
+                   Variant="MudBlazor.Variant.Filled" StartIcon="@Icons.Material.Filled.Save">
             @(IsSaving ? "جارٍ الحفظ..." : "حفظ")
         </MudButton>
     </DialogActions>

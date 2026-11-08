@@ -1,4 +1,4 @@
-using POS.Contract.Models.ReceiptModels;
+﻿using POS.Contract.Models.ReceiptModels;
 
 public static class FakeDataGenerator
 {

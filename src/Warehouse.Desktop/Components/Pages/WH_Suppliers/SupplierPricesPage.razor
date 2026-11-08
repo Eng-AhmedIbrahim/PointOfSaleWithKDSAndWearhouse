@@ -151,10 +151,12 @@
                         <MudNumericField @bind-Value="NewContract.UnitPrice" Label="سعر الوحدة" Min="0" />
                     </MudItem>
                     <MudItem xs="12" sm="2">
-                        <MudDatePicker @bind-Date="NewContract.StartDate" Label="من" />
+                        <MudDatePicker @bind-Date="NewContract.StartDate" Label="من"
+                                       Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                     </MudItem>
                     <MudItem xs="12" sm="2">
-                        <MudDatePicker @bind-Date="NewContract.EndDate" Label="إلى" />
+                        <MudDatePicker @bind-Date="NewContract.EndDate" Label="إلى"
+                                       Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
                     </MudItem>
                     <MudItem xs="12" sm="2">
                         <MudSwitch T="bool" @bind-Value="NewContract.IsPreferred" Color="MudBlazor.Color.Warning" Label="مفضل" />

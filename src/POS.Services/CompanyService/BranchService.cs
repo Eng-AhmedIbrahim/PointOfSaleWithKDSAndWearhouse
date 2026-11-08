@@ -1,4 +1,4 @@
-namespace POS.Services.CompanyService;
+﻿namespace POS.Services.CompanyService;
 
 public class BranchService : IBranchService
 {

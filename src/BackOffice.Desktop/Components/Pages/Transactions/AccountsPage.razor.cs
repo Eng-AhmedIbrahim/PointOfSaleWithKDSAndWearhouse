@@ -1,4 +1,4 @@
-namespace BackOffice.Desktop.Components.Pages.Transactions;
+﻿namespace BackOffice.Desktop.Components.Pages.Transactions;
 
 public partial class AccountsPage
 {

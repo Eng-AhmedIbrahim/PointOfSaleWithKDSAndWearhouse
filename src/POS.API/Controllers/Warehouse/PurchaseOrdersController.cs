@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
@@ -6,15 +6,18 @@ using Pos.Repository.Data;
 
 namespace POS.API.Controllers.Warehouse;
 
-[Authorize]
+//[Authorize]
 [ApiController]
 [Route("api/warehouse/purchase-orders")]
+[Route("api/warehouse/purchaseorders")]
 [Route("api/purchaseorders")]
+[Route("api/purchase-orders")]
 public class PurchaseOrdersController : ControllerBase
 {
     private readonly AppDbContext _db;
     public PurchaseOrdersController(AppDbContext db) => _db = db;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] PurchaseOrderStatus? status)
     {
@@ -22,13 +25,25 @@ public class PurchaseOrdersController : ControllerBase
         if (status.HasValue) query = query.Where(p => p.Status == status.Value);
         return Ok(await query.OrderByDescending(p => p.OrderDate).Select(p => new
         {
-            p.Id, p.OrderNumber, p.Status, p.OrderDate, p.ExpectedDeliveryDate,
-            p.SupplierId, SupplierName = p.Supplier != null ? p.Supplier.NameAr : null,
-            p.WarehouseId, WarehouseName = p.Warehouse != null ? p.Warehouse.NameAr : null,
-            p.SubTotal, p.TaxAmount, p.TotalAmount, LineCount = p.Lines.Count
+            p.Id,
+            OrderNumber = p.OrderNumber,
+            PONumber = p.OrderNumber,
+            Status = p.Status.ToString(),
+            p.OrderDate,
+            p.ExpectedDeliveryDate,
+            p.SupplierId,
+            SupplierName = p.Supplier != null ? p.Supplier.NameAr : null,
+            p.WarehouseId,
+            WarehouseName = p.Warehouse != null ? p.Warehouse.NameAr : null,
+            p.SubTotal,
+            p.TaxAmount,
+            p.TotalAmount,
+            LineCount = p.Lines.Count,
+            GRNsCount = p.GoodsReceiptNotes.Count
         }).ToListAsync());
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -80,6 +95,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     // GRN - Goods Receipt Notes
+    [AllowAnonymous]
     [HttpGet("{poId}/grn")]
     public async Task<IActionResult> GetGRNs(int poId)
         => Ok(await _db.GoodsReceiptNotes.Include(g => g.Lines).ThenInclude(l => l.Product)
