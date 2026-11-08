@@ -384,6 +384,14 @@
     "Value": true
   },
   {
+    "FeatureName": "EnableCentralWarehouseRequisitions",
+    "NameEn": "Enable Central Warehouse Requisitions",
+    "NameAr": "تفعيل نظام المخازن الرئيسية",
+    "ModuleName": "Inventory",
+    "ScreenName": "Inventory Management",
+    "Value": false
+  },
+  {
     "FeatureName": "Startup_TakeAway",
     "NameEn": "Default Screen: Take Away",
     "NameAr": "الشاشة الافتراضية: التيك أوي",

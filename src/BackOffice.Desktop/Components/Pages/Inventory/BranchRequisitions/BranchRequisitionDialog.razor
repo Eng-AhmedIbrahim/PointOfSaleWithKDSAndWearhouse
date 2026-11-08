@@ -1,7 +1,8 @@
-﻿@using MudBlazor
+@using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject CommonProperties CommonProps
+@inject BlazorBase.ERPFrontServices.BranchServices.IBranchService BranchService
 
 <MudDialog dir="rtl" Style="max-width: 1100px; width: 96vw; border-radius: 20px;">
     <TitleContent>
@@ -227,6 +228,14 @@
     {
         try
         {
+            if (CommonProps.BranchDetails == null || CommonProps.BranchDetails.Id <= 0)
+            {
+                var branches = await BranchService.GetBranches();
+                if (branches != null && branches.Any())
+                {
+                    CommonProps.BranchDetails = branches.FirstOrDefault();
+                }
+            }
             var whList = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouse/warehouses");
             if (whList != null) _warehouses = whList;
 
@@ -422,7 +431,31 @@
     {
         if (_targetWarehouseId == 0 || _items.Count == 0) return;
 
-        var branchId = CommonProps.BranchDetails?.Id ?? 1;
+        int branchId = (CommonProps.BranchDetails?.Id != null && CommonProps.BranchDetails.Id > 0)
+            ? CommonProps.BranchDetails.Id
+            : 0;
+
+        if (branchId <= 0)
+        {
+            try
+            {
+                var branches = await BranchService.GetBranches();
+                var b = branches?.FirstOrDefault();
+                if (b != null)
+                {
+                    CommonProps.BranchDetails = b;
+                    branchId = b.Id;
+                }
+            }
+            catch { }
+        }
+
+        if (branchId <= 0)
+        {
+            Snackbar.Add("Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ÙØ±Ø¹ Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„Ù†Ø¸Ø§Ù…. ÙŠØ±Ø¬Ù‰ Ø¥Ø¶Ø§ÙØ© ÙØ±Ø¹ Ø£ÙˆÙ„Ø§Ù‹.", MudBlazor.Severity.Error);
+            return;
+        }
+
         _isSubmitting = true;
 
         try

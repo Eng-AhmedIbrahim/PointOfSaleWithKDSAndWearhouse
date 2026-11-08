@@ -1,4 +1,4 @@
-﻿@page "/inventory/branch-requisitions"
+@page "/inventory/branch-requisitions"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Policy = "CanViewBranchRequisitions")]
 @using MudBlazor
@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject CommonProperties CommonProps
+@inject BlazorBase.ERPFrontServices.BranchServices.IBranchService BranchService
 @inject LocalizationService Localizer
 @inject WarehouseNotificationInvocation WarehouseEvents
 @implements IDisposable
@@ -234,8 +235,29 @@
         _isLoading = true;
         try
         {
-            var branchId = CommonProps.BranchDetails?.Id ?? 1;
-            var result = await Http.GetFromJsonAsync<List<BranchRequisitionVm>>($"/api/warehouse/requisitions?branchId={branchId}");
+            int branchId = (CommonProps.BranchDetails?.Id != null && CommonProps.BranchDetails.Id > 0)
+                ? CommonProps.BranchDetails.Id
+                : 0;
+
+            if (branchId <= 0)
+            {
+                try
+                {
+                    var branches = await BranchService.GetBranches();
+                    if (branches != null && branches.Any())
+                    {
+                        CommonProps.BranchDetails = branches.FirstOrDefault();
+                        branchId = CommonProps.BranchDetails?.Id ?? 0;
+                    }
+                }
+                catch { }
+            }
+
+            var url = branchId > 0
+                ? $"/api/warehouse/requisitions?branchId={branchId}"
+                : "/api/warehouse/requisitions";
+
+            var result = await Http.GetFromJsonAsync<List<BranchRequisitionVm>>(url);
             if (result != null)
             {
                 _requisitions = result.OrderByDescending(r => r.RequestDate).ToList();

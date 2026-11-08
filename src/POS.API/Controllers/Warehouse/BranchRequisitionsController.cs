@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +60,34 @@ public class BranchRequisitionsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] BranchRequisition model)
     {
+        // 1. Ensure valid RequestingBranchId (prevent FK conflict if 0 or non-existent)
+        if (model.RequestingBranchId <= 0 || !await _db.Branches.AnyAsync(b => b.Id == model.RequestingBranchId))
+        {
+            var defaultBranch = await _db.Branches.FirstOrDefaultAsync();
+            if (defaultBranch != null)
+            {
+                model.RequestingBranchId = defaultBranch.Id;
+            }
+            else
+            {
+                return BadRequest(new { message = "Ù„Ø§ ØªÙˆØ¬Ø¯ ÙØ±ÙˆØ¹ Ù…Ø³Ø¬Ù„Ø© Ø¨Ø§Ù„Ù†Ø¸Ø§Ù… Ù„Ø±Ø¨Ø· Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ±ÙŠØ¯ Ø¨Ù‡Ø§" });
+            }
+        }
+
+        // 2. Ensure valid TargetWarehouseId
+        if (model.TargetWarehouseId <= 0 || !await _db.Warehouses.AnyAsync(w => w.Id == model.TargetWarehouseId))
+        {
+            var defaultWarehouse = await _db.Warehouses.FirstOrDefaultAsync();
+            if (defaultWarehouse != null)
+            {
+                model.TargetWarehouseId = defaultWarehouse.Id;
+            }
+            else
+            {
+                return BadRequest(new { message = "Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯" });
+            }
+        }
+
         // Generate requisition number
         var year = DateTime.Now.Year;
         var count = await _db.BranchRequisitions.CountAsync(r => r.RequestDate.Year == year) + 1;

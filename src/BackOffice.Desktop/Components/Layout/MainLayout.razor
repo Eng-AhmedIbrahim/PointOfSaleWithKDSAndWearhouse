@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @using MudBlazor.Utilities
 
 <MudThemeProvider Theme="@_customTheme" />
@@ -13,6 +13,7 @@
 @inject BlazorBase.ERPFrontServices.LicensingServices.ILicenseService LicenseService
 @inject BackOffice.Desktop.Services.WarehouseNotificationService WarehouseNotification
 @inject WarehouseNotificationInvocation WarehouseNotificationEvents
+@inject BlazorBase.ERPFrontServices.BranchServices.IBranchService BranchService
 
 @implements IDisposable
 
@@ -97,6 +98,19 @@
     protected override async Task OnInitializedAsync()
     {
         _isLicensed = await LicenseService.IsBackOfficeAuthorizedAsync();
+
+        try
+        {
+            if (_commonProperties.BranchDetails == null || _commonProperties.BranchDetails.Id <= 0)
+            {
+                var branches = await BranchService.GetBranches();
+                if (branches != null && branches.Any())
+                {
+                    _commonProperties.BranchDetails = branches.FirstOrDefault();
+                }
+            }
+        }
+        catch { }
 
         // Initialize warehouse SignalR connection
         await WarehouseNotification.InitializeAsync();
