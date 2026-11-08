@@ -51,9 +51,58 @@ public class BranchRequisitionsController : ControllerBase
             .Include(x => x.ReroutedToWarehouse)
             .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.BaseUnit)
             .Include(x => x.Lines).ThenInclude(l => l.Unit)
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        return Ok(r);
+
+        var dto = new
+        {
+            r.Id,
+            r.RequisitionNumber,
+            r.RequestingBranchId,
+            BranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
+            r.TargetWarehouseId,
+            TargetWarehouse = r.TargetWarehouse != null ? new
+            {
+                r.TargetWarehouse.Id,
+                r.TargetWarehouse.Code,
+                r.TargetWarehouse.NameAr,
+                r.TargetWarehouse.NameEn
+            } : null,
+            r.Status,
+            r.RequestDate,
+            r.RequiredDate,
+            r.Notes,
+            r.RejectionReason,
+            LineCount = r.Lines.Count,
+            Lines = r.Lines.Select(l => new
+            {
+                l.Id,
+                l.ProductId,
+                Product = l.Product != null ? new
+                {
+                    l.Product.Id,
+                    l.Product.SKU,
+                    l.Product.NameAr,
+                    l.Product.NameEn
+                } : null,
+                l.UnitId,
+                Unit = l.Unit != null ? new
+                {
+                    l.Unit.Id,
+                    l.Unit.NameAr,
+                    l.Unit.NameEn
+                } : null,
+                l.RequestedQuantity,
+                l.ProposedQuantity,
+                l.ApprovedQuantity,
+                l.DispatchedQuantity,
+                l.ReceivedQuantity,
+                l.DiscrepancyQuantity
+            }).ToList()
+        };
+
+        return Ok(dto);
     }
 
     [AllowAnonymous]

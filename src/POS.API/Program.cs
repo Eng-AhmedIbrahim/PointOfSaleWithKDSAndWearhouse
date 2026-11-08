@@ -10,7 +10,11 @@ builder.AddSerilogService();
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 var encryptedConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var databaseConnectionString = EncryptionHelper.DecryptString(encryptedConnectionString!);
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddSwaggerServices();
 builder.Services.AddApplicationServices();
 builder.Services.AddSignalR();
