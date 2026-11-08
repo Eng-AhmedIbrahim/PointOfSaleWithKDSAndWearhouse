@@ -100,7 +100,13 @@ public partial class POS
             _dotNetRef = DotNetObjectReference.Create(this);
             await JsRuntime.InvokeVoidAsync("listenToDoubleEnter", _dotNetRef);
             if (_barcodeEnabled)
-                await JsRuntime.InvokeVoidAsync("barcodeFocus.init");
+            {
+                try
+                {
+                    await JsRuntime.InvokeVoidAsync("barcodeFocus.init");
+                }
+                catch { }
+            }
 
 
             StateHasChanged();

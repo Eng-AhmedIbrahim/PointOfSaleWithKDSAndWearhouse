@@ -63,6 +63,8 @@ public class OverallSummaryDto
     public decimal Expenses { get; set; }
     public decimal TotalSalesTax { get; set; }
     public decimal ServiceTotal { get; set; }
+    public decimal DineInServiceTotal { get; set; }
+    public decimal DeliveryServiceTotal { get; set; }
     public decimal DriverBonusTotal { get; set; }
     public decimal NetCash => CashAmount - Expenses - RefundAmount;
     public decimal TotalRevenue => TotalSales + TotalDiscount;

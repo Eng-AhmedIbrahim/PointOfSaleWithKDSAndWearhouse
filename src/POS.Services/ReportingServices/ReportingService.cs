@@ -112,7 +112,9 @@ public class ReportingService : IReportingService
         
         summary.Overall.TotalDiscount = completedOrders.Sum(o => (o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.Discount ?? 0));
         summary.Overall.TotalSalesTax = completedOrders.Sum(o => o.Tax ?? 0);
-        summary.Overall.ServiceTotal = completedOrders.Sum(o => (o.Service ?? 0) + (o.DeliveryFees ?? 0));
+        summary.Overall.DineInServiceTotal = summary.DineIn.Service;
+        summary.Overall.DeliveryServiceTotal = summary.Delivery.DeliveryFees;
+        summary.Overall.ServiceTotal = summary.Overall.DineInServiceTotal + summary.Overall.DeliveryServiceTotal;
         summary.Overall.DriverBonusTotal = completedOrders.Where(o => o.OrderType == OrderTypes.Delivery).Sum(o => o.ZoneBonus ?? 0);
 
 
@@ -315,9 +317,9 @@ public class ReportingService : IReportingService
             Subtotal = completed.Sum(o => (o.Subtotal ?? 0) > 0 ? o.Subtotal.Value : (o.GrandTotal ?? 0)),
             Discount = completed.Sum(o => (o.TotalDiscount ?? 0) > 0 ? o.TotalDiscount.Value : (o.Discount ?? 0)),
             Tax = completed.Sum(o => o.Tax ?? 0),
-            Service = type == OrderTypes.Delivery ? completed.Sum(o => (o.DeliveryFees ?? 0) > 0 ? o.DeliveryFees.Value : (o.Service ?? 0)) : completed.Sum(o => o.Service ?? 0),
-            DeliveryFees = completed.Sum(o => o.DeliveryFees ?? 0),
-            DeliveryBonus = completed.Sum(o => o.ZoneBonus ?? 0),
+            Service = type == OrderTypes.DineIn ? completed.Sum(o => o.Service ?? 0) : 0,
+            DeliveryFees = type == OrderTypes.Delivery ? completed.Sum(o => (o.DeliveryFees ?? 0) > 0 ? o.DeliveryFees.Value : (o.Service ?? 0)) : 0,
+            DeliveryBonus = type == OrderTypes.Delivery ? completed.Sum(o => o.ZoneBonus ?? 0) : 0,
             Total = completed.Sum(o => o.GrandTotal ?? 0),
             UncollectedAmount = pending.Sum(o => o.GrandTotal ?? 0),
             VoidAmount = modeOrders.Sum(o => o.VoidAmount ?? (o.OrderState == OrderStates.Voided ? o.GrandTotal ?? 0 : 0)),
