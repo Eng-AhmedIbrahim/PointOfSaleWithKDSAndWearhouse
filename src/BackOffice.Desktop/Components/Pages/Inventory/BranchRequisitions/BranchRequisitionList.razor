@@ -134,7 +134,7 @@
                     <MudTd>
                         <div class="d-flex align-center gap-1">
                             <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Secondary" />
-                            <span>@(req.TargetWarehouse?.NameAr ?? "المخزن الرئيسي")</span>
+                            <span>@(req.WarehouseName ?? req.TargetWarehouse?.NameAr ?? "المخزن الرئيسي")</span>
                         </div>
                     </MudTd>
                     <MudTd>

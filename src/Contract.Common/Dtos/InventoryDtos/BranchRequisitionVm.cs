@@ -5,7 +5,9 @@ public class BranchRequisitionVm
     public int Id { get; set; }
     public string RequisitionNumber { get; set; } = string.Empty;
     public int RequestingBranchId { get; set; }
+    public string? BranchName { get; set; }
     public int TargetWarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
     public WarehouseLookupVm? TargetWarehouse { get; set; }
     public int Status { get; set; }
     public DateTime RequestDate { get; set; }

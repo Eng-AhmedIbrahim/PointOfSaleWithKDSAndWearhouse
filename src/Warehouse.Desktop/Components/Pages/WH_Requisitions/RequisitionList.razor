@@ -71,7 +71,7 @@
                     <div class="d-flex gap-1">
                         <MudIconButton Icon="@Icons.Material.Rounded.Visibility" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info"
                                        OnClick="@(() => OpenDetail(context))" Title="تفاصيل" />
-                        @if (context.Status == "Submitted" || context.Status == "UnderReview")
+                        @if (context.Status == 2 || context.Status == 3)
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
                                            OnClick="@(() => QuickApprove(context))" Title="موافقة سريعة" />
@@ -89,24 +89,25 @@
 @code {
     private List<RequisitionDto> _requisitions = new();
     private bool _loading = true;
-    private string? _selectedStatus;
+    private int? _selectedStatus;
     private int _pendingCount;
 
-    private readonly (string? Status, string Label)[] _statusTabs = new (string? Status, string Label)[]
+    private readonly (int? Status, string Label)[] _statusTabs = new (int? Status, string Label)[]
     {
         (null, "الكل"),
-        ("Submitted", "جديد"),
-        ("UnderReview", "قيد المراجعة"),
-        ("ModificationProposed", "تعديل مقترح"),
-        ("Approved", "معتمد"),
-        ("Preparing", "قيد التجهيز"),
-        ("InTransit", "في الطريق"),
-        ("Received", "مستلم"),
-        ("Rejected", "مرفوض")
+        (2, "جديد"),
+        (3, "قيد المراجعة"),
+        (4, "تعديل مقترح"),
+        (5, "معتمد"),
+        (7, "قيد التجهيز"),
+        (8, "في الطريق"),
+        (9, "مستلم"),
+        (10, "مرفوض"),
+        (11, "ملغي")
     };
 
-    private IEnumerable<RequisitionDto> FilteredRequisitions => string.IsNullOrEmpty(_selectedStatus)
-        ? _requisitions : _requisitions.Where(r => r.Status == _selectedStatus);
+    private IEnumerable<RequisitionDto> FilteredRequisitions => _selectedStatus == null
+        ? _requisitions : _requisitions.Where(r => r.Status == _selectedStatus.Value);
 
     protected override async Task OnInitializedAsync()
     {
@@ -129,19 +130,19 @@
         try
         {
             _requisitions = await Http.GetFromJsonAsync<List<RequisitionDto>>("api/warehouse/requisitions") ?? new();
-            _pendingCount = _requisitions.Count(r => r.Status == "Submitted" || r.Status == "UnderReview");
+            _pendingCount = _requisitions.Count(r => r.Status == 2 || r.Status == 3);
         }
         catch { Snackbar.Add("خطأ في تحميل الطلبيات", MudBlazor.Severity.Error); }
         finally { _loading = false; }
     }
 
-    private int GetStatusCount(string? status) => status == null ? _requisitions.Count : _requisitions.Count(r => r.Status == status);
-    private void FilterByStatus(string? status) => _selectedStatus = status;
+    private int GetStatusCount(int? status) => status == null ? _requisitions.Count : _requisitions.Count(r => r.Status == status.Value);
+    private void FilterByStatus(int? status) => _selectedStatus = status;
 
     private async Task OpenDetail(RequisitionDto r)
     {
         var dlg = await DialogService.ShowAsync<RequisitionDetailDialog>(
-            $"طلبية {r.RequisitionNumber}",
+            $"طلب {r.RequisitionNumber}",
             new DialogParameters { ["RequisitionId"] = r.Id },
             new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true });
         var result = await dlg.Result;
@@ -150,7 +151,7 @@
 
     private async Task OpenNewDialog()
     {
-        var dlg = await DialogService.ShowAsync<RequisitionDialog>("طلبية جديدة",
+        var dlg = await DialogService.ShowAsync<RequisitionDialog>("طلب جديد",
             new DialogParameters(), new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true });
         var result = await dlg.Result;
         if (!result!.Canceled) await LoadData();
@@ -159,30 +160,37 @@
     private async Task QuickApprove(RequisitionDto r)
     {
         var res = await Http.PostAsJsonAsync($"api/warehouse/requisitions/{r.Id}/approve", new { });
-        if (res.IsSuccessStatusCode) { Snackbar.Add($"تمت الموافقة على {r.RequisitionNumber}", MudBlazor.Severity.Success); await LoadData(); }
-        else Snackbar.Add("حدث خطأ", MudBlazor.Severity.Error);
+        if (res.IsSuccessStatusCode) { Snackbar.Add($"تم الموافقة على {r.RequisitionNumber}", MudBlazor.Severity.Success); await LoadData(); }
+        else Snackbar.Add("فشل الإجراء", MudBlazor.Severity.Error);
     }
 
-    private Color GetStatusColor(string status) => status switch
+    private Color GetStatusColor(int status) => status switch
     {
-        "Submitted" => MudBlazor.Color.Info,
-        "UnderReview" => MudBlazor.Color.Warning,
-        "ModificationProposed" => MudBlazor.Color.Secondary,
-        "Approved" => MudBlazor.Color.Success,
-        "Preparing" => MudBlazor.Color.Primary,
-        "InTransit" => MudBlazor.Color.Tertiary,
-        "Received" => MudBlazor.Color.Success,
-        "Rejected" => MudBlazor.Color.Error,
-        "Cancelled" => MudBlazor.Color.Default,
+        2 => MudBlazor.Color.Info,
+        3 => MudBlazor.Color.Warning,
+        4 => MudBlazor.Color.Secondary,
+        5 => MudBlazor.Color.Success,
+        7 => MudBlazor.Color.Primary,
+        8 => MudBlazor.Color.Warning,
+        9 => MudBlazor.Color.Success,
+        10 => MudBlazor.Color.Error,
+        11 => MudBlazor.Color.Default,
         _ => MudBlazor.Color.Default
     };
 
-    private string GetStatusLabel(string status) => status switch
+    private string GetStatusLabel(int status) => status switch
     {
-        "Draft" => "مسودة", "Submitted" => "تم الإرسال", "UnderReview" => "قيد المراجعة",
-        "ModificationProposed" => "تعديل مقترح", "Approved" => "معتمدة", "Rerouted" => "محولة",
-        "Preparing" => "جاري التحضير", "InTransit" => "في الطريق", "Received" => "مستلمة",
-        "Rejected" => "مرفوضة", "Cancelled" => "ملغاة", _ => status
+        1 => "مسودة",
+        2 => "مرسل للمخزن",
+        3 => "قيد المراجعة",
+        4 => "تعديل مقترح",
+        5 => "معتمد ✓",
+        7 => "قيد التجهيز",
+        8 => "في الطريق",
+        9 => "مستلم ✓",
+        10 => "مرفوض",
+        11 => "ملغي",
+        _ => $"حالة {status}"
     };
 
     public void Dispose()
@@ -194,7 +202,7 @@
     {
         public int Id { get; set; }
         public string RequisitionNumber { get; set; } = "";
-        public string Status { get; set; } = "";
+        public int Status { get; set; }
         public DateTime RequestDate { get; set; }
         public DateTime? RequiredDate { get; set; }
         public int RequestingBranchId { get; set; }
@@ -204,5 +212,3 @@
         public int LineCount { get; set; }
     }
 }
-
-

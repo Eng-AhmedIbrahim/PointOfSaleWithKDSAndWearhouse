@@ -80,7 +80,7 @@
                         <MudTd>@context.UnitName</MudTd>
                         <MudTd>@context.RequestedQty</MudTd>
                         <MudTd>
-                            @if (_requisition.Status == "Submitted" || _requisition.Status == "UnderReview")
+                            @if (_requisition.Status == 2 || _requisition.Status == 3)
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.ApprovedQty"
                                                  Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
@@ -92,7 +92,7 @@
                             }
                         </MudTd>
                         <MudTd>
-                            @if (_requisition.Status == "Approved")
+                            @if (_requisition.Status == 5)
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.DispatchedQty"
                                                  Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
@@ -104,7 +104,7 @@
                             }
                         </MudTd>
                         <MudTd>
-                            @if (_requisition.Status == "Dispatched")
+                            @if (_requisition.Status == 8)
                             {
                                 <MudNumericField T="decimal?" @bind-Value="context.ReceivedQty"
                                                  Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
@@ -198,29 +198,29 @@
 
         @if (_requisition is not null)
         {
-            @if (_requisition.Status == "Submitted")
+            @if (_requisition.Status == 2)
             {
                 <MudButton Color="MudBlazor.Color.Info" Variant="MudBlazor.Variant.Filled" OnClick="StartReview" Disabled="_acting">مراجعة وتعديل الكميات</MudButton>
                 <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" OnClick="DirectApprove" Disabled="_acting">اعتماد مباشر</MudButton>
                 <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Outlined" OnClick="@(() => { _showReroutePanel = true; _showRejectPanel = false; })">تحويل لمخزن آخر</MudButton>
                 <MudButton Color="MudBlazor.Color.Error" Variant="MudBlazor.Variant.Outlined" OnClick="@(() => { _showRejectPanel = true; _showReroutePanel = false; })">رفض</MudButton>
             }
-            else if (_requisition.Status == "UnderReview")
+            else if (_requisition.Status == 3)
             {
                 <MudButton Color="MudBlazor.Color.Info" Variant="MudBlazor.Variant.Filled" OnClick="ProposeModification" Disabled="_acting">إرسال التعديل للفرع</MudButton>
                 <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" OnClick="DirectApprove" Disabled="_acting">اعتماد مباشر</MudButton>
             }
-            else if (_requisition.Status == "ModificationProposed")
+            else if (_requisition.Status == 4)
             {
                 <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled" OnClick="AcceptModification" Disabled="_acting">موافقة الفرع على التعديل</MudButton>
                 <MudButton Color="MudBlazor.Color.Error" Variant="MudBlazor.Variant.Outlined" OnClick="RejectModification" Disabled="_acting">رفض التعديل</MudButton>
             }
-            else if (_requisition.Status == "Approved")
+            else if (_requisition.Status == 5)
             {
                 <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
                            OnClick="@(() => { _showDispatchNotesPanel = true; })" Disabled="_acting">بدء الشحن / Dispatch</MudButton>
             }
-            else if (_requisition.Status == "Dispatched")
+            else if (_requisition.Status == 8)
             {
                 <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled"
                            OnClick="@(() => { _showReceiveNotesPanel = true; })" Disabled="_acting">تأكيد الاستلام (من الفرع)</MudButton>
@@ -262,13 +262,14 @@
         _loading = true;
         try
         {
-            _requisition = await Http.GetFromJsonAsync<RequisitionDetailDto>($"/api/branchrequisitions/{RequisitionId}");
-            _history = await Http.GetFromJsonAsync<List<StatusHistoryDto>>($"/api/branchrequisitions/{RequisitionId}/history") ?? new();
-            _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            _requisition = await Http.GetFromJsonAsync<RequisitionDetailDto>($"/api/warehouse/requisitions/{RequisitionId}");
+            try {
+                _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
+            } catch { }
         }
-        catch
+        catch (Exception ex)
         {
-            Snackbar.Add("حدث خطأ أثناء تحميل بيانات الطلب", MudBlazor.Severity.Error);
+            Snackbar.Add($"خطأ في تحميل تفاصيل الطلبية: {ex.Message}", MudBlazor.Severity.Error);
         }
         finally
         {
@@ -278,64 +279,65 @@
 
     private async Task StartReview()
     {
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/start-review", HttpMethod.Put, null, "تم بدء المراجعة");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/review", HttpMethod.Post, null, "تم بدء المراجعة");
     }
 
     private async Task DirectApprove()
     {
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/approve", HttpMethod.Put, null, "تم اعتماد الطلب بنجاح");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/approve", HttpMethod.Post, null, "تم اعتماد طلب التوريد بنجاح");
     }
 
     private async Task ProposeModification()
     {
         var lines = _requisition!.Lines
-            .Select(l => new { lineId = l.Id, proposedQty = l.ApprovedQty ?? l.RequestedQty })
+            .Select(l => new { lineId = l.Id, proposedQuantity = l.ApprovedQty ?? l.RequestedQty, notes = l.Notes })
             .ToList();
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/propose-modification", HttpMethod.Put, new { lines }, "تم إرسال التعديل للفرع");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/propose", HttpMethod.Post, lines, "تم اقتراح تعديل الكميات");
     }
 
     private async Task AcceptModification()
     {
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/accept-modification", HttpMethod.Put, null, "تم قبول التعديل بنجاح");
+        await DirectApprove();
     }
 
     private async Task RejectModification()
     {
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/reject-modification", HttpMethod.Put, null, "تم رفض التعديل");
+        await ExecuteReject();
     }
 
     private async Task ExecuteReroute()
     {
         if (_newWarehouseId is null) { Snackbar.Add("يرجى اختيار المخزن", MudBlazor.Severity.Warning); return; }
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/reroute", HttpMethod.Put, new { newWarehouseId = _newWarehouseId }, "تم تحويل الطلب لمخزن آخر");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/reroute", HttpMethod.Post,
+            new { targetWarehouseId = _newWarehouseId.Value, reason = "تحويل من إدارة المخزن" }, "تم تحويل الطلب لمخزن آخر");
         _showReroutePanel = false;
     }
 
     private async Task ExecuteDispatch()
     {
-        var dispatchedLines = _requisition!.Lines
-            .Select(l => new { lineId = l.Id, dispatchedQty = l.DispatchedQty ?? l.ApprovedQty ?? l.RequestedQty })
+        var lines = _requisition!.Lines
+            .Select(l => new { lineId = l.Id, dispatchedQuantity = l.DispatchedQty ?? l.ApprovedQty ?? l.RequestedQty })
             .ToList();
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/dispatch", HttpMethod.Put,
-            new { dispatchedLines, notes = _dispatchNotes }, "تم شحن الطلب بنجاح");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/dispatch", HttpMethod.Post,
+            new { lines = lines, userId = "Warehouse Admin" }, "تم بدء شحن الطلبية");
         _showDispatchNotesPanel = false;
     }
 
     private async Task ExecuteReceive()
     {
-        var receivedLines = _requisition!.Lines
-            .Select(l => new { lineId = l.Id, receivedQty = l.ReceivedQty ?? l.DispatchedQty ?? 0m })
+        var lines = _requisition!.Lines
+            .Select(l => new { lineId = l.Id, receivedQuantity = l.ReceivedQty ?? l.DispatchedQty ?? 0m })
             .ToList();
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/receive", HttpMethod.Put,
-            new { receivedLines, notes = _receiveNotes }, "تم تأكيد الاستلام بنجاح");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/receive", HttpMethod.Post,
+            new { lines = lines, userId = "Warehouse Admin" }, "تم تأكيد الاستلام وتحديث المخزون");
         _showReceiveNotesPanel = false;
     }
 
     private async Task ExecuteReject()
     {
         if (string.IsNullOrWhiteSpace(_rejectReason)) { Snackbar.Add("يرجى إدخال سبب الرفض", MudBlazor.Severity.Warning); return; }
-        await CallApi($"/api/branchrequisitions/{RequisitionId}/reject", HttpMethod.Put,
-            new { rejectionReason = _rejectReason }, "تم رفض الطلب");
+        await CallApi($"/api/warehouse/requisitions/{RequisitionId}/reject", HttpMethod.Post,
+            new { reason = _rejectReason }, "تم رفض الطلبية");
         _showRejectPanel = false;
     }
 
@@ -345,10 +347,12 @@
         try
         {
             HttpResponseMessage response;
-            if (body is null)
-                response = await Http.SendAsync(new HttpRequestMessage(method, url));
+            if (method == HttpMethod.Post)
+                response = await Http.PostAsJsonAsync(url, body ?? new { });
+            else if (method == HttpMethod.Put)
+                response = await Http.PutAsJsonAsync(url, body ?? new { });
             else
-                response = await Http.PutAsJsonAsync(url, body);
+                response = await Http.SendAsync(new HttpRequestMessage(method, url));
 
             if (response.IsSuccessStatusCode)
             {
@@ -358,12 +362,12 @@
             else
             {
                 var err = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"فشل تنفيذ العملية: {err}", MudBlazor.Severity.Error);
+                Snackbar.Add($"حدث خطأ: {err}", MudBlazor.Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"خطأ في الاتصال: {ex.Message}", MudBlazor.Severity.Error);
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
         }
         finally
         {
@@ -371,61 +375,83 @@
         }
     }
 
-    private Color GetStatusColor(string status) => status switch
+    private Color GetStatusColor(int status) => status switch
     {
-        "Submitted" => MudBlazor.Color.Info,
-        "UnderReview" => MudBlazor.Color.Warning,
-        "ModificationProposed" => MudBlazor.Color.Secondary,
-        "Approved" => MudBlazor.Color.Success,
-        "Dispatched" => MudBlazor.Color.Primary,
-        "Received" => MudBlazor.Color.Success,
-        "Rejected" => MudBlazor.Color.Error,
-        "Cancelled" => MudBlazor.Color.Default,
+        2 => MudBlazor.Color.Info,
+        3 => MudBlazor.Color.Warning,
+        4 => MudBlazor.Color.Secondary,
+        5 => MudBlazor.Color.Success,
+        7 => MudBlazor.Color.Primary,
+        8 => MudBlazor.Color.Warning,
+        9 => MudBlazor.Color.Success,
+        10 => MudBlazor.Color.Error,
+        11 => MudBlazor.Color.Default,
         _ => MudBlazor.Color.Default
     };
 
-    private string GetStatusLabel(string status) => status switch
+    private Color GetStatusColor(string status) => int.TryParse(status, out var s) ? GetStatusColor(s) : MudBlazor.Color.Default;
+
+    private string GetStatusLabel(int status) => status switch
     {
-        "Submitted" => "مرسل",
-        "UnderReview" => "تحت المراجعة",
-        "ModificationProposed" => "تعديل مقترح",
-        "Approved" => "معتمد",
-        "Dispatched" => "مشحون",
-        "Received" => "مستلم",
-        "Rejected" => "مرفوض",
-        "Cancelled" => "ملغي",
-        _ => status
+        0 => "معلق للمزامنة",
+        1 => "مسودة",
+        2 => "جديد (مرسل)",
+        3 => "قيد المراجعة",
+        4 => "تعديل مقترح",
+        5 => "معتمد",
+        6 => "محول",
+        7 => "قيد التجهيز",
+        8 => "في الطريق",
+        9 => "مستلم",
+        10 => "مرفوض",
+        11 => "ملغي",
+        _ => $"حالة {status}"
     };
+
+    private string GetStatusLabel(string status) => int.TryParse(status, out var s) ? GetStatusLabel(s) : status;
 
     private void Cancel() => MudDialog.Cancel();
 
-    // DTOs
     private record WarehouseLookup(int Id, string Name);
 
     private class RequisitionDetailDto
     {
+        public int Id { get; set; }
         public string RequisitionNumber { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string FromBranchName { get; set; } = string.Empty;
-        public string ToWarehouseName { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string? FromBranchName { get; set; }
+        public string? BranchName { get; set; }
+        public string? ToWarehouseName { get; set; }
+        public string? WarehouseName { get; set; }
         public DateTime? RequestedDeliveryDate { get; set; }
+        public DateTime? RequiredDate { get; set; }
         public DateTime? SubmittedAt { get; set; }
+        public DateTime RequestDate { get; set; }
         public string Priority { get; set; } = "Normal";
+        public string? Notes { get; set; }
+        public string? RejectionReason { get; set; }
         public List<RequisitionLineDetailDto> Lines { get; set; } = new();
     }
 
     private class RequisitionLineDetailDto
     {
         public int Id { get; set; }
+        public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
+        public int UnitId { get; set; }
         public string UnitName { get; set; } = string.Empty;
-        public decimal RequestedQty { get; set; }
-        public decimal? ApprovedQty { get; set; }
-        public decimal? DispatchedQty { get; set; }
-        public decimal? ReceivedQty { get; set; }
+        public decimal RequestedQuantity { get; set; }
+        public decimal RequestedQty { get => RequestedQuantity; set => RequestedQuantity = value; }
+        public decimal? ProposedQuantity { get; set; }
+        public decimal? ProposedQty { get => ProposedQuantity; set => ProposedQuantity = value; }
+        public decimal? ApprovedQuantity { get; set; }
+        public decimal? ApprovedQty { get => ApprovedQuantity; set => ApprovedQuantity = value; }
+        public decimal? DispatchedQuantity { get; set; }
+        public decimal? DispatchedQty { get => DispatchedQuantity; set => DispatchedQuantity = value; }
+        public decimal? ReceivedQuantity { get; set; }
+        public decimal? ReceivedQty { get => ReceivedQuantity; set => ReceivedQuantity = value; }
         public string? Notes { get; set; }
     }
 
     private record StatusHistoryDto(string ToStatus, DateTime ChangedAt, string ChangedBy, string? Notes);
 }
-

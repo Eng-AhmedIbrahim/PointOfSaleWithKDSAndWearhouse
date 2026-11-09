@@ -32,9 +32,22 @@ public class BranchRequisitionsController : ControllerBase
         if (warehouseId.HasValue) query = query.Where(r => r.TargetWarehouseId == warehouseId.Value || r.ReroutedToWarehouseId == warehouseId.Value);
         var result = await query.OrderByDescending(r => r.RequestDate).Select(r => new
         {
-            r.Id, r.RequisitionNumber, r.Status, r.RequestDate, r.RequiredDate,
-            r.RequestingBranchId, BranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
-            r.TargetWarehouseId, WarehouseName = r.TargetWarehouse != null ? r.TargetWarehouse.NameAr : null,
+            r.Id, r.RequisitionNumber,
+            Status = (int)r.Status,
+            r.RequestDate, r.RequiredDate,
+            r.RequestingBranchId,
+            BranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
+            FromBranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
+            r.TargetWarehouseId,
+            WarehouseName = r.TargetWarehouse != null ? r.TargetWarehouse.NameAr : null,
+            ToWarehouseName = r.TargetWarehouse != null ? r.TargetWarehouse.NameAr : null,
+            TargetWarehouse = r.TargetWarehouse != null ? new
+            {
+                r.TargetWarehouse.Id,
+                r.TargetWarehouse.Code,
+                r.TargetWarehouse.NameAr,
+                r.TargetWarehouse.NameEn
+            } : null,
             r.ReroutedToWarehouseId, r.RerouteReason, r.Notes, r.RejectionReason,
             r.ApprovedAt, r.DispatchedAt, r.ReceivedAt,
             LineCount = r.Lines.Count
@@ -61,7 +74,10 @@ public class BranchRequisitionsController : ControllerBase
             r.RequisitionNumber,
             r.RequestingBranchId,
             BranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
+            FromBranchName = r.RequestingBranch != null ? r.RequestingBranch.Name : null,
             r.TargetWarehouseId,
+            WarehouseName = r.TargetWarehouse != null ? r.TargetWarehouse.NameAr : null,
+            ToWarehouseName = r.TargetWarehouse != null ? r.TargetWarehouse.NameAr : null,
             TargetWarehouse = r.TargetWarehouse != null ? new
             {
                 r.TargetWarehouse.Id,
@@ -69,16 +85,20 @@ public class BranchRequisitionsController : ControllerBase
                 r.TargetWarehouse.NameAr,
                 r.TargetWarehouse.NameEn
             } : null,
-            r.Status,
+            Status = (int)r.Status,
             r.RequestDate,
+            SubmittedAt = r.RequestDate,
             r.RequiredDate,
+            RequestedDeliveryDate = r.RequiredDate,
             r.Notes,
             r.RejectionReason,
+            Priority = "Normal",
             LineCount = r.Lines.Count,
             Lines = r.Lines.Select(l => new
             {
                 l.Id,
                 l.ProductId,
+                ProductName = l.Product != null ? l.Product.NameAr : "",
                 Product = l.Product != null ? new
                 {
                     l.Product.Id,
@@ -87,18 +107,25 @@ public class BranchRequisitionsController : ControllerBase
                     l.Product.NameEn
                 } : null,
                 l.UnitId,
+                UnitName = l.Unit != null ? l.Unit.NameAr : "",
                 Unit = l.Unit != null ? new
                 {
                     l.Unit.Id,
                     l.Unit.NameAr,
                     l.Unit.NameEn
                 } : null,
-                l.RequestedQuantity,
-                l.ProposedQuantity,
-                l.ApprovedQuantity,
-                l.DispatchedQuantity,
-                l.ReceivedQuantity,
-                l.DiscrepancyQuantity
+                RequestedQuantity = l.RequestedQuantity,
+                RequestedQty = l.RequestedQuantity,
+                ProposedQuantity = l.ProposedQuantity,
+                ProposedQty = l.ProposedQuantity,
+                ApprovedQuantity = l.ApprovedQuantity,
+                ApprovedQty = (decimal?)l.ApprovedQuantity,
+                DispatchedQuantity = l.DispatchedQuantity,
+                DispatchedQty = (decimal?)l.DispatchedQuantity,
+                ReceivedQuantity = l.ReceivedQuantity,
+                ReceivedQty = (decimal?)l.ReceivedQuantity,
+                l.DiscrepancyQuantity,
+                Notes = l.ModificationNotes
             }).ToList()
         };
 
@@ -227,6 +254,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/review")]
+    [HttpPut("{id}/start-review")]
     public async Task<IActionResult> StartReview(int id)
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
@@ -255,6 +283,8 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/approve")]
+    [HttpPut("{id}/approve")]
+    [HttpPut("{id}/direct-approve")]
     public async Task<IActionResult> Approve(int id)
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
@@ -269,6 +299,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/reroute")]
+    [HttpPut("{id}/reroute")]
     public async Task<IActionResult> Reroute(int id, [FromBody] RerouteDto dto)
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
@@ -293,6 +324,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/dispatch")]
+    [HttpPut("{id}/dispatch")]
     public async Task<IActionResult> Dispatch(int id, [FromBody] DispatchDto dto)
     {
         var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
@@ -311,6 +343,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/receive")]
+    [HttpPut("{id}/receive")]
     public async Task<IActionResult> Receive(int id, [FromBody] ReceiveDto dto)
     {
         var r = await _db.BranchRequisitions
@@ -425,6 +458,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/reject")]
+    [HttpPut("{id}/reject")]
     public async Task<IActionResult> Reject(int id, [FromBody] ReasonDto reason)
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
@@ -437,6 +471,7 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/cancel")]
+    [HttpPut("{id}/cancel")]
     public async Task<IActionResult> Cancel(int id, [FromBody] ReasonDto reason)
     {
         var r = await _db.BranchRequisitions.FindAsync(id);
