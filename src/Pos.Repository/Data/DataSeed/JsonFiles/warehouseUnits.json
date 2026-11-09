@@ -1,4 +1,4 @@
-[
+﻿[
   {
     "NameAr": "كيلو جرام",
     "NameEn": "Kilogram",
@@ -12,7 +12,7 @@
     "IsBaseUnit": false
   },
   {
-    "NameAr": "مللي جرام",
+    "NameAr": "ملي جرام",
     "NameEn": "Milligram",
     "Symbol": "mg",
     "IsBaseUnit": false
@@ -30,7 +30,7 @@
     "IsBaseUnit": true
   },
   {
-    "NameAr": "مللي لتر",
+    "NameAr": "ملي لتر",
     "NameEn": "Milliliter",
     "Symbol": "ml",
     "IsBaseUnit": false
@@ -60,51 +60,75 @@
     "IsBaseUnit": false
   },
   {
-    "NameAr": "علبة / باكت",
-    "NameEn": "Box/Pack",
+    "NameAr": "علبة",
+    "NameEn": "Box",
     "Symbol": "box",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "شوال / شيكارة",
-    "NameEn": "Sack/Bag",
+    "NameAr": "شيكارة / كيس",
+    "NameEn": "Bag",
     "Symbol": "bag",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "صفيحة / تنكة",
+    "NameAr": "صفيحة / كان",
     "NameEn": "Tin/Can",
     "Symbol": "tin",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "لفة / رول",
+    "NameAr": "رول",
     "NameEn": "Roll",
     "Symbol": "roll",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "دزينة / دستة",
+    "NameAr": "دستة",
     "NameEn": "Dozen",
     "Symbol": "doz",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "باليتة",
+    "NameAr": "بالتة",
     "NameEn": "Pallet",
     "Symbol": "plt",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "قفص",
+    "NameAr": "قفص / صندوق",
     "NameEn": "Crate",
     "Symbol": "crt",
     "IsBaseUnit": false
   },
   {
-    "NameAr": "عبوة / زجاجة",
-    "NameEn": "Container/Bottle",
+    "NameAr": "زجاجة",
+    "NameEn": "Bottle",
     "Symbol": "btl",
+    "IsBaseUnit": false
+  },
+  {
+    "NameAr": "برطمان",
+    "NameEn": "Jar",
+    "Symbol": "jar",
+    "IsBaseUnit": false
+  },
+  {
+    "NameAr": "كيس تفريغ",
+    "NameEn": "Pouch",
+    "Symbol": "pch",
+    "IsBaseUnit": false
+  },
+  {
+    "NameAr": "حزمة",
+    "NameEn": "Bundle",
+    "Symbol": "bdl",
+    "IsBaseUnit": false
+  },
+  {
+    "NameAr": "قالب",
+    "NameEn": "Block/Bar",
+    "Symbol": "bar",
     "IsBaseUnit": false
   },
   {
@@ -120,27 +144,9 @@
     "IsBaseUnit": false
   },
   {
-    "NameAr": "رزمة",
-    "NameEn": "Bundle",
-    "Symbol": "bdl",
-    "IsBaseUnit": false
-  },
-  {
-    "NameAr": "قالب",
-    "NameEn": "Block/Bar",
-    "Symbol": "bar",
-    "IsBaseUnit": false
-  },
-  {
-    "NameAr": "كيس",
-    "NameEn": "Pouch/Bag",
-    "Symbol": "pch",
-    "IsBaseUnit": false
-  },
-  {
-    "NameAr": "برطمان",
-    "NameEn": "Jar",
-    "Symbol": "jar",
+    "NameAr": "باكت",
+    "NameEn": "Pack",
+    "Symbol": "pk",
     "IsBaseUnit": false
   }
 ]

@@ -160,23 +160,55 @@ public static class PosDbContextDataSeed
             await _dbContext.SaveChangesAsync();
         }
 
-        if (!_dbContext.Units.Any())
+                // Seed or repair branch Units
+        var existingUnits = await _dbContext.Units.ToListAsync();
+        if (!existingUnits.Any() || existingUnits.Any(u => string.IsNullOrWhiteSpace(u.ArabicName) || u.ArabicName.Contains("?")))
         {
             var units = await GetDataFromJsonFile<Unit>("units.json");
             if (units != null && units.Any())
             {
-                foreach (var unit in units) unit.CreatedAt = DateTime.Now;
-                await _dbContext.Units.AddRangeAsync(units);
+                foreach (var u in units)
+                {
+                    var match = existingUnits.FirstOrDefault(x => x.Code == u.Code || x.EnglishName == u.EnglishName);
+                    if (match != null)
+                    {
+                        match.ArabicName = u.ArabicName;
+                        match.EnglishName = u.EnglishName;
+                        match.Code = u.Code;
+                        match.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        u.CreatedAt = DateTime.UtcNow;
+                        await _dbContext.Units.AddAsync(u);
+                    }
+                }
                 await _dbContext.SaveChangesAsync();
             }
         }
 
-        if (!_dbContext.WarehouseUnits.Any())
+        // Seed or repair WarehouseUnits
+        var existingWhUnits = await _dbContext.WarehouseUnits.ToListAsync();
+        if (!existingWhUnits.Any() || existingWhUnits.Any(u => string.IsNullOrWhiteSpace(u.NameAr) || u.NameAr.Contains("?")))
         {
             var whUnits = await GetDataFromJsonFile<POS.Core.Entities.Warehouse.WarehouseUnit>("warehouseUnits.json");
             if (whUnits != null && whUnits.Any())
             {
-                await _dbContext.WarehouseUnits.AddRangeAsync(whUnits);
+                foreach (var wu in whUnits)
+                {
+                    var match = existingWhUnits.FirstOrDefault(x => x.Symbol == wu.Symbol || x.NameEn == wu.NameEn);
+                    if (match != null)
+                    {
+                        match.NameAr = wu.NameAr;
+                        match.NameEn = wu.NameEn;
+                        match.Symbol = wu.Symbol;
+                        match.IsBaseUnit = wu.IsBaseUnit;
+                    }
+                    else
+                    {
+                        await _dbContext.WarehouseUnits.AddAsync(wu);
+                    }
+                }
                 await _dbContext.SaveChangesAsync();
             }
         }

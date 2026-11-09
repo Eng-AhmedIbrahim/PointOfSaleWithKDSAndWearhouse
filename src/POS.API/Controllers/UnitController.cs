@@ -7,6 +7,7 @@ using Unit = POS.Core.Entities.Item.Unit;
 namespace POS.API.Controllers;
 
 [Route("api/units")]
+[Route("api/unit")]
 public class UnitController : BaseApiController
 {
     private readonly IUnitService _unitService;
