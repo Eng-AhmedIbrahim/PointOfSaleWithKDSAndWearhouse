@@ -1,4 +1,4 @@
-namespace Pos.Repository.Data.DataSeed;
+﻿namespace Pos.Repository.Data.DataSeed;
 
 public static class PosDbContextDataSeed
 {
@@ -160,32 +160,7 @@ public static class PosDbContextDataSeed
             await _dbContext.SaveChangesAsync();
         }
 
-                // Seed or repair branch Units
-        var existingUnits = await _dbContext.Units.ToListAsync();
-        if (!existingUnits.Any() || existingUnits.Any(u => string.IsNullOrWhiteSpace(u.ArabicName) || u.ArabicName.Contains("?")))
-        {
-            var units = await GetDataFromJsonFile<Unit>("units.json");
-            if (units != null && units.Any())
-            {
-                foreach (var u in units)
-                {
-                    var match = existingUnits.FirstOrDefault(x => x.Code == u.Code || x.EnglishName == u.EnglishName);
-                    if (match != null)
-                    {
-                        match.ArabicName = u.ArabicName;
-                        match.EnglishName = u.EnglishName;
-                        match.Code = u.Code;
-                        match.UpdatedAt = DateTime.UtcNow;
-                    }
-                    else
-                    {
-                        u.CreatedAt = DateTime.UtcNow;
-                        await _dbContext.Units.AddAsync(u);
-                    }
-                }
-                await _dbContext.SaveChangesAsync();
-            }
-        }
+                await SeedOrRepairUnitsAsync(_dbContext);
 
         // Seed or repair WarehouseUnits
         var existingWhUnits = await _dbContext.WarehouseUnits.ToListAsync();
@@ -256,5 +231,93 @@ public static class PosDbContextDataSeed
         var data = await File.ReadAllTextAsync(filePath);
         var options = new JsonSerializerOptions { AllowTrailingCommas = true, PropertyNameCaseInsensitive = true };
         return JsonSerializer.Deserialize<List<T>>(data, options) ?? [];
+    }
+
+    private static async Task SeedOrRepairUnitsAsync(AppDbContext db)
+    {
+        var standardUnits = new (string ArabicName, string EnglishName, string Code, bool IsBase)[]
+        {
+            ("كيلو جرام", "Kilogram", "kg", true),
+            ("جرام", "Gram", "g", false),
+            ("ملي جرام", "Milligram", "mg", false),
+            ("طن", "Ton", "ton", false),
+            ("لتر", "Liter", "L", true),
+            ("ملي لتر", "Milliliter", "ml", false),
+            ("جالون", "Gallon", "gal", false),
+            ("برميل", "Barrel", "bbl", false),
+            ("قطعة", "Piece", "pcs", true),
+            ("كرتونة", "Carton", "ctn", false),
+            ("علبة", "Box", "box", false),
+            ("شيكارة / كيس", "Bag", "bag", false),
+            ("صفيحة / كان", "Tin/Can", "tin", false),
+            ("رول", "Roll", "roll", false),
+            ("دستة", "Dozen", "doz", false),
+            ("بالتة", "Pallet", "plt", false),
+            ("قفص / صندوق", "Crate", "crt", false),
+            ("زجاجة", "Bottle", "btl", false),
+            ("برطمان", "Jar", "jar", false),
+            ("كيس تفريغ", "Pouch", "pch", false),
+            ("حزمة", "Bundle", "bdl", false),
+            ("قالب", "Block/Bar", "bar", false),
+            ("متر", "Meter", "m", true),
+            ("سنتيمتر", "Centimeter", "cm", false),
+            ("باكت", "Pack", "pk", false)
+        };
+
+        // 1. Sync Branch Units
+        var existingUnits = await db.Units.ToListAsync();
+        foreach (var u in standardUnits)
+        {
+            var match = existingUnits.FirstOrDefault(x => x.Code == u.Code || x.EnglishName == u.EnglishName);
+            if (match != null)
+            {
+                if (string.IsNullOrWhiteSpace(match.ArabicName) || match.ArabicName.Contains("?") || match.ArabicName.Contains("Ù") || match.ArabicName != u.ArabicName)
+                {
+                    match.ArabicName = u.ArabicName;
+                    match.EnglishName = u.EnglishName;
+                    match.Code = u.Code;
+                    match.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                await db.Units.AddAsync(new Unit
+                {
+                    ArabicName = u.ArabicName,
+                    EnglishName = u.EnglishName,
+                    Code = u.Code,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+        await db.SaveChangesAsync();
+
+        // 2. Sync Warehouse Units
+        var existingWhUnits = await db.WarehouseUnits.ToListAsync();
+        foreach (var u in standardUnits)
+        {
+            var match = existingWhUnits.FirstOrDefault(x => x.Symbol == u.Code || x.NameEn == u.EnglishName);
+            if (match != null)
+            {
+                if (string.IsNullOrWhiteSpace(match.NameAr) || match.NameAr.Contains("?") || match.NameAr.Contains("Ù") || match.NameAr != u.ArabicName)
+                {
+                    match.NameAr = u.ArabicName;
+                    match.NameEn = u.EnglishName;
+                    match.Symbol = u.Code;
+                    match.IsBaseUnit = u.IsBase;
+                }
+            }
+            else
+            {
+                await db.WarehouseUnits.AddAsync(new POS.Core.Entities.Warehouse.WarehouseUnit
+                {
+                    NameAr = u.ArabicName,
+                    NameEn = u.EnglishName,
+                    Symbol = u.Code,
+                    IsBaseUnit = u.IsBase
+                });
+            }
+        }
+        await db.SaveChangesAsync();
     }
 }
