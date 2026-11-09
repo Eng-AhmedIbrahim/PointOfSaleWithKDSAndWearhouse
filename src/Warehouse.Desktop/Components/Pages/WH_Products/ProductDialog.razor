@@ -159,7 +159,7 @@
                                 <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block">معامل التحويل لوحدة الأساس</MudText>
                                 <MudNumericField @bind-Value="pu.ConversionFactor" Format="N3" HideSpinButtons="true"
                                                  Min="0.001m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
-                                                 HelperText="مثال: 1 كرتونة = 12 كيلو" />
+                                                 HelperText="@GetUnitHelperText(pu)" />
                             </MudItem>
                             <MudItem xs="12" md="3" Class="pt-4">
                                 <MudCheckBox T="bool" @bind-Value="pu.IsDefault" Label="وحدة الشراء الافتراضية" Color="MudBlazor.Color.Warning" Dense="true" />

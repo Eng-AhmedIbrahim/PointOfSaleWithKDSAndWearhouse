@@ -327,19 +327,86 @@ public class BranchRequisitionsController : ControllerBase
     [HttpPut("{id}/dispatch")]
     public async Task<IActionResult> Dispatch(int id, [FromBody] DispatchDto dto)
     {
-        var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
+        var r = await _db.BranchRequisitions
+            .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
+
+        // ===== Stock check per line =====
+        foreach (var dl in dto.Lines.Where(dl => dl.DispatchedQuantity > 0))
+        {
+            var line = r.Lines.FirstOrDefault(x => x.Id == dl.LineId);
+            if (line == null || line.Product == null) continue;
+
+            // Convert dispatched qty to base unit for stock check
+            decimal baseQtyToDispatch = dl.DispatchedQuantity;
+            if (line.UnitId != line.Product.BaseUnitId)
+            {
+                var pu = line.Product.ProductUnits?.FirstOrDefault(u => u.UnitId == line.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0)
+                    baseQtyToDispatch *= pu.ConversionFactorToBase;
+            }
+
+            var balance = await _db.StockBalances
+                .FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == line.ProductId);
+
+            if (balance == null || balance.QuantityOnHand < baseQtyToDispatch)
+            {
+                var productName = line.Product.NameAr ?? $"صنف #{line.ProductId}";
+                var available = balance?.QuantityOnHand ?? 0m;
+                return BadRequest(new { message = $"رصيد الصنف '{productName}' في المخزن غير كافٍ للشحن. المتاح: {available:N2}, المطلوب: {baseQtyToDispatch:N2}" });
+            }
+        }
+
+        // ===== Apply dispatched quantities and deduct stock =====
         foreach (var dl in dto.Lines)
         {
             var l = r.Lines.FirstOrDefault(x => x.Id == dl.LineId);
-            if (l != null) l.DispatchedQuantity = dl.DispatchedQuantity;
+            if (l == null || l.Product == null) continue;
+            l.DispatchedQuantity = dl.DispatchedQuantity;
+
+            if (dl.DispatchedQuantity <= 0) continue;
+
+            // Convert to base unit
+            decimal baseQty = dl.DispatchedQuantity;
+            if (l.UnitId != l.Product.BaseUnitId)
+            {
+                var pu = l.Product.ProductUnits?.FirstOrDefault(u => u.UnitId == l.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0)
+                    baseQty *= pu.ConversionFactorToBase;
+            }
+
+            // Deduct from StockBalance
+            var balance = await _db.StockBalances
+                .FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == l.ProductId);
+            if (balance != null)
+            {
+                balance.QuantityOnHand -= baseQty;
+                balance.LastUpdated = DateTime.UtcNow;
+            }
+
+            // Write StockLedger
+            var runningBalance = balance?.QuantityOnHand ?? 0m;
+            _db.StockLedger.Add(new StockLedger
+            {
+                WarehouseId = r.TargetWarehouseId,
+                ProductId = l.ProductId,
+                MovementType = StockMovementType.BranchIssue,
+                QuantityOut = baseQty,
+                RunningBalance = runningBalance,
+                ReferenceDocumentType = "REQ",
+                ReferenceDocumentNumber = r.RequisitionNumber,
+                MovementDate = DateTime.UtcNow,
+                Notes = $"شحن لفرع #{r.RequestingBranchId}"
+            });
         }
+
         r.Status = RequisitionStatus.InTransit;
         r.DispatchedAt = DateTime.UtcNow;
         r.DispatchedByUserId = dto.UserId;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "\u0641\u064a \u0627\u0644\u0637\u0631\u064a\u0642", "\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0645\u062d\u062a\u0648\u064a\u0627\u062a \u0637\u0644\u0628\u064a\u062a\u0643 \u0648\u0647\u064a \u0641\u064a \u0627\u0644\u0637\u0631\u064a\u0642 \u0625\u0644\u064a\u0643");
-        return Ok(new { message = "\u062a\u0645 \u0627\u0644\u0625\u0631\u0633\u0627\u0644" });
+        await NotifyBranch(r, "في الطريق", "تم إرسال محتويات طلبيتك وهي في الطريق إليك");
+        return Ok(new { message = "تم الإرسال" });
     }
 
     [HttpPost("{id}/receive")]
@@ -352,7 +419,8 @@ public class BranchRequisitionsController : ControllerBase
                     .ThenInclude(p => p!.ProductUnits)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
-        if (r.Status != RequisitionStatus.InTransit) return BadRequest();
+        if (r.Status != RequisitionStatus.InTransit && !(r.Status == RequisitionStatus.Received && r.Lines.All(l => l.ReceivedQuantity == 0)))
+            return BadRequest(new { message = "الطلب ليس في حالة شحن" });
 
         // ===== Update received quantities =====
         foreach (var lineDto in dto.Lines)
@@ -374,16 +442,6 @@ public class BranchRequisitionsController : ControllerBase
         {
             var product = line.Product;
             if (product == null) continue;
-
-            // Calculate unit conversion factor: requested unit -> base unit
-            decimal convFactor = 1m;
-            if (line.UnitId != product.BaseUnitId)
-            {
-                var pu = product.ProductUnits.FirstOrDefault(u => u.UnitId == line.UnitId);
-                if (pu != null && pu.ConversionFactorToBase > 0)
-                    convFactor = pu.ConversionFactorToBase;
-            }
-            decimal convertedQty = line.ReceivedQuantity * convFactor;
 
             // Match item in MenuSalesItems: by Barcode -> ArabicName
             POS.Core.Entities.Item.MenuSalesItems? menuItem = null;
@@ -429,12 +487,43 @@ public class BranchRequisitionsController : ControllerBase
                     TrackInventory = true,
                     ItemNameAr = menuItem.ArabicName,
                     ItemNameEn = menuItem.EnglishName,
+                    UnitId = line.UnitId,
                     CreatedAt = DateTime.UtcNow
                 };
                 _db.InventoryItems.Add(invItem);
-                await _db.SaveChangesAsync(); // Flush to get Id
+                await _db.SaveChangesAsync();
             }
 
+            // Calculate smart unit conversion between line unit and branch inventory item unit
+            decimal convFactor = 1m;
+            var reqUnit = await _db.WarehouseUnits.FindAsync(line.UnitId);
+            var branchUnit = invItem.UnitId.HasValue ? await _db.Units.FindAsync(invItem.UnitId.Value) : null;
+            
+            string fromCode = (reqUnit?.Symbol ?? "").Trim().ToLower();
+            string toCode = (branchUnit?.Code ?? "").Trim().ToLower();
+
+            if (!string.IsNullOrEmpty(fromCode) && !string.IsNullOrEmpty(toCode) && fromCode != toCode)
+            {
+                // Weight conversions
+                if (fromCode == "kg" && toCode == "g") convFactor = 1000m;
+                else if (fromCode == "g" && toCode == "kg") convFactor = 0.001m;
+                else if (fromCode == "ton" && toCode == "kg") convFactor = 1000m;
+                else if (fromCode == "kg" && toCode == "ton") convFactor = 0.001m;
+                else if (fromCode == "ton" && toCode == "g") convFactor = 1000000m;
+                // Volume conversions
+                else if (fromCode == "l" && toCode == "ml") convFactor = 1000m;
+                else if (fromCode == "ml" && toCode == "l") convFactor = 0.001m;
+                // Packaging conversions
+                else if (fromCode == "doz" && toCode == "pcs") convFactor = 12m;
+            }
+            else if (line.UnitId != product.BaseUnitId)
+            {
+                var pu = product.ProductUnits?.FirstOrDefault(u => u.UnitId == line.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0)
+                    convFactor = pu.ConversionFactorToBase;
+            }
+
+            decimal convertedQty = line.ReceivedQuantity * convFactor;
             invItem.CurrentQuantity += convertedQty;
             invItem.UpdatedAt = DateTime.UtcNow;
 

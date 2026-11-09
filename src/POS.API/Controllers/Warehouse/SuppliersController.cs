@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
@@ -37,32 +37,176 @@ public class SuppliersController : ControllerBase
         var s = await _db.WH_Suppliers.Include(x => x.PriceContracts).ThenInclude(p => p.Product)
             .Include(x => x.Invoices).Include(x => x.Payments).FirstOrDefaultAsync(x => x.Id == id);
         if (s == null) return NotFound();
-        return Ok(s);
+        return Ok(new
+        {
+            s.Id,
+            s.Code,
+            Name = s.NameAr,
+            NameAr = s.NameAr,
+            NameEn = s.NameEn,
+            ContactPerson = s.NameEn ?? "",
+            Phone = s.Phone ?? "",
+            Email = s.Email ?? "",
+            Address = s.Address ?? "",
+            City = s.Address ?? "",
+            TaxNumber = s.TaxNumber ?? "",
+            CommercialRegister = s.CommercialRegister ?? "",
+            BankName = s.BankName ?? "",
+            Iban = s.Iban ?? "",
+            PaymentTermsDays = (int)s.DefaultPaymentTerm * 15,
+            DefaultPaymentTerm = s.DefaultPaymentTerm,
+            CreditLimit = s.CreditLimit,
+            CurrentBalance = s.CurrentBalance,
+            IsActive = s.IsActive,
+            CreatedAt = s.CreatedAt,
+            Notes = "",
+            PriceContracts = s.PriceContracts.Select(pc => new
+            {
+                pc.Id,
+                pc.ProductId,
+                UnitPrice = pc.AgreedPrice,
+                StartDate = (DateTime?)pc.ValidFrom,
+                EndDate = pc.ValidTo,
+                IsPreferred = pc.IsActive
+            }).ToList()
+        });
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Supplier model)
+    public async Task<IActionResult> Create([FromBody] SupplierInputDto dto)
     {
-        if (await _db.WH_Suppliers.AnyAsync(s => s.Code == model.Code))
+        var nameAr = !string.IsNullOrWhiteSpace(dto.NameAr) ? dto.NameAr : (!string.IsNullOrWhiteSpace(dto.Name) ? dto.Name : "");
+        if (string.IsNullOrWhiteSpace(nameAr))
+            return BadRequest(new { message = "اسم المورد مطلوب" });
+
+        var code = dto.Code?.Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var nextNum = await _db.WH_Suppliers.CountAsync() + 1;
+            code = $"SUP-{nextNum:D4}";
+            while (await _db.WH_Suppliers.AnyAsync(s => s.Code == code))
+            {
+                nextNum++;
+                code = $"SUP-{nextNum:D4}";
+            }
+        }
+        else if (await _db.WH_Suppliers.AnyAsync(s => s.Code == code))
+        {
             return BadRequest(new { message = "كود المورد موجود مسبقاً" });
-        model.CreatedAt = DateTime.UtcNow;
-        _db.WH_Suppliers.Add(model);
+        }
+
+        var supplier = new Supplier
+        {
+            Code = code,
+            NameAr = nameAr,
+            NameEn = !string.IsNullOrWhiteSpace(dto.ContactPerson) ? dto.ContactPerson : (dto.NameEn ?? ""),
+            Phone = dto.Phone,
+            Email = dto.Email,
+            Address = !string.IsNullOrWhiteSpace(dto.Address) ? dto.Address : dto.City,
+            TaxNumber = dto.TaxNumber,
+            CommercialRegister = dto.CommercialRegister,
+            BankName = dto.BankName,
+            Iban = dto.Iban,
+            DefaultPaymentTerm = dto.DefaultPaymentTerm ?? (dto.PaymentTermsDays.HasValue ? (PaymentTermType)Math.Clamp((dto.PaymentTermsDays.Value / 15) + 1, 1, 6) : PaymentTermType.Cash),
+            CreditLimit = dto.CreditLimit ?? 0m,
+            IsActive = dto.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (dto.PriceContracts != null)
+        {
+            foreach (var pc in dto.PriceContracts.Where(p => p.ProductId > 0 && p.UnitPrice > 0))
+            {
+                var prod = await _db.WarehouseProducts.FindAsync(pc.ProductId);
+                supplier.PriceContracts.Add(new SupplierPriceContract
+                {
+                    ProductId = pc.ProductId,
+                    UnitId = prod?.BaseUnitId ?? 1,
+                    AgreedPrice = pc.UnitPrice,
+                    ValidFrom = pc.StartDate ?? DateTime.UtcNow,
+                    ValidTo = pc.EndDate,
+                    IsActive = true
+                });
+            }
+        }
+
+        _db.WH_Suppliers.Add(supplier);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = model.Id }, model);
+        return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] Supplier model)
+    public async Task<IActionResult> Update(int id, [FromBody] SupplierInputDto dto)
     {
-        var existing = await _db.WH_Suppliers.FindAsync(id);
+        var existing = await _db.WH_Suppliers.Include(s => s.PriceContracts).FirstOrDefaultAsync(s => s.Id == id);
         if (existing == null) return NotFound();
-        existing.NameAr = model.NameAr; existing.NameEn = model.NameEn; existing.Phone = model.Phone;
-        existing.Email = model.Email; existing.Address = model.Address; existing.TaxNumber = model.TaxNumber;
-        existing.CommercialRegister = model.CommercialRegister; existing.BankName = model.BankName;
-        existing.Iban = model.Iban; existing.DefaultPaymentTerm = model.DefaultPaymentTerm;
-        existing.CreditLimit = model.CreditLimit; existing.IsActive = model.IsActive;
+
+        var nameAr = !string.IsNullOrWhiteSpace(dto.NameAr) ? dto.NameAr : (!string.IsNullOrWhiteSpace(dto.Name) ? dto.Name : existing.NameAr);
+        existing.NameAr = nameAr;
+        if (!string.IsNullOrWhiteSpace(dto.ContactPerson)) existing.NameEn = dto.ContactPerson;
+        else if (dto.NameEn != null) existing.NameEn = dto.NameEn;
+
+        if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != existing.Code)
+        {
+            if (await _db.WH_Suppliers.AnyAsync(s => s.Code == dto.Code && s.Id != id))
+                return BadRequest(new { message = "كود المورد مستخدم مسبقاً" });
+            existing.Code = dto.Code;
+        }
+
+        existing.Phone = dto.Phone;
+        existing.Email = dto.Email;
+        if (!string.IsNullOrWhiteSpace(dto.Address)) existing.Address = dto.Address;
+        else if (!string.IsNullOrWhiteSpace(dto.City)) existing.Address = dto.City;
+        existing.TaxNumber = dto.TaxNumber;
+        existing.CommercialRegister = dto.CommercialRegister;
+        existing.BankName = dto.BankName;
+        existing.Iban = dto.Iban;
+        if (dto.DefaultPaymentTerm.HasValue) existing.DefaultPaymentTerm = dto.DefaultPaymentTerm.Value;
+        if (dto.CreditLimit.HasValue) existing.CreditLimit = dto.CreditLimit.Value;
+        existing.IsActive = dto.IsActive;
+
+        if (dto.PriceContracts != null)
+        {
+            _db.SupplierPriceContracts.RemoveRange(existing.PriceContracts);
+            foreach (var pc in dto.PriceContracts.Where(p => p.ProductId > 0 && p.UnitPrice > 0))
+            {
+                var prod = await _db.WarehouseProducts.FindAsync(pc.ProductId);
+                existing.PriceContracts.Add(new SupplierPriceContract
+                {
+                    SupplierId = id,
+                    ProductId = pc.ProductId,
+                    UnitId = prod?.BaseUnitId ?? 1,
+                    AgreedPrice = pc.UnitPrice,
+                    ValidFrom = pc.StartDate ?? DateTime.UtcNow,
+                    ValidTo = pc.EndDate,
+                    IsActive = true
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
         return Ok(existing);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var supplier = await _db.WH_Suppliers.Include(s => s.PriceContracts).FirstOrDefaultAsync(s => s.Id == id);
+        if (supplier == null) return NotFound();
+
+        bool hasInvoices = await _db.SupplierInvoices.AnyAsync(i => i.SupplierId == id);
+        bool hasPOs = await _db.PurchaseOrders.AnyAsync(p => p.SupplierId == id);
+        if (hasInvoices || hasPOs)
+        {
+            supplier.IsActive = false;
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "تم إلغاء تنشيط المورد لوجود حركات سابقة مرتبطة به" });
+        }
+
+        _db.SupplierPriceContracts.RemoveRange(supplier.PriceContracts);
+        _db.WH_Suppliers.Remove(supplier);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "تم حذف المورد بنجاح" });
     }
 
     // Price Contracts
@@ -213,4 +357,38 @@ public class SuppliersController : ControllerBase
 
         return Ok(list);
     }
+
+public class SupplierInputDto
+{
+    public string? Code { get; set; }
+    public string? Name { get; set; }
+    public string? NameAr { get; set; }
+    public string? NameEn { get; set; }
+    public string? ContactPerson { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? CommercialRegister { get; set; }
+    public string? BankName { get; set; }
+    public string? Iban { get; set; }
+    public int? PaymentTermsDays { get; set; }
+    public PaymentTermType? DefaultPaymentTerm { get; set; }
+    public decimal? CreditLimit { get; set; }
+    public string? Notes { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<SupplierPriceContractInputDto>? PriceContracts { get; set; }
+}
+
+public class SupplierPriceContractInputDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public decimal UnitPrice { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public bool IsPreferred { get; set; }
+}
+
 }

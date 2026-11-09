@@ -81,29 +81,83 @@ public class WarehouseProductsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] WarehouseProduct model)
+    public async Task<IActionResult> Update(int id, [FromBody] WarehouseProductUpdateDto dto)
     {
-        var existing = await _db.WarehouseProducts.FindAsync(id);
+        var existing = await _db.WarehouseProducts
+            .Include(p => p.ProductUnits)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (existing == null) return NotFound();
-        if (await _db.WarehouseProducts.AnyAsync(p => p.SKU == model.SKU && p.Id != id))
-            return BadRequest(new { message = "SKU مستخدم مسبقاً" });
-        existing.SKU = model.SKU; existing.Barcode = model.Barcode; existing.NameAr = model.NameAr;
-        existing.NameEn = model.NameEn; existing.Description = model.Description;
-        existing.CategoryId = model.CategoryId;
-        if (model.CategoryId.HasValue)
+        if (!string.IsNullOrWhiteSpace(dto.SKU) && dto.SKU != existing.SKU)
         {
-            var cat = await _db.WarehouseCategories.FindAsync(model.CategoryId.Value);
-            if (cat != null) existing.CategoryName = cat.NameAr;
-            else existing.CategoryName = model.CategoryName;
+            if (await _db.WarehouseProducts.AnyAsync(p => p.SKU == dto.SKU && p.Id != id))
+                return BadRequest(new { message = "SKU مستخدم مسبقاً" });
+            existing.SKU = dto.SKU;
+            existing.Barcode = dto.Barcode ?? dto.SKU;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.Barcode))
+        {
+            existing.Barcode = dto.Barcode;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.NameAr)) existing.NameAr = dto.NameAr;
+        if (dto.NameEn != null) existing.NameEn = dto.NameEn;
+        if (dto.Description != null) existing.Description = dto.Description;
+        existing.CategoryId = dto.CategoryId;
+        if (dto.CategoryId.HasValue)
+        {
+            var cat = await _db.WarehouseCategories.FindAsync(dto.CategoryId.Value);
+            existing.CategoryName = cat?.NameAr ?? dto.CategoryName;
         }
         else
         {
-            existing.CategoryName = model.CategoryName;
+            existing.CategoryName = dto.CategoryName;
         }
-        existing.BaseUnitId = model.BaseUnitId; existing.MinStockLevel = model.MinStockLevel;
-        existing.ReorderPoint = model.ReorderPoint; existing.ReorderQuantity = model.ReorderQuantity; existing.IsActive = model.IsActive;
+        if (dto.BaseUnitId > 0) existing.BaseUnitId = dto.BaseUnitId;
+        if (dto.MinStockLevel.HasValue) existing.MinStockLevel = dto.MinStockLevel.Value;
+        if (dto.ReorderPoint.HasValue) existing.ReorderPoint = dto.ReorderPoint.Value;
+        if (dto.ReorderQuantity.HasValue) existing.ReorderQuantity = dto.ReorderQuantity.Value;
+        existing.IsActive = dto.IsActive;
+        if (dto.WeightedAverageCost.HasValue && dto.WeightedAverageCost.Value > 0)
+            existing.WeightedAverageCost = dto.WeightedAverageCost.Value;
+        if (dto.LastPurchaseCost.HasValue && dto.LastPurchaseCost.Value > 0)
+            existing.LastPurchaseCost = dto.LastPurchaseCost.Value;
+
+        // ===== Sync ProductUnits =====
+        if (dto.ProductUnits != null)
+        {
+            var incomingIds = dto.ProductUnits.Where(u => u.Id > 0).Select(u => u.Id).ToHashSet();
+            var toRemove = existing.ProductUnits.Where(u => !incomingIds.Contains(u.Id)).ToList();
+            _db.WarehouseProductUnits.RemoveRange(toRemove);
+
+            foreach (var unitDto in dto.ProductUnits.Where(u => u.UnitId > 0))
+            {
+                if (unitDto.Id > 0)
+                {
+                    var existingUnit = existing.ProductUnits.FirstOrDefault(u => u.Id == unitDto.Id);
+                    if (existingUnit != null)
+                    {
+                        existingUnit.UnitId = unitDto.UnitId;
+                        existingUnit.ConversionFactorToBase = unitDto.ConversionFactorToBase > 0 ? unitDto.ConversionFactorToBase : 1;
+                        existingUnit.IsDefaultPurchaseUnit = unitDto.IsDefaultPurchaseUnit;
+                        existingUnit.IsDefaultRequisitionUnit = unitDto.IsDefaultRequisitionUnit;
+                    }
+                }
+                else
+                {
+                    existing.ProductUnits.Add(new WarehouseProductUnit
+                    {
+                        ProductId = id,
+                        UnitId = unitDto.UnitId,
+                        ConversionFactorToBase = unitDto.ConversionFactorToBase > 0 ? unitDto.ConversionFactorToBase : 1,
+                        IsDefaultPurchaseUnit = unitDto.IsDefaultPurchaseUnit,
+                        IsDefaultRequisitionUnit = unitDto.IsDefaultRequisitionUnit
+                    });
+                }
+            }
+        }
+
         await _db.SaveChangesAsync();
-        return Ok(existing);
+        return Ok(new { existing.Id, existing.SKU, existing.NameAr, message = "تم التعديل بنجاح" });
     }
 
     // Warehouse Categories
@@ -441,4 +495,33 @@ public class WarehouseProductsController : ControllerBase
 
         return Ok(new { success = true, reference = refDoc, newQuantity = balance.QuantityOnHand });
     }
+
+public class WarehouseProductUpdateDto
+{
+    public string? SKU { get; set; }
+    public string? Barcode { get; set; }
+    public string? NameAr { get; set; }
+    public string? NameEn { get; set; }
+    public string? Description { get; set; }
+    public string? CategoryName { get; set; }
+    public int? CategoryId { get; set; }
+    public int BaseUnitId { get; set; }
+    public decimal? MinStockLevel { get; set; }
+    public decimal? ReorderPoint { get; set; }
+    public decimal? ReorderQuantity { get; set; }
+    public decimal? WeightedAverageCost { get; set; }
+    public decimal? LastPurchaseCost { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<ProductUnitUpdateDto>? ProductUnits { get; set; }
+}
+
+public class ProductUnitUpdateDto
+{
+    public int Id { get; set; }
+    public int UnitId { get; set; }
+    public decimal ConversionFactorToBase { get; set; } = 1;
+    public bool IsDefaultPurchaseUnit { get; set; }
+    public bool IsDefaultRequisitionUnit { get; set; }
+}
+
 }

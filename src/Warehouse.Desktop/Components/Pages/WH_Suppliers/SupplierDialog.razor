@@ -343,7 +343,7 @@
         {
             var payload = new
             {
-                Model.Code, Model.Name, Model.ContactPerson, Model.Phone, Model.Email,
+                Model.Code, Model.Name, NameAr = Model.Name, Model.ContactPerson, NameEn = Model.ContactPerson, Model.Phone, Model.Email,
                 Model.Address, Model.City, Model.TaxNumber, Model.PaymentTermsDays,
                 Model.Notes, Model.IsActive,
                 PriceContracts = PriceContracts.Select(pc => new

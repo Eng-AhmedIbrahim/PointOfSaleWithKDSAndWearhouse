@@ -1,4 +1,4 @@
-﻿using BlazorBase.ERPFrontServices.SettingsServices;
+using BlazorBase.ERPFrontServices.SettingsServices;
 using POS.Contract.Dtos.SettingsDtos;
 using POS.Desktop.Components.PosComponent;
 
@@ -17,7 +17,6 @@ public partial class POS
     private double _spacing = 4.0;
     private Action? _stateChangedHandler;
     private ICollection<BranchToReturnDto>? _branches = new List<BranchToReturnDto>();
-
     private MudTextField<string> _barcodeField = default!;
     private string? _barcode;
     private bool _barcodeEnabled;
@@ -34,12 +33,11 @@ public partial class POS
     {
         try
         {
-            _barcodeEnabled = 
+            _barcodeEnabled =
                 await _featureSettingsService.IsFeatureEnabledAsync("EnableItemBarcodeForPOS", Environment.MachineName) == true;
             if (_barcodeEnabled)
-            {
                 await LoadBarcodeItemsMapAsync();
-            }
+
             _dynamicDispatcherSettings = await _systemSettingsServices.GetDispatcherSettingsAsync();
             _categories = await _categoryServices.GetAllCategoriesAsync();
             if (_categories != null)
@@ -49,7 +47,11 @@ public partial class POS
 
             _stateChangedHandler = async () => 
             {
-                try { await InvokeAsync(StateHasChanged); } catch { }
+                try 
+                { 
+                    UpdateTableItemCount();
+                    await InvokeAsync(StateHasChanged); 
+                } catch { }
             };
 
             _commonProperties.OnChange += _stateChangedHandler;
@@ -100,20 +102,13 @@ public partial class POS
     {
         if (firstRender)
         {
-
             await CustomizationSettingsService.LoadMaxHeights();
             _dotNetRef = DotNetObjectReference.Create(this);
             await JsRuntime.InvokeVoidAsync("listenToDoubleEnter", _dotNetRef);
             if (_barcodeEnabled)
             {
-                try
-                {
-                    await JsRuntime.InvokeVoidAsync("barcodeFocus.init");
-                }
-                catch { }
+                try { await JsRuntime.InvokeVoidAsync("barcodeFocus.init"); } catch { }
             }
-
-
             StateHasChanged();
         }
     }
@@ -161,7 +156,7 @@ public partial class POS
                 if (currentOrderQtyInCart + 1 > mealLimit)
                 {
                     var mealLimitMsg = Localizer.GetCurrentLanguage() == "ar"
-                        ? $"Ø¹Ø°Ø±Ø§Ù‹ØŒ Ø£Ù‚ØµÙ‰ Ø¹Ø¯Ø¯ Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡ ÙÙŠ Ø§Ù„ÙˆØ¬Ø¨Ø© Ø§Ù„ÙˆØ§Ø­Ø¯Ø© Ù‡Ùˆ {mealLimit} Ø£ØµÙ†Ø§Ù"
+                        ? $"عذراً، أقصى عدد مسموح به في الوجبة الواحدة هو {mealLimit} أصناف"
                         : $"Sorry, the maximum allowed per single meal is {mealLimit} items";
                     _snackbar.Add(mealLimitMsg, Severity.Error);
                     return;
@@ -177,7 +172,7 @@ public partial class POS
                 if (itemPrice > dailyLimit)
                 {
                     var priceLimitMsg = Localizer.GetCurrentLanguage() == "ar"
-                        ? $"Ø³Ø¹Ø± Ø§Ù„ØµÙ†Ù ({itemPrice:0.##}) ÙŠØªØ®Ø·Ù‰ Ø§Ù„Ø­Ø¯ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ø§Ù„ÙƒÙ„ÙŠ ({dailyLimit:0.##})"
+                        ? $"سعر الصنف ({itemPrice:0.##}) يتخطى الحد اليومي الكلي ({dailyLimit:0.##})"
                         : $"Item price ({itemPrice:0.##}) exceeds total daily limit ({dailyLimit:0.##})";
                     _snackbar.Add(priceLimitMsg, Severity.Error);
                     return;
@@ -191,7 +186,7 @@ public partial class POS
                 if (currentOrderTotalSpent + itemPrice > _commonProperties.RemainingStaffMealAmount)
                 {
                     var balanceMsg = Localizer.GetCurrentLanguage() == "ar"
-                        ? $"Ø¹Ø°Ø±Ø§Ù‹ØŒ Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ ({_commonProperties.RemainingStaffMealAmount:0.##}) ØºÙŠØ± ÙƒØ§ÙÙ Ù„Ø¥Ø¶Ø§ÙØ© Ù‡Ø°Ø§ Ø§Ù„ØµÙ†Ù"
+                        ? $"عذراً، الرصيد المتبقي ({_commonProperties.RemainingStaffMealAmount:0.##}) غير كافٍ لإضافة هذا الصنف"
                         : $"Sorry, remaining balance ({_commonProperties.RemainingStaffMealAmount:0.##}) is insufficient for this item";
                     _snackbar.Add(balanceMsg, Severity.Error);
                     return;
@@ -224,7 +219,7 @@ public partial class POS
                         if (availableToSell < 0) availableToSell = 0;
 
                         string msg = Localizer.GetCurrentLanguage() == "ar" 
-                            ? $"Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ù…Ø²ÙŠØ¯ Ù…Ù† '{selectedMenuItem.ArabicName}'. Ø§Ù„Ù…ØªØ§Ø­ Ù„Ù„Ø¨ÙŠØ¹ Ø­Ø§Ù„ÙŠØ§Ù‹: {availableToSell:0.##}"
+                            ? $"عذراً، لا يمكن إضافة المزيد من '{selectedMenuItem.ArabicName}'. المتاح للبيع حالياً: {availableToSell:0.##}"
                             : $"Sorry, cannot add more of '{selectedMenuItem.EnglishName}'. Available to sell: {availableToSell:0.##}";
                         
                         _snackbar.Add(msg, Severity.Error);
@@ -343,7 +338,7 @@ public partial class POS
                 var currentQty = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => i.Quantity) ?? 0;
                 if (currentQty + 1 > mealLimit)
                 {
-                    _snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ®Ø·ÙŠØª Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„ÙˆØ¬Ø¨Ø©" : "Meal limit reached", Severity.Error);
+                    _snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تخطيت الحد الأقصى للوجبة" : "Meal limit reached", Severity.Error);
                     return;
                 }
             }
@@ -353,7 +348,7 @@ public partial class POS
                 var currentSpent = _commonProperties.TableItems?.Where(i => !i.IsVoided).Sum(i => (i.OriginalPrice ?? 0) * i.Quantity) ?? 0;
                 if (currentSpent + itemPrice > _commonProperties.RemainingStaffMealAmount)
                 {
-                    _snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ ØºÙŠØ± ÙƒØ§ÙÙŠ" : "Insufficient balance", Severity.Error);
+                    _snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الرصيد المتبقي غير كافي" : "Insufficient balance", Severity.Error);
                     return;
                 }
             }
@@ -599,7 +594,7 @@ public partial class POS
 
         if (existingMatch != null && !menuItem.ByWeight)
         {
-            // Same item with same attributes â†’ just increment quantity
+            // Same item with same attributes → just increment quantity
             existingMatch.Quantity++;
             _cartService.RecalculateItemTotals(existingMatch);
 
@@ -837,7 +832,7 @@ public partial class POS
             var result = await _printOrderService.PrintDeliveryOrder();
             if (result is true)
             {
-                var successMsg = Localizer.GetCurrentLanguage() == "ar" ? "ÙˆØµÙ„ Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„ÙØ±Ø¹ ÙˆØªÙ…Øª Ø§Ù„Ø·Ø¨Ø§Ø¹Ø© Ø¨Ù†Ø¬Ø§Ø­" : "Order received at branch and printed successfully";
+                var successMsg = Localizer.GetCurrentLanguage() == "ar" ? "وصل الطلب للفرع وتمت الطباعة بنجاح" : "Order received at branch and printed successfully";
                 _snackbar.Add(successMsg, Severity.Success);
                 
                 ClearOrder();
@@ -851,7 +846,7 @@ public partial class POS
             }
             else 
             {
-                var errorMsg = Localizer.GetCurrentLanguage() == "ar" ? "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„ÙØ±Ø¹ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰" : "Failed to send order to branch, please try again";
+                var errorMsg = Localizer.GetCurrentLanguage() == "ar" ? "فشل إرسال الطلب للفرع، يرجى المحاولة مرة أخرى" : "Failed to send order to branch, please try again";
                 _snackbar.Add(errorMsg, Severity.Error);
             }
         }
@@ -930,6 +925,38 @@ public partial class POS
         }
     }
 
+    #region Staff Meal Filtering 
+    private IEnumerable<CategoryToReturnDto> GetFilteredCategories()
+    {
+        if (_commonProperties.CurrentStaffMeal == null) return _categories ?? [];
+        if (_commonProperties.CurrentStaffMeal.IsAllItemsAllowed) return _categories ?? [];
+        if (_commonProperties.AllowedStaffCategoryIds.Count == 0) return _categories ?? [];
+        return (_categories ?? []).Where(c => _commonProperties.AllowedStaffCategoryIds.Contains(c.Id));
+    }
+
+    private IEnumerable<MenuSalesItemsToReturnDto> GetFilteredItems()
+    {
+        if (_commonProperties.CurrentStaffMeal == null) return _itemByCatId ?? [];
+        
+        // If all items are allowed, show items from the current category, but still apply price filtering if applicable
+        if (_commonProperties.CurrentStaffMeal.IsAllItemsAllowed)
+        {
+            var items = _itemByCatId ?? new List<MenuSalesItemsToReturnDto>();
+            if (_commonProperties.CurrentStaffMeal.DailyAmountLimit > 0)
+            {
+                items = items.Where(i => 
+                    i.Price <= _commonProperties.CurrentStaffMeal.DailyAmountLimit && 
+                    i.Price <= _commonProperties.RemainingStaffMealAmount
+                ).ToList();
+            }
+            return items;
+        }
+
+        return _commonProperties.AllowedStaffMenuItems;
+    }
+    #endregion
+    #region Barcode Scanning
+
     private async Task LoadBarcodeItemsMapAsync()
     {
         try
@@ -941,9 +968,7 @@ public partial class POS
                 foreach (var item in response.Data)
                 {
                     if (!string.IsNullOrWhiteSpace(item.Barcode))
-                    {
                         _barcodeItemMap[item.Barcode.Trim()] = item;
-                    }
                 }
             }
         }
@@ -959,7 +984,6 @@ public partial class POS
         if (string.IsNullOrWhiteSpace(val)) return;
 
         var code = val.Trim();
-        // Instant barcode matching without pressing enter
         if (code.Length >= 3 && _barcodeItemMap.TryGetValue(code, out var item))
         {
             _barcode = string.Empty;
@@ -995,7 +1019,6 @@ public partial class POS
             return;
         }
 
-        // Reload map in case items were updated/added
         await LoadBarcodeItemsMapAsync();
         if (_barcodeItemMap.TryGetValue(code, out matched))
         {
@@ -1003,38 +1026,8 @@ public partial class POS
             return;
         }
 
-        _snackbar.Add($"لم يتم العثور على صنف بالباركود: {code}", Severity.Warning);
+        _snackbar.Add($"Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ØµÙ†Ù Ø¨Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯: {code}", Severity.Warning);
     }
 
-
-    #region Staff Meal Filtering 
-    private IEnumerable<CategoryToReturnDto> GetFilteredCategories()
-    {
-        if (_commonProperties.CurrentStaffMeal == null) return _categories ?? [];
-        if (_commonProperties.CurrentStaffMeal.IsAllItemsAllowed) return _categories ?? [];
-        if (_commonProperties.AllowedStaffCategoryIds.Count == 0) return _categories ?? [];
-        return (_categories ?? []).Where(c => _commonProperties.AllowedStaffCategoryIds.Contains(c.Id));
-    }
-
-    private IEnumerable<MenuSalesItemsToReturnDto> GetFilteredItems()
-    {
-        if (_commonProperties.CurrentStaffMeal == null) return _itemByCatId ?? [];
-        
-        // If all items are allowed, show items from the current category, but still apply price filtering if applicable
-        if (_commonProperties.CurrentStaffMeal.IsAllItemsAllowed)
-        {
-            var items = _itemByCatId ?? new List<MenuSalesItemsToReturnDto>();
-            if (_commonProperties.CurrentStaffMeal.DailyAmountLimit > 0)
-            {
-                items = items.Where(i => 
-                    i.Price <= _commonProperties.CurrentStaffMeal.DailyAmountLimit && 
-                    i.Price <= _commonProperties.RemainingStaffMealAmount
-                ).ToList();
-            }
-            return items;
-        }
-
-        return _commonProperties.AllowedStaffMenuItems;
-    }
     #endregion
 }

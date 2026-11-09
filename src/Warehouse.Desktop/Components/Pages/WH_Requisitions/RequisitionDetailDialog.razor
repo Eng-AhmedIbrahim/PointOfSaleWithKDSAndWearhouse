@@ -487,7 +487,7 @@
         {
             _requisition = await Http.GetFromJsonAsync<RequisitionDetailDto>($"/api/warehouse/requisitions/{RequisitionId}");
             
-            // Prefill approved qty with requested qty if not yet set
+            // Prefill approved and received qty if not yet set
             if (_requisition != null && _requisition.Lines != null)
             {
                 foreach (var line in _requisition.Lines)
@@ -495,6 +495,14 @@
                     if ((line.ApprovedQty == null || line.ApprovedQty == 0) && line.RequestedQty > 0)
                     {
                         line.ApprovedQty = line.RequestedQty;
+                    }
+                    if ((line.ReceivedQty == null || line.ReceivedQty == 0) && line.DispatchedQty > 0)
+                    {
+                        line.ReceivedQty = line.DispatchedQty;
+                    }
+                    else if ((line.ReceivedQty == null || line.ReceivedQty == 0) && line.ApprovedQty > 0)
+                    {
+                        line.ReceivedQty = line.ApprovedQty;
                     }
                 }
             }
@@ -573,7 +581,12 @@
     private async Task ExecuteReceive()
     {
         var lines = _requisition!.Lines
-            .Select(l => new { lineId = l.Id, receivedQuantity = l.ReceivedQty ?? l.DispatchedQty ?? 0m })
+            .Select(l => new {
+                lineId = l.Id,
+                receivedQuantity = (l.ReceivedQty.HasValue && l.ReceivedQty.Value > 0)
+                    ? l.ReceivedQty.Value
+                    : ((l.DispatchedQty.HasValue && l.DispatchedQty.Value > 0) ? l.DispatchedQty.Value : ((l.ApprovedQty.HasValue && l.ApprovedQty.Value > 0) ? l.ApprovedQty.Value : l.RequestedQty))
+            })
             .ToList();
         await CallApi($"/api/warehouse/requisitions/{RequisitionId}/receive", HttpMethod.Post,
             new { lines = lines, userId = "Warehouse Admin" }, "تم تأكيد الاستلام وتحديث المخزون");
