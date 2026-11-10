@@ -1477,24 +1477,37 @@ public class DesktopPrintOrderService : IPrintOrderService
             var previousState = order.OrderState;
 
             // Mark voided items in order.OrderDetails so hasVoidedItems check works correctly
-            // The order DTO passed here still has OLD data (before API updated it), so we update it manually
+            // If order was not refreshed from API, decrement remaining quantity and totals
             if (order.OrderDetails != null && voidedItems != null)
             {
                 foreach (var voidedItem in voidedItems)
                 {
-                    // Match by DatabaseId first, then by Id
                     var orderItem = order.OrderDetails.FirstOrDefault(d => d.DatabaseId == voidedItem.DatabaseId && voidedItem.DatabaseId > 0)
                                  ?? order.OrderDetails.FirstOrDefault(d => d.Id == voidedItem.Id);
                     if (orderItem != null)
                     {
-                        orderItem.IsVoided = true;
-                        orderItem.VoidAmount = voidedItem.Quantity;
+                        if ((orderItem.VoidAmount ?? 0) == 0)
+                        {
+                            orderItem.VoidAmount = voidedItem.Quantity;
+                            orderItem.Quantity = Math.Max(0, orderItem.Quantity - voidedItem.Quantity);
+                            orderItem.TotalAmount = orderItem.Quantity * (orderItem.Price ?? 0);
+                            orderItem.Total = orderItem.TotalAmount;
+                        }
+                        orderItem.IsVoided = (orderItem.Quantity == 0);
                     }
+                }
+
+                decimal totalVoidedValue = voidedItems.Sum(v => v.Total ?? (v.Quantity * (v.Price ?? 0)));
+                if (totalVoidedValue > 0 && (order.VoidAmount ?? 0) == 0)
+                {
+                    order.VoidAmount = totalVoidedValue;
+                    order.SubTotal = Math.Max(0, (order.SubTotal ?? 0) - totalVoidedValue);
+                    order.GrandTotal = Math.Max(0, (order.GrandTotal ?? 0) - totalVoidedValue);
                 }
             }
 
             bool isFullVoid = string.Equals(order.OrderState, "Voided", StringComparison.OrdinalIgnoreCase)
-                || (order.OrderDetails != null && order.OrderDetails.All(i => i.Quantity == 0 || i.IsVoided == true));
+                || (order.OrderDetails != null && order.OrderDetails.All(i => i.Quantity == 0));
 
             if (isFullVoid)
             {

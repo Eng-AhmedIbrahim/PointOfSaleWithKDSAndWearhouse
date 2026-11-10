@@ -305,7 +305,6 @@ public class DeliveryReceiptDocument : IDocument
                 i.Id,
                 i.Name,
                 i.Price,
-                i.IsVoided,
                 i.HasDiscount,
                 i.DiscountPercentage,
                 LineComment = !string.IsNullOrWhiteSpace(i.LineComment)
@@ -327,11 +326,11 @@ public class DeliveryReceiptDocument : IDocument
                     Name = first.Name,
                     Price = first.Price,
                     Quantity = displayQty,
-                    TotalAmount = totalQty > 0 
-                        ? g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0)
-                        : (displayQty * (first.Price ?? 0)),
+                    TotalAmount = (_receipt.IsVoid || (totalQty == 0 && (first.IsVoided || totalVoidQty > 0)))
+                        ? 0m
+                        : (totalQty > 0 ? g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0) : 0m),
                     Attributes = first.Attributes?.Where(a => a.Id < 5000).ToList(),
-                    IsVoided = _receipt.IsVoid || first.IsVoided || (totalQty == 0 && totalVoidQty > 0) || (totalVoidQty > 0 && totalVoidQty >= totalQty),
+                    IsVoided = _receipt.IsVoid || (totalQty == 0 && (first.IsVoided || totalVoidQty > 0)),
                     VoidAmount = totalVoidQty,
                     HasDiscount = first.HasDiscount,
                     DiscountPercentage = first.DiscountPercentage,
@@ -346,10 +345,10 @@ public class DeliveryReceiptDocument : IDocument
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(2.5f); // اجمالي 
-                    columns.RelativeColumn(2.5f); // السعر
-                    columns.RelativeColumn(3.5f); // الصنف 
-                    columns.RelativeColumn(1.5f); // كمية
+                    columns.RelativeColumn(2.1f);  // اجمالي
+                    columns.RelativeColumn(2.0f);  // السعر
+                    columns.RelativeColumn(4.7f);  // الصنف
+                    columns.RelativeColumn(1.2f);  // كمية
                 });
 
                 table.Header(header =>
@@ -381,26 +380,26 @@ public class DeliveryReceiptDocument : IDocument
 
                 foreach (TableItem item in groupedItems)
                 {
-                    var isItemVoided = _receipt.IsVoid || item.IsVoided == true || (item.VoidAmount > 0 && item.VoidAmount >= item.Quantity) || (item.Quantity > 0 && item.VoidAmount > 0 && item.TotalAmount == 0);
+                    var isItemVoided = _receipt.IsVoid || item.IsVoided == true || item.Quantity == 0;
                     table.Cell().Element(CellStyle).Text(isItemVoided ? "0.00" : item.TotalAmount?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).Text(item.Price?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).AlignRight().Text(text => {
-                        text.Span(item.Name);
+                        text.Span(item.Name).FontSize(10.5f);
                         if (isItemVoided) {
                             text.Span(" (ملغي)").FontColor(Colors.Red.Medium);
                         }
                     });
                     var qtyText = isItemVoided ? "0" : item.Quantity.ToString("0.##");
                     if (item.ByWeight && !_receipt.IsVoid && !isItemVoided) qtyText += " كجم";
-                    table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
+                    table.Cell().Element(CellStyle).Text(qtyText).FontSize(item.ByWeight ? 11.5f : 10f).AlignCenter();
 
                     // Add Voided hint if available and item still has active quantity
-                    if (item.VoidAmount > 0 && item.Quantity > 0)
+                    if (item.VoidAmount > 0 && !isItemVoided)
                     {
                         table.Cell().ColumnSpan(4)
                             .Element(CellStyle)
                             .PaddingRight(45)
-                            .Text($"✖ ملغي: {item.VoidAmount.Value.ToString("0.##")}")
+                            .Text($"✖ ملغي منه: {item.VoidAmount.Value.ToString("0.##")}")
                             .FontSize(10)
                             .FontColor(Colors.Red.Medium)
                             .AlignRight();

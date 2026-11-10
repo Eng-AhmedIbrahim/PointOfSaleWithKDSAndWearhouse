@@ -292,6 +292,13 @@ public partial class VoidOrderDialog
                 { 
                     if (IsDineIn && Order != null)
                     {
+                        try
+                        {
+                            var freshDineIn = await _dineInOrderFrontService.GetDineInOrderByIdAsync(OrderId);
+                            if (freshDineIn != null) Order = freshDineIn;
+                        }
+                        catch { }
+
                         var voidedTableItems = itemsToVoid.Select(i => new TableItem
                         {
                             Id = i.OriginalItem!.MenuSalesItemId ?? 0,
@@ -311,6 +318,16 @@ public partial class VoidOrderDialog
                     }
                     else if (DistributionOrder != null)
                     {
+                        try
+                        {
+                            if (_orderSettingsService != null && OrderId > 0)
+                            {
+                                var freshOrder = await _orderSettingsService.GetOrderByIdAsync(OrderId);
+                                if (freshOrder != null) DistributionOrder = freshOrder;
+                            }
+                        }
+                        catch { }
+
                         var voidedTableItems = itemsToVoid.Select(i =>
                         {
                             var item = i.DistributionItem?.Clone() ?? new TableItem();

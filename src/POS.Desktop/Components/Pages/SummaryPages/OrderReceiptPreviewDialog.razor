@@ -45,7 +45,11 @@
                             }
                             else if (_previewMode == "Customer")
                             {
-                                <div class="copy-label-red">*********COPY**********</div>
+                                var hasVoid = (Order.VoidAmount > 0) || (Order.OrderDetails != null && Order.OrderDetails.Any(i => (i.VoidAmount ?? 0) > 0 || i.IsVoided));
+                                if (!hasVoid && IsCopy)
+                                {
+                                    <div class="copy-label-red">*********COPY**********</div>
+                                }
                             }
                             
                             <div class="order-type-badge mb-1">@Order.OrderType</div>
@@ -91,7 +95,7 @@
                             {
                                 @foreach (var item in Order.OrderDetails)
                                 {
-                                    var isItemVoided = Order.OrderState == "Voided" || item.IsVoided || (item.VoidAmount > 0 && item.Quantity == 0);
+                                    var isItemVoided = Order.OrderState == "Voided" || (item.Quantity == 0 && (item.IsVoided || (item.VoidAmount ?? 0) > 0));
                                     <tr>
                                         @if (_previewMode == "Customer")
                                         {
@@ -123,9 +127,13 @@
                                             }
                                         </td>
                                         <td class="center font-weight-black" style="font-size: 16px;">
-                                            @if (isItemVoided && item.Quantity == 0 && (item.VoidAmount ?? 0) > 0)
+                                            @if (Order.OrderState == "Voided")
                                             {
-                                                <span style="color: #ef4444;">@item.VoidAmount.Value.ToString("0.##")</span>
+                                                <span style="color: #ef4444;">0</span>
+                                            }
+                                            else if (isItemVoided && item.Quantity == 0 && (item.VoidAmount ?? 0) > 0)
+                                            {
+                                                <span style="color: #ef4444;">0</span>
                                             }
                                             else
                                             {
@@ -140,16 +148,39 @@
 
                     @if (_previewMode == "Customer")
                     {
+                        var isOrderVoided = Order.OrderState == "Voided";
+                        var voidAmount = (Order.VoidAmount > 0 ? Order.VoidAmount : (Order.TotalVoid > 0 ? Order.TotalVoid : Order.GrandTotal)) ?? 0;
                         @* ════════ TOTALS (Customer only) ════════ *@
                         <div class="totals-section py-2 border-top border-bottom border-dark">
-                            <div class="total-row">
-                                <span class="total-val">@Order.SubTotal?.ToString("0.##")</span>
-                                <span class="total-lbl">اجمالي فرعي</span>
-                            </div>
-                            <div class="total-row grand-total mt-1">
-                                <span class="total-val">@Order.GrandTotal?.ToString("0.##")</span>
-                                <span class="total-lbl">اجمالي</span>
-                            </div>
+                            @if (isOrderVoided)
+                            {
+                                <div class="total-row" style="color: #ef4444;">
+                                    <span class="total-val font-weight-black">@voidAmount.ToString("0.##")</span>
+                                    <span class="total-lbl font-weight-black">إجمالي المبلغ الملغي</span>
+                                </div>
+                                <div class="total-row grand-total mt-1" style="color: #ef4444;">
+                                    <span class="total-val">0.00</span>
+                                    <span class="total-lbl">اجمالي</span>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (voidAmount > 0)
+                                {
+                                    <div class="total-row" style="color: #ef4444; font-size: 14px;">
+                                        <span class="total-val font-weight-bold">@voidAmount.ToString("0.##")</span>
+                                        <span class="total-lbl font-weight-bold">المبلغ الملغي</span>
+                                    </div>
+                                }
+                                <div class="total-row">
+                                    <span class="total-val">@Order.SubTotal?.ToString("0.##")</span>
+                                    <span class="total-lbl">اجمالي فرعي</span>
+                                </div>
+                                <div class="total-row grand-total mt-1">
+                                    <span class="total-val">@Order.GrandTotal?.ToString("0.##")</span>
+                                    <span class="total-lbl">اجمالي</span>
+                                </div>
+                            }
                         </div>
 
                         @* ════════ FOOTER ════════ *@
@@ -314,6 +345,7 @@
 @code {
     [Parameter] public OrderDto Order { get; set; } = new();
     [Parameter] public string PreviewMode { get; set; } = "Customer";
+    [Parameter] public bool IsCopy { get; set; } = true;
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private string? _logoBase64;
