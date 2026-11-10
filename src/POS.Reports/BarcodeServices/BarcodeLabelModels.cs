@@ -26,7 +26,7 @@ public class BarcodeLabelOptions
     public string Currency { get; set; } = "ج.م";
     
     // Label dimensions in Millimetres
-    public float WidthMm { get; set; } = 38f;
+    public float WidthMm { get; set; } = 40f;
     public float HeightMm { get; set; } = 25f;
     
     // Orientation: if true, Portrait/Vertical, else Landscape
@@ -37,11 +37,11 @@ public class BarcodeLabelOptions
     public bool UseEnglishName { get; set; } = false;
 
     // --- Advanced Grid & Spacing Controls (mm) ---
-    public float MarginMm { get; set; } = 0.8f;
-    public float SpaceStoreToItemMm { get; set; } = 0.8f;
-    public float SpaceItemToBarcodeMm { get; set; } = 1.0f;
-    public float SpaceBarcodeToTextMm { get; set; } = 0.6f;
-    public float SpaceTextToPriceMm { get; set; } = 1.0f;
+    public float MarginMm { get; set; } = 0.6f;
+    public float SpaceStoreToItemMm { get; set; } = 0.3f;
+    public float SpaceItemToBarcodeMm { get; set; } = 0.4f;
+    public float SpaceBarcodeToTextMm { get; set; } = 0.3f;
+    public float SpaceTextToPriceMm { get; set; } = 0.4f;
 
     // Item name offset & wrapping
     public float ItemNameTopOffsetMm { get; set; } = 0f;
@@ -53,8 +53,8 @@ public class BarcodeLabelOptions
     public int QuietZoneModules { get; set; } = 10; // ISO standard 10X for 100% UPOS readability
 
     // Direct font sizes (pt)
-    public float StoreNameFontSize { get; set; } = 7.5f;
-    public float ItemNameFontSize { get; set; } = 7.5f;
-    public float BarcodeTextFontSize { get; set; } = 6.5f;
-    public float PriceFontSize { get; set; } = 9.0f;
+    public float StoreNameFontSize { get; set; } = 6.5f;
+    public float ItemNameFontSize { get; set; } = 7.0f;
+    public float BarcodeTextFontSize { get; set; } = 6.0f;
+    public float PriceFontSize { get; set; } = 8.5f;
 }

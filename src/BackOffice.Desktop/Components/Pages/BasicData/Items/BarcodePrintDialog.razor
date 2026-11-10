@@ -131,6 +131,7 @@
                     
                     <MudSelect T="string" Value="@_selectedSizePreset" ValueChanged="OnSizePresetChanged" 
                                Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true" Label="المقاس">
+                        <MudSelectItem Value="@("40x25")">40mm x 25mm ✅ (Xprinter XP-233B)</MudSelectItem>
                         <MudSelectItem Value="@("38x25")">38mm x 25mm (القياسي الشائع)</MudSelectItem>
                         <MudSelectItem Value="@("40x30")">40mm x 30mm</MudSelectItem>
                         <MudSelectItem Value="@("50x25")">50mm x 25mm</MudSelectItem>
@@ -545,7 +546,7 @@
     private BarcodeLabelOptions _options = new();
     private List<string> _installedPrinters = new();
     private string _selectedPrinter = "";
-    private string _selectedSizePreset = "38x25";
+    private string _selectedSizePreset = "40x25";
     private string _copiesMode = "fixed";
     private int _fixedCopies = 1;
     private int _zoomPercent = 230;
@@ -713,6 +714,22 @@
         _selectedSizePreset = preset;
         switch (preset)
         {
+            case "40x25":
+                _options.WidthMm = 40f;
+                _options.HeightMm = 25f;
+                // Optimized spacing for 40x25mm Xprinter XP-233B
+                _options.MarginMm = 0.6f;
+                _options.SpaceStoreToItemMm = 0.3f;
+                _options.SpaceItemToBarcodeMm = 0.4f;
+                _options.SpaceBarcodeToTextMm = 0.3f;
+                _options.SpaceTextToPriceMm = 0.4f;
+                _options.BarcodeHeightMm = 8.0f;
+                _options.StoreNameFontSize = 6.5f;
+                _options.ItemNameFontSize = 7.0f;
+                _options.BarcodeTextFontSize = 6.0f;
+                _options.PriceFontSize = 8.5f;
+                _options.ItemNameMaxLines = 2;
+                break;
             case "38x25":
                 _options.WidthMm = 38f;
                 _options.HeightMm = 25f;
