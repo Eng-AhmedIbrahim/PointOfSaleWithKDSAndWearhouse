@@ -60,7 +60,7 @@
                     
                     <div class="row g-2 align-items-center">
                         <div class="col-6">
-                            <MudSelect T="string" @bind-Value="_copiesMode" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            <MudSelect T="string" Value="@_copiesMode" ValueChanged="OnCopiesModeChanged" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true">
                                 <MudSelectItem Value="@("fixed")">عدد ثابت لكل منتج</MudSelectItem>
                                 <MudSelectItem Value="@("manual")">تحديد يدوي لكل صنف</MudSelectItem>
                             </MudSelect>
@@ -71,8 +71,42 @@
                                 <MudNumericField T="int" @bind-Value="_fixedCopies" Min="1" Max="9999" 
                                                  Label="عدد النسخ لكل منتج" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
                             }
+                            else
+                            {
+                                @if (SingleSelectedItem != null)
+                                {
+                                    <MudNumericField T="int" @bind-Value="SingleSelectedItem.CustomCopies" Min="1" Max="9999" 
+                                                     Label="عدد النسخ للصنف" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                }
+                                else
+                                {
+                                    <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Size="Size.Small" FullWidth="true"
+                                               StartIcon="@Icons.Material.Filled.FormatListNumbered"
+                                               OnClick="@(() => _showItemsDrawer = true)">
+                                        تعديل أعداد النسخ (@SelectedCount)
+                                    </MudButton>
+                                }
+                            }
                         </div>
                     </div>
+
+                    @if (_copiesMode == "manual")
+                    {
+                        <div class="mt-2 p-2" style="background: #eff6ff; border: 1px dashed #3b82f6; border-radius: 8px;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Info" />
+                                    <span style="font-size: 0.82rem; font-weight: 700; color: #1e40af;">
+                                        وضع التحديد اليدوي نشط: اضبط عدد نسخ كل صنف بالأسفل
+                                    </span>
+                                </div>
+                                <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Text" Color="Color.Primary"
+                                           OnClick="@(() => _showItemsDrawer = !_showItemsDrawer)">
+                                    @(_showItemsDrawer ? "إخفاء القائمة" : "فتح القائمة")
+                                </MudButton>
+                            </div>
+                        </div>
+                    }
 
                     <!-- Summary Badge -->
                     <div class="mt-3 p-2 text-center" style="background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.9rem; color: #475569;">
@@ -216,7 +250,18 @@
                                 <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Outlined" OnClick="DeselectAll">إلغاء</MudButton>
                             </div>
 
-                            <div style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            @if (_copiesMode == "manual")
+                            {
+                                <div class="d-flex align-items-center gap-2 p-2 mb-2" style="background: #f1f5f9; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                    <span style="font-size: 0.82rem; font-weight: 700; color: #334155;">تعيين عدد النسخ لكل المحدد:</span>
+                                    <input type="number" min="1" max="999" style="width: 60px; text-align: center; font-weight: 700; padding: 2px 4px; border: 1px solid #94a3b8; border-radius: 4px;" @bind="_batchCopiesVal" />
+                                    <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Filled" Color="Color.Primary" OnClick="ApplyBatchCopies">
+                                        تطبيق على الكل
+                                    </MudButton>
+                                </div>
+                            }
+
+                            <div style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
                                 <table class="table table-sm table-hover m-0" style="font-size: 0.85rem;">
                                     <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
                                         <tr>
@@ -226,7 +271,7 @@
                                             <th>السعر</th>
                                             @if (_copiesMode == "manual")
                                             {
-                                                <th style="width: 80px;">النسخ</th>
+                                                <th style="width: 120px; text-align: center;">عدد النسخ</th>
                                             }
                                         </tr>
                                     </thead>
@@ -252,8 +297,14 @@
                                                 @if (_copiesMode == "manual")
                                                 {
                                                     <td>
-                                                        <input type="number" min="1" max="999" style="width: 60px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px;" 
-                                                               @bind="row.CustomCopies" />
+                                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary p-0" style="width: 22px; height: 22px; line-height: 18px; font-weight: bold;" 
+                                                                    @onclick="@(() => row.CustomCopies = Math.Max(1, row.CustomCopies - 1))">-</button>
+                                                            <input type="number" min="1" max="999" style="width: 48px; text-align: center; font-weight: 700; padding: 2px; border: 1.5px solid #3b82f6; border-radius: 4px;" 
+                                                                   @bind="row.CustomCopies" />
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary p-0" style="width: 22px; height: 22px; line-height: 18px; font-weight: bold;" 
+                                                                    @onclick="@(() => row.CustomCopies++)">+</button>
+                                                        </div>
                                                     </td>
                                                 }
                                             </tr>
@@ -419,6 +470,30 @@
     private bool _showItemsDrawer = false;
     private string _itemSearchTerm = "";
     private bool _isPrinting = false;
+    private int _batchCopiesVal = 1;
+
+    private ItemSelectionRow? SingleSelectedItem => _selectableItems.Count(i => i.IsSelected) == 1 
+        ? _selectableItems.FirstOrDefault(i => i.IsSelected) 
+        : null;
+
+    private void OnCopiesModeChanged(string mode)
+    {
+        _copiesMode = mode;
+        if (mode == "manual")
+        {
+            _showItemsDrawer = true;
+        }
+    }
+
+    private void ApplyBatchCopies()
+    {
+        int val = Math.Max(1, _batchCopiesVal);
+        foreach (var row in _selectableItems.Where(x => x.IsSelected))
+        {
+            row.CustomCopies = val;
+        }
+        Snackbar.Add($"تم تطبيق عدد النسخ ({val}) على جميع الأصناف المحددة", Severity.Success);
+    }
 
     private class ItemSelectionRow
     {

@@ -10,12 +10,12 @@ public static class BarcodeImageHelper
     /// <summary>
     /// Renders a Code 128 barcode into crisp PNG image bytes using SkiaSharp.
     /// </summary>
-    public static byte[] GenerateBarcodePng(string text, int height = 70, int moduleWidth = 2, int quietZoneModules = 10)
+    public static byte[] GenerateBarcodePng(string text, int height = 50, int moduleWidth = 2, int quietZoneModules = 6)
     {
         var modules = Code128BarcodeGenerator.GenerateModules(text, quietZoneModules);
         int totalWidth = modules.Count * moduleWidth;
         if (totalWidth <= 0) totalWidth = 100;
-        if (height <= 0) height = 50;
+        if (height <= 0) height = 40;
 
         using var bitmap = new SKBitmap(totalWidth, height, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(bitmap);
