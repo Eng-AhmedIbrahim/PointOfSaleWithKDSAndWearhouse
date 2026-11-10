@@ -48,12 +48,12 @@ public class BarcodeLabelOptions
     public int ItemNameMaxLines { get; set; } = 2;
 
     // Barcode dimensions & UPOS Scanner Optimization
-    public float BarcodeHeightMm { get; set; } = 7.5f;
+    public float BarcodeHeightMm { get; set; } = 9.0f;
     public int BarcodeModuleWidth { get; set; } = 2; // 2 for crisp 203/300 DPI thermal
     public int QuietZoneModules { get; set; } = 10; // ISO standard 10X for 100% UPOS readability
 
     // Direct font sizes (pt)
-    public float StoreNameFontSize { get; set; } = 6.5f;
+    public float StoreNameFontSize { get; set; } = 8.5f;
     public float ItemNameFontSize { get; set; } = 7.0f;
     public float BarcodeTextFontSize { get; set; } = 6.0f;
     public float PriceFontSize { get; set; } = 8.5f;
