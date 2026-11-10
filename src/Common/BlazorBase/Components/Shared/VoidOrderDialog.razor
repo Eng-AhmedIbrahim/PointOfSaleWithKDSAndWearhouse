@@ -1,6 +1,7 @@
 ﻿@using BlazorBase.Components.Shared
 @using BlazorBase.Models
 @using MudBlazor
+@using POS.Contract.Dtos.DineIn
 
 <MudDialog DisableSidePadding="true" Class="void-dialog-custom" Style="direction: rtl;">
     <DialogContent>
@@ -38,7 +39,20 @@
                             <MudTh Style="text-align: right; color: #10b981;">@_localizer["TotalAfter"]</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                             <MudTd DataLabel="@_localizer["ItemName"]" Class="font-weight-bold">@context.ItemName</MudTd>
+                             <MudTd DataLabel="@_localizer["ItemName"]" Class="font-weight-bold">
+                                 <div>@context.ItemName</div>
+                                 @{
+                                     var attrs = context.OriginalItem?.OrderItemAttributes?.Where(a => !string.IsNullOrWhiteSpace(a.AttributeName)).ToList()
+                                              ?? context.DistributionItem?.Attributes?.Where(a => a.Id < 5000 && !string.IsNullOrWhiteSpace(a.Name)).Select(a => new OrderItemAttributesDto { AttributeName = a.Name }).ToList()
+                                              ?? context.TableItem?.Attributes?.Where(a => a.Id < 5000 && !string.IsNullOrWhiteSpace(a.Name)).Select(a => new OrderItemAttributesDto { AttributeName = a.Name }).ToList();
+                                 }
+                                 @if (attrs != null && attrs.Any())
+                                 {
+                                     <div style="font-size:0.78rem; color:#64748b; font-weight:500; margin-top:2px;">
+                                         @string.Join(" | ", attrs.Select(a => a.AttributeName))
+                                     </div>
+                                 }
+                             </MudTd>
                              <MudTd DataLabel="@_localizer["Price"]" Style="text-align: center;">@context.UnitPrice.ToString("N2")</MudTd>
                              <MudTd DataLabel="@_localizer["QtyBefore"]" Style="text-align: center;">@context.OriginalQuantity</MudTd>
                              <MudTd DataLabel="@_localizer["QtyToVoid"]" Style="text-align: center;">
@@ -306,3 +320,4 @@
     .uppercase { text-transform: uppercase; }
     .shrink-0 { flex-shrink: 0; }
 </style>
+

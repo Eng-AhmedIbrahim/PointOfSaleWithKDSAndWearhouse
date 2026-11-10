@@ -511,6 +511,9 @@ public class DesktopPrintOrderService : IPrintOrderService
             if (string.IsNullOrWhiteSpace(receiptName) || receiptName.Equals("Store", StringComparison.OrdinalIgnoreCase) || receiptName.Equals("Store Name", StringComparison.OrdinalIgnoreCase))
                 receiptName = "";
 
+            bool isVoid = orderDto.OrderState == "Voided";
+            decimal voidAmount = ((orderDto.VoidAmount > 0 ? orderDto.VoidAmount : (orderDto.TotalVoid > 0 ? orderDto.TotalVoid : orderDto.GrandTotal)) ?? 0);
+
             var receipt = new Receipt()
             {
                 Id = createdOrder.OrderId,
@@ -522,13 +525,14 @@ public class DesktopPrintOrderService : IPrintOrderService
                 FooterMessage = orderDto.FooterMessage ?? "",
                 LogoPath = LogoPath,
                 LogoWidth = currentBranch?.LogoWidth ?? 150,
-                TotalAmount = orderDto.GrandTotal,
-                Discount = orderDto.TotalOrderDiscount,
-                Tax = orderDto.Tax,
-                Services = orderDto.Services,
-                SubTotal = orderDto.SubTotal,
+                TotalAmount = isVoid ? 0 : orderDto.GrandTotal,
+                Discount = isVoid ? 0 : orderDto.TotalOrderDiscount,
+                Tax = isVoid ? 0 : orderDto.Tax,
+                Services = isVoid ? 0 : orderDto.Services,
+                SubTotal = isVoid ? 0 : orderDto.SubTotal,
                 Items = orderDto.OrderDetails ?? new List<TableItem>(),
-                IsVoid = orderDto.OrderState == "Voided",
+                IsVoid = isVoid,
+                VoidAmount = voidAmount,
                 IsHospitality = orderDto.IsHospitality ?? false,
                 HospitalityResponsibleName = orderDto.HospitalityResponsibleName,
                 HospitalityReason = orderDto.HospitalityReason,
@@ -597,7 +601,8 @@ public class DesktopPrintOrderService : IPrintOrderService
 
                 if (string.IsNullOrEmpty(targetPrinterName)) continue;
 
-                bool isActuallyCopy = !receipt.IsVoid && (isCopy || (currentPrintCount > 1) || (i > 1));
+                bool hasVoidedItems = receipt.IsVoid || (orderDto.OrderDetails != null && orderDto.OrderDetails.Any(x => (x.VoidAmount ?? 0) > 0 || x.IsVoided == true));
+                bool isActuallyCopy = !receipt.IsVoid && !hasVoidedItems && (isCopy || (currentPrintCount > 1) || (i > 1));
 
                 string pathToPrint;
                 if (isActuallyCopy)
@@ -1068,6 +1073,7 @@ public class DesktopPrintOrderService : IPrintOrderService
             if (string.IsNullOrWhiteSpace(receiptName) || receiptName.Equals("Store", StringComparison.OrdinalIgnoreCase))
                 receiptName = firstBranch?.Name ?? "Store";
 
+            bool isDeliveryVoid = orderDto.OrderState == "Voided";
             var receipt = new DeliveryReceipt()
             {
                 Id = createdOrder.ParentOrderId ?? createdOrder.OrderId,
@@ -1098,10 +1104,10 @@ public class DesktopPrintOrderService : IPrintOrderService
                 HomeNumber = orderDto.HomeNum,
                 FloorNumber = orderDto.FloorNum,
                 FlatNumber = orderDto.ApartmentNum,
-                TotalOrder = createdOrder.GrandTotal ?? orderDto.GrandTotal,
-                TotalAmount = createdOrder.SubTotal ?? orderDto.SubTotal
-                              ?? orderDto.OrderDetails?.Sum(i => i.TotalAmount ?? (i.Price * i.Quantity) ?? 0),
-                IsVoid = orderDto.OrderState == "Voided",
+                TotalOrder = isDeliveryVoid ? 0 : (createdOrder.GrandTotal ?? orderDto.GrandTotal),
+                TotalAmount = isDeliveryVoid ? 0 : (createdOrder.SubTotal ?? orderDto.SubTotal
+                              ?? orderDto.OrderDetails?.Sum(i => i.TotalAmount ?? (i.Price * i.Quantity) ?? 0)),
+                IsVoid = isDeliveryVoid,
                 IsHospitality = orderDto.IsHospitality ?? false,
                 HospitalityResponsibleName = orderDto.HospitalityResponsibleName,
                 HospitalityReason = orderDto.HospitalityReason,
@@ -1151,7 +1157,8 @@ public class DesktopPrintOrderService : IPrintOrderService
                             var targetPrinter = printerName ?? (typeof(KitchenPrinters).GetProperty($"Copy{i}")?.GetValue(printers) as string);
                             if (string.IsNullOrEmpty(targetPrinter)) continue;
 
-                            bool isActuallyCopy = !isFollowUp && !neverCopy && (isCopy || (currentPrintCount > 1) || (i > 1));
+                            bool hasVoidedItems = receipt.IsVoid || (orderDto.OrderDetails != null && orderDto.OrderDetails.Any(x => (x.VoidAmount ?? 0) > 0 || x.IsVoided == true));
+                            bool isActuallyCopy = !receipt.IsVoid && !hasVoidedItems && !isFollowUp && !neverCopy && (isCopy || (currentPrintCount > 1) || (i > 1));
 
                             string pathToPrint;
                             if (isActuallyCopy)
@@ -1468,6 +1475,24 @@ public class DesktopPrintOrderService : IPrintOrderService
         try
         {
             var previousState = order.OrderState;
+
+            // Mark voided items in order.OrderDetails so hasVoidedItems check works correctly
+            // The order DTO passed here still has OLD data (before API updated it), so we update it manually
+            if (order.OrderDetails != null && voidedItems != null)
+            {
+                foreach (var voidedItem in voidedItems)
+                {
+                    // Match by DatabaseId first, then by Id
+                    var orderItem = order.OrderDetails.FirstOrDefault(d => d.DatabaseId == voidedItem.DatabaseId && voidedItem.DatabaseId > 0)
+                                 ?? order.OrderDetails.FirstOrDefault(d => d.Id == voidedItem.Id);
+                    if (orderItem != null)
+                    {
+                        orderItem.IsVoided = true;
+                        orderItem.VoidAmount = voidedItem.Quantity;
+                    }
+                }
+            }
+
             bool isFullVoid = string.Equals(order.OrderState, "Voided", StringComparison.OrdinalIgnoreCase)
                 || (order.OrderDetails != null && order.OrderDetails.All(i => i.Quantity == 0 || i.IsVoided == true));
 
