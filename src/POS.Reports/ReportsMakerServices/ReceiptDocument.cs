@@ -158,7 +158,8 @@ public class ReceiptDocument : IDocument
             .PaddingTop(1)
             .Text(text =>
             {
-                if (receipt.IsCopy && !receipt.IsVoid)
+                bool hasAnyVoidedItem = _items != null && _items.Any(x => x.IsVoided == true || (x.VoidAmount ?? 0) > 0);
+                if (receipt.IsCopy && !receipt.IsVoid && !hasAnyVoidedItem)
                 {
                     text.Span("*********COPY**********")
                         .Bold()
@@ -265,7 +266,7 @@ public class ReceiptDocument : IDocument
                         ? g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0)
                         : (displayQty * (first.Price ?? 0)),
                     Attributes = first.Attributes?.Where(a => a.Id < 5000).ToList(),
-                    IsVoided = receipt.IsVoid || (totalQty == 0 && (first.IsVoided || totalVoidQty > 0)),
+                    IsVoided = receipt.IsVoid || first.IsVoided || (totalQty == 0 && totalVoidQty > 0) || (totalVoidQty > 0 && totalVoidQty >= totalQty),
                     VoidAmount = totalVoidQty,
                     HasDiscount = first.HasDiscount,
                     DiscountPercentage = first.DiscountPercentage,
@@ -315,17 +316,18 @@ public class ReceiptDocument : IDocument
 
                 foreach (TableItem item in groupedItems)
                 {
-                    table.Cell().Element(CellStyle).Text(item.TotalAmount?.ToString("0.##")).AlignCenter();
+                    var isItemVoided = receipt.IsVoid || item.IsVoided == true || (item.VoidAmount > 0 && item.VoidAmount >= item.Quantity) || (item.Quantity > 0 && item.VoidAmount > 0 && item.TotalAmount == 0);
+                    table.Cell().Element(CellStyle).Text(isItemVoided ? "0.00" : item.TotalAmount?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).Text(item.Price?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).AlignRight().Text(text => {
                         text.Span(item.NameAr ?? item.Name);
-                        if (receipt.IsVoid || (item.IsVoided == true && item.Quantity == 0) || (item.Quantity > 0 && item.VoidAmount > 0 && item.TotalAmount == 0)) {
+                        if (isItemVoided) {
                             text.Span(" (ملغي)").FontColor(Colors.Red.Medium);
                         }
                     });
                     
-                    var qtyText = item.Quantity.ToString("0.##");
-                    if (item.ByWeight) qtyText += " كجم";
+                    var qtyText = isItemVoided ? "0" : item.Quantity.ToString("0.##");
+                    if (item.ByWeight && !receipt.IsVoid && !isItemVoided) qtyText += " كجم";
                     table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
 
                     // Add Voided hint if available and item still has active quantity
@@ -395,45 +397,71 @@ public class ReceiptDocument : IDocument
 
                 }
 
-                if (receipt.SubTotal != 0 && receipt.SubTotal.HasValue)
+                if (receipt.IsVoid)
                 {
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.SubTotal.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.SubTotal).FontSize(12).Bold().AlignCenter();
-                }
+                    var voidedAmt = (receipt.VoidAmount > 0 ? receipt.VoidAmount : receipt.TotalAmount) ?? 0;
+                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(voidedAmt.ToString("0.##")).FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+                    table.Cell().ColumnSpan(2).PaddingTop(8).Text("إجمالي المبلغ الملغي").FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
 
-                if (receipt.Services != 0 && receipt.Services.HasValue)
+                    table.Cell()
+                        .ColumnSpan(2)
+                        .PaddingTop(8)
+                        .Text("0.00")
+                        .FontSize(20)
+                        .Bold()
+                        .FontColor(Colors.Red.Medium)
+                        .AlignCenter();
+
+                    table.Cell()
+                        .ColumnSpan(2)
+                        .PaddingTop(8)
+                        .Text(ArabicConstStrings.Total)
+                        .FontSize(18)
+                        .Bold()
+                        .AlignCenter();
+                }
+                else
                 {
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Services.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Service).FontSize(12).Bold().AlignCenter();
+                    if (receipt.SubTotal != 0 && receipt.SubTotal.HasValue)
+                    {
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.SubTotal.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.SubTotal).FontSize(12).Bold().AlignCenter();
+                    }
+
+                    if (receipt.Services != 0 && receipt.Services.HasValue)
+                    {
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Services.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Service).FontSize(12).Bold().AlignCenter();
+                    }
+
+                    if (receipt.Tax != 0 && receipt.Tax.HasValue)
+                    {
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Tax.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Tax).FontSize(12).Bold().AlignCenter();
+                    }
+
+                    if (receipt.Discount != 0 && receipt.Discount.HasValue)
+                    {
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Discount.Value.ToString("0.##")).FontSize(14).Bold().AlignCenter();
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Discount).FontSize(12).Bold().AlignCenter();
+                    }
+
+                    table.Cell()
+                        .ColumnSpan(2)
+                        .PaddingTop(8)
+                        .Text((receipt.TotalAmount ?? 0).ToString("0.##"))
+                        .FontSize(20)
+                        .Bold()
+                        .AlignCenter();
+
+                    table.Cell()
+                        .ColumnSpan(2)
+                        .PaddingTop(8)
+                        .Text(ArabicConstStrings.Total)
+                        .FontSize(18)
+                        .Bold()
+                        .AlignCenter();
                 }
-
-                if (receipt.Tax != 0 && receipt.Tax.HasValue)
-                {
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Tax.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Tax).FontSize(12).Bold().AlignCenter();
-                }
-
-                if (receipt.Discount != 0 && receipt.Discount.HasValue)
-                {
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.Discount.Value.ToString("0.##")).FontSize(14).Bold().AlignCenter();
-                    table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.Discount).FontSize(12).Bold().AlignCenter();
-                }
-
-                table.Cell()
-                    .ColumnSpan(2)
-                    .PaddingTop(8)
-                    .Text((receipt.TotalAmount ?? 0).ToString("0.##"))
-                    .FontSize(20)
-                    .Bold()
-                    .AlignCenter();
-
-                table.Cell()
-                    .ColumnSpan(2)
-                    .PaddingTop(8)
-                    .Text(ArabicConstStrings.Total)
-                    .FontSize(18)
-                    .Bold()
-                    .AlignCenter();
             });
     }
 
@@ -474,6 +502,3 @@ public class ReceiptDocument : IDocument
         => container.Border(1)
             .Padding(2);
 }
-
-
-

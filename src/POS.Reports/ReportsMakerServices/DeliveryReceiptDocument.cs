@@ -79,7 +79,8 @@ public class DeliveryReceiptDocument : IDocument
             .AlignCenter()
             .Text(text =>
             {
-                if (_receipt.IsCopy && !_receipt.IsVoid)
+                bool hasAnyVoidedItem = _items != null && _items.Any(x => x.IsVoided == true || (x.VoidAmount ?? 0) > 0);
+                if (_receipt.IsCopy && !_receipt.IsVoid && !hasAnyVoidedItem)
                 {
                     text.Span("*********COPY**********")
                         .Bold()
@@ -106,7 +107,7 @@ public class DeliveryReceiptDocument : IDocument
                 text.AlignCenter();
             });
 
-        // Follow-up badge � separate row to avoid BiDi scramble
+        // Follow-up badge – separate row to avoid BiDi scramble
         if (_receipt.IsFollowUp)
         {
             column.Item()
@@ -122,7 +123,7 @@ public class DeliveryReceiptDocument : IDocument
                 });
         }
 
-        // Remote branch info � separate row to avoid BiDi scramble
+        // Remote branch info – separate row to avoid BiDi scramble
         if (_receipt.RemoteOrderId.HasValue && _receipt.RemoteOrderId != 0)
         {
             column.Item()
@@ -330,7 +331,7 @@ public class DeliveryReceiptDocument : IDocument
                         ? g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0)
                         : (displayQty * (first.Price ?? 0)),
                     Attributes = first.Attributes?.Where(a => a.Id < 5000).ToList(),
-                    IsVoided = _receipt.IsVoid || (totalQty == 0 && (first.IsVoided || totalVoidQty > 0)),
+                    IsVoided = _receipt.IsVoid || first.IsVoided || (totalQty == 0 && totalVoidQty > 0) || (totalVoidQty > 0 && totalVoidQty >= totalQty),
                     VoidAmount = totalVoidQty,
                     HasDiscount = first.HasDiscount,
                     DiscountPercentage = first.DiscountPercentage,
@@ -380,17 +381,18 @@ public class DeliveryReceiptDocument : IDocument
 
                 foreach (TableItem item in groupedItems)
                 {
-                    table.Cell().Element(CellStyle).Text(item.TotalAmount?.ToString("0.##")).AlignCenter();
+                    var isItemVoided = _receipt.IsVoid || item.IsVoided == true || (item.VoidAmount > 0 && item.VoidAmount >= item.Quantity) || (item.Quantity > 0 && item.VoidAmount > 0 && item.TotalAmount == 0);
+                    table.Cell().Element(CellStyle).Text(isItemVoided ? "0.00" : item.TotalAmount?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).Text(item.Price?.ToString("0.##")).AlignCenter();
                     table.Cell().Element(CellStyle).AlignRight().Text(text => {
                         text.Span(item.Name);
-                        if (_receipt.IsVoid || (item.IsVoided == true && item.Quantity == 0) || (item.Quantity > 0 && item.VoidAmount > 0 && item.TotalAmount == 0)) {
+                        if (isItemVoided) {
                             text.Span(" (ملغي)").FontColor(Colors.Red.Medium);
                         }
                     });
-                    var qtyText = item.Quantity.ToString("0.##");
-if (item.ByWeight) qtyText += " كجم";
-table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
+                    var qtyText = isItemVoided ? "0" : item.Quantity.ToString("0.##");
+                    if (item.ByWeight && !_receipt.IsVoid && !isItemVoided) qtyText += " كجم";
+                    table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
 
                     // Add Voided hint if available and item still has active quantity
                     if (item.VoidAmount > 0 && item.Quantity > 0)
@@ -454,14 +456,26 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
                 columns.RelativeColumn();
             });
 
-            table.Cell().Text(_receipt.TotalAmount?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
-            table.Cell().Text("حساب الاصناف").Bold().FontSize(15).Bold().AlignCenter();
+            if (_receipt.IsVoid)
+            {
+                var voidedAmt = (_receipt.TotalOrder > 0 ? _receipt.TotalOrder : _receipt.TotalAmount) ?? 0;
+                table.Cell().Text(voidedAmt.ToString("0.##")).FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+                table.Cell().Text("إجمالي المبلغ الملغي").FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
 
-            table.Cell().Text(_receipt.DeliveryFees?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
-            table.Cell().Text("خدمة توصيل").Bold().FontSize(15).Bold().AlignCenter();
+                table.Cell().Text("0.00").FontSize(18).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+                table.Cell().Text("الاجمالي").FontSize(16).Bold().AlignCenter();
+            }
+            else
+            {
+                table.Cell().Text(_receipt.TotalAmount?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
+                table.Cell().Text("حساب الاصناف").Bold().FontSize(15).Bold().AlignCenter();
 
-            table.Cell().Text(_receipt.TotalOrder?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
-            table.Cell().Text("الاجمالي").FontSize(13).Bold().AlignCenter();
+                table.Cell().Text(_receipt.DeliveryFees?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
+                table.Cell().Text("خدمة توصيل").Bold().FontSize(15).Bold().AlignCenter();
+
+                table.Cell().Text(_receipt.TotalOrder?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
+                table.Cell().Text("الاجمالي").FontSize(13).Bold().AlignCenter();
+            }
         });
     }
     private void BuildPaymentMethod(ref ColumnDescriptor column)
@@ -500,4 +514,3 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
       => container.Border(1)
           .Padding(2);
 }
-
