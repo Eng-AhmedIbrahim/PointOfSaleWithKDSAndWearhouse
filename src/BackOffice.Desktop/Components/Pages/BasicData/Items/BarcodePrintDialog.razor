@@ -222,7 +222,84 @@
                     </div>
                 </div>
 
-                <!-- 5. Items Selector Button / Expander -->
+                <!-- 5. Advanced Grid & Layout Offsets -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.GridOn" Size="Size.Small" Color="Color.Primary" />
+                            <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">شبكة التنسيق والمسافات (Layout Grid)</span>
+                        </div>
+                        <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Text" Color="Color.Secondary" OnClick="ResetLayoutDefaults">
+                            استعادة التوزيع
+                        </MudButton>
+                    </div>
+
+                    <!-- Item Name Layout Controls -->
+                    <div class="p-2 mb-2" style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <span style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 6px;">
+                            ✏️ اسم الصنف (التحكم والتنزيل)
+                        </span>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <MudNumericField T="float" @bind-Value="_options.ItemNameTopOffsetMm" Min="0" Max="10" Step="0.5f"
+                                                 Label="إزاحة الاسم لأسفل (مم)" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            </div>
+                            <div class="col-6">
+                                <MudSelect T="int" @bind-Value="_options.ItemNameMaxLines" Label="عدد أسطر الاسم" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                    <MudSelectItem Value="1">سطر واحد فقط</MudSelectItem>
+                                    <MudSelectItem Value="2">سطرين (افتراضي)</MudSelectItem>
+                                    <MudSelectItem Value="3">3 أسطر</MudSelectItem>
+                                </MudSelect>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barcode Sizing & UPOS Scanner Compatibility -->
+                    <div class="p-2 mb-2" style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">
+                                📊 أبعاد الباركود وتوافق ماسح UPOS
+                            </span>
+                            <span class="badge bg-success" style="font-size: 0.72rem;">متوافق 100% مع الماسح</span>
+                        </div>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <MudNumericField T="float" @bind-Value="_options.BarcodeHeightMm" Min="4" Max="25" Step="0.5f"
+                                                 Label="ارتفاع خطوط الباركود (مم)" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            </div>
+                            <div class="col-6">
+                                <MudSelect T="int" @bind-Value="_options.BarcodeModuleWidth" Label="سُمك الخطوط (كثافة)" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                    <MudSelectItem Value="1">دقيق (1)</MudSelectItem>
+                                    <MudSelectItem Value="2">قياسي حراري (2)</MudSelectItem>
+                                    <MudSelectItem Value="3">عريض للماسحات (3)</MudSelectItem>
+                                </MudSelect>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vertical Spacing Between Blocks -->
+                    <div class="p-2" style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <span style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 6px;">
+                            ↕️ المسافات الرأسية الفاصلة (مم)
+                        </span>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <MudNumericField T="float" @bind-Value="_options.SpaceItemToBarcodeMm" Min="0" Max="10" Step="0.2f"
+                                                 Label="فوق الباركود" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            </div>
+                            <div class="col-4">
+                                <MudNumericField T="float" @bind-Value="_options.SpaceBarcodeToTextMm" Min="0" Max="10" Step="0.2f"
+                                                 Label="تحت الباركود" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            </div>
+                            <div class="col-4">
+                                <MudNumericField T="float" @bind-Value="_options.SpaceTextToPriceMm" Min="0" Max="10" Step="0.2f"
+                                                 Label="قبل السعر" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Items Selector Button / Expander -->
                 <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
@@ -330,6 +407,11 @@
                     <div style="font-size: 0.78rem; color: #64748b; line-height: 1.3;">
                         تعرض المنتج صاحب أطول اسم في المجموعة — الحالة الأصعب للتأكد من ملاءمة الملصق
                     </div>
+                    <div class="d-flex align-items-center justify-content-center gap-3 mt-1">
+                        <MudSwitch T="bool" @bind-Value="_showGridOverlay" Color="Color.Primary" Size="Size.Small">
+                            <span style="font-size: 0.78rem; font-weight: 700; color: #475569;">📐 شبكة المحاذاة (Grid)</span>
+                        </MudSwitch>
+                    </div>
                 </div>
 
                 <!-- Preview Item Switcher -->
@@ -367,8 +449,8 @@
                         <!-- 3. Barcode SVG -->
                         @if (_options.ShowBarcode && !string.IsNullOrWhiteSpace(PreviewBarcode))
                         {
-                            <div class="sticker-barcode-wrapper" style="width: 100%; margin: 2px 0; text-align: center;">
-                                @((MarkupString)Code128BarcodeGenerator.GenerateSvg(PreviewBarcode, height: 38, moduleWidth: 1.4f, quietZoneModules: 4))
+                            <div class="sticker-barcode-wrapper" style="@BarcodeWrapperStyle">
+                                @((MarkupString)Code128BarcodeGenerator.GenerateSvg(PreviewBarcode, height: (int)(_options.BarcodeHeightMm * 4.2f), moduleWidth: _options.BarcodeModuleWidth * 0.75f, quietZoneModules: _options.QuietZoneModules))
                             </div>
                         }
 
@@ -696,6 +778,8 @@
     private void ZoomOut() => _zoomPercent = Math.Max(75, _zoomPercent - 25);
     private void ResetZoom() => _zoomPercent = 230;
 
+    private bool _showGridOverlay = false;
+
     // Sticker Visual Styling
     private string StickerCardStyle
     {
@@ -708,12 +792,17 @@
             float baseW = wMm * 3.78f;
             float baseH = hMm * 3.78f;
             float scale = _zoomPercent / 100f;
+            float pad = Math.Max(2f, _options.MarginMm * 3.78f) * scale;
+
+            string gridBg = _showGridOverlay 
+                ? $"background-image: linear-gradient(to right, rgba(59, 130, 246, 0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.16) 1px, transparent 1px); background-size: {12 * scale}px {12 * scale}px;" 
+                : "";
 
             return $"width: {baseW * scale}px; min-height: {baseH * scale}px; " +
-                   $"background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; " +
-                   $"box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: {6 * scale}px; " +
+                   $"background-color: #ffffff; {gridBg} border: 1.5px solid #cbd5e1; border-radius: 6px; " +
+                   $"box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: {pad}px; " +
                    $"display: flex; flex-direction: column; align-items: center; justify-content: space-between; " +
-                   $"transition: all 0.2s ease; box-sizing: border-box; overflow: hidden;";
+                   $"transition: all 0.2s ease; box-sizing: border-box; overflow: hidden; position: relative;";
         }
     }
 
@@ -722,7 +811,8 @@
         get
         {
             float scale = (_zoomPercent / 100f) * GetFontScale();
-            return $"font-weight: 800; font-size: {0.82f * scale}rem; color: #0f172a; text-align: center; line-height: 1.2;";
+            float spaceBtm = (_options.SpaceStoreToItemMm * 3.78f) * scale;
+            return $"font-weight: 800; font-size: {0.82f * scale}rem; color: #0f172a; text-align: center; line-height: 1.2; margin-bottom: {spaceBtm}px;";
         }
     }
 
@@ -731,7 +821,22 @@
         get
         {
             float scale = (_zoomPercent / 100f) * GetFontScale();
-            return $"font-weight: 700; font-size: {0.78f * scale}rem; color: #1e293b; text-align: center; line-height: 1.25; margin: 2px 0;";
+            float topOffset = (_options.ItemNameTopOffsetMm * 3.78f) * scale;
+            float spaceBtm = (_options.SpaceItemToBarcodeMm * 3.78f) * scale;
+            int maxLines = _options.ItemNameMaxLines > 0 ? _options.ItemNameMaxLines : 2;
+            return $"font-weight: 700; font-size: {0.78f * scale}rem; color: #1e293b; text-align: center; line-height: 1.25; margin-top: {topOffset}px; margin-bottom: {spaceBtm}px; " +
+                   $"-webkit-line-clamp: {maxLines}; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;";
+        }
+    }
+
+    private string BarcodeWrapperStyle
+    {
+        get
+        {
+            float scale = (_zoomPercent / 100f);
+            float h = (_options.BarcodeHeightMm * 3.78f) * scale;
+            float spaceBtm = (_options.SpaceBarcodeToTextMm * 3.78f) * scale;
+            return $"width: 100%; height: {h}px; margin-bottom: {spaceBtm}px; text-align: center; display: flex; align-items: center; justify-content: center;";
         }
     }
 
@@ -740,7 +845,8 @@
         get
         {
             float scale = (_zoomPercent / 100f) * GetFontScale();
-            return $"font-family: monospace; font-weight: 800; font-size: {0.78f * scale}rem; color: #0f172a; text-align: center; letter-spacing: 1px;";
+            float spaceBtm = (_options.SpaceTextToPriceMm * 3.78f) * scale;
+            return $"font-family: monospace; font-weight: 800; font-size: {0.78f * scale}rem; color: #0f172a; text-align: center; letter-spacing: 1px; margin-bottom: {spaceBtm}px;";
         }
     }
 
@@ -751,6 +857,20 @@
             float scale = (_zoomPercent / 100f) * GetFontScale();
             return $"font-weight: 900; font-size: {0.92f * scale}rem; color: #0f172a;";
         }
+    }
+
+    private void ResetLayoutDefaults()
+    {
+        _options.ItemNameTopOffsetMm = 0f;
+        _options.ItemNameMaxLines = 2;
+        _options.SpaceStoreToItemMm = 0.8f;
+        _options.SpaceItemToBarcodeMm = 1.0f;
+        _options.BarcodeHeightMm = 7.5f;
+        _options.BarcodeModuleWidth = 2;
+        _options.QuietZoneModules = 10;
+        _options.SpaceBarcodeToTextMm = 0.6f;
+        _options.SpaceTextToPriceMm = 1.0f;
+        Snackbar.Add("تمت استعادة المسافات والتوزيع الافتراضي", Severity.Info);
     }
 
     private float GetFontScale() => _options.FontSizeLevel switch
