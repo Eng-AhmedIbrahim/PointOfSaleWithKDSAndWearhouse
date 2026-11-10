@@ -1,0 +1,90 @@
+@page "/basicdata/barcode-print"
+@using POS.Contract.Dtos.ItemDto
+@using BlazorBase.ERPFrontServices.ItemServices
+@inject IItemService ItemService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<div class="p-4" dir="rtl">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.QrCode2" Size="Size.Large" Color="Color.Primary" />
+            <div>
+                <h2 class="m-0" style="font-weight: 800; color: #1e293b;">طباعة ملصقات الباركود</h2>
+                <div style="color: #64748b; font-size: 0.9rem;">تجهيز وتصميم وطباعة ملصقات الباركود للأصناف والمنتجات</div>
+            </div>
+        </div>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LocalPrintshop" 
+                   OnClick="OpenBarcodeDialog" Style="font-weight: 800; border-radius: 8px;">
+            فتح شاشة طباعة الباركود
+        </MudButton>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center p-5">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else
+    {
+        <MudCard Elevation="2" Style="border-radius: 12px;">
+            <MudCardContent>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span style="font-weight: 700;">إجمالي الأصناف المتوفرة: @_items.Count (منها @_items.Count(i => !string.IsNullOrWhiteSpace(i.Barcode)) يحمل باركود)</span>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="Color.Primary" OnClick="OpenBarcodeDialog" StartIcon="@Icons.Material.Filled.Print">
+                        بدء الطباعة
+                    </MudButton>
+                </div>
+                <div class="text-muted" style="font-size: 0.9rem;">
+                    انقر فوق "فتح شاشة طباعة الباركود" لاختيار الطابعة، تحديد المقاس، ضبط شكل ومحتوى الملصق مع المعاينة الحية الفورية والطباعة.
+                </div>
+            </MudCardContent>
+        </MudCard>
+    }
+</div>
+
+@code {
+    private List<MenuSalesItemsToReturnDto> _items = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+        // Automatically open the print dialog when navigating directly to this page
+        await OpenBarcodeDialog();
+    }
+
+    private async Task LoadItems()
+    {
+        _isLoading = true;
+        try
+        {
+            var res = await ItemService.GetAllItemsAsync();
+            if (res != null && res.Success && res.Data != null)
+            {
+                _items = res.Data.ToList();
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenBarcodeDialog()
+    {
+        var parameters = new DialogParameters<BarcodePrintDialog>
+        {
+            { x => x.InitialItems, _items }
+        };
+        var options = new MudBlazor.DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = false,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<BarcodePrintDialog>("", parameters, options);
+    }
+}

@@ -1,4 +1,4 @@
-﻿@page "/basicdata/items"
+@page "/basicdata/items"
 @inject IItemService ItemService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -15,6 +15,13 @@
             <h2 class="m-0 page-title">@(IsArabic ? "إدارة الأصناف (المنيو والمواد الخام)" : "Items Management")</h2>
         </div>
         <div class="d-flex align-items-center gap-3">
+            <MudButton Variant="MudBlazor.Variant.Filled" 
+                       Color="MudBlazor.Color.Warning" 
+                       StartIcon="@Icons.Material.Filled.LocalPrintshop"
+                       OnClick="OpenBarcodePrintDialog"
+                       Style="border-radius: 8px; font-weight: 800; padding: 0.5rem 1.2rem; background: #b45309; color: #fff;">
+                @(IsArabic ? "طباعة ملصقات الباركود" : "Print Barcodes")
+            </MudButton>
             <MudButton Variant="MudBlazor.Variant.Filled" 
                        Color="MudBlazor.Color.Primary" 
                        StartIcon="@Icons.Material.Filled.Add"
@@ -179,6 +186,11 @@
                     <RadzenDataGridColumn TItem="MenuSalesItemsToReturnDto" Title="@(IsArabic ? "الإجراءات" : "Actions")" Sortable="false" Filterable="false" Width="120px" TextAlign="Radzen.TextAlign.Center">
                         <Template Context="item">
                             <div class="d-flex justify-content-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.LocalPrintshop" 
+                                               Color="MudBlazor.Color.Warning" 
+                                               Size="MudBlazor.Size.Small" 
+                                               Title="@(IsArabic ? "طباعة ملصق باركود" : "Print Barcode")"
+                                               OnClick="@(() => OpenBarcodePrintForItem(item))" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                                Color="MudBlazor.Color.Info" 
                                                Size="MudBlazor.Size.Small" 
@@ -347,5 +359,36 @@
                 Snackbar.Add(response?.Message ?? (IsArabic ? "حدث خطأ أثناء الحذف" : "Error deleting"), Severity.Error);
             }
         }
+    }
+
+    private async Task OpenBarcodePrintDialog()
+    {
+        var parameters = new DialogParameters<BarcodePrintDialog>
+        {
+            { x => x.InitialItems, Items }
+        };
+        var options = new MudBlazor.DialogOptions
+        {
+            MaxWidth = MudBlazor.MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = false
+        };
+        await DialogService.ShowAsync<BarcodePrintDialog>("", parameters, options);
+    }
+
+    private async Task OpenBarcodePrintForItem(MenuSalesItemsToReturnDto item)
+    {
+        var parameters = new DialogParameters<BarcodePrintDialog>
+        {
+            { x => x.InitialItems, Items },
+            { x => x.SpecificItemId, item.Id }
+        };
+        var options = new MudBlazor.DialogOptions
+        {
+            MaxWidth = MudBlazor.MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = false
+        };
+        await DialogService.ShowAsync<BarcodePrintDialog>("", parameters, options);
     }
 }

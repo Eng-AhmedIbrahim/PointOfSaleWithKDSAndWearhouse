@@ -1,0 +1,762 @@
+@using POS.Contract.Dtos.ItemDto
+@using POS.Reports.BarcodeServices
+@using POS.Reports.ReportsMakerServices
+@using POS.Contract.Utilities
+@using BackOffice.Desktop.Services
+@using BlazorBase.ERPFrontServices.ItemServices
+@using BlazorBase.ERPFrontServices.BranchServices
+@using Blazored.LocalStorage
+@inject IDesktopPrintingService PrintingService
+@inject IItemService ItemService
+@inject IBranchService BranchService
+@inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Class="barcode-print-dialog" DisableSidePadding="true">
+    <TitleContent>
+        <div class="d-flex align-items-center justify-content-between px-4 py-3" style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.LocalPrintshop" Color="Color.Primary" Size="Size.Medium" />
+                <span style="font-weight: 800; font-size: 1.15rem; color: #1e293b;">
+                    طباعة ملصقات باركود — @SelectedCount منتج
+                </span>
+            </div>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="barcode-dialog-body d-flex flex-column flex-md-row" style="min-height: 520px; max-height: 75vh; overflow-y: auto;">
+            
+            <!-- Left Column: Controls & Settings -->
+            <div class="controls-column p-4" style="flex: 1.1; border-inline-end: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1rem;">
+                
+                <!-- 1. Printer Selection -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Primary" />
+                        <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">اختيار الطابعة</span>
+                    </div>
+                    <MudSelect T="string" @bind-Value="_selectedPrinter" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                        @if (_installedPrinters.Any())
+                        {
+                            @foreach (var printer in _installedPrinters)
+                            {
+                                <MudSelectItem Value="@printer">@printer</MudSelectItem>
+                            }
+                        }
+                        else
+                        {
+                            <MudSelectItem Value="@("")">لا توجد طابعات مثبتة</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+
+                <!-- 2. Quantity & Copies Mode -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Color="Color.Primary" />
+                        <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">عدد الملصقات لكل منتج</span>
+                    </div>
+                    
+                    <div class="row g-2 align-items-center">
+                        <div class="col-6">
+                            <MudSelect T="string" @bind-Value="_copiesMode" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                <MudSelectItem Value="@("fixed")">عدد ثابت لكل منتج</MudSelectItem>
+                                <MudSelectItem Value="@("manual")">تحديد يدوي لكل صنف</MudSelectItem>
+                            </MudSelect>
+                        </div>
+                        <div class="col-6">
+                            @if (_copiesMode == "fixed")
+                            {
+                                <MudNumericField T="int" @bind-Value="_fixedCopies" Min="1" Max="9999" 
+                                                 Label="عدد النسخ لكل منتج" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Summary Badge -->
+                    <div class="mt-3 p-2 text-center" style="background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.9rem; color: #475569;">
+                        الإجمالي: @TotalLabelCopies ملصق لـ @SelectedCount منتج
+                    </div>
+
+                    <div class="mt-2">
+                        <MudCheckBox T="bool" @bind-Value="_options.IsVertical" Dense="true" Color="Color.Primary">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: #475569;">
+                                طباعة عمودية (لحل مشكلة الطباعة بالعرض)
+                            </span>
+                        </MudCheckBox>
+                    </div>
+                </div>
+
+                <!-- 3. Label Size -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Straighten" Size="Size.Small" Color="Color.Primary" />
+                        <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">مقاس الملصق</span>
+                    </div>
+                    
+                    <MudSelect T="string" Value="@_selectedSizePreset" ValueChanged="OnSizePresetChanged" 
+                               Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Dense="true" Label="المقاس">
+                        <MudSelectItem Value="@("38x25")">38mm x 25mm (القياسي الشائع)</MudSelectItem>
+                        <MudSelectItem Value="@("40x30")">40mm x 30mm</MudSelectItem>
+                        <MudSelectItem Value="@("50x25")">50mm x 25mm</MudSelectItem>
+                        <MudSelectItem Value="@("50x30")">50mm x 30mm</MudSelectItem>
+                        <MudSelectItem Value="@("60x40")">60mm x 40mm</MudSelectItem>
+                        <MudSelectItem Value="@("custom")">مقاس مخصص...</MudSelectItem>
+                    </MudSelect>
+
+                    @if (_selectedSizePreset == "custom")
+                    {
+                        <div class="row g-2 mt-1">
+                            <div class="col-6">
+                                <MudNumericField T="float" @bind-Value="_options.WidthMm" Label="العرض (مم)" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Min="15" Max="120" />
+                            </div>
+                            <div class="col-6">
+                                <MudNumericField T="float" @bind-Value="_options.HeightMm" Label="الارتفاع (مم)" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Min="10" Max="150" />
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 4. Label Content Customizer -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Color="Color.Primary" />
+                            <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">محتوى الملصق</span>
+                        </div>
+                        <MudSelect T="string" @bind-Value="_options.FontSizeLevel" Variant="MudBlazor.Variant.Text" Margin="Margin.Dense" Dense="true" Style="width: 120px;">
+                            <MudSelectItem Value="@("small")">خط صغير</MudSelectItem>
+                            <MudSelectItem Value="@("medium")">خط متوسط</MudSelectItem>
+                            <MudSelectItem Value="@("large")">خط كبير</MudSelectItem>
+                        </MudSelect>
+                    </div>
+
+                    <div class="d-flex flex-column gap-1">
+                        <!-- Store Name -->
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <MudCheckBox T="bool" @bind-Value="_options.ShowStoreName" Dense="true" Color="Color.Primary">
+                                <span style="font-size: 0.88rem; font-weight: 600;">اسم المتجر</span>
+                            </MudCheckBox>
+                            @if (_options.ShowStoreName)
+                            {
+                                <MudTextField T="string" @bind-Value="_options.StoreName" Placeholder="اسم المتجر..." Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Style="max-width: 180px; font-size: 0.85rem;" />
+                            }
+                        </div>
+
+                        <!-- Product Name -->
+                        <div class="d-flex align-items-center justify-content-between">
+                            <MudCheckBox T="bool" @bind-Value="_options.ShowItemName" Dense="true" Color="Color.Primary">
+                                <span style="font-size: 0.88rem; font-weight: 600;">اسم المنتج</span>
+                            </MudCheckBox>
+                            @if (_options.ShowItemName)
+                            {
+                                <MudSwitch T="bool" @bind-Value="_options.UseEnglishName" Color="Color.Primary" Size="Size.Small">
+                                    <span style="font-size: 0.8rem;">@( _options.UseEnglishName ? "إنجليزي" : "عربي" )</span>
+                                </MudSwitch>
+                            }
+                        </div>
+
+                        <!-- Price -->
+                        <div class="d-flex align-items-center justify-content-between">
+                            <MudCheckBox T="bool" @bind-Value="_options.ShowPrice" Dense="true" Color="Color.Primary">
+                                <span style="font-size: 0.88rem; font-weight: 600;">سعر البيع (القطاعي)</span>
+                            </MudCheckBox>
+                            @if (_options.ShowPrice)
+                            {
+                                <MudTextField T="string" @bind-Value="_options.Currency" Placeholder="العملة" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Style="max-width: 80px; font-size: 0.85rem;" />
+                            }
+                        </div>
+
+                        <!-- Barcode -->
+                        <div class="d-flex align-items-center justify-content-between">
+                            <MudCheckBox T="bool" @bind-Value="_options.ShowBarcode" Dense="true" Color="Color.Primary">
+                                <span style="font-size: 0.88rem; font-weight: 600;">رمز الباركود</span>
+                            </MudCheckBox>
+                            @if (_options.ShowBarcode)
+                            {
+                                <MudCheckBox T="bool" @bind-Value="_options.ShowBarcodeText" Dense="true" Color="Color.Primary">
+                                    <span style="font-size: 0.8rem;">إظهار الأرقام</span>
+                                </MudCheckBox>
+                            }
+                        </div>
+
+                        <!-- Code -->
+                        <MudCheckBox T="bool" @bind-Value="_options.ShowItemCode" Dense="true" Color="Color.Primary">
+                            <span style="font-size: 0.88rem; font-weight: 600;">كود الصنف (الداخلي)</span>
+                        </MudCheckBox>
+                    </div>
+                </div>
+
+                <!-- 5. Items Selector Button / Expander -->
+                <div class="setting-card p-3" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.FormatListBulleted" Size="Size.Small" Color="Color.Primary" />
+                            <span style="font-weight: 700; font-size: 0.95rem; color: #334155;">
+                                الأصناف المحددة (@SelectedCount من @_selectableItems.Count)
+                            </span>
+                        </div>
+                        <MudButton Variant="MudBlazor.Variant.Outlined" Size="Size.Small" Color="Color.Primary" 
+                                   OnClick="@(() => _showItemsDrawer = !_showItemsDrawer)">
+                            @(_showItemsDrawer ? "إخفاء القائمة" : "تعديل الأصناف")
+                        </MudButton>
+                    </div>
+
+                    @if (_showItemsDrawer)
+                    {
+                        <div class="mt-3" style="border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                            <div class="d-flex gap-2 mb-2 flex-wrap">
+                                <MudTextField T="string" @bind-Value="_itemSearchTerm" Placeholder="بحث عن صنف أو باركود..." 
+                                              Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Immediate="true" Style="flex: 1;" />
+                                <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Filled" Color="Color.Default" OnClick="SelectAllWithBarcode">
+                                    أصحاب الباركود فقط (@_selectableItems.Count(i => !string.IsNullOrWhiteSpace(i.Item.Barcode)))
+                                </MudButton>
+                                <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Outlined" OnClick="SelectAll">الكل</MudButton>
+                                <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Outlined" OnClick="DeselectAll">إلغاء</MudButton>
+                            </div>
+
+                            <div style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <table class="table table-sm table-hover m-0" style="font-size: 0.85rem;">
+                                    <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                                        <tr>
+                                            <th style="width: 35px;"></th>
+                                            <th>الصنف</th>
+                                            <th>الباركود</th>
+                                            <th>السعر</th>
+                                            @if (_copiesMode == "manual")
+                                            {
+                                                <th style="width: 80px;">النسخ</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in FilteredSelectableItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" checked="@row.IsSelected" @onchange="@((e) => row.IsSelected = (bool)(e.Value ?? false))" />
+                                                </td>
+                                                <td style="font-weight: 600;">@row.Item.ArabicName</td>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(row.Item.Barcode))
+                                                    {
+                                                        <span style="font-family: monospace; background: #e2e8f0; padding: 1px 4px; border-radius: 4px;">@row.Item.Barcode</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-danger" style="font-size: 0.75rem;">بدون باركود</span>
+                                                    }
+                                                </td>
+                                                <td>@row.Item.Price?.ToString("0.##")</td>
+                                                @if (_copiesMode == "manual")
+                                                {
+                                                    <td>
+                                                        <input type="number" min="1" max="999" style="width: 60px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px;" 
+                                                               @bind="row.CustomCopies" />
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <!-- Right Column: Live Preview -->
+            <div class="preview-column p-4 d-flex flex-column align-items-center justify-content-between" 
+                 style="flex: 0.9; background: #f8fafc; position: relative;">
+                
+                <div class="w-100 text-center mb-2">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                        <span style="display: inline-block; width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span>
+                        <span style="font-weight: 800; font-size: 1.05rem; color: #1e293b;">المعاينة الحية</span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b; line-height: 1.3;">
+                        تعرض المنتج صاحب أطول اسم في المجموعة — الحالة الأصعب للتأكد من ملاءمة الملصق
+                    </div>
+                </div>
+
+                <!-- Preview Item Switcher -->
+                @if (SelectedItemsList.Any())
+                {
+                    <div class="d-flex align-items-center gap-2 mb-3" style="max-width: 280px; width: 100%;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" OnClick="PreviousPreviewItem" />
+                        <div class="flex-grow-1 text-center text-truncate" style="font-size: 0.85rem; font-weight: 700; color: #334155;">
+                            @PreviewItemDisplayName
+                        </div>
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" OnClick="NextPreviewItem" />
+                    </div>
+                }
+
+                <!-- Sticker Visual Card -->
+                <div class="preview-canvas-wrapper d-flex align-items-center justify-content-center my-auto" style="width: 100%; min-height: 250px; overflow: hidden;">
+                    <div class="sticker-card" style="@StickerCardStyle">
+                        
+                        <!-- 1. Store Name -->
+                        @if (_options.ShowStoreName && !string.IsNullOrWhiteSpace(_options.StoreName))
+                        {
+                            <div class="sticker-store-name" style="@StoreNameStyle">
+                                @_options.StoreName
+                            </div>
+                        }
+
+                        <!-- 2. Product Name -->
+                        @if (_options.ShowItemName && !string.IsNullOrWhiteSpace(PreviewItemName))
+                        {
+                            <div class="sticker-item-name" style="@ItemNameStyle">
+                                @PreviewItemName
+                            </div>
+                        }
+
+                        <!-- 3. Barcode SVG -->
+                        @if (_options.ShowBarcode && !string.IsNullOrWhiteSpace(PreviewBarcode))
+                        {
+                            <div class="sticker-barcode-wrapper" style="width: 100%; margin: 2px 0; text-align: center;">
+                                @((MarkupString)Code128BarcodeGenerator.GenerateSvg(PreviewBarcode, height: 38, moduleWidth: 1.4f, quietZoneModules: 4))
+                            </div>
+                        }
+
+                        <!-- 4. Barcode Number -->
+                        @if (_options.ShowBarcodeText && !string.IsNullOrWhiteSpace(PreviewBarcode))
+                        {
+                            <div class="sticker-barcode-number" style="@BarcodeNumberStyle">
+                                @PreviewBarcode
+                            </div>
+                        }
+
+                        <!-- 5. Price & Code -->
+                        <div class="sticker-price-row d-flex align-items-center justify-content-center gap-2 w-100 mt-1">
+                            @if (_options.ShowPrice)
+                            {
+                                <span class="sticker-price" style="@PriceStyle">
+                                    @PreviewPrice.ToString("0.##") @_options.Currency
+                                </span>
+                            }
+                            @if (_options.ShowItemCode)
+                            {
+                                <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">
+                                    #@PreviewItemId
+                                </span>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Zoom Controls & Dimensions Footer -->
+                <div class="d-flex flex-column align-items-center gap-1 mt-3 w-100">
+                    <div class="d-flex align-items-center gap-1 p-1" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
+                        <MudButton Size="Size.Small" Variant="MudBlazor.Variant.Text" OnClick="ResetZoom" Style="font-size: 0.75rem; font-weight: 700;">
+                            احتواء
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="ZoomOut" />
+                        <span style="font-size: 0.8rem; font-weight: 800; min-width: 45px; text-align: center;">@_zoomPercent%</span>
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="ZoomIn" />
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">
+                        المقاس المطبوع: @_options.WidthMm × @_options.HeightMm مم
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex align-items-center justify-content-between w-100 px-4 py-2" style="border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            <div class="d-flex align-items-center gap-2">
+                <MudButton Variant="MudBlazor.Variant.Filled" 
+                           Color="Color.Warning" 
+                           StartIcon="@Icons.Material.Filled.Print"
+                           Disabled="@(_isPrinting || TotalLabelCopies == 0)"
+                           OnClick="PrintLabels"
+                           Style="background: #b45309; color: #ffffff; font-weight: 800; border-radius: 8px; padding: 0.5rem 1.8rem; font-size: 1rem;">
+                    @if (_isPrinting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>جاري الطباعة...</span>
+                    }
+                    else
+                    {
+                        <span>طباعة @TotalLabelCopies ملصق</span>
+                    }
+                </MudButton>
+
+                <MudButton Variant="MudBlazor.Variant.Outlined" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           Disabled="@(_isPrinting || TotalLabelCopies == 0)"
+                           OnClick="PreviewOrSavePdf"
+                           Style="font-weight: 700; border-radius: 8px;">
+                    معاينة / حفظ PDF
+                </MudButton>
+            </div>
+
+            <MudButton Variant="MudBlazor.Variant.Text" OnClick="Close" Style="font-weight: 700; color: #64748b;">
+                إغلاق
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<MenuSalesItemsToReturnDto>? InitialItems { get; set; }
+    [Parameter] public int? SpecificItemId { get; set; }
+
+    private BarcodeLabelOptions _options = new();
+    private List<string> _installedPrinters = new();
+    private string _selectedPrinter = "";
+    private string _selectedSizePreset = "38x25";
+    private string _copiesMode = "fixed";
+    private int _fixedCopies = 1;
+    private int _zoomPercent = 230;
+    private bool _showItemsDrawer = false;
+    private string _itemSearchTerm = "";
+    private bool _isPrinting = false;
+
+    private class ItemSelectionRow
+    {
+        public MenuSalesItemsToReturnDto Item { get; set; } = default!;
+        public bool IsSelected { get; set; } = true;
+        public int CustomCopies { get; set; } = 1;
+    }
+
+    private List<ItemSelectionRow> _selectableItems = new();
+    private int _previewIndex = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _installedPrinters = PrintingService.GetInstalledPrinters();
+        
+        // Restore remembered printer
+        var remembered = await LocalStorage.GetItemAsync<string>("selected_barcode_printer");
+        if (!string.IsNullOrEmpty(remembered) && _installedPrinters.Contains(remembered))
+        {
+            _selectedPrinter = remembered;
+        }
+        else if (_installedPrinters.Any())
+        {
+            _selectedPrinter = _installedPrinters.FirstOrDefault(p => p.Contains("PDF", StringComparison.OrdinalIgnoreCase)) 
+                               ?? _installedPrinters.First();
+        }
+
+        // Get Store Name from Branch
+        try
+        {
+            var branches = await BranchService.GetBranches();
+            var b = branches?.FirstOrDefault();
+            if (b != null && !string.IsNullOrWhiteSpace(b.Name))
+            {
+                _options.StoreName = b.Name;
+            }
+        }
+        catch { }
+
+        // Load items
+        List<MenuSalesItemsToReturnDto> allItems = new();
+        if (InitialItems != null && InitialItems.Any())
+        {
+            allItems = InitialItems;
+        }
+        else
+        {
+            var res = await ItemService.GetAllItemsAsync();
+            if (res != null && res.Success && res.Data != null)
+            {
+                allItems = res.Data.ToList();
+            }
+        }
+
+        // Build selectable rows
+        _selectableItems = allItems.Select(item => new ItemSelectionRow
+        {
+            Item = item,
+            IsSelected = SpecificItemId.HasValue ? (item.Id == SpecificItemId.Value) : !string.IsNullOrWhiteSpace(item.Barcode),
+            CustomCopies = 1
+        }).ToList();
+
+        // Default preview to the item with the longest name
+        SelectLongestNameItem();
+    }
+
+    private void SelectLongestNameItem()
+    {
+        var selected = SelectedItemsList;
+        if (!selected.Any()) return;
+
+        var longest = selected.OrderByDescending(x => (x.ArabicName?.Length ?? 0) + (x.EnglishName?.Length ?? 0)).FirstOrDefault();
+        if (longest != null)
+        {
+            _previewIndex = selected.IndexOf(longest);
+            if (_previewIndex < 0) _previewIndex = 0;
+        }
+    }
+
+    private List<MenuSalesItemsToReturnDto> SelectedItemsList => _selectableItems
+        .Where(x => x.IsSelected)
+        .Select(x => x.Item)
+        .ToList();
+
+    private IEnumerable<ItemSelectionRow> FilteredSelectableItems
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_itemSearchTerm))
+                return _selectableItems;
+
+            var term = _itemSearchTerm.Trim();
+            return _selectableItems.Where(x => 
+                (x.Item.ArabicName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Item.EnglishName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Item.Barcode?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                x.Item.Id.ToString() == term);
+        }
+    }
+
+    private int SelectedCount => _selectableItems.Count(x => x.IsSelected);
+
+    private int TotalLabelCopies
+    {
+        get
+        {
+            if (_copiesMode == "fixed")
+                return SelectedCount * Math.Max(1, _fixedCopies);
+            return _selectableItems.Where(x => x.IsSelected).Sum(x => Math.Max(1, x.CustomCopies));
+        }
+    }
+
+    private void SelectAllWithBarcode()
+    {
+        foreach (var r in _selectableItems)
+            r.IsSelected = !string.IsNullOrWhiteSpace(r.Item.Barcode);
+        SelectLongestNameItem();
+    }
+
+    private void SelectAll()
+    {
+        foreach (var r in _selectableItems)
+            r.IsSelected = true;
+        SelectLongestNameItem();
+    }
+
+    private void DeselectAll()
+    {
+        foreach (var r in _selectableItems)
+            r.IsSelected = false;
+    }
+
+    private void OnSizePresetChanged(string preset)
+    {
+        _selectedSizePreset = preset;
+        switch (preset)
+        {
+            case "38x25":
+                _options.WidthMm = 38f;
+                _options.HeightMm = 25f;
+                break;
+            case "40x30":
+                _options.WidthMm = 40f;
+                _options.HeightMm = 30f;
+                break;
+            case "50x25":
+                _options.WidthMm = 50f;
+                _options.HeightMm = 25f;
+                break;
+            case "50x30":
+                _options.WidthMm = 50f;
+                _options.HeightMm = 30f;
+                break;
+            case "60x40":
+                _options.WidthMm = 60f;
+                _options.HeightMm = 40f;
+                break;
+        }
+    }
+
+    private MenuSalesItemsToReturnDto? CurrentPreviewItem
+    {
+        get
+        {
+            var list = SelectedItemsList;
+            if (!list.Any()) return null;
+            if (_previewIndex < 0 || _previewIndex >= list.Count) _previewIndex = 0;
+            return list[_previewIndex];
+        }
+    }
+
+    private string PreviewItemDisplayName => CurrentPreviewItem != null 
+        ? (!string.IsNullOrWhiteSpace(CurrentPreviewItem.ArabicName) ? CurrentPreviewItem.ArabicName : CurrentPreviewItem.EnglishName ?? "") 
+        : "لا يوجد صنف محدد";
+
+    private string PreviewItemName => CurrentPreviewItem != null 
+        ? (_options.UseEnglishName && !string.IsNullOrWhiteSpace(CurrentPreviewItem.EnglishName) ? CurrentPreviewItem.EnglishName : CurrentPreviewItem.ArabicName ?? "") 
+        : "صنف تجريبي";
+
+    private string PreviewBarcode => !string.IsNullOrWhiteSpace(CurrentPreviewItem?.Barcode) 
+        ? CurrentPreviewItem.Barcode 
+        : (CurrentPreviewItem != null ? $"2000{CurrentPreviewItem.Id:D8}" : "2000584274628");
+
+    private decimal PreviewPrice => CurrentPreviewItem?.Price ?? 1500m;
+    private int PreviewItemId => CurrentPreviewItem?.Id ?? 108;
+
+    private void NextPreviewItem()
+    {
+        var count = SelectedItemsList.Count;
+        if (count > 0) _previewIndex = (_previewIndex + 1) % count;
+    }
+
+    private void PreviousPreviewItem()
+    {
+        var count = SelectedItemsList.Count;
+        if (count > 0) _previewIndex = (_previewIndex - 1 + count) % count;
+    }
+
+    private void ZoomIn() => _zoomPercent = Math.Min(350, _zoomPercent + 25);
+    private void ZoomOut() => _zoomPercent = Math.Max(75, _zoomPercent - 25);
+    private void ResetZoom() => _zoomPercent = 230;
+
+    // Sticker Visual Styling
+    private string StickerCardStyle
+    {
+        get
+        {
+            float wMm = _options.IsVertical ? _options.HeightMm : _options.WidthMm;
+            float hMm = _options.IsVertical ? _options.WidthMm : _options.HeightMm;
+            
+            // Standard screen DPI approximation: 1mm ~ 3.78px
+            float baseW = wMm * 3.78f;
+            float baseH = hMm * 3.78f;
+            float scale = _zoomPercent / 100f;
+
+            return $"width: {baseW * scale}px; min-height: {baseH * scale}px; " +
+                   $"background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; " +
+                   $"box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: {6 * scale}px; " +
+                   $"display: flex; flex-direction: column; align-items: center; justify-content: space-between; " +
+                   $"transition: all 0.2s ease; box-sizing: border-box; overflow: hidden;";
+        }
+    }
+
+    private string StoreNameStyle
+    {
+        get
+        {
+            float scale = (_zoomPercent / 100f) * GetFontScale();
+            return $"font-weight: 800; font-size: {0.82f * scale}rem; color: #0f172a; text-align: center; line-height: 1.2;";
+        }
+    }
+
+    private string ItemNameStyle
+    {
+        get
+        {
+            float scale = (_zoomPercent / 100f) * GetFontScale();
+            return $"font-weight: 700; font-size: {0.78f * scale}rem; color: #1e293b; text-align: center; line-height: 1.25; margin: 2px 0;";
+        }
+    }
+
+    private string BarcodeNumberStyle
+    {
+        get
+        {
+            float scale = (_zoomPercent / 100f) * GetFontScale();
+            return $"font-family: monospace; font-weight: 800; font-size: {0.78f * scale}rem; color: #0f172a; text-align: center; letter-spacing: 1px;";
+        }
+    }
+
+    private string PriceStyle
+    {
+        get
+        {
+            float scale = (_zoomPercent / 100f) * GetFontScale();
+            return $"font-weight: 900; font-size: {0.92f * scale}rem; color: #0f172a;";
+        }
+    }
+
+    private float GetFontScale() => _options.FontSizeLevel switch
+    {
+        "small" => 0.85f,
+        "large" => 1.15f,
+        _ => 1.0f
+    };
+
+    private List<BarcodeLabelItemModel> BuildExportItems()
+    {
+        return _selectableItems
+            .Where(x => x.IsSelected)
+            .Select(x => new BarcodeLabelItemModel
+            {
+                Id = x.Item.Id,
+                Barcode = !string.IsNullOrWhiteSpace(x.Item.Barcode) ? x.Item.Barcode : $"2000{x.Item.Id:D8}",
+                NameAr = x.Item.ArabicName ?? "",
+                NameEn = x.Item.EnglishName ?? "",
+                Price = x.Item.Price ?? 0m,
+                Copies = _copiesMode == "fixed" ? Math.Max(1, _fixedCopies) : Math.Max(1, x.CustomCopies)
+            }).ToList();
+    }
+
+    private async Task PrintLabels()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedPrinter))
+        {
+            Snackbar.Add("برجاء اختيار الطابعة أولاً", Severity.Warning);
+            return;
+        }
+
+        var items = BuildExportItems();
+        if (!items.Any())
+        {
+            Snackbar.Add("لم يتم تحديد أي أصناف للطباعة", Severity.Warning);
+            return;
+        }
+
+        _isPrinting = true;
+        try
+        {
+            await LocalStorage.SetItemAsync("selected_barcode_printer", _selectedPrinter);
+
+            var doc = new BarcodeLabelDocument(items, _options);
+            byte[] pdfBytes = doc.GeneratePdf();
+
+            PrintingService.PrintPdf(pdfBytes, _selectedPrinter);
+            Snackbar.Add($"تم إرسال {TotalLabelCopies} ملصق إلى {_selectedPrinter}", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشلت الطباعة: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isPrinting = false;
+        }
+    }
+
+    private void PreviewOrSavePdf()
+    {
+        var items = BuildExportItems();
+        if (!items.Any())
+        {
+            Snackbar.Add("لم يتم تحديد أي أصناف", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var doc = new BarcodeLabelDocument(items, _options);
+            byte[] pdfBytes = doc.GeneratePdf();
+            PrintingService.SaveFileWithDialog(pdfBytes, $"Barcode_Labels_{DateTime.Now:yyyyMMdd_HHmmss}.pdf", "ملفات PDF (*.pdf)|*.pdf", "حفظ ملصقات الباركود");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}
