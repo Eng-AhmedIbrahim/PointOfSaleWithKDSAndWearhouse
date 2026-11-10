@@ -51,7 +51,7 @@
                     <MudTh>إجراءات</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.Code</MudTd>
+                    <MudTd>@context.DisplayCode</MudTd>
                     <MudTd>@context.DisplayName</MudTd>
                     <MudTd>@context.ContactPerson</MudTd>
                     <MudTd>@context.Phone</MudTd>
@@ -111,7 +111,8 @@
         public decimal CurrentBalance { get; set; }
         public bool IsActive { get; set; } = true;
 
-        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (NameEn ?? ""));
+        public string DisplayCode => !string.IsNullOrWhiteSpace(Code) ? Code : $"SUP-{Id:D4}";
+        public string DisplayName => !string.IsNullOrWhiteSpace(NameAr) ? NameAr : (!string.IsNullOrWhiteSpace(Name) ? Name : (!string.IsNullOrWhiteSpace(NameEn) ? NameEn : $"مورد #{Id}"));
         public string DisplayCity => !string.IsNullOrWhiteSpace(City) ? City : (Address ?? "");
     }
 

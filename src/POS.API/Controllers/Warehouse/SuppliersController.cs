@@ -25,9 +25,23 @@ public class SuppliersController : ControllerBase
         if (activeOnly == true) query = query.Where(s => s.IsActive);
         return Ok(await query.OrderBy(s => s.NameAr).Select(s => new
         {
-            s.Id, s.Code, Name = s.NameAr, s.NameAr, s.NameEn, s.Phone, s.Email, Address = s.Address, City = s.Address, ContactPerson = s.NameEn ?? "",
-            s.TaxNumber, s.CommercialRegister, s.DefaultPaymentTerm,
-            s.CreditLimit, s.CurrentBalance, s.IsActive, s.CreatedAt
+            s.Id,
+            Code = !string.IsNullOrWhiteSpace(s.Code) ? s.Code : $"SUP-{s.Id:D4}",
+            Name = !string.IsNullOrWhiteSpace(s.NameAr) ? s.NameAr : (!string.IsNullOrWhiteSpace(s.NameEn) ? s.NameEn : $"مورد #{s.Id}"),
+            NameAr = !string.IsNullOrWhiteSpace(s.NameAr) ? s.NameAr : (!string.IsNullOrWhiteSpace(s.NameEn) ? s.NameEn : $"مورد #{s.Id}"),
+            s.NameEn,
+            s.Phone,
+            s.Email,
+            Address = s.Address ?? "",
+            City = s.Address ?? "",
+            ContactPerson = s.NameEn ?? "",
+            s.TaxNumber,
+            s.CommercialRegister,
+            s.DefaultPaymentTerm,
+            s.CreditLimit,
+            s.CurrentBalance,
+            s.IsActive,
+            s.CreatedAt
         }).ToListAsync());
     }
 

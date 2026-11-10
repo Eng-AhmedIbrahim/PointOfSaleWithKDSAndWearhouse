@@ -283,19 +283,47 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/approve")]
-    [HttpPut("{id}/approve")]
+    [HttpPost("{id}/approve")]
     [HttpPut("{id}/direct-approve")]
     public async Task<IActionResult> Approve(int id)
     {
-        var r = await _db.BranchRequisitions.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == id);
+        var r = await _db.BranchRequisitions
+            .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
+
+        // Check if warehouse has stock for approved lines
+        foreach (var l in r.Lines)
+        {
+            var requestedQty = l.ProposedQuantity ?? l.RequestedQuantity;
+            if (requestedQty <= 0) continue;
+
+            decimal baseQty = requestedQty;
+            if (l.Product != null && l.UnitId != l.Product.BaseUnitId)
+            {
+                var pu = l.Product.ProductUnits?.FirstOrDefault(u => u.UnitId == l.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0)
+                    baseQty *= pu.ConversionFactorToBase;
+            }
+
+            var balance = await _db.StockBalances
+                .FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == l.ProductId);
+
+            if (balance == null || balance.QuantityOnHand < baseQty)
+            {
+                var productName = l.Product?.NameAr ?? $"صنف #{l.ProductId}";
+                var available = balance?.QuantityOnHand ?? 0m;
+                return BadRequest(new { message = $"رصيد الصنف '{productName}' في المخزن غير كافٍ للاعتماد. المتاح: {available:N2}, المطلوب: {baseQty:N2}" });
+            }
+        }
+
         foreach (var l in r.Lines)
             l.ApprovedQuantity = l.ProposedQuantity ?? l.RequestedQuantity;
         r.Status = RequisitionStatus.Approved;
         r.ApprovedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        await NotifyBranch(r, "\u0645\u0639\u062a\u0645\u062f", "\u062a\u0645 \u0627\u0639\u062a\u0645\u0627\u062f \u0637\u0644\u0628\u0643 \u0648\u064a\u062c\u0631\u064a \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0628\u0636\u0627\u0639\u0629");
-        return Ok();
+        await NotifyBranch(r, "معتمد", "تم اعتماد طلبك ويجري تجهيز البضاعة");
+        return Ok(new { message = "تم الاعتماد بنجاح" });
     }
 
     [HttpPost("{id}/reroute")]

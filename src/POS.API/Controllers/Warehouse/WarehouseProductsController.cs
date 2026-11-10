@@ -237,12 +237,70 @@ public class WarehouseProductsController : ControllerBase
 
     // Units
     [HttpGet("units")]
-    public async Task<IActionResult> GetUnits() => Ok(await _db.WarehouseUnits.OrderBy(u => u.NameAr).ToListAsync());
+    public async Task<IActionResult> GetUnits()
+    {
+        // Auto-sync any Units that might be missing in WarehouseUnits
+        try
+        {
+            var whUnits = await _db.WarehouseUnits.ToListAsync();
+            var branchUnits = await _db.Units.ToListAsync();
+            bool changed = false;
+            foreach (var bu in branchUnits)
+            {
+                if (!whUnits.Any(w => w.NameAr == bu.ArabicName || (!string.IsNullOrWhiteSpace(bu.Code) && w.Symbol == bu.Code)))
+                {
+                    var newWh = new WarehouseUnit
+                    {
+                        NameAr = bu.ArabicName ?? bu.EnglishName ?? "",
+                        NameEn = bu.EnglishName ?? bu.ArabicName ?? "",
+                        Symbol = bu.Code ?? "",
+                        IsBaseUnit = false
+                    };
+                    _db.WarehouseUnits.Add(newWh);
+                    changed = true;
+                }
+            }
+            if (changed)
+            {
+                await _db.SaveChangesAsync();
+            }
+        }
+        catch { }
+
+        var list = await _db.WarehouseUnits.OrderBy(u => u.NameAr).Select(u => new
+        {
+            u.Id,
+            ArabicName = u.NameAr,
+            EnglishName = u.NameEn,
+            Name = u.NameAr,
+            NameAr = u.NameAr,
+            NameEn = u.NameEn,
+            Code = u.Symbol,
+            Symbol = u.Symbol,
+            u.IsBaseUnit,
+            DisplayName = !string.IsNullOrWhiteSpace(u.NameAr) ? u.NameAr : u.NameEn
+        }).ToListAsync();
+        return Ok(list);
+    }
 
     [HttpPost("units")]
     public async Task<IActionResult> CreateUnit([FromBody] WarehouseUnit unit)
     {
         _db.WarehouseUnits.Add(unit);
+        try
+        {
+            if (!await _db.Units.AnyAsync(u => u.ArabicName == unit.NameAr || u.Code == unit.Symbol))
+            {
+                _db.Units.Add(new POS.Core.Entities.Item.Unit
+                {
+                    ArabicName = unit.NameAr,
+                    EnglishName = string.IsNullOrWhiteSpace(unit.NameEn) ? unit.NameAr : unit.NameEn,
+                    Code = string.IsNullOrWhiteSpace(unit.Symbol) ? unit.NameAr : unit.Symbol,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+        catch { }
         await _db.SaveChangesAsync();
         return Ok(unit);
     }

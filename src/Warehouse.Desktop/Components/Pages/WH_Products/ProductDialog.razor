@@ -70,7 +70,7 @@
                         <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">
                             وحدة التخزين الأساسية *
                         </MudText>
-                        <MudSelect T="int?" @bind-Value="Model.BaseUnitId" Required="true" RequiredError="يرجى تحديد وحدة الأساس"
+                        <MudSelect T="int?" @bind-Value="Model.BaseUnitId" @bind-Value:after="StateHasChanged" Required="true" RequiredError="يرجى تحديد وحدة الأساس"
                                    Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
                                    Placeholder="-- اختر الوحدة الأساسية (كغ، لتر، حبة) --">
                             @foreach (var u in Units)
@@ -148,7 +148,7 @@
                         <MudGrid Spacing="2" Class="align-center">
                             <MudItem xs="12" md="4">
                                 <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block">الوحدة</MudText>
-                                <MudSelect T="int?" @bind-Value="pu.UnitId" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense">
+                                <MudSelect T="int?" @bind-Value="pu.UnitId" @bind-Value:after="StateHasChanged" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense">
                                     @foreach (var u in Units)
                                     {
                                         <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.DisplayName</MudSelectItem>
@@ -157,7 +157,7 @@
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block">معامل التحويل لوحدة الأساس</MudText>
-                                <MudNumericField @bind-Value="pu.ConversionFactor" Format="N3" HideSpinButtons="true"
+                                <MudNumericField @bind-Value="pu.ConversionFactor" @bind-Value:after="StateHasChanged" Format="N3" HideSpinButtons="true"
                                                  Min="0.001m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
                                                  HelperText="@GetUnitHelperText(pu)" />
                             </MudItem>
@@ -344,6 +344,21 @@
 
     private void AddUnit() => Model.ProductUnits.Add(new ProductUnitModel());
     private void RemoveUnit(ProductUnitModel u) => Model.ProductUnits.Remove(u);
+
+    private string GetUnitHelperText(ProductUnitModel pu)
+    {
+        var baseUnit = Units.FirstOrDefault(u => u.Id == Model.BaseUnitId)?.DisplayName;
+        var currentUnit = Units.FirstOrDefault(u => u.Id == pu.UnitId)?.DisplayName;
+        var factorStr = pu.ConversionFactor > 0 ? pu.ConversionFactor.ToString("0.###") : "1";
+
+        if (string.IsNullOrWhiteSpace(currentUnit) && string.IsNullOrWhiteSpace(baseUnit))
+            return $"1 وحدة = {factorStr} وحدة أساس";
+        if (string.IsNullOrWhiteSpace(currentUnit))
+            return $"1 وحدة = {factorStr} {baseUnit}";
+        if (string.IsNullOrWhiteSpace(baseUnit))
+            return $"1 {currentUnit} = {factorStr} وحدة أساس";
+        return $"1 {currentUnit} = {factorStr} {baseUnit}";
+    }
 
     private async Task Save()
     {

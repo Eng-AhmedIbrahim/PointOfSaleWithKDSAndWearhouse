@@ -622,7 +622,15 @@
             else
             {
                 var err = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"حدث خطأ: {err}", MudBlazor.Severity.Error);
+                string displayErr = err;
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(err);
+                    if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                        displayErr = msgProp.GetString() ?? err;
+                }
+                catch { }
+                Snackbar.Add(displayErr, MudBlazor.Severity.Error);
             }
         }
         catch (Exception ex)

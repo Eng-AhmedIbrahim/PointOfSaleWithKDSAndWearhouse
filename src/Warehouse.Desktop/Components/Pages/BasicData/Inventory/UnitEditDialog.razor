@@ -135,11 +135,15 @@
 
     private async Task Save()
     {
-        if (string.IsNullOrWhiteSpace(Unit.ArabicName) || string.IsNullOrWhiteSpace(Unit.EnglishName))
+        if (string.IsNullOrWhiteSpace(Unit.ArabicName) && string.IsNullOrWhiteSpace(Unit.EnglishName))
         {
-            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "الاسم مطلوب" : "Name is required", Severity.Warning);
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "اسم الوحدة مطلوب" : "Unit name is required", Severity.Warning);
             return;
         }
+
+        if (string.IsNullOrWhiteSpace(Unit.ArabicName)) Unit.ArabicName = Unit.EnglishName;
+        if (string.IsNullOrWhiteSpace(Unit.EnglishName)) Unit.EnglishName = Unit.ArabicName;
+        if (string.IsNullOrWhiteSpace(Unit.Code)) Unit.Code = Unit.EnglishName ?? Unit.ArabicName ?? "unit";
 
         IsSaving = true;
         var response = Unit.Id == 0 ? await UnitService.CreateUnitAsync(Unit) : await UnitService.UpdateUnitAsync(Unit);
