@@ -1,4 +1,4 @@
-
+﻿
 namespace POS.Contract.Models.ReceiptModels;
 
 public record Receipt
@@ -26,6 +26,7 @@ public record Receipt
     public string? WaiterName { get; set; }
     public int PrintCount { get; set; }
     public bool IsVoid { get; set; }
+    public decimal? VoidAmount { get; set; }
 
     // Hospitality & Staff Meals
     public bool IsHospitality { get; set; }
@@ -37,3 +38,4 @@ public record Receipt
     public void AddItem(ReceiptItem item) => _items.Add(item);
     public void AddItems(IEnumerable<ReceiptItem> items) => _items.AddRange(items);
 }
+
