@@ -1,4 +1,4 @@
-﻿using BlazorBase.Components.Shared;
+using BlazorBase.Components.Shared;
 
 namespace POS.Desktop.Components.Pages.AllOrdersPages;
 
@@ -153,7 +153,7 @@ public partial class AllOrdersPage
             ["OrderId"] = order.Id,
             ["IsDineIn"] = isDineIn,
             ["IsDistribution"] = !isDineIn,
-            ["InitialDistributionOrder"] = order
+            ["InitialDistributionOrder"] = isDineIn ? null : order
         };
 
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = false };

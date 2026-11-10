@@ -1,4 +1,4 @@
-﻿using BlazorBase.ERPFrontServices.DineInOrderServices;
+using BlazorBase.ERPFrontServices.DineInOrderServices;
 using BlazorBase.ERPFrontServices.DistributionServices;
 using BlazorBase.ERPFrontServices.OrderServices;
 using BlazorBase.ERPFrontServices.PrintOrderServices;
@@ -58,33 +58,33 @@ public partial class VoidOrderDialog
 
     protected override async Task OnInitializedAsync()
     {
-        if (InitialDistributionOrder != null)
+        if (IsDineIn)
         {
-            DistributionOrder = InitialDistributionOrder;
-            PopulateFromDistribution();
-        }
-        else if (InitialDineInOrder != null)
-        {
-            Order = InitialDineInOrder;
-            PopulateFromDineIn();
-        }
-        else if (OrderId > 0)
-        {
-            if (IsDineIn)
+            if (InitialDineInOrder != null)
+            {
+                Order = InitialDineInOrder;
+                PopulateFromDineIn();
+            }
+            else if (OrderId > 0)
             {
                 Order = await _dineInOrderFrontService.GetDineInOrderByIdAsync(OrderId);
                 PopulateFromDineIn();
             }
-            else
+        }
+        else if (InitialDistributionOrder != null)
+        {
+            DistributionOrder = InitialDistributionOrder;
+            PopulateFromDistribution();
+        }
+        else if (OrderId > 0)
+        {
+            var orders = await _distributionErpService.GetUnCompletedDeliveryOrders();
+            DistributionOrder = orders?.FirstOrDefault(o => o.Id == OrderId);
+            if (DistributionOrder == null && _orderSettingsService != null)
             {
-                var orders = await _distributionErpService.GetUnCompletedDeliveryOrders();
-                DistributionOrder = orders?.FirstOrDefault(o => o.Id == OrderId);
-                if (DistributionOrder == null && _orderSettingsService != null)
-                {
-                    DistributionOrder = await _orderSettingsService.GetOrderByIdAsync(OrderId);
-                }
-                PopulateFromDistribution();
+                DistributionOrder = await _orderSettingsService.GetOrderByIdAsync(OrderId);
             }
+            PopulateFromDistribution();
         }
         else if (TableItems != null)
         {
@@ -290,31 +290,49 @@ public partial class VoidOrderDialog
             {
                 try
                 { 
-                    if (IsDineIn && Order != null)
+                    if (IsDineIn || (DistributionOrder != null && string.Equals(DistributionOrder.OrderType, "DineIn", StringComparison.OrdinalIgnoreCase)))
                     {
-                        try
+                        if (Order == null && OrderId > 0)
                         {
-                            var freshDineIn = await _dineInOrderFrontService.GetDineInOrderByIdAsync(OrderId);
-                            if (freshDineIn != null) Order = freshDineIn;
+                            try
+                            {
+                                Order = await _dineInOrderFrontService.GetDineInOrderByIdAsync(OrderId);
+                            }
+                            catch { }
                         }
-                        catch { }
+                        else if (Order != null && OrderId > 0)
+                        {
+                            try
+                            {
+                                var freshDineIn = await _dineInOrderFrontService.GetDineInOrderByIdAsync(OrderId);
+                                if (freshDineIn != null) Order = freshDineIn;
+                            }
+                            catch { }
+                        }
 
                         var voidedTableItems = itemsToVoid.Select(i => new TableItem
                         {
-                            Id = i.OriginalItem!.MenuSalesItemId ?? 0,
-                            DatabaseId = i.OriginalItem.Id,
-                            Name = i.OriginalItem.ItemName,
-                            NameAr = i.OriginalItem.ItemNameAr,
-                            Price = i.OriginalItem.Price,
+                            Id = i.OriginalItem?.MenuSalesItemId ?? (i.DistributionItem?.Id ?? (i.TableItem?.Id ?? 0)),
+                            DatabaseId = i.OriginalItem?.Id ?? (i.DistributionItem?.Id ?? (i.TableItem?.DatabaseId ?? 0)),
+                            Name = i.OriginalItem?.ItemName ?? (i.DistributionItem?.Name ?? (i.TableItem?.Name ?? "")),
+                            NameAr = i.OriginalItem?.ItemNameAr ?? (i.DistributionItem?.NameAr ?? (i.TableItem?.NameAr ?? "")),
+                            Price = i.OriginalItem?.Price ?? (i.DistributionItem?.Price ?? (i.TableItem?.Price ?? 0)),
                             Quantity = i.QuantityToVoid,
-                            Total = i.QuantityToVoid * i.OriginalItem.Price,
-                            ItemKitchenTypeId = i.OriginalItem.ItemKitchenTypeId,
-                            CategoryKitchenTypeId = i.OriginalItem.CategoryKitchenTypeId,
-                            CategoryId = i.OriginalItem.CategoryId,
-                            CategoryName = i.OriginalItem.CategoryName,
+                            Total = i.QuantityToVoid * (i.OriginalItem?.Price ?? (i.DistributionItem?.Price ?? (i.TableItem?.Price ?? 0))),
+                            ItemKitchenTypeId = i.OriginalItem?.ItemKitchenTypeId ?? (i.DistributionItem?.ItemKitchenTypeId ?? i.TableItem?.ItemKitchenTypeId),
+                            CategoryKitchenTypeId = i.OriginalItem?.CategoryKitchenTypeId ?? (i.DistributionItem?.CategoryKitchenTypeId ?? i.TableItem?.CategoryKitchenTypeId),
+                            CategoryId = i.OriginalItem?.CategoryId ?? (i.DistributionItem?.CategoryId ?? i.TableItem?.CategoryId),
+                            CategoryName = i.OriginalItem?.CategoryName ?? (i.DistributionItem?.CategoryName ?? i.TableItem?.CategoryName),
                         }).ToList();
 
-                        await _printOrderService.PrintDineInVoidReceiptAsync(Order, voidedTableItems);
+                        if (Order != null)
+                        {
+                            await _printOrderService.PrintDineInVoidReceiptAsync(Order, voidedTableItems);
+                        }
+                        else if (DistributionOrder != null)
+                        {
+                            await _printOrderService.PrintVoidReceiptAsync(DistributionOrder, voidedTableItems);
+                        }
                     }
                     else if (DistributionOrder != null)
                     {

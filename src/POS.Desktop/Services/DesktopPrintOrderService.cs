@@ -1528,6 +1528,10 @@ public class DesktopPrintOrderService : IPrintOrderService
                 {
                     await PrintTakeAwayLocally(order, order, isCopy: false);
                 }
+                else if (string.Equals(order.OrderType, "DineIn", StringComparison.OrdinalIgnoreCase))
+                {
+                    await ReprintOrderAsync(order.Id, printCustomer: true, printKitchen: false);
+                }
             }
             finally
             {
