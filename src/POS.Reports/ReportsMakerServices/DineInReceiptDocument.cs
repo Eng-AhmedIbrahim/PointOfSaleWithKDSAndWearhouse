@@ -158,6 +158,7 @@ public class DineInReceiptDocument : IDocument
             .PaddingTop(1)
             .Text(text =>
             {
+                bool hasAnyVoidedItem = _items != null && _items.Any(x => x.IsVoided == true || (x.VoidAmount ?? 0) > 0);
                 if (receipt.IsClosing)
                 {
                     text.Span("END")
@@ -166,7 +167,7 @@ public class DineInReceiptDocument : IDocument
                         .FontColor(Colors.Red.Medium);
                     text.EmptyLine();
                 }
-                else if (receipt.IsCopy && !receipt.IsVoid)
+                else if (receipt.IsCopy && !receipt.IsVoid && !hasAnyVoidedItem)
                 {
                     text.Span("*********COPY**********")
                         .Bold()
@@ -182,7 +183,8 @@ public class DineInReceiptDocument : IDocument
                         .FontSize(18);
                 }
 
-                if (!receipt.IsClosing && receipt.IsCopy && !receipt.IsVoid)
+                bool hasAnyVoided = _items != null && _items.Any(x => x.IsVoided == true || (x.VoidAmount ?? 0) > 0);
+                if (!receipt.IsClosing && receipt.IsCopy && !receipt.IsVoid && !hasAnyVoided)
                 {
                     text.EmptyLine();
                     text.Span("*********COPY**********")
@@ -273,19 +275,26 @@ public class DineInReceiptDocument : IDocument
             .Select(g =>
             {
                 var first = g.First();
+                decimal totalQty = g.Sum(x => x.Quantity);
+                decimal totalVoidQty = g.Sum(x => x.VoidAmount ?? 0);
+                decimal displayQty = totalQty > 0 ? totalQty : (totalVoidQty > 0 ? totalVoidQty : totalQty);
+                bool isFullyVoided = receipt.IsVoid || (totalQty == 0 && (first.IsVoided || totalVoidQty > 0));
                 return new TableItem
                 {
                     Id = first.Id,
                     Name = first.Name,
                     Price = first.Price,
-                    Quantity = g.Sum(x => x.Quantity),
-                    TotalAmount = g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0),
+                    Quantity = displayQty,
+                    TotalAmount = isFullyVoided 
+                        ? 0m 
+                        : (totalQty > 0 ? g.Sum(x => x.TotalAmount ?? (x.Price * x.Quantity) ?? 0) : 0m),
                     Attributes = first.Attributes,
-                    IsVoided = first.IsVoided,
-                    VoidAmount = g.Sum(x => x.VoidAmount ?? 0),
+                    IsVoided = isFullyVoided,
+                    VoidAmount = totalVoidQty,
                     HasDiscount = first.HasDiscount,
                     DiscountPercentage = first.DiscountPercentage,
-                    TotalDiscountPrice = g.Sum(x => x.TotalDiscountPrice ?? 0)
+                    TotalDiscountPrice = g.Sum(x => x.TotalDiscountPrice ?? 0),
+                    ByWeight = first.ByWeight
                 };
             }).ToList();
 
@@ -295,10 +304,10 @@ public class DineInReceiptDocument : IDocument
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(2.5f);  // اجمالي
-                    columns.RelativeColumn(2.5f);  // السعر
-                    columns.RelativeColumn(3.5f);  // الصنف
-                    columns.RelativeColumn(1.5f);  // كمية
+                    columns.RelativeColumn(2.0f);  // اجمالي
+                    columns.RelativeColumn(1.9f);  // السعر
+                    columns.RelativeColumn(4.7f);  // الصنف
+                    columns.RelativeColumn(1.4f);  // كمية
                 });
 
                 table.Header(header =>
@@ -324,6 +333,7 @@ public class DineInReceiptDocument : IDocument
                     header.Cell()
                         .Element(CellStyle)
                         .Text(ArabicConstStrings.Quantity)
+                        .FontSize(9.5f)
                         .AlignCenter()
                         .Bold();
                 });
@@ -402,8 +412,19 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
                 columns.RelativeColumn();
             });
 
-            table.Cell().Text(receipt.TotalAmount?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
-            table.Cell().Text(ArabicConstStrings.SubTotal).Bold().FontSize(15).Bold().AlignCenter();
+            if (receipt.IsVoid)
+            {
+                var voidedAmt = (receipt.VoidAmount > 0 ? receipt.VoidAmount : (decimal.TryParse(receipt.TotalOrder, out var to) ? to : (receipt.TotalAmount ?? 0))) ?? 0;
+                table.Cell().Text(voidedAmt.ToString("0.##")).FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+                table.Cell().Text("إجمالي المبلغ الملغي").FontSize(14).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+
+                table.Cell().Text("0.00").FontSize(18).Bold().FontColor(Colors.Red.Medium).AlignCenter();
+                table.Cell().Text(ArabicConstStrings.Total).FontSize(16).Bold().AlignCenter();
+            }
+            else
+            {
+                table.Cell().Text(receipt.TotalAmount?.ToString("0.##")).FontSize(13).Bold().AlignCenter();
+                table.Cell().Text(ArabicConstStrings.SubTotal).Bold().FontSize(15).Bold().AlignCenter();
 
             if (!string.IsNullOrEmpty(receipt.ServiceAmount) && receipt.ServiceAmount != "0" && receipt.ServiceAmount != "0.00")
             {
@@ -425,6 +446,7 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
 
             table.Cell().Text(receipt.TotalOrder).FontSize(13).Bold().AlignCenter();
             table.Cell().Text(ArabicConstStrings.Total).FontSize(15).Bold().AlignCenter();
+            }
         });
     }
 

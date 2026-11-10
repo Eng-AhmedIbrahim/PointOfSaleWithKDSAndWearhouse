@@ -1,4 +1,4 @@
-﻿namespace BackOffice.Desktop.Services;
+namespace BackOffice.Desktop.Services;
 
 public class DesktopPrintOrderService : IPrintOrderService
 {
@@ -71,7 +71,7 @@ public class DesktopPrintOrderService : IPrintOrderService
             Id = order.BasicOrderDetails!.OrderId,
             StoreName = currentBranch?.Name ?? "Store",
             CashierName = order.BasicOrderDetails.CashierName ?? "Cashier",
-            CaptainName = order.CaptainName ?? "Captain",
+            CaptainName = order.WaiterName ?? "Unknown",
             ReceiptType = "DineIn",
             DateCreated = order.BasicOrderDetails?.OrderDataTime ?? DateTime.Now,
             PaymentMethod = "Cash",

@@ -345,10 +345,10 @@ public class DeliveryReceiptDocument : IDocument
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(2.1f);  // اجمالي
-                    columns.RelativeColumn(2.0f);  // السعر
+                    columns.RelativeColumn(2.0f);  // اجمالي
+                    columns.RelativeColumn(1.9f);  // السعر
                     columns.RelativeColumn(4.7f);  // الصنف
-                    columns.RelativeColumn(1.2f);  // كمية
+                    columns.RelativeColumn(1.4f);  // كمية
                 });
 
                 table.Header(header =>
@@ -374,6 +374,7 @@ public class DeliveryReceiptDocument : IDocument
                     header.Cell()
                         .Element(CellStyle)
                         .Text(ArabicConstStrings.Quantity)
+                        .FontSize(9.5f)
                         .AlignCenter()
                         .Bold();
                 });

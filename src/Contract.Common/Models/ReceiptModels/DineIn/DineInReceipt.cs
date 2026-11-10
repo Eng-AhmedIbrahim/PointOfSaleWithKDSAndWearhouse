@@ -1,4 +1,4 @@
-﻿namespace POS.Contract.Models.ReceiptModels.DineIn;
+namespace POS.Contract.Models.ReceiptModels.DineIn;
 
 public class DineInReceipt
 {
@@ -6,6 +6,7 @@ public class DineInReceipt
     public string StoreName { get; set; } = string.Empty;
     public string CashierName { get; set; } = string.Empty;
     public string CaptainName { get; set; } = string.Empty;
+    public string WaiterName { get => CaptainName; set => CaptainName = value; }
     public string ReceiptType { get; set; } = string.Empty;
     public string ReceiptNote { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;
@@ -24,6 +25,7 @@ public class DineInReceipt
     public bool IsCopy { get; set; }
     public int PrintCount { get; set; }
     public bool IsVoid { get; set; }
+    public decimal? VoidAmount { get; set; }
     public bool IsClosing { get; set; }
 
     // Hospitality & Staff Meals

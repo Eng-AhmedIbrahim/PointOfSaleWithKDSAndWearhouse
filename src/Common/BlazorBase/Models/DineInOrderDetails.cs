@@ -10,6 +10,8 @@ public class DineInOrderDetails
     public string? RelatedTableName { get; set; }
     public string? CaptainId { get; set; }
     public string? CaptainName { get; set; }
+    public string? WaiterId { get => CaptainId; set => CaptainId = value; }
+    public string? WaiterName { get => CaptainName; set => CaptainName = value; }
     public int? PrintCount { get; set; }
 
     public DineInOrderDetails Clone()

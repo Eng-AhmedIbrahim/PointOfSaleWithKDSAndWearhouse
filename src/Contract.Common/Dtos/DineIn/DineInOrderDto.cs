@@ -15,6 +15,8 @@ public class DineInOrderDto
     public string? CashierName { get; set; }
     public string? CaptainId { get; set; }
     public string? CaptainName { get; set; }
+    public string? WaiterId { get => CaptainId; set => CaptainId = value; }
+    public string? WaiterName { get => CaptainName; set => CaptainName = value; }
     public int TableId { get; set; }
     public string? TableName { get; set; }
     public DateTime OrderDateTime { get; set; }

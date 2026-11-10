@@ -140,25 +140,28 @@ public class DesktopPrintOrderService : IPrintOrderService
             if (string.IsNullOrWhiteSpace(receiptName) || receiptName.Equals("Store", StringComparison.OrdinalIgnoreCase) || receiptName.Equals("Store Name", StringComparison.OrdinalIgnoreCase))
                 receiptName = "";
 
+            bool isDineInVoid = order.BasicOrderDetails?.IsVoided ?? false;
+            decimal voidAmount = order.BasicOrderDetails?.Total > 0 ? order.BasicOrderDetails.Total.Value : (order.BasicOrderDetails?.Account ?? 0);
             var receipt = new DineInReceipt()
             {
                 Id = order.BasicOrderDetails!.OrderId,
                 StoreName = receiptName,
                 CashierName = order.BasicOrderDetails.CashierName ?? "Cashier",
-                CaptainName = order.CaptainName ?? "Captain",
+                CaptainName = order.WaiterName ?? "Unknown",
                 ReceiptType = "DineIn",
                 DateCreated = order.BasicOrderDetails?.OrderDataTime ?? DateTime.Now,
                 PaymentMethod = "Cash",
                 FooterMessage = _commonProperties.DineInSettings?.OrderStatment ?? "",
                 LogoPath = LogoPath,
                 LogoWidth = currentBranch?.LogoWidth ?? 150,
-                TotalAmount = order.BasicOrderDetails!.Account,
-                ServiceAmount = order.BasicOrderDetails.Service?.ToString("0.##") ?? "0.00",
-                TaxAmount = order.BasicOrderDetails.Tax?.ToString("0.##") ?? "0.00",
-                Discount = (order.BasicOrderDetails.Items?.Sum(i => i.TotalDiscountPrice ?? 0) ?? 0) +
-                           (order.BasicOrderDetails.OrderDiscount?.Value ?? 0),
-                TotalOrder = order.BasicOrderDetails.Total?.ToString("0.##") ?? "0.00",
-                IsVoid = order.BasicOrderDetails.IsVoided ?? false,
+                TotalAmount = isDineInVoid ? 0 : order.BasicOrderDetails!.Account,
+                ServiceAmount = isDineInVoid ? "0.00" : (order.BasicOrderDetails.Service?.ToString("0.##") ?? "0.00"),
+                TaxAmount = isDineInVoid ? "0.00" : (order.BasicOrderDetails.Tax?.ToString("0.##") ?? "0.00"),
+                Discount = isDineInVoid ? 0 : ((order.BasicOrderDetails.Items?.Sum(i => i.TotalDiscountPrice ?? 0) ?? 0) +
+                           (order.BasicOrderDetails.OrderDiscount?.Value ?? 0)),
+                TotalOrder = isDineInVoid ? "0.00" : (order.BasicOrderDetails.Total?.ToString("0.##") ?? "0.00"),
+                IsVoid = isDineInVoid,
+                VoidAmount = voidAmount,
                 IsClosing = isClosing,
                 IsHospitality = order.BasicOrderDetails.IsHospitality,
                 HospitalityResponsibleName = order.BasicOrderDetails.HospitalityResponsibleName,
@@ -200,6 +203,7 @@ public class DesktopPrintOrderService : IPrintOrderService
 
             receipt.PrintCount = currentPrintCount;
 
+            if (receipt.IsVoid && countToPrint < 1) countToPrint = 1;
             if (countToPrint > 0)
             {
                 var kitchens = await _printerServices.GetKitchenTypesAsync(Environment.MachineName);
@@ -239,7 +243,8 @@ public class DesktopPrintOrderService : IPrintOrderService
 
                             if (string.IsNullOrEmpty(currentPrinterName)) continue;
 
-                            bool isActuallyCopy = !isClosing && ((currentPrintCount > 1) || (i > 1));
+                            bool hasVoidedItems = receipt.IsVoid || (items != null && items.Any(x => (x.VoidAmount ?? 0) > 0 || x.IsVoided == true));
+                            bool isActuallyCopy = !receipt.IsVoid && !hasVoidedItems && !isClosing && ((currentPrintCount > 1) || (i > 1));
 
                             string pathToPrint;
                             if (isActuallyCopy)
@@ -1539,8 +1544,6 @@ public class DesktopPrintOrderService : IPrintOrderService
     {
         if (voidedItems == null || !voidedItems.Any()) return;
 
-        // Dedup: same key as PrintVoidReceiptAsync - suppress double-printing when
-        // VoidOrderDialog AND SignalR notification both trigger void printing
         var voidKey = $"{order.OrderId}_{order.Id}";
         if (_lastVoidPrints.TryGetValue(voidKey, out var lastTime) && (DateTime.Now - lastTime).TotalSeconds < 5)
         {
@@ -1549,8 +1552,66 @@ public class DesktopPrintOrderService : IPrintOrderService
         }
         _lastVoidPrints[voidKey] = DateTime.Now;
 
-        // Use OrderId (display number) not Id (database key)
+        // 1. Kitchen and Backup VOID tickets
         await PrintVoidReceiptInternal(order.OrderId, order.CashierName, "DineIn", order.OrderDateTime, order.OrderNotice, order.TableName, voidedItems);
+
+        // 2. Customer VOID / Updated receipt for DineIn
+        try
+        {
+            bool isFullVoid = string.Equals(order.OrderState, "Voided", StringComparison.OrdinalIgnoreCase)
+                || (order.OrderDetails != null && order.OrderDetails.All(i => (i.Quantity ?? 0) == 0));
+
+            var dineInOrderDetails = new DineInOrderDetails
+            {
+                DatabaseId = order.Id,
+                BasicOrderDetails = new BlazorBase.Models.OrderDetails
+                {
+                    OrderId = order.OrderId,
+                    CashierName = order.CashierName,
+                    Items = voidedItems,
+                    OrderDataTime = order.OrderDateTime,
+                    Total = isFullVoid ? 0 : (order.GrandTotal ?? 0),
+                    Service = isFullVoid ? 0 : (order.Service ?? 0),
+                    Tax = isFullVoid ? 0 : (order.Tax ?? 0),
+                    Account = isFullVoid ? 0 : (order.Subtotal ?? 0),
+                    OrderDiscount = new OrderDiscount
+                    {
+                        Value = order.DiscountAmount ?? 0,
+                        Percentage = order.DiscountPercentage ?? 0
+                    },
+                    IsVoided = isFullVoid
+                },
+                CaptainName = order.WaiterName ?? "Unknown",
+                RelatedTableId = order.TableId,
+                RelatedTableName = order.TableName
+            };
+
+            if (order.OrderDetails != null && order.OrderDetails.Any())
+            {
+                dineInOrderDetails.BasicOrderDetails.Items = order.OrderDetails.Select(d => new TableItem
+                {
+                    Id = d.MenuSalesItemId ?? d.Id,
+                    DatabaseId = d.Id,
+                    Name = d.ItemName ?? "",
+                    NameAr = d.ItemNameAr ?? d.ItemName ?? "",
+                    Price = d.Price,
+                    Quantity = isFullVoid ? 0 : (d.Quantity ?? 0),
+                    Total = isFullVoid ? 0 : ((d.Quantity ?? 0) * (d.Price ?? 0)),
+                    TotalAmount = isFullVoid ? 0 : (d.TotalAmount ?? ((d.Quantity ?? 0) * (d.Price ?? 0))),
+                    IsVoided = isFullVoid || (d.Quantity ?? 0) == 0,
+                    VoidAmount = d.VoidAmount ?? (voidedItems.FirstOrDefault(v => v.DatabaseId == d.Id || v.Id == (d.MenuSalesItemId ?? d.Id))?.Quantity),
+                    Attributes = d.OrderItemAttributes?.Select(a => new AttributeDto { Id = a.AttributeItemId, Name = a.AttributeName ?? "" }).ToList(),
+                    LineComment = d.LineComment,
+                    ByWeight = voidedItems.FirstOrDefault(v => v.DatabaseId == d.Id || v.Id == (d.MenuSalesItemId ?? d.Id))?.ByWeight ?? false
+                }).ToList();
+            }
+
+            await PrintDineInLocally(dineInOrderDetails, isClosing: false, isUpdate: true);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error printing customer void receipt for DineIn order {OrderId}", order.OrderId);
+        }
     }
 
     private async Task EnrichItemsWithKitchenTypesAsync(IEnumerable<TableItem>? items)
