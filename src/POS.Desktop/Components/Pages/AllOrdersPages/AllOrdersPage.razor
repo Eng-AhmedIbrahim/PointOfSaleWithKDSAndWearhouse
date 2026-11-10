@@ -1,4 +1,4 @@
-﻿@page "/all-orders"
+@page "/all-orders"
 @layout MainLayout
 @inject IReportingErpService ReportingService
 @inject IAppDateService AppDateService
@@ -63,7 +63,7 @@
                         </div>
                     </MudTd>
                     <MudTd Style="text-align: right;">
-                        <MudChip T="string" Color="@GetStatusColor(context.OrderState)" Size="Size.Small">@Localizer[context.OrderState ?? ""]</MudChip>
+                        <MudChip T="string" Color="@GetStatusColor(context.OrderState)" Size="Size.Small">@GetStatusLabel(context)</MudChip>
                     </MudTd>
                     <MudTd Style="text-align: right;">@context.SubTotal?.ToString("0.##")</MudTd>
                     <MudTd Style="text-align: right;" Class="text-red">

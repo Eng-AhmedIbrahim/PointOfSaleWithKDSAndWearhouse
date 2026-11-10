@@ -1,4 +1,4 @@
-using POS.Contract.Models.ReceiptModels;
+﻿using POS.Contract.Models.ReceiptModels;
 using POS.Contract.Models.ReceiptModels.DineIn;
 
 namespace POS.Reports.ReportsMakerServices;
@@ -87,7 +87,7 @@ public class DineInReceiptDocument : IDocument
                 
                 if (receipt.IsFollowUp)
                 {
-                    text.Span(" - ????")
+                    text.Span(" - متابعة")
                         .Bold()
                         .FontSize(18)
                         .FontColor(Colors.Red.Medium);
@@ -111,7 +111,7 @@ public class DineInReceiptDocument : IDocument
                 column.Item().PaddingRight(5).Text(text => {
                     text.Span(receipt.HospitalityResponsibleName)
                         .FontSize(14);
-                    text.Span(" :???????")
+                    text.Span(" :المسؤول")
                         .Bold()
                         .FontSize(14);
                     text.AlignRight();
@@ -123,7 +123,7 @@ public class DineInReceiptDocument : IDocument
                 column.Item().PaddingRight(5).Text(text => {
                     text.Span(receipt.HospitalityReason)
                         .FontSize(12);
-                    text.Span(" :?????")
+                    text.Span(" :السبب")
                         .Bold()
                         .FontSize(12);
                     text.AlignRight();
@@ -204,7 +204,7 @@ public class DineInReceiptDocument : IDocument
                 .AlignCenter()
                 .Text(text =>
                 {
-                    text.Span("X  ????  X")
+                    text.Span("X  ملغي  X")
                         .Bold()
                         .FontSize(40)
                         .FontColor(Colors.Red.Medium);
@@ -251,7 +251,7 @@ public class DineInReceiptDocument : IDocument
 
                 table.Cell()
                     .Element(CellStyle)
-                    .Text("????? ??????")
+                    .Text("كابتن صالة")
                     .AlignCenter();
 
 
@@ -345,11 +345,11 @@ public class DineInReceiptDocument : IDocument
                     table.Cell().Element(CellStyle).AlignRight().Text(text => {
                         text.Span(item.Name);
                         if (item.IsVoided == true && item.Quantity == 0) {
-                            text.Span(" (????)").FontColor(Colors.Red.Medium);
+                            text.Span(" (ملغي)").FontColor(Colors.Red.Medium);
                         }
                     });
                     var qtyText = item.Quantity.ToString("0.##");
-if (item.ByWeight) qtyText += " ???";
+if (item.ByWeight) qtyText += " كيلو";
 table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
 
                     // Add Voided hint if available and item still has active quantity
@@ -358,7 +358,7 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
                         table.Cell().ColumnSpan(4)
                             .Element(CellStyle)
                             .PaddingRight(45)
-                            .Text($"? ????: {item.VoidAmount.Value.ToString("0.##")}")
+                            .Text($"م ملغي: {item.VoidAmount.Value.ToString("0.##")}")
                             .FontSize(10)
                             .FontColor(Colors.Red.Medium)
                             .AlignRight();
@@ -374,7 +374,7 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
                         table.Cell().ColumnSpan(4)
                             .Element(CellStyle)
                             .PaddingRight(45)
-                            .Text($"? {ArabicConstStrings.Discount}: {discountText} (-{item.TotalDiscountPrice?.ToString("0.##")})")
+                            .Text($"- {ArabicConstStrings.Discount}: {discountText} (-{item.TotalDiscountPrice?.ToString("0.##")})")
                             .FontSize(10)
                             .FontColor(QuestPDF.Helpers.Colors.Red.Medium)
                             .AlignEnd();
@@ -392,7 +392,7 @@ table.Cell().Element(CellStyle).Text(qtyText).AlignCenter();
                             table.Cell().ColumnSpan(4)
                                 .Element(CellStyle)
                                 .PaddingRight(45)
-                                .Text($"{attr.Name} ?{(attr.Count > 1 && !item.ByWeight ? $" ({attr.Count:N0})" : "")}")
+                                .Text($"{attr.Name} x{(attr.Count > 1 && !item.ByWeight ? $" ({attr.Count:N0})" : "")}")
                                 .FontSize(10)
                                 .AlignEnd();
                         }

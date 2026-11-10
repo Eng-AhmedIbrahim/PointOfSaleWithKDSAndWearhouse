@@ -95,6 +95,14 @@ public partial class AllOrdersPage
         _ => Color.Default
     };
 
+    private string GetStatusLabel(OrderDto order)
+    {
+        // DineIn Pending → "تحت التجهيز"
+        if (order.OrderType == "DineIn" && order.OrderState == "Pending")
+            return "تحت التجهيز";
+        return Localizer[order.OrderState ?? ""];
+    }
+
     [Inject] private IPrintOrderService PrintOrderService { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
 
