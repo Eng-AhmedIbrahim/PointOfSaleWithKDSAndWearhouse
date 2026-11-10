@@ -30,6 +30,8 @@ public class CommonProperties
     public string? StoreName { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerAddress { get; set; }
+    public bool PrintCustomerInfoOnReceipt { get; set; } = false;
     private global::POS.Contract.Models.PaymentMethod _selectedPaymentMethod = global::POS.Contract.Models.PaymentMethod.Cash;
     public global::POS.Contract.Models.PaymentMethod SelectedPaymentMethod
     {

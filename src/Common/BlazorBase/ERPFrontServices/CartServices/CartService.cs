@@ -1,4 +1,4 @@
-﻿namespace BlazorBase.ERPFrontServices.CartServices;
+namespace BlazorBase.ERPFrontServices.CartServices;
 
 public class CartService : ICartService
 {
@@ -369,6 +369,8 @@ public class CartService : ICartService
         _commonProperties!.OrderDiscount = new();
         _commonProperties.CustomerName = "";
         _commonProperties.CustomerPhone = "";
+        _commonProperties.CustomerAddress = "";
+        _commonProperties.PrintCustomerInfoOnReceipt = false;
         _commonProperties.SelectedPaymentMethod = PaymentMethod.Cash;
         _commonProperties.ClearStaffMeal();
         _commonProperties.ClearHospitality();
@@ -386,6 +388,8 @@ public class CartService : ICartService
         _commonProperties.OrderNote = string.Empty;
         _commonProperties.CustomerName = string.Empty;
         _commonProperties.CustomerPhone = string.Empty;
+        _commonProperties.CustomerAddress = string.Empty;
+        _commonProperties.PrintCustomerInfoOnReceipt = false;
         _commonProperties.CustomerDetails = new();
         _commonProperties.SelectedPaymentMethod = PaymentMethod.Cash;
         _commonProperties.UpdateDeliveryOrder = false;

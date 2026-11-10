@@ -58,6 +58,8 @@ public partial class Section4Buttons
             _commonProperties.CustomerDetails = new();
             _commonProperties.CustomerName = string.Empty;
             _commonProperties.CustomerPhone = string.Empty;
+            _commonProperties.CustomerAddress = string.Empty;
+            _commonProperties.PrintCustomerInfoOnReceipt = false;
             _commonProperties.OrderNote = string.Empty;
             _commonProperties.TableItemDisabled = false;
             
@@ -618,6 +620,8 @@ public partial class Section4Buttons
                 OrderDiscount = _commonProperties!.OrderDiscount!,
                 CustomerName = _commonProperties.CustomerName,
                 CustomerPhone = _commonProperties.CustomerPhone,
+                CustomerAddress = _commonProperties.CustomerAddress,
+                PrintCustomerInfoOnReceipt = _commonProperties.PrintCustomerInfoOnReceipt,
                 PaymentMethod = _commonProperties.SelectedPaymentMethod,
                 MachineName = Environment.MachineName
             }

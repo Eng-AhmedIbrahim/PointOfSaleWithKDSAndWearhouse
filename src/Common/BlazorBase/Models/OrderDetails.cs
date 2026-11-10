@@ -28,6 +28,8 @@ public class OrderDetails
     public string? OrderNote { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerAddress { get; set; }
+    public bool PrintCustomerInfoOnReceipt { get; set; }
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
     public string? MachineName { get; set; }
     public decimal? CaptainTipsDeduction { get; set; }
@@ -51,6 +53,8 @@ public class OrderDetails
             OrderNote = this.OrderNote,
             CustomerName = this.CustomerName,
             CustomerPhone = this.CustomerPhone,
+            CustomerAddress = this.CustomerAddress,
+            PrintCustomerInfoOnReceipt = this.PrintCustomerInfoOnReceipt,
             PaymentMethod = this.PaymentMethod,
             MachineName = this.MachineName,
             CaptainTipsDeduction = this.CaptainTipsDeduction,

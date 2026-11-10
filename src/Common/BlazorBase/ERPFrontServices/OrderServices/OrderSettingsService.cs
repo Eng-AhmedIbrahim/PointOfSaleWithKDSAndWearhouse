@@ -208,6 +208,21 @@ public class OrderSettingsService : IOrderSettingsService
         return items!;
     }
 
+    public async Task<TakeawayCustomerLookupDto?> GetCustomerByPhoneAsync(string phone)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/order/customer/by-phone/{Uri.EscapeDataString(phone)}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return ApiRequestHelpers.DeserializeResponseContent<TakeawayCustomerLookupDto>(content);
+            }
+        }
+        catch { }
+        return null;
+    }
+
     private Task<HttpResponseMessage> CreateOrderRequest(OrderDto orderDto)
       => _httpClient.PostAsJsonAsync(_apiSettings.Endpoints!.CreateOrder!, orderDto);
 

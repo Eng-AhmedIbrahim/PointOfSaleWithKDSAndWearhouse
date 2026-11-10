@@ -28,6 +28,13 @@ public class DineInReceipt
     public decimal? VoidAmount { get; set; }
     public bool IsClosing { get; set; }
 
+    // Customer Info
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string? CustomerAddress { get; set; }
+    public string? OrderNote { get; set; }
+    public bool PrintCustomerInfo { get; set; }
+
     // Hospitality & Staff Meals
     public bool IsHospitality { get; set; }
     public string? HospitalityResponsibleName { get; set; }

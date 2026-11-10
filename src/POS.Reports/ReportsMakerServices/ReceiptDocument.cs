@@ -170,12 +170,12 @@ public class ReceiptDocument : IDocument
 
                 // Only print ReceiptType if it's NOT a special mode (Hospitality/Staff) 
                 // to avoid double labeling since we print custom headers above
-                if (!receipt.IsHospitality && !receipt.IsStaffMeal)
-                {
-                    text.Span(receipt.ReceiptType)
-                        .Bold()
-                        .FontSize(18);
-                }
+                //if (!receipt.IsHospitality && !receipt.IsStaffMeal)
+                //{
+                //    text.Span(receipt.ReceiptType)
+                //        .Bold()
+                //        .FontSize(18);
+                //}
 
                 text.AlignCenter();
             });
@@ -229,6 +229,46 @@ public class ReceiptDocument : IDocument
                     .Text(ArabicConstStrings.From)
                     .AlignCenter();
             });
+
+        // Customer Info Section (If enabled and has data)
+        if (receipt.PrintCustomerInfo && (!string.IsNullOrWhiteSpace(receipt.CustomerName) || !string.IsNullOrWhiteSpace(receipt.CustomerPhone) || !string.IsNullOrWhiteSpace(receipt.CustomerAddress) || !string.IsNullOrWhiteSpace(receipt.OrderNote)))
+        {
+            column.Item().PaddingTop(3).Border(1).Padding(3).Column(custCol =>
+            {
+                if (!string.IsNullOrWhiteSpace(receipt.CustomerName))
+                {
+                    custCol.Item().Row(r =>
+                    {
+                        r.RelativeItem().AlignRight().Text(receipt.CustomerName).Bold().FontSize(11);
+                        r.AutoItem().Text("العميل: ").FontSize(11);
+                    });
+                }
+                if (!string.IsNullOrWhiteSpace(receipt.CustomerPhone))
+                {
+                    custCol.Item().Row(r =>
+                    {
+                        r.RelativeItem().AlignRight().Text(receipt.CustomerPhone).FontSize(10);
+                        r.AutoItem().Text("الهاتف: ").FontSize(10);
+                    });
+                }
+                if (!string.IsNullOrWhiteSpace(receipt.CustomerAddress))
+                {
+                    custCol.Item().Row(r =>
+                    {
+                        r.RelativeItem().AlignRight().Text(receipt.CustomerAddress).FontSize(10);
+                        r.AutoItem().Text("العنوان: ").FontSize(10);
+                    });
+                }
+                if (!string.IsNullOrWhiteSpace(receipt.OrderNote))
+                {
+                    custCol.Item().Row(r =>
+                    {
+                        r.RelativeItem().AlignRight().Text(receipt.OrderNote).FontSize(10);
+                        r.AutoItem().Text("ملاحظات: ").FontSize(10);
+                    });
+                }
+            });
+        }
     }
 
     private void BuildItemsTable(ref ColumnDescriptor column)
@@ -425,7 +465,7 @@ public class ReceiptDocument : IDocument
                     if (receipt.SubTotal != 0 && receipt.SubTotal.HasValue)
                     {
                         table.Cell().ColumnSpan(2).PaddingTop(8).Text(receipt.SubTotal.Value.ToString("0.##")).FontSize(12).Bold().AlignCenter();
-                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.SubTotal).FontSize(12).Bold().AlignCenter();
+                        table.Cell().ColumnSpan(2).PaddingTop(8).Text(ArabicConstStrings.SubTotal).FontSize(12).Bold().AlignCenter(); //dolist
                     }
 
                     if (receipt.Services != 0 && receipt.Services.HasValue)

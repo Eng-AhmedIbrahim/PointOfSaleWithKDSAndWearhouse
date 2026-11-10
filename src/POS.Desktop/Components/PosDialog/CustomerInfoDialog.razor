@@ -1,6 +1,8 @@
 @inject LocalizationService Localizer
 @using MudBlazor
 @inject CommonProperties _commonProperties
+@inject BlazorBase.ERPFrontServices.OrderServices.IOrderSettingsService _orderSettingsService
+@inject ISnackbar _snackbar
 
 <MudDialog FullWidth="true" MaxWidth="MaxWidth.Small" Class="customer-info-dialog">
     <TitleContent>
@@ -17,6 +19,37 @@
 
     <DialogContent>
         <div class="cid-body">
+            <!-- 1. Phone Field (First from top, with Enter search) -->
+            <div class="cid-field-card">
+                <div class="cid-field-icon" style="background: linear-gradient(135deg,#66bb6a,#43a047);">
+                    <MudIcon Icon="@Icons.Material.Filled.Phone" Style="color:#fff; font-size:1.1rem;" />
+                </div>
+                <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                    <MudTextField @bind-Value="_commonProperties.CustomerPhone"
+                                  Label="@Localizer["PhoneNumber"]"
+                                  Variant="Variant.Text"
+                                  FullWidth="true"
+                                  Class="cid-textfield"
+                                  InputType="InputType.Telephone"
+                                  Immediate="true"
+                                  OnKeyDown="OnPhoneKeyDown"
+                                  Placeholder="اكتب رقم الهاتف واضغط Enter..." />
+                    @if (_isSearching)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                       Size="Size.Small"
+                                       Color="Color.Primary"
+                                       OnClick="SearchCustomerByPhone"
+                                       Title="بحث عن العميل" />
+                    }
+                </div>
+            </div>
+
+            <!-- 2. Customer Name -->
             <div class="cid-field-card">
                 <div class="cid-field-icon" style="background: linear-gradient(135deg,#42a5f5,#1e88e5);">
                     <MudIcon Icon="@Icons.Material.Filled.Badge" Style="color:#fff; font-size:1.1rem;" />
@@ -29,19 +62,21 @@
                               Immediate="true" />
             </div>
 
+            <!-- 3. Address -->
             <div class="cid-field-card">
-                <div class="cid-field-icon" style="background: linear-gradient(135deg,#66bb6a,#43a047);">
-                    <MudIcon Icon="@Icons.Material.Filled.Phone" Style="color:#fff; font-size:1.1rem;" />
+                <div class="cid-field-icon" style="background: linear-gradient(135deg,#ab47bc,#8e24aa);">
+                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Style="color:#fff; font-size:1.1rem;" />
                 </div>
-                <MudTextField @bind-Value="_commonProperties.CustomerPhone"
-                              Label="@Localizer["PhoneNumber"]"
+                <MudTextField @bind-Value="_commonProperties.CustomerAddress"
+                              Label="العنوان"
                               Variant="Variant.Text"
                               FullWidth="true"
                               Class="cid-textfield"
-                              InputType="InputType.Telephone"
+                              Placeholder="عنوان العميل..."
                               Immediate="true" />
             </div>
 
+            <!-- 4. Notes -->
             <div class="cid-field-card">
                 <div class="cid-field-icon" style="background: linear-gradient(135deg,#ffa726,#fb8c00);">
                     <MudIcon Icon="@Icons.Material.Filled.Notes" Style="color:#fff; font-size:1.1rem;" />
@@ -53,6 +88,21 @@
                               Class="cid-textfield"
                               Lines="2"
                               Immediate="true" />
+            </div>
+
+            <!-- 5. Checkbox: Print Customer Info on Receipt -->
+            <div class="cid-checkbox-card">
+                <MudCheckBox T="bool"
+                             @bind-Value="_commonProperties.PrintCustomerInfoOnReceipt"
+                             Color="Color.Primary"
+                             Dense="true">
+                    <span style="font-weight: 700; font-size: 0.95rem; color: #1e293b;">
+                        طباعة بيانات العميل في الفاتورة (الريسيت)
+                    </span>
+                </MudCheckBox>
+                <div style="font-size: 0.78rem; color: #64748b; margin-inline-start: 32px;">
+                    عند التفعيل، تظهر بيانات العميل (الاسم / الهاتف / العنوان / الملاحظات) في فاتورة الصالة أو التيك أواي.
+                </div>
             </div>
         </div>
     </DialogContent>
@@ -123,6 +173,12 @@
     .cid-field-card:hover {
         box-shadow: 0 2px 10px rgba(30,136,229,0.12);
     }
+    .cid-checkbox-card {
+        background: #eff6ff;
+        border: 1.5px dashed #3b82f6;
+        border-radius: 12px;
+        padding: 10px 14px;
+    }
     .cid-field-icon {
         width: 36px; height: 36px;
         border-radius: 10px;
@@ -158,12 +214,61 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    private bool _isSearching = false;
+
+    private async Task OnPhoneKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchCustomerByPhone();
+        }
+    }
+
+    private async Task SearchCustomerByPhone()
+    {
+        var phone = _commonProperties.CustomerPhone?.Trim();
+        if (string.IsNullOrWhiteSpace(phone)) return;
+
+        try
+        {
+            _isSearching = true;
+            var customer = await _orderSettingsService.GetCustomerByPhoneAsync(phone);
+            if (customer != null)
+            {
+                if (!string.IsNullOrWhiteSpace(customer.CustomerName))
+                    _commonProperties.CustomerName = customer.CustomerName;
+
+                if (!string.IsNullOrWhiteSpace(customer.Address))
+                    _commonProperties.CustomerAddress = customer.Address;
+
+                if (!string.IsNullOrWhiteSpace(customer.Note) && string.IsNullOrWhiteSpace(_commonProperties.OrderNote))
+                    _commonProperties.OrderNote = customer.Note;
+
+                _snackbar.Add($"تم العثور على بيانات العميل: {customer.CustomerName}", Severity.Success);
+            }
+            else
+            {
+                _snackbar.Add("لم يتم العثور على عميل سابق بهذا الرقم", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"خطأ أثناء البحث: {ex.Message}", Severity.Warning);
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
 
     private void Clear()
     {
         _commonProperties.CustomerName = string.Empty;
         _commonProperties.CustomerPhone = string.Empty;
+        _commonProperties.CustomerAddress = string.Empty;
         _commonProperties.OrderNote = string.Empty;
+        _commonProperties.PrintCustomerInfoOnReceipt = false;
     }
 
     private void Submit()

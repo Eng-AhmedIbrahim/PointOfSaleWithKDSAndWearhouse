@@ -167,7 +167,12 @@ public class DesktopPrintOrderService : IPrintOrderService
                 HospitalityResponsibleName = order.BasicOrderDetails.HospitalityResponsibleName,
                 HospitalityReason = order.BasicOrderDetails.HospitalityReason,
                 IsStaffMeal = order.BasicOrderDetails.IsStaffMeal,
-                StaffMealEmployeeName = order.BasicOrderDetails.StaffMealEmployeeName
+                StaffMealEmployeeName = order.BasicOrderDetails.StaffMealEmployeeName,
+                CustomerName = order.BasicOrderDetails.CustomerName,
+                CustomerPhone = order.BasicOrderDetails.CustomerPhone,
+                CustomerAddress = order.BasicOrderDetails.CustomerAddress,
+                OrderNote = order.BasicOrderDetails.OrderNote,
+                PrintCustomerInfo = order.BasicOrderDetails.PrintCustomerInfoOnReceipt
             };
 
             var items = order.BasicOrderDetails.Items ?? new List<TableItem>();
@@ -494,6 +499,8 @@ public class DesktopPrintOrderService : IPrintOrderService
         _commonProperties.OrderDto.TakeawayCustomerPhone = customerPhone;
         _commonProperties.OrderDto.CustomerName = customerName;
         _commonProperties.OrderDto.CustomerPhone = customerPhone;
+        _commonProperties.OrderDto.CustomerAddress = _commonProperties.CustomerAddress;
+        _commonProperties.OrderDto.PrintCustomerInfoOnReceipt = _commonProperties.PrintCustomerInfoOnReceipt;
         _commonProperties.OrderDto.OrderSettings = _commonProperties.OrderSettings;
         _commonProperties.OrderDto.MachineName = Environment.MachineName;
 
@@ -542,7 +549,12 @@ public class DesktopPrintOrderService : IPrintOrderService
                 HospitalityResponsibleName = orderDto.HospitalityResponsibleName,
                 HospitalityReason = orderDto.HospitalityReason,
                 IsStaffMeal = orderDto.IsStaffMeal ?? false,
-                StaffMealEmployeeName = orderDto.StaffMealEmployeeName
+                StaffMealEmployeeName = orderDto.StaffMealEmployeeName,
+                CustomerName = orderDto.CustomerName,
+                CustomerPhone = orderDto.CustomerPhone,
+                CustomerAddress = orderDto.CustomerAddress,
+                OrderNote = orderDto.OrderNotice,
+                PrintCustomerInfo = orderDto.PrintCustomerInfoOnReceipt
             };
 
             var orderSettings = orderDto.OrderSettings?.FirstOrDefault(o => o.OrderType == "TakeAway");
@@ -1117,7 +1129,7 @@ public class DesktopPrintOrderService : IPrintOrderService
                 HospitalityResponsibleName = orderDto.HospitalityResponsibleName,
                 HospitalityReason = orderDto.HospitalityReason,
                 IsStaffMeal = orderDto.IsStaffMeal ?? false,
-                StaffMealEmployeeName = orderDto.StaffMealEmployeeName
+                StaffMealEmployeeName = orderDto.StaffMealEmployeeName,
             };
 
             var orderSettings = orderDto.OrderSettings?.FirstOrDefault(o => o.OrderType == "Delivery")

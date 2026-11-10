@@ -988,8 +988,12 @@ public partial class POS
         {
             _barcode = string.Empty;
             await AddItemToSection4(item);
+            _barcode = string.Empty;
             if (_barcodeField is not null)
+            {
+                await _barcodeField.SetText("");
                 await _barcodeField.FocusAsync();
+            }
             StateHasChanged();
         }
     }
@@ -1000,12 +1004,20 @@ public partial class POS
 
         var code = _barcode?.Trim();
         _barcode = string.Empty;
+        if (_barcodeField is not null)
+            await _barcodeField.SetText("");
+
         if (string.IsNullOrEmpty(code)) return;
 
         await AddByBarcodeAsync(code);
 
+        _barcode = string.Empty;
         if (_barcodeField is not null)
+        {
+            await _barcodeField.SetText("");
             await _barcodeField.FocusAsync();
+        }
+        StateHasChanged();
     }
 
     private async Task AddByBarcodeAsync(string barcode)

@@ -37,6 +37,8 @@ public class DineInOrderDto
     public string? OrderNotice { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerAddress { get; set; }
+    public bool PrintCustomerInfoOnReceipt { get; set; }
     public DateTime? ClosedDateTime { get; set; }
     public int PrintCount { get; set; }
     public string? MachineName { get; set; }

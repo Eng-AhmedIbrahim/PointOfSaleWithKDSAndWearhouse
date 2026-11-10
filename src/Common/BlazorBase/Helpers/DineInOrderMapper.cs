@@ -42,6 +42,8 @@ public static class DineInOrderMapper
             OrderNotice = orderDetails.BasicOrderDetails?.OrderNote,
             CustomerName = orderDetails.BasicOrderDetails?.CustomerName,
             CustomerPhone = orderDetails.BasicOrderDetails?.CustomerPhone,
+            CustomerAddress = orderDetails.BasicOrderDetails?.CustomerAddress,
+            PrintCustomerInfoOnReceipt = orderDetails.BasicOrderDetails?.PrintCustomerInfoOnReceipt ?? false,
             MachineName = orderDetails.BasicOrderDetails?.MachineName,
             CaptainTipsDeduction = orderDetails.BasicOrderDetails?.CaptainTipsDeduction,
             OrderDetails = MapToOrderItemsDetailsDto(orderDetails.BasicOrderDetails?.Items)

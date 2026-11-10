@@ -50,20 +50,33 @@ public class OrderService : IOrderService
 
                 if (order.OrderType == OrderTypes.TakeAway)
                 {
-                    if (order.TakeawayCustomer is not null)
+                    if (order.TakeawayCustomer is not null && !string.IsNullOrWhiteSpace(order.TakeawayCustomer.CustomerPhone))
                     {
-                        var existingCustomer = await _unitOfWork.Repository<TakeawayCustomer>()
-                            .GetByIdAsync(order.TakeawayCustomer.Id);
+                        var phoneSpec = new BaseSpecifications<TakeawayCustomer>(c => c.CustomerPhone == order.TakeawayCustomer.CustomerPhone);
+                        var existingCustomer = await _unitOfWork.Repository<TakeawayCustomer>().GetByIdWithSpecificationAsync(phoneSpec);
 
                         if (existingCustomer is null)
                         {
-                            await _unitOfWork.Repository<TakeawayCustomer>().AddAsync(order.TakeawayCustomer);
+                            var newCust = new TakeawayCustomer
+                            {
+                                CustomerName = order.TakeawayCustomer.CustomerName,
+                                CustomerPhone = order.TakeawayCustomer.CustomerPhone
+                            };
+                            await _unitOfWork.Repository<TakeawayCustomer>().AddAsync(newCust);
                             await _unitOfWork.CompleteAsync();
-                            order.TakeawayCustomerId = order.TakeawayCustomer.Id;
+                            order.TakeawayCustomerId = newCust.Id;
+                            order.TakeawayCustomer = null;
                         }
                         else
                         {
+                            if (!string.IsNullOrWhiteSpace(order.TakeawayCustomer.CustomerName) && existingCustomer.CustomerName != order.TakeawayCustomer.CustomerName)
+                            {
+                                existingCustomer.CustomerName = order.TakeawayCustomer.CustomerName;
+                                _unitOfWork.Repository<TakeawayCustomer>().Update(existingCustomer);
+                                await _unitOfWork.CompleteAsync();
+                            }
                             order.TakeawayCustomerId = existingCustomer.Id;
+                            order.TakeawayCustomer = null;
                         }
                     }
                     else

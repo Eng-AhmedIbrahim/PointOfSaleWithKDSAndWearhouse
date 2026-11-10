@@ -1,5 +1,6 @@
-﻿using POS.Core.Services.Contract.VoidServices;
+using POS.Core.Services.Contract.VoidServices;
 using Microsoft.AspNetCore.Diagnostics;
+using POS.Core.Entities.Customer;
 
 namespace POS.API.Controllers;
 
@@ -831,9 +832,9 @@ public class OrderController : BaseApiController
             {
                 await _voidService.VoidOrderAsync(
                     order.Id,
-                    orderDto.VoidReason ?? "إلغاء من الكول سنتر",
+                    orderDto.VoidReason ?? "Ø¥Ù„ØºØ§Ø¡ Ù…Ù† Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
                     orderDto.VoidBy ?? "CC",
-                    orderDto.VoidByName ?? "الكول سنتر",
+                    orderDto.VoidByName ?? "Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
                     returnToStock: true);
 
                 order = await _orderService.GetOrderByIdAsync(order.Id) ?? order;
@@ -879,9 +880,9 @@ public class OrderController : BaseApiController
                 await _voidService.VoidItemsAsync(
                     order.Id,
                     itemsToVoidAtBranch,
-                    orderDto.VoidReason ?? "إلغاء صنف من الكول سنتر",
+                    orderDto.VoidReason ?? "Ø¥Ù„ØºØ§Ø¡ ØµÙ†Ù Ù…Ù† Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
                     orderDto.VoidBy ?? "CC",
-                    orderDto.VoidByName ?? "الكول سنتر",
+                    orderDto.VoidByName ?? "Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
                     returnToStock: true);
 
                 order = await _orderService.GetOrderByIdAsync(order.Id) ?? order;
@@ -1137,6 +1138,50 @@ public class OrderController : BaseApiController
         }
     }
 
+    [HttpGet("customer/by-phone/{phone}")]
+    public async Task<ActionResult<object>> GetTakeawayCustomerByPhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return BadRequest("Phone number is required");
+
+        var cleanPhone = phone.Trim();
+        var takeawayCustSpec = new BaseSpecifications<TakeawayCustomer>(c => c.CustomerPhone == cleanPhone);
+        var takeawayCustomer = await _unitOfWork.Repository<TakeawayCustomer>().GetByIdWithSpecificationAsync(takeawayCustSpec);
+
+        if (takeawayCustomer != null)
+        {
+            // Also check latest order note / address for this customer if available
+            var orderSpec = new BaseSpecifications<Orders>(o => (o.TakeawayCustomerId == takeawayCustomer.Id || o.TakeawayCustomerPhone == cleanPhone || o.Phone1 == cleanPhone) && (!string.IsNullOrEmpty(o.AddressNotice) || !string.IsNullOrEmpty(o.StreetName)));
+            var customerOrders = await _unitOfWork.Repository<Orders>().GetAllWithSpecificationAsync(orderSpec);
+            var lastOrder = customerOrders.MaxBy(o => o.Id);
+
+            return Ok(new
+            {
+                customerName = takeawayCustomer.CustomerName,
+                customerPhone = takeawayCustomer.CustomerPhone,
+                address = lastOrder?.StreetName ?? lastOrder?.AddressNotice ?? "",
+                note = lastOrder?.OrderNotice ?? ""
+            });
+        }
+
+        // Fallback: search in previous Orders
+        var fallbackOrderSpec = new BaseSpecifications<Orders>(o => o.TakeawayCustomerPhone == cleanPhone || o.Phone1 == cleanPhone || o.Phone2 == cleanPhone);
+        var fallbackOrders = await _unitOfWork.Repository<Orders>().GetAllWithSpecificationAsync(fallbackOrderSpec);
+        var prevOrder = fallbackOrders.MaxBy(o => o.Id);
+
+        if (prevOrder != null)
+        {
+            return Ok(new
+            {
+                customerName = prevOrder.TakeawayCustomerName ?? prevOrder.CustomerName ?? "",
+                customerPhone = cleanPhone,
+                address = prevOrder.StreetName ?? prevOrder.AddressNotice ?? "",
+                note = prevOrder.OrderNotice ?? ""
+            });
+        }
+
+        return NotFound();
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<OrderDto>> GetOrderByIdAsync(int id)
     {
@@ -1343,6 +1388,21 @@ public class OrderController : BaseApiController
     {
         order.TakeawayCustomerName = OrderDto.CustomerName;
         order.TakeawayCustomerPhone = OrderDto.CustomerPhone;
+        order.CustomerName = OrderDto.CustomerName;
+        order.Phone1 = OrderDto.CustomerPhone;
+        if (!string.IsNullOrWhiteSpace(OrderDto.CustomerAddress))
+        {
+            order.StreetName = OrderDto.CustomerAddress;
+            order.AddressNotice = OrderDto.CustomerAddress;
+        }
+        if (!string.IsNullOrWhiteSpace(OrderDto.CustomerPhone))
+        {
+            order.TakeawayCustomer = new TakeawayCustomer
+            {
+                CustomerName = OrderDto.CustomerName,
+                CustomerPhone = OrderDto.CustomerPhone
+            };
+        }
     }
     private static void BackupDineInOrder(OrderDto OrderDto, Orders order)
     {

@@ -1,4 +1,4 @@
-﻿using POS.Contract.Dtos.OrderDtos;
+using POS.Contract.Dtos.OrderDtos;
 using POS.Contract.Dtos.KitchenDtos;
 
 namespace BlazorBase.ERPFrontServices.OrderServices;
@@ -15,6 +15,7 @@ public interface IOrderSettingsService
     public Task<OrderDto?> UpdateOrderAsync(OrderDto orderDto);
     public Task<OrderDto?> GetOrderByIdAsync(int orderId);
     public Task<int> IncrementPrintCountAsync(int orderId);
+    public Task<TakeawayCustomerLookupDto?> GetCustomerByPhoneAsync(string phone);
 
     // Kitchen & Printer Management
     public Task<List<KitchenTypeToReturnDto>?> GetAllKitchenTypesAsync();

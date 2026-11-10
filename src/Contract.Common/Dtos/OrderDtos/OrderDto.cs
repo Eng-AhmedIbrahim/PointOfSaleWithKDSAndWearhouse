@@ -1,4 +1,4 @@
-﻿using POS.Contract.Dtos.OrderDto;
+using POS.Contract.Dtos.OrderDto;
 
 namespace POS.Contract.Dtos.OrderDtos;
 
@@ -48,6 +48,8 @@ public class OrderDto
     public int? TakeawayCustomerId { get; set; }
     public string? TakeAwayCustomerName { get; set; }
     public string? TakeawayCustomerPhone { get; set; }
+    public string? CustomerAddress { get; set; }
+    public bool PrintCustomerInfoOnReceipt { get; set; }
 
     //for dinein
 
