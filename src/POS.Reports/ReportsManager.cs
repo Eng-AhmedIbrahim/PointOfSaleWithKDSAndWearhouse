@@ -50,151 +50,18 @@ public class ReportsManager : IReportsManager
             request.ReportId != "DeliveryBonusReport" &&
             request.ReportId != "CashierComparison" &&
             request.ReportId != "DetailedDiscountsReport" &&
-            request.ReportId != "BranchRequisitionsSummary" &&
-            request.ReportId != "DetailedBranchRequisitions" &&
-            request.ReportId != "CentralWarehouseStockMovement" &&
             request.ReportId != "CustomerDirectory" &&
             request.ReportId != "VipCustomers" &&
             request.ReportId != "DormantCustomers" &&
             request.ReportId != "DeliveryOrders" &&
-            request.ReportId != "DeliveryAreas")
+            request.ReportId != "DeliveryAreas" &&
+            request.ReportId != "TakeawayCustomers")
         {
             DataSet dsExcel = await FetchReportData(request);
             return GenerateExcelReport(request, dsExcel);
         }
 
 
-        if (request.ReportId == "BranchRequisitionsSummary" || request.ReportId == "DetailedBranchRequisitions")
-        {
-            var reqRepo = _unitOfWork.Repository<BranchRequisition>();
-            var allReqs = await reqRepo.GetAllAsync();
-            var toDateInclusive = request.ToDate.Date.AddDays(1).AddTicks(-1);
-
-            var filteredReqs = allReqs.Where(r =>
-                r.RequestDate >= request.FromDate.Date &&
-                r.RequestDate <= toDateInclusive
-            ).ToList();
-
-            var linesRepo = _unitOfWork.Repository<BranchRequisitionLine>();
-            var allLines = await linesRepo.GetAllAsync();
-            var productsRepo = _unitOfWork.Repository<WarehouseProduct>();
-            var allProducts = await productsRepo.GetAllAsync();
-            var prodDict = allProducts.ToDictionary(p => p.Id, p => p);
-
-            var whRepo = _unitOfWork.Repository<Warehouse>();
-            var allWhs = await whRepo.GetAllAsync();
-            var whDict = allWhs.ToDictionary(w => w.Id, w => w);
-
-            foreach (var l in allLines)
-            {
-                if (prodDict.TryGetValue(l.ProductId, out var p))
-                    l.Product = p;
-            }
-
-            var lineGroups = allLines.GroupBy(l => l.RequisitionId).ToDictionary(g => g.Key, g => g.ToList());
-            foreach (var r in filteredReqs)
-            {
-                if (lineGroups.TryGetValue(r.Id, out var rLines))
-                    r.Lines = rLines;
-                else
-                    r.Lines = new List<BranchRequisitionLine>();
-
-                if (whDict.TryGetValue(r.TargetWarehouseId, out var wh))
-                    r.TargetWarehouse = wh;
-            }
-
-            bool isThermal = IsThermalRequest(request);
-
-            if (request.ReportId == "BranchRequisitionsSummary")
-            {
-                if (request.Format?.ToUpper() == "EXCEL")
-                {
-                    byte[] excelBytes = ExcelReportExportService.ExportBranchRequisitionsSummary(filteredReqs, branchName, request.FromDate, request.ToDate, request.Language ?? "ar");
-                    return new ReportResponseDto
-                    {
-                        Content = excelBytes,
-                        ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        FileName = $"BranchRequisitionsSummary_{DateTime.Now:yyyyMMdd}.xlsx"
-                    };
-                }
-
-                var title = request.Language?.ToLower() == "en" ? "Central Warehouse Requisitions Summary" : "تقرير طلبيات المخزن الرئيسي";
-                var doc = new BackOfficeBranchRequisitionSummaryDocument(filteredReqs, branchName, request.FromDate, request.ToDate, title, request.Language ?? "ar", isThermal);
-                return new ReportResponseDto
-                {
-                    Content = doc.GeneratePdf(),
-                    ContentType = "application/pdf",
-                    FileName = $"BranchRequisitionsSummary_{DateTime.Now:yyyyMMdd}.pdf"
-                };
-            }
-            else
-            {
-                if (request.Format?.ToUpper() == "EXCEL")
-                {
-                    byte[] excelBytes = ExcelReportExportService.ExportDetailedBranchRequisitions(filteredReqs, branchName, request.FromDate, request.ToDate, request.Language ?? "ar");
-                    return new ReportResponseDto
-                    {
-                        Content = excelBytes,
-                        ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        FileName = $"DetailedBranchRequisitions_{DateTime.Now:yyyyMMdd}.xlsx"
-                    };
-                }
-
-                var title = request.Language?.ToLower() == "en" ? "Detailed Requisitions & Modifications" : "تقرير تفاصيل وتعديلات طلبيات المخزن";
-                var doc = new BackOfficeDetailedBranchRequisitionDocument(filteredReqs, branchName, request.FromDate, request.ToDate, title, request.Language ?? "ar", isThermal);
-                return new ReportResponseDto
-                {
-                    Content = doc.GeneratePdf(),
-                    ContentType = "application/pdf",
-                    FileName = $"DetailedBranchRequisitions_{DateTime.Now:yyyyMMdd}.pdf"
-                };
-            }
-        }
-
-        if (request.ReportId == "CentralWarehouseStockMovement")
-        {
-            var ledgerRepo = _unitOfWork.Repository<StockLedger>();
-            var allMovements = await ledgerRepo.GetAllAsync();
-            var toDateInclusive = request.ToDate.Date.AddDays(1).AddTicks(-1);
-
-            var filteredMovements = allMovements.Where(m =>
-                m.MovementDate >= request.FromDate.Date &&
-                m.MovementDate <= toDateInclusive &&
-                (m.MovementType == StockMovementType.BranchReceipt || m.MovementType == StockMovementType.BranchIssue || m.MovementType == StockMovementType.TransferIn || m.QuantityIn > 0)
-            ).ToList();
-
-            var productsRepo = _unitOfWork.Repository<WarehouseProduct>();
-            var allProducts = await productsRepo.GetAllAsync();
-            var prodDict = allProducts.ToDictionary(p => p.Id, p => p);
-
-            foreach (var m in filteredMovements)
-            {
-                if (prodDict.TryGetValue(m.ProductId, out var p))
-                    m.Product = p;
-            }
-
-            bool isThermal = IsThermalRequest(request);
-
-            if (request.Format?.ToUpper() == "EXCEL")
-            {
-                byte[] excelBytes = ExcelReportExportService.ExportCentralWarehouseMovement(filteredMovements, branchName, request.FromDate, request.ToDate, request.Language ?? "ar");
-                return new ReportResponseDto
-                {
-                    Content = excelBytes,
-                    ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    FileName = $"CentralWarehouseStockMovement_{DateTime.Now:yyyyMMdd}.xlsx"
-                };
-            }
-
-            var title = request.Language?.ToLower() == "en" ? "Central Warehouse Stock Movements" : "تقرير حركة وتوريدات الأصناف من المخزن الرئيسي";
-            var doc = new BackOfficeCentralWarehouseMovementDocument(filteredMovements, branchName, request.FromDate, request.ToDate, title, request.Language ?? "ar", isThermal);
-            return new ReportResponseDto
-            {
-                Content = doc.GeneratePdf(),
-                ContentType = "application/pdf",
-                FileName = $"CentralWarehouseStockMovement_{DateTime.Now:yyyyMMdd}.pdf"
-            };
-        }
         if (request.ReportId == "SalesSummary")
         {
             var summary = await _reportingService.GetSalesSummaryAsync(request.FromDate, request.ToDate);
@@ -727,6 +594,133 @@ public class ReportsManager : IReportsManager
             bool isThermal = IsThermalRequest(request);
             var document = new BackOfficePnLDocument(summary, branchName, request.FromDate, request.ToDate, isThermal, request.Language);
             return new ReportResponseDto { Content = document.GeneratePdf(), ContentType = "application/pdf", FileName = $"PnL_{request.FromDate:yyyyMMdd}.pdf" };
+        }
+
+        if (request.ReportId == "TakeawayCustomers")
+        {
+            bool isThermal = IsThermalRequest(request);
+            bool isEnglish = (request.Language ?? "ar").ToLower() == "en";
+
+            var tcRepo = _unitOfWork.Repository<POS.Core.Entities.Customer.TakeawayCustomer>();
+            var allTakeawayCustomers = await tcRepo.GetAllAsync();
+
+            var ordersRepo = _unitOfWork.Repository<POS.Core.Entities.OrderEntity.Orders>();
+            var takeawayOrdersSpec = new POS.Core.Specifications.BaseSpecifications<POS.Core.Entities.OrderEntity.Orders>(o =>
+                o.OrderType == POS.Core.Entities.OrderEntity.OrderTypes.TakeAway &&
+                o.OrderDate.HasValue &&
+                o.OrderDate.Value.Date >= request.FromDate.Date &&
+                o.OrderDate.Value.Date <= request.ToDate.Date);
+            takeawayOrdersSpec.Includes.Add(o => o.OrderDetails!);
+            takeawayOrdersSpec.AddThenInclude("OrderDetails.OrderItemAttributes");
+            var takeawayOrders = await ordersRepo.GetAllWithSpecificationAsync(takeawayOrdersSpec);
+
+            var reportItems = new List<POS.Reports.ReportsMakerServices.TakeawayCustomerReportItem>();
+            var processedOrderIds = new HashSet<int>();
+
+            foreach (var tc in allTakeawayCustomers)
+            {
+                var cOrders = takeawayOrders.Where(o =>
+                    o.TakeawayCustomerId == tc.Id ||
+                    (!string.IsNullOrEmpty(tc.CustomerPhone) &&
+                     (o.TakeawayCustomerPhone == tc.CustomerPhone || o.Phone1 == tc.CustomerPhone))).ToList();
+
+                if (!cOrders.Any()) continue;
+
+                foreach (var o in cOrders) processedOrderIds.Add(o.Id);
+
+                var completed = cOrders.Where(o => o.OrderState != POS.Core.Entities.OrderEntity.OrderStates.Voided).ToList();
+                reportItems.Add(new POS.Reports.ReportsMakerServices.TakeawayCustomerReportItem
+                {
+                    CustomerName = tc.CustomerName ?? "-",
+                    CustomerPhone = tc.CustomerPhone ?? "-",
+                    IsRegistered = true,
+                    TotalOrders = cOrders.Count,
+                    VoidedOrders = cOrders.Count(o => o.OrderState == POS.Core.Entities.OrderEntity.OrderStates.Voided),
+                    TotalRevenue = completed.Sum(o => o.GrandTotal ?? 0),
+                    FirstOrderDate = cOrders.Min(o => o.OrderDate),
+                    LastOrderDate = cOrders.Max(o => o.OrderDate),
+                    Orders = cOrders.OrderByDescending(o => o.OrderDate).Select(o => new POS.Reports.ReportsMakerServices.TakeawayOrderRow
+                    {
+                        OrderId = o.Id,
+                        OrderDate = o.OrderDate,
+                        GrandTotal = o.GrandTotal ?? 0,
+                        State = o.OrderState?.ToString() ?? "",
+                        CashierName = o.CashierName ?? "",
+                        Address = o.StreetName ?? o.AddressNotice ?? "",
+                        Note = o.OrderNotice ?? "",
+                        Items = o.OrderDetails?.Select(d => new POS.Reports.ReportsMakerServices.TakeawayOrderItemRow
+                        {
+                            ItemName = (isEnglish ? d.ItemName : d.ItemNameAr) ?? d.ItemName ?? "",
+                            Quantity = d.Quantity ?? 1,
+                            UnitPrice = d.UnitPrice ?? 0,
+                            TotalAmount = d.TotalAmount ?? ((d.Quantity ?? 1) * (d.UnitPrice ?? 0)),
+                            Attributes = d.OrderItemAttributes?.Select(a =>
+                                (a.ExtraPrice.HasValue && a.ExtraPrice.Value > 0)
+                                    ? $"{a.AttributeName} (+{a.ExtraPrice.Value:0.##})"
+                                    : a.AttributeName
+                            ).Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? new List<string>()
+                        }).ToList() ?? new List<POS.Reports.ReportsMakerServices.TakeawayOrderItemRow>()
+                    }).ToList()
+                });
+            }
+
+            // Orphan TakeAway orders (not linked to any TakeawayCustomer record)
+            var orphanOrders = takeawayOrders
+                .Where(o => !processedOrderIds.Contains(o.Id))
+                .Where(o => !string.IsNullOrEmpty(o.TakeawayCustomerPhone ?? o.Phone1))
+                .ToList();
+
+            foreach (var grp in orphanOrders.GroupBy(o => o.TakeawayCustomerPhone ?? o.Phone1 ?? ""))
+            {
+                if (string.IsNullOrEmpty(grp.Key)) continue;
+                var gOrders = grp.ToList();
+                var completed = gOrders.Where(o => o.OrderState != POS.Core.Entities.OrderEntity.OrderStates.Voided).ToList();
+                reportItems.Add(new POS.Reports.ReportsMakerServices.TakeawayCustomerReportItem
+                {
+                    CustomerName = gOrders.First().TakeawayCustomerName ?? gOrders.First().CustomerName ?? "-",
+                    CustomerPhone = grp.Key,
+                    IsRegistered = false,
+                    TotalOrders = gOrders.Count,
+                    VoidedOrders = gOrders.Count(o => o.OrderState == POS.Core.Entities.OrderEntity.OrderStates.Voided),
+                    TotalRevenue = completed.Sum(o => o.GrandTotal ?? 0),
+                    FirstOrderDate = gOrders.Min(o => o.OrderDate),
+                    LastOrderDate = gOrders.Max(o => o.OrderDate),
+                    Orders = gOrders.OrderByDescending(o => o.OrderDate).Select(o => new POS.Reports.ReportsMakerServices.TakeawayOrderRow
+                    {
+                        OrderId = o.Id,
+                        OrderDate = o.OrderDate,
+                        GrandTotal = o.GrandTotal ?? 0,
+                        State = o.OrderState?.ToString() ?? "",
+                        CashierName = o.CashierName ?? "",
+                        Address = o.StreetName ?? o.AddressNotice ?? "",
+                        Note = o.OrderNotice ?? "",
+                        Items = o.OrderDetails?.Select(d => new POS.Reports.ReportsMakerServices.TakeawayOrderItemRow
+                        {
+                            ItemName = (isEnglish ? d.ItemName : d.ItemNameAr) ?? d.ItemName ?? "",
+                            Quantity = d.Quantity ?? 1,
+                            UnitPrice = d.UnitPrice ?? 0,
+                            TotalAmount = d.TotalAmount ?? ((d.Quantity ?? 1) * (d.UnitPrice ?? 0)),
+                            Attributes = d.OrderItemAttributes?.Select(a =>
+                                (a.ExtraPrice.HasValue && a.ExtraPrice.Value > 0)
+                                    ? $"{a.AttributeName} (+{a.ExtraPrice.Value:0.##})"
+                                    : a.AttributeName
+                            ).Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? new List<string>()
+                        }).ToList() ?? new List<POS.Reports.ReportsMakerServices.TakeawayOrderItemRow>()
+                    }).ToList()
+                });
+            }
+
+            reportItems = reportItems.OrderByDescending(c => c.TotalRevenue).ToList();
+            string title = isEnglish ? "TakeAway Customers Report" : "تقرير عملاء التيك أواي";
+
+            var document = new POS.Reports.ReportsMakerServices.BackOfficeTakeawayCustomersDocument(
+                reportItems, branchName, request.FromDate, request.ToDate, isThermal, request.Language);
+            return new ReportResponseDto
+            {
+                Content = document.GeneratePdf(),
+                ContentType = "application/pdf",
+                FileName = $"TakeawayCustomers_{request.FromDate:yyyyMMdd}_{request.ToDate:yyyyMMdd}.pdf"
+            };
         }
 
         if (request.ReportId == "CustomerDirectory" || request.ReportId == "VipCustomers" || request.ReportId == "DormantCustomers")

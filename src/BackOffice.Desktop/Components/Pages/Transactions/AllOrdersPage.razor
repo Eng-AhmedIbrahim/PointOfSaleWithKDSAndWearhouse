@@ -1,4 +1,4 @@
-@page "/transactions/all-orders"
+﻿@page "/transactions/all-orders"
 @layout MainLayout
 @inject IReportingErpService ReportingService
 @inject IAppDateService AppDateService
@@ -45,7 +45,7 @@
         <MudTable Items="@FilteredOrders" Hover="true" Dense="true" Loading="@_isLoading" Elevation="0" Height="calc(100vh - 160px)" FixedHeader="true" Class="custom-table" RowClassFunc="@((item, idx) => "table-row")">
             <HeaderContent>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">#</MudTh>
-                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["OrderId"]</MudTh>
+                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;"><MudTableSortLabel SortBy="new Func<OrderDto, object>(x => x.OrderId)" InitialDirection="SortDirection.Descending">@Localizer["OrderId"]</MudTableSortLabel></MudTh>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Time"]</MudTh>
                 <MudTh style="text-align: center; background: #f8fafc; font-weight: 800;">@Localizer["Type"]</MudTh>
                 <MudTh style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Customer"]</MudTh>

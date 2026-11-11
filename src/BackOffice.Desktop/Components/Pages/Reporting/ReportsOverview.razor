@@ -99,7 +99,6 @@
 
     private List<ReportCategory> _reportCategories = new();
     private bool _isCentralCallCenterEnabled = false;
-    private bool _isCentralWarehouseEnabled = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,31 +114,6 @@
             _isCentralCallCenterEnabled = false;
         }
 
-        try
-        {
-            var branches = await BranchService.GetBranches();
-            var currentBranch = branches?.FirstOrDefault(b => b.Id == CommonProps.BranchDetails?.Id) ?? branches?.FirstOrDefault();
-            if (currentBranch != null)
-            {
-                _isCentralWarehouseEnabled = currentBranch.HasCentralWarehouse || currentBranch.DefaultWarehouseId != null;
-            }
-        }
-        catch { }
-
-        if (!_isCentralWarehouseEnabled)
-        {
-            try
-            {
-                _isCentralWarehouseEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableCentralWarehouseRequisitions")
-                    || (CommonProps.BranchDetails?.HasCentralWarehouse ?? false)
-                    || CommonProps.BranchDetails?.DefaultWarehouseId != null
-                    || await FeatureSettingsService.IsFeatureEnabledAsync("CentralWarehouse");
-            }
-            catch
-            {
-                _isCentralWarehouseEnabled = CommonProps.BranchDetails?.HasCentralWarehouse ?? false;
-            }
-        }
 
         InitializeCategories();
         try
@@ -240,7 +214,8 @@
                     new ReportInfo { Id = "DeliveryAreas", Name = IsArabic ? "مناطق التوصيل (المناطق الأكثر طلباً)" : "Delivery Areas", Description = IsArabic ? "تحليل مبيعات وطلبات كل منطقة" : "Analysis of sales and orders by zone", Icon = Icons.Material.Rounded.Map },
                     new ReportInfo { Id = "DeliveryBonusReport", Name = IsArabic ? "خدمة التوصيل وبونص الطيارين" : "Delivery Fees & Driver Bonus", Description = IsArabic ? "إجمالي رسوم التوصيل والبونص وتوزيعه على الطيارين" : "Total delivery fees, driver bonuses, and breakdown per driver", Icon = Icons.Material.Rounded.TwoWheeler },
                     new ReportInfo { Id = "VipCustomers", Name = IsArabic ? "العملاء الأكثر طلباً (VIP)" : "VIP Customers", Description = IsArabic ? "ترتيب العملاء حسب عدد الطلبات" : "Customers ranked by order count", Icon = Icons.Material.Rounded.WorkspacePremium },
-                    new ReportInfo { Id = "DormantCustomers", Name = IsArabic ? "العملاء المنقطعين" : "Dormant Customers", Description = IsArabic ? "العملاء الذين لم يطلبوا منذ فترة" : "Customers inactive for a specified period", Icon = Icons.Material.Rounded.Snooze }
+                    new ReportInfo { Id = "DormantCustomers", Name = IsArabic ? "العملاء المنقطعين" : "Dormant Customers", Description = IsArabic ? "العملاء الذين لم يطلبوا منذ فترة" : "Customers inactive for a specified period", Icon = Icons.Material.Rounded.Snooze },
+                    new ReportInfo { Id = "TakeawayCustomers", Name = IsArabic ? "عملاء التيك أواي" : "TakeAway Customers", Description = IsArabic ? "تقرير تفصيلي لعملاء التيك أواي وطلباتهم وتحليل الإيرادات" : "Detailed TakeAway customers report with orders and revenue analysis", Icon = Icons.Material.Rounded.DirectionsRun }
                 }
             },
             new ReportCategory
@@ -309,40 +284,6 @@
             }
         });
 
-        if (_isCentralWarehouseEnabled)
-        {
-            _reportCategories.Add(new ReportCategory
-            {
-                Title = IsArabic ? "المخزن الرئيسي والطلبيات" : "Central Warehouse & Requisitions",
-                Icon = Icons.Material.Rounded.Warehouse,
-                Color = Color.Warning,
-                ColorHex = "#ea580c",
-                Reports = new List<ReportInfo>
-                {
-                    new ReportInfo
-                    {
-                        Id = "BranchRequisitionsSummary",
-                        Name = IsArabic ? "طلبيات المخزن الرئيسي" : "Warehouse Requisitions",
-                        Description = IsArabic ? "سجل طلبيات التوريد وحالاتها ومسؤول الطلب والاعتماد" : "Branch requisitions log, statuses, requested & approved by",
-                        Icon = Icons.Material.Rounded.Assignment
-                    },
-                    new ReportInfo
-                    {
-                        Id = "DetailedBranchRequisitions",
-                        Name = IsArabic ? "تفاصيل وتعديلات الطلبيات" : "Detailed Requisitions",
-                        Description = IsArabic ? "تفاصيل الأصناف والكميات المطلوبة والمعدلة من المخزن والمستلمة" : "Item details, requested vs proposed vs approved vs received qty",
-                        Icon = Icons.Material.Rounded.FactCheck
-                    },
-                    new ReportInfo
-                    {
-                        Id = "CentralWarehouseStockMovement",
-                        Name = IsArabic ? "توريدات المخزن للفرع" : "Warehouse Stock Movements",
-                        Description = IsArabic ? "حركة توريد واستلام الأصناف والخامات من المخزن الرئيسي للفرع" : "Stock incoming transactions from central warehouse to branch",
-                        Icon = Icons.Material.Rounded.MoveToInbox
-                    }
-                }
-            });
-        }
     }
 
     private async Task SelectReport(ReportInfo report)

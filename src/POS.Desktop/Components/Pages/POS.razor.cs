@@ -1,4 +1,4 @@
-using BlazorBase.ERPFrontServices.SettingsServices;
+﻿using BlazorBase.ERPFrontServices.SettingsServices;
 using POS.Contract.Dtos.SettingsDtos;
 using POS.Desktop.Components.PosComponent;
 
@@ -1038,7 +1038,7 @@ public partial class POS
             return;
         }
 
-        _snackbar.Add($"Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ØµÙ†Ù Ø¨Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯: {code}", Severity.Warning);
+        _snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? $"لم يتم العثور على صنف بالباركود: {code}" : $"Item not found for barcode: {code}", Severity.Warning);
     }
 
     #endregion

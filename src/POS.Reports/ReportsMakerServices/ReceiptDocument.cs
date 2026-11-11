@@ -1,4 +1,4 @@
-using POS.Contract.Models.ReceiptModels;
+﻿using POS.Contract.Models.ReceiptModels;
 
 namespace POS.Reports.ReportsMakerServices;
 
@@ -233,39 +233,33 @@ public class ReceiptDocument : IDocument
         // Customer Info Section (If enabled and has data)
         if (receipt.PrintCustomerInfo && (!string.IsNullOrWhiteSpace(receipt.CustomerName) || !string.IsNullOrWhiteSpace(receipt.CustomerPhone) || !string.IsNullOrWhiteSpace(receipt.CustomerAddress) || !string.IsNullOrWhiteSpace(receipt.OrderNote)))
         {
-            column.Item().PaddingTop(3).Border(1).Padding(3).Column(custCol =>
+            column.Item().PaddingTop(3).Table(table =>
             {
+                table.ColumnsDefinition(cols =>
+                {
+                    cols.RelativeColumn(2.5f); // قيمة (يسار)
+                    cols.RelativeColumn(1f);   // تسمية (يمين)
+                });
+
                 if (!string.IsNullOrWhiteSpace(receipt.CustomerName))
                 {
-                    custCol.Item().Row(r =>
-                    {
-                        r.RelativeItem().AlignRight().Text(receipt.CustomerName).Bold().FontSize(11);
-                        r.AutoItem().Text("العميل: ").FontSize(11);
-                    });
+                    table.Cell().Element(CellStyle).AlignCenter().Text(receipt.CustomerName).Bold().FontSize(11);
+                    table.Cell().Element(CellStyle).AlignCenter().Text("العميل").Bold().FontSize(11);
                 }
                 if (!string.IsNullOrWhiteSpace(receipt.CustomerPhone))
                 {
-                    custCol.Item().Row(r =>
-                    {
-                        r.RelativeItem().AlignRight().Text(receipt.CustomerPhone).FontSize(10);
-                        r.AutoItem().Text("الهاتف: ").FontSize(10);
-                    });
+                    table.Cell().Element(CellStyle).AlignCenter().Text(receipt.CustomerPhone).FontSize(10);
+                    table.Cell().Element(CellStyle).AlignCenter().Text("الهاتف").Bold().FontSize(10);
                 }
                 if (!string.IsNullOrWhiteSpace(receipt.CustomerAddress))
                 {
-                    custCol.Item().Row(r =>
-                    {
-                        r.RelativeItem().AlignRight().Text(receipt.CustomerAddress).FontSize(10);
-                        r.AutoItem().Text("العنوان: ").FontSize(10);
-                    });
+                    table.Cell().Element(CellStyle).AlignCenter().Text(receipt.CustomerAddress).FontSize(10);
+                    table.Cell().Element(CellStyle).AlignCenter().Text("العنوان").Bold().FontSize(10);
                 }
                 if (!string.IsNullOrWhiteSpace(receipt.OrderNote))
                 {
-                    custCol.Item().Row(r =>
-                    {
-                        r.RelativeItem().AlignRight().Text(receipt.OrderNote).FontSize(10);
-                        r.AutoItem().Text("ملاحظات: ").FontSize(10);
-                    });
+                    table.Cell().Element(CellStyle).AlignCenter().Text(receipt.OrderNote).FontSize(10);
+                    table.Cell().Element(CellStyle).AlignCenter().Text("ملاحظات").Bold().FontSize(10);
                 }
             });
         }
