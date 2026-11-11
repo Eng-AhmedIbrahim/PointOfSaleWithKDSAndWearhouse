@@ -283,7 +283,6 @@ public class BranchRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id}/approve")]
-    [HttpPost("{id}/approve")]
     [HttpPut("{id}/direct-approve")]
     public async Task<IActionResult> Approve(int id)
     {
@@ -599,6 +598,213 @@ public class BranchRequisitionsController : ControllerBase
         r.Notes = (r.Notes ?? "") + $" | \u0625\u0644\u063a\u0627\u0621: {reason.Reason}";
         await _db.SaveChangesAsync();
         return Ok();
+    }
+
+    /// <summary>
+    /// المخزن الرئيسي يقترح تعديل الكمية ويرسل للفرع للموافقة أو الرفض.
+    /// الفرع يرى الكمية المتاحة والكمية المقترحة ويقرر.
+    /// </summary>
+    [HttpPost("{id}/warehouse-propose")]
+    public async Task<IActionResult> WarehousePropose(int id, [FromBody] List<LineModificationDto> lines)
+    {
+        var r = await _db.BranchRequisitions
+            .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (r == null) return NotFound();
+
+        if (r.Status != RequisitionStatus.Submitted && r.Status != RequisitionStatus.UnderReview)
+            return BadRequest(new { message = "يمكن اقتراح تعديل فقط على الطلبات المرسلة أو قيد المراجعة" });
+
+        foreach (var mod in lines)
+        {
+            var l = r.Lines.FirstOrDefault(x => x.Id == mod.LineId);
+            if (l == null) continue;
+            l.ProposedQuantity = mod.ProposedQuantity;
+            l.ModificationNotes = mod.Notes;
+        }
+        r.Status = RequisitionStatus.ModificationProposed;
+        await _db.SaveChangesAsync();
+        await NotifyBranch(r, "تعديل مقترح من المخزن", "المخزن الرئيسي اقترح كميات معدلة على طلبك - يرجى المراجعة والموافقة أو الرفض");
+        return Ok(new { message = "تم إرسال الكميات المقترحة للفرع بنجاح" });
+    }
+
+    /// <summary>
+    /// الفرع يوافق على الكميات المقترحة من المخزن — يمر للاعتماد مباشرة.
+    /// </summary>
+    [HttpPost("{id}/branch-accept")]
+    public async Task<IActionResult> BranchAcceptProposal(int id)
+    {
+        var r = await _db.BranchRequisitions
+            .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (r == null) return NotFound();
+        if (r.Status != RequisitionStatus.ModificationProposed)
+            return BadRequest(new { message = "لا يوجد تعديل مقترح للموافقة عليه" });
+
+        // Check warehouse stock against proposed quantities
+        foreach (var l in r.Lines)
+        {
+            var qty = l.ProposedQuantity ?? l.RequestedQuantity;
+            if (qty <= 0) continue;
+            decimal baseQty = qty;
+            if (l.Product != null && l.UnitId != l.Product.BaseUnitId)
+            {
+                var pu = l.Product.ProductUnits?.FirstOrDefault(u => u.UnitId == l.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0) baseQty *= pu.ConversionFactorToBase;
+            }
+            var balance = await _db.StockBalances.FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == l.ProductId);
+            if (balance == null || balance.QuantityOnHand < baseQty)
+            {
+                var productName = l.Product?.NameAr ?? $"صنف #{l.ProductId}";
+                return BadRequest(new { message = $"رصيد الصنف '{productName}' في المخزن غير كافٍ. المتاح: {balance?.QuantityOnHand ?? 0:N2}, المطلوب: {baseQty:N2}" });
+            }
+        }
+
+        foreach (var l in r.Lines)
+            l.ApprovedQuantity = l.ProposedQuantity ?? l.RequestedQuantity;
+        r.Status = RequisitionStatus.Approved;
+        r.ApprovedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        await NotifyBranch(r, "معتمد", "تمت الموافقة على الكميات المعدلة وتم اعتماد الطلب");
+        return Ok(new { message = "تمت الموافقة والاعتماد بنجاح" });
+    }
+
+    /// <summary>
+    /// الفرع يرفض الكميات المقترحة — يعود للحالة Submitted.
+    /// </summary>
+    [HttpPost("{id}/branch-reject-proposal")]
+    public async Task<IActionResult> BranchRejectProposal(int id, [FromBody] ReasonDto reason)
+    {
+        var r = await _db.BranchRequisitions.FindAsync(id);
+        if (r == null) return NotFound();
+        if (r.Status != RequisitionStatus.ModificationProposed)
+            return BadRequest(new { message = "لا يوجد تعديل مقترح لرفضه" });
+        r.Status = RequisitionStatus.Submitted;
+        r.Notes = (r.Notes ?? "") + $" | رفض الفرع التعديل: {reason.Reason}";
+        await _db.SaveChangesAsync();
+        await NotifyBranch(r, "رُفض التعديل", $"الفرع رفض الكميات المقترحة: {reason.Reason}");
+        return Ok(new { message = "تم رفض التعديل وإعادة الطلب للمراجعة" });
+    }
+
+    /// <summary>
+    /// يعرض الكمية المتاحة في المخزن لكل صنف في الطلبية.
+    /// يُستخدم من واجهة المخزن عند مراجعة الطلب.
+    /// </summary>
+    [HttpGet("{id}/stock-info")]
+    public async Task<IActionResult> GetStockInfo(int id)
+    {
+        var r = await _db.BranchRequisitions
+            .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
+            .Include(x => x.Lines).ThenInclude(l => l.Unit)
+            .Include(x => x.TargetWarehouse)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (r == null) return NotFound();
+
+        var stockInfo = new List<object>();
+        foreach (var l in r.Lines)
+        {
+            var balance = await _db.StockBalances
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == l.ProductId);
+
+            decimal requestedBaseQty = l.ProposedQuantity ?? l.RequestedQuantity;
+            if (l.Product != null && l.UnitId != l.Product.BaseUnitId)
+            {
+                var pu = l.Product.ProductUnits?.FirstOrDefault(u => u.UnitId == l.UnitId);
+                if (pu != null && pu.ConversionFactorToBase > 0) requestedBaseQty *= pu.ConversionFactorToBase;
+            }
+            decimal available = balance?.QuantityOnHand ?? 0m;
+            stockInfo.Add(new
+            {
+                LineId = l.Id,
+                ProductId = l.ProductId,
+                ProductName = l.Product?.NameAr ?? "",
+                RequestedQuantity = l.RequestedQuantity,
+                ProposedQuantity = l.ProposedQuantity,
+                UnitName = l.Unit?.NameAr ?? "",
+                AvailableInWarehouse = available,
+                IsEnough = available >= requestedBaseQty,
+                Shortage = available < requestedBaseQty ? requestedBaseQty - available : 0
+            });
+        }
+
+        return Ok(new
+        {
+            RequisitionId = r.Id,
+            RequisitionNumber = r.RequisitionNumber,
+            WarehouseName = r.TargetWarehouse?.NameAr ?? "",
+            StockLines = stockInfo
+        });
+    }
+
+    /// <summary>
+    /// بيانات طباعة الطلبية الكاملة: من طلبها، كل العمليات، الكميات، التواريخ.
+    /// </summary>
+    [HttpGet("{id}/print")]
+    public async Task<IActionResult> GetPrintData(int id)
+    {
+        var r = await _db.BranchRequisitions
+            .Include(x => x.RequestingBranch)
+            .Include(x => x.TargetWarehouse)
+            .Include(x => x.ReroutedToWarehouse)
+            .Include(x => x.Lines).ThenInclude(l => l.Product)
+            .Include(x => x.Lines).ThenInclude(l => l.Unit)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (r == null) return NotFound();
+
+        // Build timeline of operations
+        var timeline = new List<object>();
+        timeline.Add(new { Action = "إنشاء الطلبية", Date = r.RequestDate, By = r.RequestingBranch?.Name ?? "الفرع", Notes = r.Notes });
+        if (r.Status >= RequisitionStatus.Submitted)
+            timeline.Add(new { Action = "إرسال للمخزن الرئيسي", Date = r.RequestDate, By = r.RequestingBranch?.Name ?? "الفرع", Notes = "" });
+        if (r.Status >= RequisitionStatus.UnderReview)
+            timeline.Add(new { Action = "بدء المراجعة في المخزن", Date = r.RequestDate, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = "" });
+        if (r.Status == RequisitionStatus.ModificationProposed || r.Status >= RequisitionStatus.Approved)
+            timeline.Add(new { Action = "اقتراح تعديل من المخزن", Date = r.RequestDate, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = "كميات معدلة" });
+        if (r.ApprovedAt.HasValue)
+            timeline.Add(new { Action = "اعتماد الطلبية", Date = r.ApprovedAt.Value, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = "" });
+        if (r.DispatchedAt.HasValue)
+            timeline.Add(new { Action = "شحن البضاعة", Date = r.DispatchedAt.Value, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = $"مشحون بواسطة: {r.DispatchedByUserId}" });
+        if (r.ReceivedAt.HasValue)
+            timeline.Add(new { Action = "استلام البضاعة", Date = r.ReceivedAt.Value, By = r.RequestingBranch?.Name ?? "الفرع", Notes = $"تم الاستلام بواسطة: {r.ReceivedByUserId}" });
+        if (!string.IsNullOrWhiteSpace(r.RejectionReason))
+            timeline.Add(new { Action = "رفض الطلبية", Date = r.RequestDate, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = r.RejectionReason });
+        if (r.ReroutedToWarehouseId.HasValue)
+            timeline.Add(new { Action = "تحويل لمخزن آخر", Date = r.RequestDate, By = r.TargetWarehouse?.NameAr ?? "المخزن", Notes = $"إلى: {r.ReroutedToWarehouse?.NameAr} - {r.RerouteReason}" });
+
+        return Ok(new
+        {
+            r.Id,
+            r.RequisitionNumber,
+            Status = r.Status.ToString(),
+            StatusInt = (int)r.Status,
+            RequestDate = r.RequestDate,
+            RequiredDate = r.RequiredDate,
+            ApprovedAt = r.ApprovedAt,
+            DispatchedAt = r.DispatchedAt,
+            ReceivedAt = r.ReceivedAt,
+            Branch = new { r.RequestingBranch?.Id, Name = r.RequestingBranch?.Name },
+            Warehouse = new { r.TargetWarehouse?.Id, Name = r.TargetWarehouse?.NameAr, Code = r.TargetWarehouse?.Code },
+            r.Notes,
+            r.RejectionReason,
+            Lines = r.Lines.Select(l => new
+            {
+                l.Id,
+                ProductName = l.Product?.NameAr ?? "",
+                SKU = l.Product?.SKU ?? "",
+                UnitName = l.Unit?.NameAr ?? "",
+                l.RequestedQuantity,
+                l.ProposedQuantity,
+                l.ApprovedQuantity,
+                l.DispatchedQuantity,
+                l.ReceivedQuantity,
+                l.DiscrepancyQuantity,
+                Notes = l.ModificationNotes
+            }),
+            Timeline = timeline
+        });
     }
 
     /// <summary>

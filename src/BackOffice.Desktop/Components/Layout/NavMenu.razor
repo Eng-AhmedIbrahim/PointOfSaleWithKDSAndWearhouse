@@ -240,6 +240,15 @@
                 </ActivatorContent>
                 <ChildContent>
                     <MudMenuItem Href="/basicdata/inventory"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.Inventory" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "رصيد المخزن العام" : "General Stock")</div></MudMenuItem>
+                    @if (_isCentralWarehouseEnabled)
+                    {
+                        <MudMenuItem Href="/inventory/branch-requisitions">
+                            <div class="menu-item-content">
+                                <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" Style="color: #ea580c;" />
+                                @(LocalizerService.GetCurrentLanguage() == "ar" ? "طلبات المخزن الرئيسي" : "Central Warehouse Requisitions")
+                            </div>
+                        </MudMenuItem>
+                    }
                     <MudDivider Class="my-2" />
                     @if (_canManageRawMaterials)
                     {
@@ -357,6 +366,7 @@
     private string _userInitials = "AD";
     private string ActiveTab = "dashboard";
     private bool IsInventoryEnabled = false;
+    private bool _isCentralWarehouseEnabled = false;
     private bool _canViewDashboard;
     private bool _canManageSettings;
     private bool _canManageCompany;
@@ -482,6 +492,7 @@
 
 
         IsInventoryEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableInventoryTracking");
+        _isCentralWarehouseEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableCentralWarehouseRequisitions");
         UpdateActiveTab();
         NavigationManager.LocationChanged += (s, e) => {
             UpdateActiveTab();
