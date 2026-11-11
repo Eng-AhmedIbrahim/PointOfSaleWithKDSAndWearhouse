@@ -242,6 +242,12 @@
                     <MudMenuItem Href="/basicdata/inventory"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.Inventory" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "رصيد المخزن العام" : "General Stock")</div></MudMenuItem>
                     @if (_isCentralWarehouseEnabled)
                     {
+                        <MudMenuItem Href="/warehouses">
+                            <div class="menu-item-content">
+                                <MudIcon Icon="@Icons.Material.Rounded.Warehouse" Size="Size.Small" Style="color: #f97316;" />
+                                @(LocalizerService.GetCurrentLanguage() == "ar" ? "المستودعات والمخازن الرئيسية" : "Central Warehouses")
+                            </div>
+                        </MudMenuItem>
                         <MudMenuItem Href="/inventory/branch-requisitions">
                             <div class="menu-item-content">
                                 <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" Style="color: #ea580c;" />
@@ -266,11 +272,6 @@
                     @if (_canManageUnits)
                     {
                         <MudMenuItem Href="/basicdata/units"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.Straighten" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "تعريف الوحدات" : "Units Definition")</div></MudMenuItem>
-                    }
-                    @if (_canViewBranchRequisitions)
-                    {
-                        <MudDivider Class="my-2" />
-                        <MudMenuItem Href="/inventory/branch-requisitions"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.MoveToInbox" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "طلبات التوريد" : "Branch Requisitions")</div></MudMenuItem>
                     }
                 </ChildContent>
             </MudMenu>
