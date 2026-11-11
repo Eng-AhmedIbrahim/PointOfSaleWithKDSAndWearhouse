@@ -2,13 +2,23 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog dir="rtl" Style="max-width: 960px; width: 95vw; border-radius: 20px; overflow: hidden;">
     <TitleContent>
-        <div class="d-flex align-center gap-2" dir="rtl">
-            <MudIcon Icon="@(ProductId.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Color="MudBlazor.Color.Warning" />
-            <MudText MudBlazor.Typo="Typo.h6" Style="font-weight: 800;">
-                @(ProductId.HasValue ? "تعديل صنف مخزني" : "إضافة صنف مخزني جديد")
-            </MudText>
+        <div class="d-flex align-center justify-space-between w-100 pa-1 pb-2 border-b">
+            <div class="d-flex align-center gap-3">
+                <div class="pa-3 rounded-xl" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);">
+                    <MudIcon Icon="@(ProductId.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.AddBox)" Size="MudBlazor.Size.Medium" />
+                </div>
+                <div>
+                    <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 900; color: #1e293b;">
+                        @(ProductId.HasValue ? "تعديل صنف مخزني" : "إضافة صنف مخزني جديد")
+                    </MudText>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">
+                        تعريف بيانات المادة الخام أو الصنف، وحدات القياس، حد الأمان والتكلفة التقديرية
+                    </MudText>
+                </div>
+            </div>
+            <MudIconButton Icon="@Icons.Material.Rounded.Close" Color="MudBlazor.Color.Default" OnClick="Cancel" Style="border-radius: 50%;" />
         </div>
     </TitleContent>
     <DialogContent>
@@ -94,7 +104,8 @@
                             سعر التكلفة التقديري (ج.م) *
                         </MudText>
                         <MudNumericField @bind-Value="Model.CostPrice" Format="N2" HideSpinButtons="true"
-                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                         HelperText="@($"لوحدة: {GetSelectedBaseUnitName()}")" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
@@ -102,7 +113,8 @@
                             سعر البيع (إن وُجد) (ج.م)
                         </MudText>
                         <MudNumericField @bind-Value="Model.SalePrice" Format="N2" HideSpinButtons="true"
-                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                         HelperText="سعر البيع للفرع أو المستهلك" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
@@ -110,7 +122,8 @@
                             حد إعادة الطلب (Reorder)
                         </MudText>
                         <MudNumericField @bind-Value="Model.ReorderLevel" Format="N2" HideSpinButtons="true"
-                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                         HelperText="طلب شراء من المورد عند وصوله" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
@@ -118,7 +131,8 @@
                             الحد الأدنى للأمان (Safety)
                         </MudText>
                         <MudNumericField @bind-Value="Model.MinimumStock" Format="N2" HideSpinButtons="true"
-                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                                         Min="0m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                         HelperText="رصيد الطوارئ الحرج بالمخزن" />
                     </MudItem>
                 </MudGrid>
 
@@ -345,19 +359,26 @@
     private void AddUnit() => Model.ProductUnits.Add(new ProductUnitModel());
     private void RemoveUnit(ProductUnitModel u) => Model.ProductUnits.Remove(u);
 
+    private string GetSelectedBaseUnitName()
+    {
+        var u = Units.FirstOrDefault(x => x.Id == Model.BaseUnitId);
+        return u?.DisplayName ?? "الوحدة الأساسية";
+    }
+
     private string GetUnitHelperText(ProductUnitModel pu)
     {
         var baseUnit = Units.FirstOrDefault(u => u.Id == Model.BaseUnitId)?.DisplayName;
         var currentUnit = Units.FirstOrDefault(u => u.Id == pu.UnitId)?.DisplayName;
         var factorStr = pu.ConversionFactor > 0 ? pu.ConversionFactor.ToString("0.###") : "1";
+        var unitCost = Model.CostPrice * pu.ConversionFactor;
 
         if (string.IsNullOrWhiteSpace(currentUnit) && string.IsNullOrWhiteSpace(baseUnit))
             return $"1 وحدة = {factorStr} وحدة أساس";
         if (string.IsNullOrWhiteSpace(currentUnit))
-            return $"1 وحدة = {factorStr} {baseUnit}";
+            return $"1 وحدة = {factorStr} {baseUnit} (التكلفة: {unitCost:N2} ج.م)";
         if (string.IsNullOrWhiteSpace(baseUnit))
-            return $"1 {currentUnit} = {factorStr} وحدة أساس";
-        return $"1 {currentUnit} = {factorStr} {baseUnit}";
+            return $"1 {currentUnit} = {factorStr} وحدة أساس (التكلفة: {unitCost:N2} ج.م)";
+        return $"1 {currentUnit} = {factorStr} {baseUnit} (التكلفة: {unitCost:N2} ج.م)";
     }
 
     private async Task Save()

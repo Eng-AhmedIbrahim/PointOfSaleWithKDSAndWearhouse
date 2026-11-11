@@ -406,6 +406,7 @@ public class WarehouseProductsController : ControllerBase
     public async Task<IActionResult> GetLookup()
     {
         var prods = await _db.WarehouseProducts.Where(p => p.IsActive)
+            .Include(p => p.BaseUnit)
             .OrderBy(p => p.NameAr)
             .Select(p => new {
                 p.Id,
@@ -413,7 +414,8 @@ public class WarehouseProductsController : ControllerBase
                 p.SKU,
                 p.Barcode,
                 p.NameAr,
-                p.NameEn
+                p.NameEn,
+                BaseUnitName = p.BaseUnit != null ? p.BaseUnit.NameAr : null
             }).ToListAsync();
         return Ok(prods);
     }

@@ -170,7 +170,8 @@
                 <MudTable Items="PriceContracts" Dense="true" Hover="true" Striped="true" Bordered="true">
                     <HeaderContent>
                         <MudTh Style="text-align:right;">الصنف</MudTh>
-                        <MudTh Style="text-align:right;">سعر الوحدة (ج.م)</MudTh>
+                        <MudTh Style="text-align:center; width:110px;">الوحدة</MudTh>
+                        <MudTh Style="text-align:right; width:140px;">سعر الوحدة (ج.م)</MudTh>
                         <MudTh Style="text-align:right;">تاريخ البداية</MudTh>
                         <MudTh Style="text-align:right;">تاريخ الانتهاء</MudTh>
                         <MudTh Style="text-align:center;">مفضل</MudTh>
@@ -188,6 +189,11 @@
                                     <MudSelectItem Value="p.Id">@p.Name</MudSelectItem>
                                 }
                             </MudSelect>
+                        </MudTd>
+                        <MudTd Style="text-align:center;">
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Default" Style="font-weight:700;">
+                                @(Products.FirstOrDefault(p => p.Id == context.ProductId)?.BaseUnitName ?? "-")
+                            </MudChip>
                         </MudTd>
                         <MudTd>
                             <MudNumericField @bind-Value="context.UnitPrice"
@@ -246,7 +252,7 @@
     private List<PriceContractRow> PriceContracts = new();
     private List<ProductLookup> Products = new();
 
-    record ProductLookup(int Id, string Name);
+    record ProductLookup(int Id, string Name, string? BaseUnitName = null);
 
     class SupplierFormModel
     {

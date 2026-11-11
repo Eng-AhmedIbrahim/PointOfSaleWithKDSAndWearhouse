@@ -168,10 +168,14 @@ public class PurchaseOrdersController : ControllerBase
         bool allReceived = po.Lines.All(l => l.ReceivedQuantity >= l.OrderedQuantity);
         po.Status = allReceived ? PurchaseOrderStatus.FullyReceived : PurchaseOrderStatus.PartiallyReceived;
 
+        // Save GRN and ledger first to ensure model.Id is generated from DB
+        await _db.SaveChangesAsync();
+
         // Update supplier invoice
         var supplierInvoice = new SupplierInvoice
         {
-            SupplierId = po.SupplierId, GoodsReceiptNoteId = model.Id,
+            SupplierId = po.SupplierId,
+            GoodsReceiptNoteId = model.Id,
             InvoiceNumber = model.SupplierInvoiceNumber ?? model.GrnNumber,
             InvoiceDate = DateTime.UtcNow,
             DueDate = DateTime.UtcNow.AddDays(30),

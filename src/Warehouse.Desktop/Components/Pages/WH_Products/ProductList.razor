@@ -208,7 +208,8 @@
 
     private async Task OpenAddDialog()
     {
-        var dlg = DialogService.Show<ProductDialog>("إضافة منتج جديد");
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true, CloseButton = true };
+        var dlg = DialogService.Show<ProductDialog>("إضافة منتج جديد", options);
         var result = await dlg.Result;
         if (!result.Canceled) await LoadProducts();
     }
@@ -216,7 +217,8 @@
     private async Task OpenEditDialog(ProductDto product)
     {
         var parameters = new DialogParameters { ["ProductId"] = product.Id };
-        var dlg = DialogService.Show<ProductDialog>("تعديل المنتج", parameters);
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true, CloseButton = true };
+        var dlg = DialogService.Show<ProductDialog>("تعديل المنتج", parameters, options);
         var result = await dlg.Result;
         if (!result.Canceled) await LoadProducts();
     }

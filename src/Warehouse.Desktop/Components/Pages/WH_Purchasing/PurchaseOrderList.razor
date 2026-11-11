@@ -15,16 +15,33 @@
                    OnClick="OpenCreateDialog">إضافة أمر شراء جديد</MudButton>
     </div>
 
-    <MudCard Class="wh-card mb-3">
-        <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true"
-                 @bind-ActivePanelIndex="_activeTab" Class="wh-tabs">
-            <MudTabPanel Text="الكل" />
-            <MudTabPanel Text="مسودة" />
-            <MudTabPanel Text="معتمد" />
-            <MudTabPanel Text="مغلق" />
-            <MudTabPanel Text="ملغي" />
-        </MudTabs>
-    </MudCard>
+    <MudPaper Class="wh-card mb-3 pa-2 d-flex gap-2 flex-wrap align-center" Elevation="0" Style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+        <MudChip T="string" Color="@(_activeTab == 0 ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 0 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 0)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            الكل (@_orders.Count)
+        </MudChip>
+        <MudChip T="string" Color="@(_activeTab == 1 ? MudBlazor.Color.Info : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 1 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 1)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            مسودة (@_orders.Count(o => o.Status == "Draft"))
+        </MudChip>
+        <MudChip T="string" Color="@(_activeTab == 2 ? MudBlazor.Color.Success : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 2 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 2)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            معتمد (@_orders.Count(o => o.Status == "Approved"))
+        </MudChip>
+        <MudChip T="string" Color="@(_activeTab == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 3 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 3)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            مغلق (@_orders.Count(o => o.Status == "Closed"))
+        </MudChip>
+        <MudChip T="string" Color="@(_activeTab == 4 ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 4 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 4)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            ملغي (@_orders.Count(o => o.Status == "Cancelled"))
+        </MudChip>
+    </MudPaper>
 
     <MudCard Class="wh-card">
         <MudCardContent>
