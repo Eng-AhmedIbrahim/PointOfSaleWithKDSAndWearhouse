@@ -258,6 +258,11 @@
                     {
                         <MudMenuItem Href="/basicdata/units"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.Straighten" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "تعريف الوحدات" : "Units Definition")</div></MudMenuItem>
                     }
+                    @if (_canViewBranchRequisitions)
+                    {
+                        <MudDivider Class="my-2" />
+                        <MudMenuItem Href="/inventory/branch-requisitions"><div class="menu-item-content"><MudIcon Icon="@Icons.Material.Rounded.MoveToInbox" Size="Size.Small" /> @(LocalizerService.GetCurrentLanguage() == "ar" ? "طلبات التوريد" : "Branch Requisitions")</div></MudMenuItem>
+                    }
                 </ChildContent>
             </MudMenu>
         }
@@ -375,6 +380,7 @@
     private bool _canManageSemiFinished;
     private bool _canManageRecipes;
     private bool _canManageUnits;
+    private bool _canViewBranchRequisitions;
     private bool _canViewTransactions;
     private bool _canViewReports;
     private bool _canViewQueries;
@@ -427,6 +433,7 @@
             _canManageSemiFinished = (await AuthorizationService.AuthorizeAsync(user, "CanManageSemiFinishedItemsAtBackOffice")).Succeeded;
             _canManageRecipes      = (await AuthorizationService.AuthorizeAsync(user, "CanManageRecipesAtBackOffice")).Succeeded;
             _canManageUnits        = (await AuthorizationService.AuthorizeAsync(user, "CanManageUnitsAtBackOffice")).Succeeded;
+            _canViewBranchRequisitions = (await AuthorizationService.AuthorizeAsync(user, "CanViewBranchRequisitions")).Succeeded;
 
             _canViewTransactions  = (await AuthorizationService.AuthorizeAsync(user, "CanViewBackOfficeTransactionsAtBackOffice")).Succeeded;
             _canViewReports       = (await AuthorizationService.AuthorizeAsync(user, "CanViewBackOfficeReportsAtBackOffice")).Succeeded;
@@ -463,6 +470,7 @@
                 _canManageSemiFinished = false;
                 _canManageRecipes = false;
                 _canManageUnits = false;
+                _canViewBranchRequisitions = false;
                 _canViewTransactions = false;
                 _canViewReports = false;
                 _canViewQueries = false;
