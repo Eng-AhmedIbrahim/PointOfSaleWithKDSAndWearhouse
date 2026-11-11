@@ -19,8 +19,15 @@ public class WarehouseProductsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool? activeOnly = true)
     {
-        var query = _db.WarehouseProducts.Include(p => p.BaseUnit).Include(p => p.Category).Include(p => p.ProductUnits).ThenInclude(u => u.Unit).AsQueryable();
+        var query = _db.WarehouseProducts
+            .Include(p => p.BaseUnit)
+            .Include(p => p.Category)
+            .Include(p => p.ProductUnits).ThenInclude(u => u.Unit)
+            .Include(p => p.Balances)
+            .AsQueryable();
+
         if (activeOnly == true) query = query.Where(p => p.IsActive);
+
         var result = await query.OrderBy(p => p.NameAr).Select(p => new
         {
             p.Id, p.SKU, p.Barcode, p.NameAr, p.NameEn, p.Description,
@@ -30,6 +37,9 @@ public class WarehouseProductsController : ControllerBase
             p.BaseUnitId, BaseUnitName = p.BaseUnit != null ? p.BaseUnit.NameAr : null,
             p.WeightedAverageCost, p.LastPurchaseCost, p.MinStockLevel, p.ReorderPoint, p.ReorderQuantity,
             p.IsActive, p.CreatedAt,
+            CurrentStock = p.Balances.Sum(b => (decimal?)b.QuantityOnHand) ?? 0m,
+            CostPrice = p.WeightedAverageCost > 0 ? p.WeightedAverageCost : p.LastPurchaseCost,
+            ReorderLevel = p.ReorderPoint,
             Units = p.ProductUnits.Select(u => new { u.Id, u.UnitId, UnitName = u.Unit != null ? u.Unit.NameAr : null, u.ConversionFactorToBase, u.IsDefaultPurchaseUnit, u.IsDefaultRequisitionUnit })
         }).ToListAsync();
         return Ok(result);

@@ -211,7 +211,16 @@
             }
             else
             {
-                Snackbar.Add("فشل تسجيل إذن الاستلام", MudBlazor.Severity.Error);
+                var errContent = await res.Content.ReadAsStringAsync();
+                string msg = "فشل تسجيل إذن الاستلام";
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(errContent);
+                    if (doc.RootElement.TryGetProperty("message", out var m))
+                        msg = m.GetString() ?? msg;
+                }
+                catch { if (!string.IsNullOrWhiteSpace(errContent)) msg += $": {errContent}"; }
+                Snackbar.Add(msg, MudBlazor.Severity.Error);
             }
         }
         catch (Exception ex)

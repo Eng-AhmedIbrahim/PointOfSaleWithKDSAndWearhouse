@@ -142,7 +142,7 @@
                         <MudTh Style="background: #f8fafc; font-weight: 800; color: #475569; text-align: center;">الكمية المطلوبة</MudTh>
                         <MudTh Style="background: #f8fafc; font-weight: 800; color: #475569; text-align: center;">الكمية المعتمدة</MudTh>
                         <MudTh Style="background: #f8fafc; font-weight: 800; color: #475569; text-align: center;">الكمية المشحونة</MudTh>
-                        <MudTh Style="background: #f8fafc; font-weight: 800; color: #475569; text-align: center;">الكمية المستلمة</MudTh>
+                        <MudTh Style="background: #f8fafc; font-weight: 800; color: #10b981; text-align: center;">المتاح في المخزن</MudTh>
                         <MudTh Style="background: #f8fafc; font-weight: 800; color: #475569;">ملاحظات</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -199,22 +199,9 @@
                             }
                         </MudTd>
                         <MudTd Style="text-align: center;">
-                            @if (_requisition.Status == 8)
-                            {
-                                <MudNumericField T="decimal?" @bind-Value="context.ReceivedQty"
-                                                 Variant="MudBlazor.Variant.Outlined"
-                                                 Margin="MudBlazor.Margin.Dense"
-                                                 Min="0m"
-                                                 HideSpinButtons="true"
-                                                 Format="N2"
-                                                 Style="width: 100px; margin: 0 auto; text-align: center; font-weight: 800; border-radius: 8px;" />
-                            }
-                            else
-                            {
-                                <span style="font-weight: 800; color: #0284c7;">
-                                    @(context.ReceivedQty.HasValue ? context.ReceivedQty.Value.ToString("N2") : "-")
-                                </span>
-                            }
+                            <span class="pa-1 px-3 rounded-lg" style="background: @(context.AvailableInWarehouse >= context.RequestedQty ? "#ecfdf5" : "#fef2f2"); color: @(context.AvailableInWarehouse >= context.RequestedQty ? "#16a34a" : "#dc2626"); font-weight: 800; font-size: 0.95rem;">
+                                @(context.AvailableInWarehouse.HasValue ? context.AvailableInWarehouse.Value.ToString("N2") : "-")
+                            </span>
                         </MudTd>
                         <MudTd>
                             <span class="text-muted" style="font-size: 0.85rem;">@(string.IsNullOrEmpty(context.Notes) ? "-" : context.Notes)</span>
@@ -496,16 +483,25 @@
                     {
                         line.ApprovedQty = line.RequestedQty;
                     }
-                    if ((line.ReceivedQty == null || line.ReceivedQty == 0) && line.DispatchedQty > 0)
+                }
+            }
+
+            try
+            {
+                var stockInfo = await Http.GetFromJsonAsync<List<StockInfoDto>>($"/api/warehouse/requisitions/{RequisitionId}/stock-info");
+                if (stockInfo != null && _requisition?.Lines != null)
+                {
+                    foreach (var line in _requisition.Lines)
                     {
-                        line.ReceivedQty = line.DispatchedQty;
-                    }
-                    else if ((line.ReceivedQty == null || line.ReceivedQty == 0) && line.ApprovedQty > 0)
-                    {
-                        line.ReceivedQty = line.ApprovedQty;
+                        var si = stockInfo.FirstOrDefault(s => s.LineId == line.Id || s.ProductId == line.ProductId);
+                        if (si != null)
+                        {
+                            line.AvailableInWarehouse = si.AvailableInWarehouse;
+                        }
                     }
                 }
             }
+            catch { }
 
             try {
                 _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
@@ -727,8 +723,10 @@
         public decimal? DispatchedQty { get => DispatchedQuantity; set => DispatchedQuantity = value; }
         public decimal? ReceivedQuantity { get; set; }
         public decimal? ReceivedQty { get => ReceivedQuantity; set => ReceivedQuantity = value; }
+        public decimal? AvailableInWarehouse { get; set; }
         public string? Notes { get; set; }
     }
 
+    private record StockInfoDto(int LineId, int ProductId, string ProductName, decimal RequestedQuantity, decimal? ProposedQuantity, string UnitName, decimal AvailableInWarehouse, bool IsEnough, decimal Shortage);
     private record StatusHistoryDto(string ToStatus, DateTime ChangedAt, string ChangedBy, string? Notes);
 }
