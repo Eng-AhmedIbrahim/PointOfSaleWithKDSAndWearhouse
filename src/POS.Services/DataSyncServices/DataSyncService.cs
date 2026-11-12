@@ -604,7 +604,7 @@ END";
             await UpsertTableById(hqConn, localConn, transaction, "AttributeItems", new[] { "Name", "ArabicName", "Price", "AttributeId" });
 
             // 3. Categories (upsert by Id)
-            await UpsertTableById(hqConn, localConn, transaction, "Categories", new[] { "ArabicName", "EnglishName", "Description", "ImagePath", "MainCategoryId", "BackColor", "TextColor", "TextSize", "Active" });
+            await UpsertTableById(hqConn, localConn, transaction, "Categories", new[] { "ArabicName", "EnglishName", "NormalizedEnglishName", "ItemsFont", "Invisible", "Description", "ImagePath", "MainCategoryId", "BackColor", "TextColor", "TextSize", "Active" });
 
             // 4. MenuSalesItems: Match by Id, preserve local printers (KitchenTypeId, PrintInBackupReceipt)
             var checkCmd = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'MenuSalesItems'", hqConn);
@@ -622,52 +622,55 @@ FROM MenuSalesItems", hqConn);
                 var dt = new DataTable();
                 dt.Load(reader);
 
-                var upsertSql = @"
-IF EXISTS (SELECT 1 FROM MenuSalesItems WHERE Id = @Id)
+                var menuIdCheckCmd = new SqlCommand("SELECT OBJECTPROPERTY(OBJECT_ID('[MenuSalesItems]'), 'TableHasIdentity')", localConn, transaction);
+                bool menuHasIdentity = Convert.ToInt32(await menuIdCheckCmd.ExecuteScalarAsync()) == 1;
+                string menuIdOn = menuHasIdentity ? "SET IDENTITY_INSERT [MenuSalesItems] ON;\n    " : "";
+                string menuIdOff = menuHasIdentity ? "\n    SET IDENTITY_INSERT [MenuSalesItems] OFF;" : "";
+
+                var upsertSql = $@"
+IF EXISTS (SELECT 1 FROM [MenuSalesItems] WHERE [Id] = @Id)
 BEGIN
-    UPDATE MenuSalesItems
-    SET ArabicName = @ArabicName,
-        EnglishName = @EnglishName,
-        NormalizedEnglishName = @NormalizedEnglishName,
-        Barcode = CASE WHEN (@Barcode IS NOT NULL AND @Barcode <> '') THEN @Barcode ELSE Barcode END,
-        Price = @Price,
-        SecondPrice = @SecondPrice,
-        ThirdPrice = @ThirdPrice,
-        FourthPrice = @FourthPrice,
-        FifthPrice = @FifthPrice,
-        Tax = @Tax,
-        Description = @Description,
-        ImagePath = @ImagePath,
-        MainCategoryId = @MainCategoryId,
-        CategoryId = @CategoryId,
-        BackColor = @BackColor,
-        TextColor = @TextColor,
-        TextSize = @TextSize,
-        Invisible = @Invisible,
-        HasAttribute = @HasAttribute,
-        AttributeId = @AttributeId,
-        ByWeight = @ByWeight,
-        IsInventory = @IsInventory,
-        ItemTypeId = @ItemTypeId,
-        UpdatedDate = GETUTCDATE()
+    UPDATE [MenuSalesItems]
+    SET [ArabicName] = @ArabicName,
+        [EnglishName] = @EnglishName,
+        [NormalizedEnglishName] = @NormalizedEnglishName,
+        [Barcode] = CASE WHEN (@Barcode IS NOT NULL AND @Barcode <> '') THEN @Barcode ELSE [Barcode] END,
+        [Price] = @Price,
+        [SecondPrice] = @SecondPrice,
+        [ThirdPrice] = @ThirdPrice,
+        [FourthPrice] = @FourthPrice,
+        [FifthPrice] = @FifthPrice,
+        [Tax] = @Tax,
+        [Description] = @Description,
+        [ImagePath] = @ImagePath,
+        [MainCategoryId] = @MainCategoryId,
+        [CategoryId] = @CategoryId,
+        [BackColor] = @BackColor,
+        [TextColor] = @TextColor,
+        [TextSize] = @TextSize,
+        [Invisible] = @Invisible,
+        [HasAttribute] = @HasAttribute,
+        [AttributeId] = @AttributeId,
+        [ByWeight] = @ByWeight,
+        [IsInventory] = @IsInventory,
+        [ItemTypeId] = @ItemTypeId,
+        [UpdatedDate] = GETUTCDATE()
         -- Note: KitchenTypeId and PrintInBackupReceipt are NOT overwritten to protect local branch printer setup!
-    WHERE Id = @Id;
+    WHERE [Id] = @Id;
 END
 ELSE
 BEGIN
-    SET IDENTITY_INSERT MenuSalesItems ON;
-    INSERT INTO MenuSalesItems (
-        Id, Barcode, ArabicName, EnglishName, NormalizedEnglishName, Price, SecondPrice, ThirdPrice,
-        FourthPrice, FifthPrice, Tax, Description, ImagePath, MainCategoryId, CategoryId,
-        BackColor, TextColor, TextSize, Invisible, HasAttribute, AttributeId, ByWeight,
-        IsInventory, ItemTypeId, KitchenTypeId, PrintInBackupReceipt, BranchId, CreationDate
+    {menuIdOn}INSERT INTO [MenuSalesItems] (
+        [Id], [Barcode], [ArabicName], [EnglishName], [NormalizedEnglishName], [Price], [SecondPrice], [ThirdPrice],
+        [FourthPrice], [FifthPrice], [Tax], [Description], [ImagePath], [MainCategoryId], [CategoryId],
+        [BackColor], [TextColor], [TextSize], [Invisible], [HasAttribute], [AttributeId], [ByWeight],
+        [IsInventory], [ItemTypeId], [KitchenTypeId], [PrintInBackupReceipt], [BranchId], [CreationDate]
     ) VALUES (
         @Id, @Barcode, @ArabicName, @EnglishName, @NormalizedEnglishName, @Price, @SecondPrice, @ThirdPrice,
         @FourthPrice, @FifthPrice, @Tax, @Description, @ImagePath, @MainCategoryId, @CategoryId,
         @BackColor, @TextColor, @TextSize, @Invisible, @HasAttribute, @AttributeId, @ByWeight,
         @IsInventory, @ItemTypeId, @KitchenTypeId, @PrintInBackupReceipt, @BranchId, @CreationDate
-    );
-    SET IDENTITY_INSERT MenuSalesItems OFF;
+    );{menuIdOff}
 END";
 
                 foreach (DataRow row in dt.Rows)
@@ -715,6 +718,18 @@ END";
         var checkCmd = new SqlCommand($"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}'", hqConn);
         if (Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) == 0) return;
 
+        // Get local columns to avoid sending columns that don't exist locally
+        var localColsCmd = new SqlCommand($"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}'", localConn, transaction);
+        var localCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var colReader = await localColsCmd.ExecuteReaderAsync())
+        {
+            while (await colReader.ReadAsync())
+            {
+                localCols.Add(colReader.GetString(0));
+            }
+        }
+        if (localCols.Count == 0) return;
+
         var cmd = new SqlCommand($"SELECT * FROM [{tableName}]", hqConn);
         using (var reader = await cmd.ExecuteReaderAsync())
         {
@@ -723,13 +738,30 @@ END";
 
             if (!dt.Columns.Contains("Id") || dt.Rows.Count == 0) return;
 
-            var allCols = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
-            var validUpdateCols = updateCols.Where(c => allCols.Contains(c)).ToList();
-            if (validUpdateCols.Count == 0) return;
+            var commonCols = dt.Columns.Cast<DataColumn>()
+                .Select(c => c.ColumnName)
+                .Where(c => localCols.Contains(c))
+                .ToList();
 
-            var setClause = string.Join(", ", validUpdateCols.Select(c => $"[{c}] = @{c}"));
-            var insertCols = string.Join(", ", allCols.Select(c => $"[{c}]"));
-            var insertParams = string.Join(", ", allCols.Select(c => $"@{c}"));
+            if (!commonCols.Contains("Id", StringComparer.OrdinalIgnoreCase)) return;
+
+            var validUpdateCols = updateCols
+                .Where(c => commonCols.Contains(c, StringComparer.OrdinalIgnoreCase) && !string.Equals(c, "Id", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (validUpdateCols.Count == 0 && commonCols.Count <= 1) return;
+
+            var idCheckCmd = new SqlCommand($"SELECT OBJECTPROPERTY(OBJECT_ID('[{tableName}]'), 'TableHasIdentity')", localConn, transaction);
+            bool hasIdentity = Convert.ToInt32(await idCheckCmd.ExecuteScalarAsync()) == 1;
+
+            string identityOn = hasIdentity ? $"SET IDENTITY_INSERT [{tableName}] ON;\n    " : "";
+            string identityOff = hasIdentity ? $"\n    SET IDENTITY_INSERT [{tableName}] OFF;" : "";
+
+            var setClause = validUpdateCols.Count > 0
+                ? string.Join(", ", validUpdateCols.Select(c => $"[{c}] = @{c}"))
+                : "[Id] = @Id";
+            var insertCols = string.Join(", ", commonCols.Select(c => $"[{c}]"));
+            var insertParams = string.Join(", ", commonCols.Select(c => $"@{c}"));
 
             var sql = $@"
 IF EXISTS (SELECT 1 FROM [{tableName}] WHERE [Id] = @Id)
@@ -738,16 +770,14 @@ BEGIN
 END
 ELSE
 BEGIN
-    SET IDENTITY_INSERT [{tableName}] ON;
-    INSERT INTO [{tableName}] ({insertCols}) VALUES ({insertParams});
-    SET IDENTITY_INSERT [{tableName}] OFF;
+    {identityOn}INSERT INTO [{tableName}] ({insertCols}) VALUES ({insertParams});{identityOff}
 END";
 
             foreach (DataRow row in dt.Rows)
             {
                 using (var upsertCmd = new SqlCommand(sql, localConn, transaction))
                 {
-                    foreach (var col in allCols)
+                    foreach (var col in commonCols)
                     {
                         upsertCmd.Parameters.AddWithValue($"@{col}", row[col] ?? DBNull.Value);
                     }
