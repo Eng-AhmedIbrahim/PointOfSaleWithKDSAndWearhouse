@@ -1,5 +1,6 @@
 ﻿@page "/basicdata/inventory"
 @using BackOffice.Desktop.Components.Pages.BasicData.Items
+@using BlazorBase.Helpers
 @inject IInventoryFrontService InventoryService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -8,6 +9,7 @@
 @inject Radzen.DialogService RadzenDialogService
 @inject NavigationManager NavManager
 @inject POS.Core.Services.Contract.PosFeatureServices.IPosFeatureSettingsService FeatureSettingsService
+@inject HttpClient Http
 
 <style>
     .inventory-page { 
@@ -341,7 +343,7 @@
                 
                 <RadzenDataGridColumn TItem="InventoryItemDto" Property="Unit" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الوحدة" : "Unit")" Width="140px">
                     <Template Context="item">
-                        <RadzenDropDown TValue="int?" Value="@item.UnitId" Data="@AllUnits" TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" 
+                        <RadzenDropDown TValue="int?" Value="@item.UnitId" Data="@GetFilteredUnits(item)" TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" 
                                         ValueProperty="Id" Change="@((val) => UpdateItemUnit(item, (int?)val))" 
                                         Style="width: 100%; border-radius: 8px; font-weight: 850; font-size: 0.85rem;" Placeholder="---" />
                     </Template>
@@ -401,6 +403,7 @@
     private bool IsInventoryEnabled = true;
     private List<InventoryItemDto> InventoryItems = new();
     private List<UnitDto> AllUnits = new();
+    private List<WarehouseProductLookupDto> _whProducts = new();
     private string SearchString = "";
     private RadzenDataGrid<InventoryItemDto> grid = default!;
 
@@ -505,6 +508,14 @@
     {
         var response = await UnitFrontService.GetAllUnitsAsync();
         if (response.Success) AllUnits = response.Data.ToList();
+
+        // Load warehouse products for unit filtering
+        try
+        {
+            var whResult = await Http.GetFromJsonAsync<List<WarehouseProductLookupDto>>("/api/warehouse/products");
+            _whProducts = whResult ?? new();
+        }
+        catch { _whProducts = new(); }
     }
 
     private async Task LoadData()
@@ -580,10 +591,51 @@
         Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "يرجى اختيار صنف من القائمة لتعيين رصيد أول المدة" : "Please select an item from the list to set opening stock", Severity.Info);
     }
 
+    // ── Warehouse Product Helpers ──────────────────────────────────────
+    private WarehouseProductLookupDto? GetLinkedWhProduct(InventoryItemDto item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Barcode)) return null;
+        return _whProducts.FirstOrDefault(p =>
+            (!string.IsNullOrWhiteSpace(p.Barcode) && p.Barcode == item.Barcode) ||
+            (!string.IsNullOrWhiteSpace(p.SKU)     && p.SKU     == item.Barcode));
+    }
+
+    private List<UnitDto> GetFilteredUnits(InventoryItemDto item)
+    {
+        var currentUnit = AllUnits.FirstOrDefault(u => u.Id == item.UnitId);
+        var whProduct   = GetLinkedWhProduct(item);
+        return InventoryUnitHelper.GetAllowedUnits(currentUnit, AllUnits, whProduct);
+    }
+    // ──────────────────────────────────────────────────────────────────
+
     private async Task UpdateItemUnit(InventoryItemDto item, int? unitId)
     {
+        if (item.UnitId == unitId) return;
+        var oldUnit = AllUnits.FirstOrDefault(u => u.Id == item.UnitId);
+        var newUnit = AllUnits.FirstOrDefault(u => u.Id == unitId);
+        var whProduct = GetLinkedWhProduct(item);
+        decimal convertedQty = InventoryUnitHelper.ConvertQuantity(item.CurrentQuantity, oldUnit, newUnit, whProduct);
+
         item.UnitId = unitId;
-        await InventoryService.InitializeInventoryAsync(item);
+        item.CurrentQuantity = convertedQty;
+
+        try
+        {
+            await InventoryService.InitializeInventoryAsync(item);
+            await InventoryService.SetPhysicalStockAsync(new UpdateStockDto
+            {
+                MenuSalesItemId = item.MenuSalesItemId,
+                QuantityChange = convertedQty,
+                Notes = $"تغيير الوحدة إلى {newUnit?.ArabicName}"
+            });
+            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar"
+                ? $"تم تغيير الوحدة إلى {newUnit?.ArabicName} والكمية أصبحت {convertedQty:0.####}"
+                : $"Unit changed to {newUnit?.EnglishName}, qty = {convertedQty:0.####}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         await LoadData();
     }
 

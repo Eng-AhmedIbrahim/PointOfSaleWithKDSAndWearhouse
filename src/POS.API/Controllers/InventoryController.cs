@@ -44,6 +44,7 @@ public class InventoryController : BaseApiController
             ItemTypeId = i.ItemTypeId,
             ItemTypeCode = i.ItemTypeCode,
             HasRecipe = recipeItemIds.Contains(i.MenuSalesItemId),
+            Barcode = i.MenuSalesItem?.Barcode,
             UpdatedAt = i.UpdatedAt ?? i.CreatedAt
         }).ToList();
 
@@ -74,6 +75,7 @@ public class InventoryController : BaseApiController
             TrackInventory = item.TrackInventory,
             ItemTypeId = item.ItemTypeId,
             ItemTypeCode = item.ItemTypeCode,
+            Barcode = item.MenuSalesItem?.Barcode,
             UpdatedAt = item.UpdatedAt ?? item.CreatedAt
         });
     }

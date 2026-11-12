@@ -19,6 +19,7 @@ public class InventoryItemDto
     public int? ItemTypeId { get; set; }
     public string? ItemTypeCode { get; set; }
     public bool HasRecipe { get; set; }
+    public string? Barcode { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
 

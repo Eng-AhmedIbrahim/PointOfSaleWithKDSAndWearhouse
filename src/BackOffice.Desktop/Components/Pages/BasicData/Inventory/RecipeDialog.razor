@@ -2,6 +2,8 @@
 @inject IInventoryFrontService InventoryService
 @inject ISnackbar Snackbar
 @inject LocalizationService Localizer
+@inject HttpClient Http
+@using BlazorBase.Helpers
 
 <MudDialog Class="premium-recipe-dialog">
     <DialogContent>
@@ -98,9 +100,9 @@
                                                            Style="width: 100%; border: none; background: #f8fafc; border-radius: 8px; font-weight: 800; text-align: center; height: 36px;" />
                                         </td>
                                         <td>
-                                            <RadzenDropDown TValue="int?" Data="@AllUnits" @bind-Value="ingredient.UnitId"
-                                                            TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" ValueProperty="Id"
-                                                            Style="width: 100%; border: none; background: #f8fafc; border-radius: 8px; font-weight: 700; height: 36px;" />
+                                            <RadzenDropDown TValue="int?" Data="@GetIngredientUnits(ingredient)" @bind-Value="ingredient.UnitId"
+                                                             TextProperty="@(Localizer.GetCurrentLanguage() == "ar" ? "ArabicName" : "EnglishName")" ValueProperty="Id"
+                                                             Style="width: 100%; border: none; background: #f8fafc; border-radius: 8px; font-weight: 700; height: 36px;" />
                                         </td>
                                         <td style="text-align: center;">
                                             <RadzenButton Icon="delete" Click="@(() => RemoveIngredient(ingredient))"
@@ -243,6 +245,7 @@
     private List<RecipeIngredientDto> CurrentIngredients = new();
     private List<InventoryItemDto> AllInventoryItems = new();
     private List<UnitDto> AllUnits = new();
+    private List<WarehouseProductLookupDto> _whProducts = new();
     [Inject] public IUnitFrontService UnitFrontService { get; set; } = default!;
     
     private InventoryItemDto? SelectedIngredient;
@@ -262,6 +265,13 @@
     {
         var response = await UnitFrontService.GetAllUnitsAsync();
         if (response.Success) AllUnits = response.Data.ToList();
+
+        try
+        {
+            var whResult = await Http.GetFromJsonAsync<List<WarehouseProductLookupDto>>("/api/warehouse/products");
+            _whProducts = whResult ?? new();
+        }
+        catch { _whProducts = new(); }
     }
 
     private async Task LoadData()
@@ -329,6 +339,24 @@
     {
         CurrentIngredients.Remove(ingredient);
     }
+
+    // ── Warehouse Product Helpers ──────────────────────────────────────
+    private WarehouseProductLookupDto? GetIngredientWhProduct(RecipeIngredientDto ingredient)
+    {
+        var invItem = AllInventoryItems.FirstOrDefault(i => i.MenuSalesItemId == ingredient.MenuSalesIngredientId);
+        if (invItem == null || string.IsNullOrWhiteSpace(invItem.Barcode)) return null;
+        return _whProducts.FirstOrDefault(p =>
+            (!string.IsNullOrWhiteSpace(p.Barcode) && p.Barcode == invItem.Barcode) ||
+            (!string.IsNullOrWhiteSpace(p.SKU)     && p.SKU     == invItem.Barcode));
+    }
+
+    private List<UnitDto> GetIngredientUnits(RecipeIngredientDto ingredient)
+    {
+        var currentUnit = AllUnits.FirstOrDefault(u => u.Id == ingredient.UnitId);
+        var whProduct   = GetIngredientWhProduct(ingredient);
+        return InventoryUnitHelper.GetAllowedUnits(currentUnit, AllUnits, whProduct);
+    }
+    // ──────────────────────────────────────────────────────────────────
 
     private async Task SaveRecipe()
     {
