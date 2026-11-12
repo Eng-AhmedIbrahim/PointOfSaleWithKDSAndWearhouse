@@ -594,8 +594,7 @@ END";
         {
             await hqConn.OpenAsync();
 
-            // 1. KitchenTypes (upsert by Id, preserve existing)
-            await UpsertTableById(hqConn, localConn, transaction, "KitchenTypes", new[] { "KitchenName" });
+            // 1. KitchenTypes: DO NOT sync to protect branch printers configuration! Local printers must not be added or modified.
 
             // 2. Classifications & Attributes
             await UpsertTableById(hqConn, localConn, transaction, "ItemsClassifications", new[] { "Name", "ArabicName", "Description" });
@@ -603,12 +602,20 @@ END";
             await UpsertTableById(hqConn, localConn, transaction, "Attributes", new[] { "Name", "ArabicName", "SelectionType", "AttributeGroupId" });
             await UpsertTableById(hqConn, localConn, transaction, "AttributeItems", new[] { "Name", "ArabicName", "Price", "AttributeId" });
 
-            // 3. Categories (upsert by Id)
+            // 3. Categories (upsert by Id - note: KitchenTypeId & PrintInBackupReceipt are excluded to preserve local printer assignments)
             await UpsertTableById(hqConn, localConn, transaction, "Categories", new[] { "ArabicName", "EnglishName", "NormalizedEnglishName", "ItemsFont", "Invisible", "Description", "ImagePath", "MainCategoryId", "BackColor", "TextColor", "TextSize", "Active" });
 
             // 4. MenuSalesItems: Match by Id, preserve local printers (KitchenTypeId, PrintInBackupReceipt)
             var checkCmd = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'MenuSalesItems'", hqConn);
             if (Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) == 0) return;
+
+            // Load valid local KitchenType IDs to prevent FK violations on new item inserts
+            var localKitchenIdsCmd = new SqlCommand("SELECT Id FROM KitchenTypes", localConn, transaction);
+            var validKitchenIds = new HashSet<int>();
+            using (var kReader = await localKitchenIdsCmd.ExecuteReaderAsync())
+            {
+                while (await kReader.ReadAsync()) validKitchenIds.Add(kReader.GetInt32(0));
+            }
 
             var cmd = new SqlCommand(@"
 SELECT Id, Barcode, ArabicName, EnglishName, NormalizedEnglishName, Price, SecondPrice, ThirdPrice,
@@ -701,7 +708,12 @@ END";
                         upsertCmd.Parameters.AddWithValue("@ByWeight", Convert.ToBoolean(row["ByWeight"]));
                         upsertCmd.Parameters.AddWithValue("@IsInventory", Convert.ToBoolean(row["IsInventory"]));
                         upsertCmd.Parameters.AddWithValue("@ItemTypeId", row["ItemTypeId"] != DBNull.Value ? row["ItemTypeId"] : 1);
-                        upsertCmd.Parameters.AddWithValue("@KitchenTypeId", row["KitchenTypeId"] != DBNull.Value ? row["KitchenTypeId"] : DBNull.Value);
+                        object kitchenVal = DBNull.Value;
+                        if (row["KitchenTypeId"] != DBNull.Value && int.TryParse(row["KitchenTypeId"].ToString(), out int kId) && validKitchenIds.Contains(kId))
+                        {
+                            kitchenVal = kId;
+                        }
+                        upsertCmd.Parameters.AddWithValue("@KitchenTypeId", kitchenVal);
                         upsertCmd.Parameters.AddWithValue("@PrintInBackupReceipt", row["PrintInBackupReceipt"] != DBNull.Value ? row["PrintInBackupReceipt"] : DBNull.Value);
                         upsertCmd.Parameters.AddWithValue("@BranchId", localBranchId > 0 ? (object)localBranchId : DBNull.Value);
                         upsertCmd.Parameters.AddWithValue("@CreationDate", row["CreationDate"] != DBNull.Value ? row["CreationDate"] : DateTime.UtcNow);
