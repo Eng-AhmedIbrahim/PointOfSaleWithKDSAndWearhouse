@@ -327,12 +327,15 @@
                 @if (_showReceiveNotesPanel)
                 {
                     <MudPaper Class="pa-4 mb-3 rounded-2xl border" Elevation="0" Style="background: #f0fdf4; border: 1.5px solid #bbf7d0;">
-                        <div class="d-flex align-center gap-2 mb-3">
+                        <div class="d-flex align-center gap-2 mb-2">
                             <div class="pa-2 rounded-lg" style="background: #dcfce7; color: #16a34a;">
                                 <MudIcon Icon="@Icons.Material.Rounded.DoneAll" Size="MudBlazor.Size.Small" />
                             </div>
-                            <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 800; color: #166534;">تأكيد استلام الطلبية بالفرع</MudText>
+                            <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 800; color: #166534;">تأكيد استلام الطلبية بالفرع (إدارياً)</MudText>
                         </div>
+                        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-3 rounded-lg" Variant="MudBlazor.Variant.Outlined">
+                            الأصل أن يقوم الفرع بتأكيد الاستلام من شاشة (طلبات الفروع) لديه. هذا الخيار متاح هنا لإدارة المخزن للتأكيد نيابة عن الفرع وتحديث رصيد مخزن الفرع تلقائياً.
+                        </MudAlert>
                         <MudText Typo="MudBlazor.Typo.caption" Style="font-weight: 800; color: #14532d; display: block; margin-bottom: 6px;">
                             ملاحظات الاستلام:
                         </MudText>
@@ -342,7 +345,7 @@
                             <MudButton Variant="MudBlazor.Variant.Text" OnClick="@(() => _showReceiveNotesPanel = false)">إلغاء</MudButton>
                             <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled"
                                        OnClick="ExecuteReceive" Disabled="_acting" Style="border-radius: 8px; font-weight: 700;">
-                                تأكيد الاستلام وتحديث المخزون
+                                تأكيد الاستلام وتحديث مخزون الفرع
                             </MudButton>
                         </div>
                     </MudPaper>
@@ -426,7 +429,7 @@
                                    StartIcon="@Icons.Material.Rounded.DoneAll"
                                    OnClick="@(() => { _showReceiveNotesPanel = !_showReceiveNotesPanel; })" Disabled="_acting"
                                    Style="border-radius: 10px; font-weight: 800;">
-                            تأكيد الاستلام
+                            تأكيد استلام الفرع (إدارياً)
                         </MudButton>
                     }
                 </div>
@@ -488,7 +491,9 @@
 
             try
             {
-                var stockInfo = await Http.GetFromJsonAsync<List<StockInfoDto>>($"/api/warehouse/requisitions/{RequisitionId}/stock-info");
+                // API returns { StockLines: [...] } wrapper object
+                var stockResponse = await Http.GetFromJsonAsync<StockInfoResponse>($"/api/warehouse/requisitions/{RequisitionId}/stock-info");
+                var stockInfo = stockResponse?.StockLines;
                 if (stockInfo != null && _requisition?.Lines != null)
                 {
                     foreach (var line in _requisition.Lines)
@@ -501,7 +506,10 @@
                     }
                 }
             }
-            catch { }
+            catch (Exception stockEx)
+            {
+                Snackbar.Add($"تنبيه: لم يتم تحميل بيانات المخزون: {stockEx.Message}", MudBlazor.Severity.Warning);
+            }
 
             try {
                 _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("/api/warehouses") ?? new();
@@ -727,6 +735,14 @@
         public string? Notes { get; set; }
     }
 
-    private record StockInfoDto(int LineId, int ProductId, string ProductName, decimal RequestedQuantity, decimal? ProposedQuantity, string UnitName, decimal AvailableInWarehouse, bool IsEnough, decimal Shortage);
+    private class StockInfoResponse
+    {
+        public int RequisitionId { get; set; }
+        public string? RequisitionNumber { get; set; }
+        public string? WarehouseName { get; set; }
+        public List<StockInfoDto>? StockLines { get; set; }
+    }
+
+    private record StockInfoDto(int LineId, int ProductId, string? ProductName, decimal RequestedQuantity, decimal? ProposedQuantity, string? UnitName, decimal AvailableInWarehouse, bool IsEnough, decimal Shortage);
     private record StatusHistoryDto(string ToStatus, DateTime ChangedAt, string ChangedBy, string? Notes);
 }

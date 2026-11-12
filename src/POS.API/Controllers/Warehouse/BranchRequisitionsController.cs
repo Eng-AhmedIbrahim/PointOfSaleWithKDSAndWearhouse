@@ -50,7 +50,19 @@ public class BranchRequisitionsController : ControllerBase
             } : null,
             r.ReroutedToWarehouseId, r.RerouteReason, r.Notes, r.RejectionReason,
             r.ApprovedAt, r.DispatchedAt, r.ReceivedAt,
-            LineCount = r.Lines.Count
+            LineCount = r.Lines.Count,
+            Lines = r.Lines.Select(l => new
+            {
+                l.Id,
+                l.ProductId,
+                ProductName = l.Product != null ? l.Product.NameAr : "",
+                l.UnitId,
+                UnitName = l.Unit != null ? l.Unit.NameAr : "",
+                l.RequestedQuantity,
+                l.ApprovedQuantity,
+                l.DispatchedQuantity,
+                l.ReceivedQuantity
+            }).ToList()
         }).ToListAsync();
         return Ok(result);
     }
@@ -450,13 +462,28 @@ public class BranchRequisitionsController : ControllerBase
             return BadRequest(new { message = "الطلب ليس في حالة شحن" });
 
         // ===== Update received quantities =====
-        foreach (var lineDto in dto.Lines)
+        if (dto.Lines != null && dto.Lines.Any(ld => ld.ReceivedQuantity > 0))
         {
-            var l = r.Lines.FirstOrDefault(x => x.Id == lineDto.LineId);
-            if (l != null)
+            foreach (var lineDto in dto.Lines)
             {
-                l.ReceivedQuantity = lineDto.ReceivedQuantity;
-                l.DiscrepancyQuantity = l.DispatchedQuantity - lineDto.ReceivedQuantity;
+                var l = r.Lines.FirstOrDefault(x => x.Id == lineDto.LineId);
+                if (l != null)
+                {
+                    l.ReceivedQuantity = lineDto.ReceivedQuantity;
+                    l.DiscrepancyQuantity = l.DispatchedQuantity - lineDto.ReceivedQuantity;
+                }
+            }
+        }
+        else
+        {
+            // Defensive Fallback: If caller sent empty lines or all zero, assume full receipt of dispatched/approved quantities
+            foreach (var l in r.Lines)
+            {
+                decimal defaultQty = l.DispatchedQuantity > 0 
+                    ? l.DispatchedQuantity 
+                    : (l.ApprovedQuantity > 0 ? l.ApprovedQuantity : l.RequestedQuantity);
+                l.ReceivedQuantity = defaultQty;
+                l.DiscrepancyQuantity = 0;
             }
         }
 
@@ -470,18 +497,33 @@ public class BranchRequisitionsController : ControllerBase
             var product = line.Product;
             if (product == null) continue;
 
-            // Match item in MenuSalesItems: by Barcode -> ArabicName
+            // Match item in MenuSalesItems: by Barcode -> ArabicName -> Normalized Arabic Name
             POS.Core.Entities.Item.MenuSalesItems? menuItem = null;
             if (!string.IsNullOrWhiteSpace(product.Barcode))
                 menuItem = await _db.MenuSalesItems.FirstOrDefaultAsync(m => m.Barcode == product.Barcode);
             if (menuItem == null && !string.IsNullOrWhiteSpace(product.NameAr))
                 menuItem = await _db.MenuSalesItems.FirstOrDefaultAsync(m => m.ArabicName == product.NameAr);
+            if (menuItem == null && !string.IsNullOrWhiteSpace(product.NameAr))
+            {
+                string normProduct = NormalizeArabic(product.NameAr);
+                var allItems = await _db.MenuSalesItems.AsNoTracking().ToListAsync();
+                var matched = allItems.FirstOrDefault(m =>
+                    !string.IsNullOrWhiteSpace(m.ArabicName) && (
+                        NormalizeArabic(m.ArabicName) == normProduct ||
+                        normProduct.Contains(NormalizeArabic(m.ArabicName)) ||
+                        NormalizeArabic(m.ArabicName).Contains(normProduct)
+                    ));
+                if (matched != null)
+                    menuItem = await _db.MenuSalesItems.FindAsync(matched.Id);
+            }
 
             if (menuItem == null)
             {
                 // Auto-create raw material menu item so the branch inventory is never skipped
+                int nextId = (await _db.MenuSalesItems.MaxAsync(m => (int?)m.Id) ?? 0) + 1;
                 menuItem = new POS.Core.Entities.Item.MenuSalesItems
                 {
+                    Id = nextId,
                     ArabicName = product.NameAr,
                     EnglishName = !string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.NameAr,
                     NormalizedEnglishName = (!string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.NameAr).ToUpperInvariant(),
@@ -701,12 +743,13 @@ public class BranchRequisitionsController : ControllerBase
             .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
 
+        int whId = r.ReroutedToWarehouseId ?? r.TargetWarehouseId;
         var stockInfo = new List<object>();
         foreach (var l in r.Lines)
         {
             var balance = await _db.StockBalances
                 .AsNoTracking()
-                .FirstOrDefaultAsync(b => b.WarehouseId == r.TargetWarehouseId && b.ProductId == l.ProductId);
+                .FirstOrDefaultAsync(b => b.WarehouseId == whId && b.ProductId == l.ProductId);
 
             decimal requestedBaseQty = l.ProposedQuantity ?? l.RequestedQuantity;
             if (l.Product != null && l.UnitId != l.Product.BaseUnitId)
@@ -848,6 +891,15 @@ public class BranchRequisitionsController : ControllerBase
         var wId = r.ReroutedToWarehouseId ?? r.TargetWarehouseId;
         await _hub.Clients.Group($"warehouse_{wId}").SendAsync("RequisitionUpdated",
             new { RequisitionId = r.Id, RequisitionNumber = r.RequisitionNumber, Status = status, Message = msg, Timestamp = DateTime.UtcNow });
+    }
+
+    private static string NormalizeArabic(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        return text
+            .Replace("أ", "ا").Replace("إ", "ا").Replace("آ", "ا")
+            .Replace("ة", "ه").Replace("ى", "ي")
+            .Replace(" ", "").Trim().ToLowerInvariant();
     }
 }
 

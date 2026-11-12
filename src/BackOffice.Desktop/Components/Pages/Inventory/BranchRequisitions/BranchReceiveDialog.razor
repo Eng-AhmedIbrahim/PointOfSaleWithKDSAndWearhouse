@@ -12,7 +12,13 @@
         </div>
     </TitleContent>
     <DialogContent>
-        @if (Requisition != null)
+        @if (_loading)
+        {
+            <div class="d-flex justify-center align-center pa-10">
+                <MudProgressCircular Color="MudBlazor.Color.Success" Indeterminate="true" Size="MudBlazor.Size.Large" />
+            </div>
+        }
+        else if (Requisition != null)
         {
             <div class="pa-2">
                 <MudAlert Severity="MudBlazor.Severity.Info" Class="mb-3" Variant="MudBlazor.Variant.Outlined">
@@ -80,20 +86,45 @@
     private List<ReceiveLineVm> _lines = new();
     private string? _notes;
     private bool _isSubmitting = false;
+    private bool _loading = true;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (Requisition?.Lines != null)
+        _loading = true;
+        try
         {
-            _lines = Requisition.Lines.Select(l => new ReceiveLineVm
+            if (Requisition != null)
             {
-                LineId = l.Id,
-                ProductId = l.ProductId,
-                ProductName = l.Product?.NameAr ?? $"صنف #{l.ProductId}",
-                UnitName = l.Unit?.NameAr ?? "وحدة",
-                DispatchedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : l.ApprovedQuantity,
-                ReceivedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : l.ApprovedQuantity
-            }).ToList();
+                if (Requisition.Lines == null || !Requisition.Lines.Any())
+                {
+                    var full = await Http.GetFromJsonAsync<BranchRequisitionVm>($"api/warehouse/requisitions/{Requisition.Id}");
+                    if (full?.Lines != null && full.Lines.Any())
+                    {
+                        Requisition.Lines = full.Lines;
+                    }
+                }
+
+                if (Requisition.Lines != null)
+                {
+                    _lines = Requisition.Lines.Select(l => new ReceiveLineVm
+                    {
+                        LineId = l.Id,
+                        ProductId = l.ProductId,
+                        ProductName = l.Product?.NameAr ?? $"صنف #{l.ProductId}",
+                        UnitName = l.Unit?.NameAr ?? "وحدة",
+                        DispatchedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : (l.ApprovedQuantity > 0 ? l.ApprovedQuantity : l.RequestedQuantity),
+                        ReceivedQuantity = l.DispatchedQuantity > 0 ? l.DispatchedQuantity : (l.ApprovedQuantity > 0 ? l.ApprovedQuantity : l.RequestedQuantity)
+                    }).ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل بنود الشحنة: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
