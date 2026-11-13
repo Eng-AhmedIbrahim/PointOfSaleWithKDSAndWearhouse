@@ -21,6 +21,8 @@
                     <MudSelect T="int?" Label="من المخزن *" @bind-Value="Model.FromWarehouseId"
                                Required="true" Variant="MudBlazor.Variant.Outlined"
                                For="@(() => Model.FromWarehouseId)"
+                               Adornment="Adornment.Start"
+                               Style="direction:rtl; text-align:right;"
                                AnchorOrigin="Origin.BottomCenter">
                         @foreach (var w in _warehouses)
                         {
@@ -32,6 +34,8 @@
                     <MudSelect T="int?" Label="إلى المخزن *" @bind-Value="Model.ToWarehouseId"
                                Required="true" Variant="MudBlazor.Variant.Outlined"
                                For="@(() => Model.ToWarehouseId)"
+                               Adornment="Adornment.Start"
+                               Style="direction:rtl; text-align:right;"
                                AnchorOrigin="Origin.BottomCenter">
                         @foreach (var w in _warehouses.Where(w => w.Id != (Model.FromWarehouseId ?? -1)))
                         {
@@ -42,11 +46,14 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ التحويل" @bind-Date="Model.TransferDate"
                                    Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
+                                   Adornment="Adornment.Start"
+                                   Style="direction:rtl; text-align:right;"
                                    Culture="@(new System.Globalization.CultureInfo("ar-EG"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" Label="ملاحظات عامة" @bind-Value="Model.Notes"
-                                  Lines="1" Variant="MudBlazor.Variant.Outlined" />
+                                  Lines="1" Variant="MudBlazor.Variant.Outlined"
+                                  Style="direction:rtl; text-align:right;" />
                 </MudItem>
             </MudGrid>
 

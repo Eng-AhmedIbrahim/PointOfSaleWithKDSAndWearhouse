@@ -10,6 +10,7 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
+@inject IJSRuntime JSRuntime
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
@@ -19,7 +20,7 @@
         </MudText>
         <div class="d-flex gap-2">
             <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
-                       OnClick="@(() => Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info))">طباعة</MudButton>
+                       OnClick="@(async () => await JSRuntime.InvokeVoidAsync("window.print"))">طباعة التقرير</MudButton>
             <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Download"
                        OnClick="@(() => Snackbar.Add("جارٍ تجهيز التصدير...", MudBlazor.Severity.Info))">تصدير</MudButton>
         </div>

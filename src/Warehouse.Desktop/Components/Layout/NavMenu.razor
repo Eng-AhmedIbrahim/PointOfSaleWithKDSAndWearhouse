@@ -171,6 +171,18 @@
                         @(IsArabic ? "تقرير ديون ومستحقات الموردين" : "Supplier Aging")
                     </div>
                 </MudMenuItem>
+                <MudMenuItem Href="/suppliers/accounts">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.AccountBalanceWallet" Size="Size.Small" />
+                        @(IsArabic ? "كشف حسابات الموردين والمدفوعات" : "Supplier Statements & Payments")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem Href="/inventory/balances">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.Inventory" Size="Size.Small" />
+                        @(IsArabic ? "تقرير أرصدة المستودعات الحالية" : "Current Warehouse Balances")
+                    </div>
+                </MudMenuItem>
             </ChildContent>
         </MudMenu>
 

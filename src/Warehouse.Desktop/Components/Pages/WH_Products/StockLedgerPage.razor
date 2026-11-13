@@ -1,4 +1,5 @@
 ﻿@page "/inventory/ledger"
+@page "/reports/item-movements"
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 @using MudBlazor
@@ -8,13 +9,21 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject BlazorBase.Services.LocalizationService LocalizerService
+@inject IJSRuntime JSRuntime
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
-    <div class="wh-page-header mb-4">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
         <MudText MudBlazor.Typo="Typo.h5" Class="wh-header-title" Style="font-weight: 800;">
             <MudIcon Icon="@Icons.Material.Filled.MenuBook" Class="me-2" />
             دفتر حركات المخزون (Stock Ledger)
         </MudText>
+        <div>
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="@(async () => await JSRuntime.InvokeVoidAsync("window.print"))">
+                طباعة الدفتر
+            </MudButton>
+        </div>
     </div>
 
     <MudCard Class="wh-card mb-4" Elevation="1">

@@ -92,16 +92,56 @@ public class WarehouseReportsController : ControllerBase
     [HttpGet("supplier-aging")]
     public async Task<IActionResult> SupplierAging()
     {
-        var unpaid = await _db.SupplierInvoices.Include(i => i.Supplier)
-            .Where(i => i.TotalAmount > i.PaidAmount).OrderBy(i => i.DueDate)
-            .Select(i => new
+        var allInvoices = await _db.SupplierInvoices.Include(i => i.Supplier)
+            .OrderBy(i => i.InvoiceDate)
+            .ToListAsync();
+        var allPayments = await _db.SupplierPayments
+            .OrderBy(p => p.PaymentDate)
+            .ToListAsync();
+
+        var result = new List<object>();
+
+        foreach (var supplierGroup in allInvoices.GroupBy(i => i.SupplierId))
+        {
+            var supplierId = supplierGroup.Key;
+            var supplier = supplierGroup.First().Supplier;
+            var totalPaidBySupplier = allPayments.Where(p => p.SupplierId == supplierId).Sum(p => p.Amount);
+            var remainingPaymentToAllocate = totalPaidBySupplier;
+
+            foreach (var inv in supplierGroup.OrderBy(i => i.InvoiceDate))
             {
-                i.SupplierId, SupplierName = i.Supplier != null ? i.Supplier.NameAr : null,
-                i.InvoiceNumber, i.InvoiceDate, i.DueDate, i.TotalAmount, i.PaidAmount,
-                Outstanding = i.TotalAmount - i.PaidAmount,
-                DaysOverdue = (DateTime.Today - i.DueDate).Days
-            }).ToListAsync();
-        return Ok(unpaid);
+                decimal paidForThisInvoice = 0m;
+                if (remainingPaymentToAllocate >= inv.TotalAmount)
+                {
+                    paidForThisInvoice = inv.TotalAmount;
+                    remainingPaymentToAllocate -= inv.TotalAmount;
+                }
+                else if (remainingPaymentToAllocate > 0)
+                {
+                    paidForThisInvoice = remainingPaymentToAllocate;
+                    remainingPaymentToAllocate = 0;
+                }
+
+                decimal outstanding = inv.TotalAmount - paidForThisInvoice;
+                if (outstanding > 0)
+                {
+                    result.Add(new
+                    {
+                        inv.SupplierId,
+                        SupplierName = supplier != null ? (supplier.NameAr ?? supplier.NameEn) : null,
+                        inv.InvoiceNumber,
+                        inv.InvoiceDate,
+                        inv.DueDate,
+                        inv.TotalAmount,
+                        PaidAmount = paidForThisInvoice,
+                        Outstanding = outstanding,
+                        DaysOverdue = (DateTime.Today - inv.DueDate).Days
+                    });
+                }
+            }
+        }
+
+        return Ok(result);
     }
 
     [AllowAnonymous]

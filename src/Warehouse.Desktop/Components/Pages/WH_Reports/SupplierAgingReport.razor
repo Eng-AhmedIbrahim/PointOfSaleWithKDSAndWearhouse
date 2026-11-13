@@ -6,11 +6,21 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject BlazorBase.Services.LocalizationService LocalizerService
+@inject IJSRuntime JSRuntime
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
-    <div class="wh-page-header mb-4">
-        <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">تقرير أعمار ديون الموردين (Supplier Aging Report)</MudText>
-        <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">متابعة الفواتير المستحقة للموردين وجدولة السداد حسب فترات الاستحقاق</MudText>
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">تقرير أعمار ديون الموردين (Supplier Aging Report)</MudText>
+            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">متابعة الفواتير المستحقة للموردين وجدولة السداد حسب فترات الاستحقاق</MudText>
+        </div>
+        <div>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="@(async () => await JSRuntime.InvokeVoidAsync("window.print"))">
+                طباعة التقرير
+            </MudButton>
+        </div>
     </div>
 
     @if (_invoices.Any())

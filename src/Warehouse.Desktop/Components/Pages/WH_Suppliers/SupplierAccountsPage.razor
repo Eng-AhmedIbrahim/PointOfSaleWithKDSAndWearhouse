@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
+@inject IJSRuntime JSRuntime
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header">
@@ -116,7 +117,7 @@
         <MudItem xs="12" sm="4">
             <MudCard Class="wh-card" Style="border-right: 4px solid #1976d2;">
                 <MudCardContent>
-                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">المديونية المتبقية</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">المديونية</MudText>
                     <MudText MudBlazor.Typo="Typo.h6" Style="@(CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
                         @CurrentBalance.ToString("N2")
                     </MudText>
@@ -185,6 +186,165 @@
     </MudCard>
 </div>
 
+@if (_showPrintPreview)
+{
+    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true })">
+        <TitleContent>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; direction:rtl;">
+                <MudText Typo="Typo.h6" Style="font-weight:700;">
+                    <MudIcon Icon="@Icons.Material.Filled.Preview" Class="ml-2" />
+                    معاينة طباعة كشف الحساب
+                </MudText>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <MudSelect T="string" @bind-Value="_selectedPrinter" Variant="MudBlazor.Variant.Outlined"
+                               Margin="Margin.Dense" Dense="true" Style="min-width:240px; background:#fff; direction:rtl;">
+                        @foreach (var pr in _availablePrinters)
+                        {
+                            <MudSelectItem T="string" Value="@pr">@pr</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton StartIcon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Primary"
+                               Variant="MudBlazor.Variant.Filled" OnClick="ExecutePrint"
+                               Style="font-weight:700; border-radius:8px;">
+                        طباعة الآن
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="MudBlazor.Color.Default"
+                                   OnClick="@(() => _showPrintPreview = false)" />
+                </div>
+            </div>
+        </TitleContent>
+        <DialogContent>
+            <div id="printable-statement" dir="rtl" style="background:#fff; color:#0f172a; padding:24px; border-radius:8px; border:1px solid #e2e8f0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ff6600; padding-bottom:12px; margin-bottom:16px;">
+                    <div>
+                        <h2 style="margin:0; font-weight:800; color:#1e293b;">إدارة المخزن الرئيسي واللوجستيات</h2>
+                        <h4 style="margin:4px 0 0 0; color:#ff6600; font-weight:700;">كشف حساب مورد تفصيلي معتمد</h4>
+                    </div>
+                    <div style="text-align:left; font-size:12px; color:#64748b;">
+                        <div>تاريخ الاستخراج: <strong>@DateTime.Now.ToString("yyyy/MM/dd hh:mm tt")</strong></div>
+                        <div>الفترة: من <strong>@(DateFrom?.ToString("yyyy/MM/dd") ?? "-")</strong> إلى <strong>@(DateTo?.ToString("yyyy/MM/dd") ?? "-")</strong></div>
+                    </div>
+                </div>
+
+                <!-- Supplier Info Bar -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px; margin-bottom:16px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <div>المورد: <strong style="font-size:16px; color:#0f172a;">@SelectedSupplierName</strong></div>
+                    <div>عدد العمليات: <strong>@Transactions.Count</strong></div>
+                    <div>حالة الحساب: <span style="color:@(CurrentBalance > 0 ? "#dc2626" : "#16a34a"); font-weight:bold;">@(CurrentBalance > 0 ? "مدين بمبلغ مستحق" : "متزن / خالص")</span></div>
+                </div>
+
+                <!-- KPI Cards & Progress -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:20px; align-items:center;">
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+                        <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:12px; color:#9f1239; font-weight:600;">إجمالي الفواتير</div>
+                            <div style="font-size:18px; font-weight:800; color:#e11d48; margin-top:4px;">@TotalDebit.ToString("N2") <small>ج.م</small></div>
+                        </div>
+                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:12px; color:#166534; font-weight:600;">إجمالي المسدد</div>
+                            <div style="font-size:18px; font-weight:800; color:#16a34a; margin-top:4px;">@TotalCredit.ToString("N2") <small>ج.م</small></div>
+                        </div>
+                        <div style="background:#f8fafc; border:2px solid @(CurrentBalance > 0 ? "#ef4444" : "#22c55e"); border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:12px; color:#475569; font-weight:600;">المديونية المتبقية</div>
+                            <div style="font-size:18px; font-weight:800; color:@(CurrentBalance > 0 ? "#dc2626" : "#16a34a"); margin-top:4px;">@CurrentBalance.ToString("N2") <small>ج.م</small></div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Payment Percentage -->
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:6px;">
+                            <span>نسبة السداد</span>
+                            <span style="color:#16a34a;">@PaidPercentage%</span>
+                        </div>
+                        <MudProgressLinear Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large"
+                                           Value="@((double)PaidRatio)" Style="border-radius:6px; height:12px;" />
+                        <div style="display:flex; justify-content:space-between; font-size:11px; color:#64748b; margin-top:4px;">
+                            <span>مسدد: @TotalCredit.ToString("N0") ج.م</span>
+                            <span>متبقي: @CurrentBalance.ToString("N0") ج.م</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:24px;">
+                    <thead>
+                        <tr style="background:#f1f5f9; color:#334155; text-align:right;">
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">التاريخ</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">النوع</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">المرجع</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left;">مديونية (+)</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left;">سداد (-)</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">طريقة الدفع</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">بواسطة</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1;">ملاحظات</th>
+                            <th style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left;">الرصيد التراكمي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Transactions)
+                        {
+                            <tr style="border-bottom:1px solid #e2e8f0;">
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0;">@t.Date.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; font-weight:600; color:@(t.TransactionType == "فاتورة مشتريات" ? "#b45309" : "#15803d");">
+                                    @t.TransactionType
+                                </td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; font-family:monospace;">@t.Reference</td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; text-align:left; color:#dc2626; font-weight:700;">
+                                    @(t.Debit > 0 ? t.Debit.ToString("N2") : "-")
+                                </td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; text-align:left; color:#16a34a; font-weight:700;">
+                                    @(t.Credit > 0 ? t.Credit.ToString("N2") : "-")
+                                </td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0;">@(t.PaymentMethod ?? "-")</td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0;">@(t.CreatedBy ?? "-")</td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; font-size:11px; color:#64748b;">@(t.Notes ?? "-")</td>
+                                <td style="padding:6px 10px; border:1px solid #e2e8f0; text-align:left; font-weight:800; color:@(t.RunningBalance > 0 ? "#dc2626" : "#16a34a");">
+                                    @t.RunningBalance.ToString("N2")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc; font-weight:800;">
+                            <td colspan="3" style="padding:8px 10px; border:1px solid #cbd5e1; text-align:right;">الإجمالي النهائي</td>
+                            <td style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left; color:#dc2626;">@TotalDebit.ToString("N2")</td>
+                            <td style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left; color:#16a34a;">@TotalCredit.ToString("N2")</td>
+                            <td colspan="3" style="padding:8px 10px; border:1px solid #cbd5e1;">الصافي المتبقي:</td>
+                            <td style="padding:8px 10px; border:1px solid #cbd5e1; text-align:left; color:@(CurrentBalance > 0 ? "#dc2626" : "#16a34a");">@CurrentBalance.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Signatures -->
+                <div style="display:flex; justify-content:space-between; margin-top:32px; padding-top:16px; border-top:1px dashed #cbd5e1; font-size:12px; color:#475569;">
+                    <div style="text-align:center; min-width:140px;">
+                        <div>إعداد المحاسب</div>
+                        <div style="margin-top:30px; border-bottom:1px solid #94a3b8;"></div>
+                    </div>
+                    <div style="text-align:center; min-width:140px;">
+                        <div>المراجعة والتدقيق</div>
+                        <div style="margin-top:30px; border-bottom:1px solid #94a3b8;"></div>
+                    </div>
+                    <div style="text-align:center; min-width:140px;">
+                        <div>اعتماد إدارة المخزن</div>
+                        <div style="margin-top:30px; border-bottom:1px solid #94a3b8;"></div>
+                    </div>
+                </div>
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Print" OnClick="ExecutePrint">
+                طباعة
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Outlined" OnClick="@(() => _showPrintPreview = false)">
+                إغلاق
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
     private bool IsLoading = false;
@@ -199,6 +359,18 @@
     private decimal TotalDebit => Transactions.Sum(t => t.Debit);
     private decimal TotalCredit => Transactions.Sum(t => t.Credit);
     private decimal CurrentBalance => TotalDebit - TotalCredit;
+    private string SelectedSupplierName => Suppliers.FirstOrDefault(s => s.Id == SelectedSupplierId)?.Name ?? "مورد غير محدد";
+    private string PaidPercentage => TotalDebit > 0 ? Math.Round((TotalCredit / TotalDebit) * 100, 1).ToString("N1") : "0";
+    private decimal PaidRatio => TotalDebit > 0 ? Math.Min(100m, (TotalCredit / TotalDebit) * 100m) : 0m;
+
+    private bool _showPrintPreview = false;
+    private string _selectedPrinter = "الطابعة الافتراضية للويندوز (A4)";
+    private List<string> _availablePrinters = new()
+    {
+        "الطابعة الافتراضية للويندوز (A4)",
+        "Microsoft Print to PDF",
+        "طابعة فواتير حرارية (80mm)"
+    };
 
     record SupplierLookup(int Id, string Name);
     record AccountTransactionDto(DateTime Date, string TransactionType, string Reference,
@@ -259,7 +431,24 @@
 
     private void Print()
     {
-        Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info);
+        if (SelectedSupplierId == 0)
+        {
+            Snackbar.Add("يرجى اختيار مورد أولاً لمعاينة وطباعة كشف الحساب", MudBlazor.Severity.Warning);
+            return;
+        }
+        _showPrintPreview = true;
+    }
+
+    private async Task ExecutePrint()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"تعذر فتح نافذة الطباعة: {ex.Message}", MudBlazor.Severity.Error);
+        }
     }
 
     // ── Payment Form ──────────────────────────────────────

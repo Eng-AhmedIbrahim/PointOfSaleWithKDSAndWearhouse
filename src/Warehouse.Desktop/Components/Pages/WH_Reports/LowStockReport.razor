@@ -8,6 +8,7 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
+@inject IJSRuntime JSRuntime
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
@@ -15,12 +16,19 @@
             <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" Color="MudBlazor.Color.Error" />
             تقرير المخزون المنخفض وتنبيهات إعادة الطلب
         </MudText>
-        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
-                   StartIcon="@Icons.Material.Filled.ShoppingCart"
-                   OnClick="@(() => Snackbar.Add("قيد التطوير", MudBlazor.Severity.Info))"
-                   Disabled="!_selectedItems.Any()">
-            إنشاء أمر شراء تلقائي (@_selectedItems.Count)
-        </MudButton>
+        <div class="d-flex gap-2">
+            <MudButton Color="MudBlazor.Color.Primary" Variant="MudBlazor.Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="@(async () => await JSRuntime.InvokeVoidAsync("window.print"))">
+                طباعة
+            </MudButton>
+            <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+                       StartIcon="@Icons.Material.Filled.ShoppingCart"
+                       OnClick="@(() => Snackbar.Add("قيد التطوير", MudBlazor.Severity.Info))"
+                       Disabled="!_selectedItems.Any()">
+                إنشاء أمر شراء تلقائي (@_selectedItems.Count)
+            </MudButton>
+        </div>
     </div>
 
     <!-- Filters -->
