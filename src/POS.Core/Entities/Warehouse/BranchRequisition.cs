@@ -18,15 +18,13 @@ public enum RequisitionStatus
 
 public class BranchRequisition : BaseEntity
 {
-    public string RequisitionNumber { get; set; } = string.Empty; // e.g. REQ-2026-0001
+    public string RequisitionNumber { get; set; } = string.Empty;
     public int RequestingBranchId { get; set; }
     public POS.Core.Entities.Company.Branch? RequestingBranch { get; set; }
 
-    // المخزن المستهدف بالطلب (الافتراضي هو المخزن الرئيسي أو مخزن آخر يختاره الفرع)
     public int TargetWarehouseId { get; set; }
     public Warehouse? TargetWarehouse { get; set; }
 
-    // لو تم تحويل الطلب لمخزن بديل
     public int? ReroutedToWarehouseId { get; set; }
     public Warehouse? ReroutedToWarehouse { get; set; }
     public string? RerouteReason { get; set; }
@@ -35,7 +33,6 @@ public class BranchRequisition : BaseEntity
     public DateTime RequestDate { get; set; } = DateTime.UtcNow;
     public DateTime? RequiredDate { get; set; }
 
-    // التواريخ وتتبع الحالات
     public DateTime? ApprovedAt { get; set; }
     public string? ApprovedByUserId { get; set; }
     public DateTime? DispatchedAt { get; set; }
@@ -46,8 +43,33 @@ public class BranchRequisition : BaseEntity
     public string? Notes { get; set; }
     public string? RejectionReason { get; set; }
 
-    // أسطر الطلبية مع الكميات ومراحل التعديل
+    // Optimistic Concurrency - يمنع التعديل المتزامن من طرفين
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; set; }
+
     public ICollection<BranchRequisitionLine> Lines { get; set; } = new List<BranchRequisitionLine>();
+    public ICollection<RequisitionLog> Logs { get; set; } = new List<RequisitionLog>();
+}
+
+/// <summary>سجل أحداث الطلبية - كل تغيير يُسجَّل هنا</summary>
+public class RequisitionLog : BaseEntity
+{
+    public int RequisitionId { get; set; }
+    public BranchRequisition? Requisition { get; set; }
+
+    // Created | Submitted | UnderReview | Approved | Preparing | Dispatched
+    // Received | Rejected | Cancelled | Edited | ProposalSent | ProposalAccepted | ProposalRejected | Rerouted
+    public string EventType { get; set; } = string.Empty;
+
+    public string? OldStatus { get; set; }
+    public string? NewStatus { get; set; }
+    public string? Description { get; set; }
+
+    public string? ChangedByUserId { get; set; }
+    public string? ChangedByName { get; set; }
+    public string? ChangedByRole { get; set; }  // "Branch" or "Warehouse"
+
+    public DateTime EventDate { get; set; } = DateTime.UtcNow;
 }
 
 public class BranchRequisitionLine : BaseEntity
@@ -61,22 +83,11 @@ public class BranchRequisitionLine : BaseEntity
     public int UnitId { get; set; }
     public WarehouseUnit? Unit { get; set; }
 
-    // 1. الكمية التي طلبها الفرع
     public decimal RequestedQuantity { get; set; }
-
-    // 2. الكمية المقترحة من المخزن (في حال وجود نقص أو تعديل)
     public decimal? ProposedQuantity { get; set; }
     public string? ModificationNotes { get; set; }
-
-    // 3. الكمية المعتمدة النهائية بعد موافقة الطرفين
     public decimal ApprovedQuantity { get; set; }
-
-    // 4. الكمية المشحونة بالفعل
     public decimal DispatchedQuantity { get; set; }
-
-    // 5. الكمية المستلمة فعلياً في الفرع
     public decimal ReceivedQuantity { get; set; }
-
-    // 6. كمية العجز أو التلف أثناء النقل
     public decimal DiscrepancyQuantity { get; set; }
 }

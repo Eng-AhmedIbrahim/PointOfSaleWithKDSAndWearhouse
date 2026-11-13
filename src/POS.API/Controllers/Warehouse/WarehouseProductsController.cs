@@ -561,6 +561,9 @@ public class WarehouseProductsController : ControllerBase
         var count = await _db.StockLedger.CountAsync(l => l.MovementType == StockMovementType.InventoryAdjustment || l.MovementType == StockMovementType.WasteDamage) + 1;
         var refDoc = $"ADJ-{now.Year}-{count:D4}";
 
+        var currentUserId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                         ?? User?.FindFirst("sub")?.Value;
+
         var ledger = new StockLedger
         {
             WarehouseId = req.WarehouseId,
@@ -575,7 +578,7 @@ public class WarehouseProductsController : ControllerBase
             ReferenceDocumentNumber = refDoc,
             Notes = $"{req.Reason}: {req.Notes}".TrimEnd(':', ' '),
             MovementDate = now,
-            CreatedByUserId = "أمين المخزن"
+            CreatedByUserId = currentUserId
         };
         _db.StockLedger.Add(ledger);
         await _db.SaveChangesAsync();

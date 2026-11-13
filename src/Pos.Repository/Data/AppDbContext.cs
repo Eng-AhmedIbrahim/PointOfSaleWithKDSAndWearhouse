@@ -100,6 +100,16 @@ public class AppDbContext : DbContext
             pol.HasOne(x => x.PurchaseOrder).WithMany(po => po.Logs).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<BranchRequisition>(br =>
+        {
+            br.Property(x => x.RowVersion).IsRowVersion();
+        });
+
+        modelBuilder.Entity<RequisitionLog>(rl =>
+        {
+            rl.HasOne(x => x.Requisition).WithMany(r => r.Logs).HasForeignKey(x => x.RequisitionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<PurchaseOrderLine>(pol =>
         {
             pol.HasOne(x => x.PurchaseOrder).WithMany(p => p.Lines).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
@@ -214,6 +224,7 @@ public class AppDbContext : DbContext
     public DbSet<GoodsReceiptNoteLine> GoodsReceiptNoteLines { get; set; }
     public DbSet<BranchRequisition> BranchRequisitions { get; set; }
     public DbSet<BranchRequisitionLine> BranchRequisitionLines { get; set; }
+    public DbSet<RequisitionLog> RequisitionLogs { get; set; }
     public DbSet<StockLedger> StockLedger { get; set; }
     public DbSet<StockBalance> StockBalances { get; set; }
 }
