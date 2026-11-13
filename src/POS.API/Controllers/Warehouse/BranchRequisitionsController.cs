@@ -367,9 +367,14 @@ public class BranchRequisitionsController : ControllerBase
     public async Task<IActionResult> Dispatch(int id, [FromBody] DispatchDto dto)
     {
         var r = await _db.BranchRequisitions
+            .Include(x => x.RequestingBranch)
             .Include(x => x.Lines).ThenInclude(l => l.Product).ThenInclude(p => p!.ProductUnits)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (r == null) return NotFound();
+
+        var branchName = !string.IsNullOrWhiteSpace(r.RequestingBranch?.Name)
+            ? r.RequestingBranch.Name
+            : (await _db.Branches.FindAsync(r.RequestingBranchId))?.Name ?? $"{r.RequestingBranchId}";
 
         // ===== Stock check per line =====
         foreach (var dl in dto.Lines.Where(dl => dl.DispatchedQuantity > 0))
@@ -436,7 +441,7 @@ public class BranchRequisitionsController : ControllerBase
                 ReferenceDocumentType = "REQ",
                 ReferenceDocumentNumber = r.RequisitionNumber,
                 MovementDate = DateTime.UtcNow,
-                Notes = $"شحن لفرع #{r.RequestingBranchId}"
+                Notes = $"شحن لفرع {branchName}"
             });
         }
 

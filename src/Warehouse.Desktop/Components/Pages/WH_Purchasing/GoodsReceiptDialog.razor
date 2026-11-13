@@ -60,10 +60,12 @@
                         <MudTd>
                             <MudNumericField T="decimal" @bind-Value="@context.QuantityReceived" Min="0m"
                                              Max="@(context.OrderedQuantity - context.PreviouslyReceivedQuantity)"
+                                             HideSpinButtons="true"
                                              MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
                         </MudTd>
                         <MudTd>
                             <MudNumericField T="decimal" @bind-Value="@context.UnitCost" Min="0m"
+                                             HideSpinButtons="true"
                                              MudBlazor.Margin="Margin.Dense" Variant="MudBlazor.Variant.Outlined" />
                         </MudTd>
                         <MudTd>
@@ -147,6 +149,11 @@
             if (po != null)
             {
                 _model.WarehouseId = po.WarehouseId;
+                if (string.IsNullOrWhiteSpace(_model.SupplierInvoiceNumber))
+                {
+                    var orderPart = !string.IsNullOrWhiteSpace(po.OrderNumber) ? po.OrderNumber.Replace("PO-", "") : $"{poId:D4}";
+                    _model.SupplierInvoiceNumber = $"INV-{DateTime.Now.Year}-{orderPart}";
+                }
                 _lines = po.Lines.Select(l => new GRNLineModel
                 {
                     ProductId = l.ProductId,
@@ -257,7 +264,7 @@
     }
 
     public record POHeaderItem(int Id, string OrderNumber, string? SupplierName, string Status);
-    public record PODetailDto(int Id, int WarehouseId, List<PODetailLineDto> Lines);
+    public record PODetailDto(int Id, string? OrderNumber, int WarehouseId, List<PODetailLineDto> Lines);
     public record PODetailLineDto(int ProductId, int UnitId, decimal OrderedQuantity, decimal ReceivedQuantity, decimal UnitPrice, ProductShortDto? Product, UnitShortDto? Unit);
     public record ProductShortDto(string NameAr, UnitShortDto? BaseUnit);
     public record UnitShortDto(string NameAr);
