@@ -10,8 +10,57 @@
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header">
         <MudText MudBlazor.Typo="Typo.h5">كشف حساب الموردين</MudText>
-        <MudButton StartIcon="@Icons.Material.Filled.Print" Class="wh-btn-primary" OnClick="Print">طباعة</MudButton>
+        <div style="display:flex; gap:8px;">
+            <MudButton StartIcon="@Icons.Material.Filled.Payment" Variant="MudBlazor.Variant.Filled"
+                       Color="MudBlazor.Color.Success" OnClick="OpenPaymentDialog"
+                       Disabled="@(SelectedSupplierId == 0)"
+                       Style="border-radius:8px; font-weight:700;">
+                تسجيل دفعة
+            </MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Print" Class="wh-btn-primary" OnClick="Print">طباعة</MudButton>
+        </div>
     </div>
+
+    @if (_showPaymentForm)
+    {
+        <MudCard Class="wh-card mb-3" Style="border: 2px solid #22c55e; direction:rtl;">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Style="font-weight:700; color:#166534; margin-bottom:12px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Payment" Class="ml-1" /> تسجيل دفعة للمورد
+                </MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="_paymentAmount" Label="المبلغ المدفوع *"
+                                         Variant="MudBlazor.Variant.Outlined" Min="0.01m"
+                                         HideSpinButtons="true"
+                                         Adornment="Adornment.End" AdornmentText="ج.م" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect @bind-Value="_paymentMethod" Label="طريقة الدفع" T="string"
+                                   Variant="MudBlazor.Variant.Outlined">
+                            <MudSelectItem Value="@("كاش")">كاش</MudSelectItem>
+                            <MudSelectItem Value="@("تحويل بنكي")">تحويل بنكي</MudSelectItem>
+                            <MudSelectItem Value="@("شيك")">شيك</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_paymentNotes" Label="ملاحظات"
+                                      Variant="MudBlazor.Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+            <MudCardActions Style="direction:rtl; justify-content:flex-start; gap:8px; padding:8px 16px;">
+                <MudButton Color="MudBlazor.Color.Success" Variant="MudBlazor.Variant.Filled"
+                           OnClick="SubmitPayment" Disabled="_paymentLoading"
+                           Style="border-radius:8px; font-weight:700;">
+                    @if (_paymentLoading) { <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="ml-2" /> }
+                    تأكيد الدفعة
+                </MudButton>
+                <MudButton Variant="MudBlazor.Variant.Outlined" OnClick="@(() => _showPaymentForm = false)"
+                           Style="border-radius:8px;">إلغاء</MudButton>
+            </MudCardActions>
+        </MudCard>
+    }
 
     <MudCard Class="wh-card mb-3">
         <MudCardContent>
@@ -180,6 +229,51 @@
     private void Print()
     {
         Snackbar.Add("جارٍ تجهيز الطباعة...", MudBlazor.Severity.Info);
+    }
+
+    // ── Payment Form ──────────────────────────────────────
+    private bool _showPaymentForm = false;
+    private bool _paymentLoading = false;
+    private decimal _paymentAmount = 0;
+    private string _paymentMethod = "كاش";
+    private string _paymentNotes = "";
+
+    private void OpenPaymentDialog()
+    {
+        _paymentAmount = 0;
+        _paymentMethod = "كاش";
+        _paymentNotes = "";
+        _showPaymentForm = true;
+    }
+
+    private async Task SubmitPayment()
+    {
+        if (_paymentAmount <= 0)
+        {
+            Snackbar.Add("يرجى إدخال مبلغ صحيح", MudBlazor.Severity.Warning);
+            return;
+        }
+        _paymentLoading = true;
+        try
+        {
+            var payload = new { Amount = _paymentAmount, Method = _paymentMethod, Notes = _paymentNotes };
+            var resp = await Http.PostAsJsonAsync($"/api/suppliers/{SelectedSupplierId}/payments", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"تم تسجيل الدفعة بمبلغ {_paymentAmount:N2} ج.م بنجاح ✅", MudBlazor.Severity.Success);
+                _showPaymentForm = false;
+                await LoadAccounts();
+            }
+            else
+            {
+                Snackbar.Add("فشل تسجيل الدفعة", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { _paymentLoading = false; }
     }
 }
 
