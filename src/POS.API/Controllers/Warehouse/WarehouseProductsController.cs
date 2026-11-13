@@ -506,7 +506,8 @@ public class WarehouseProductsController : ControllerBase
             .Where(l => l.MovementType == StockMovementType.InventoryAdjustment || l.MovementType == StockMovementType.WasteDamage)
             .AsQueryable();
         if (warehouseId.HasValue) query = query.Where(l => l.WarehouseId == warehouseId.Value);
-        var list = await query.OrderByDescending(l => l.MovementDate).Take(100).Select(l => new
+
+        var rawList = await query.OrderByDescending(l => l.MovementDate).Take(100).Select(l => new
         {
             l.Id,
             Reference = !string.IsNullOrEmpty(l.ReferenceDocumentNumber) ? l.ReferenceDocumentNumber : $"ADJ-{l.Id:D5}",
@@ -520,8 +521,33 @@ public class WarehouseProductsController : ControllerBase
             l.UnitCost,
             l.TotalCost,
             l.Notes,
-            CreatedBy = l.CreatedByUserId ?? "أمين المخزن"
+            l.CreatedByUserId
         }).ToListAsync();
+
+        var userIds = rawList.Where(i => !string.IsNullOrEmpty(i.CreatedByUserId)).Select(i => i.CreatedByUserId!).Distinct().ToList();
+        var users = await _userManager.Users.Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, Name = u.DisplayName ?? u.ArabicName ?? u.UserName ?? u.Email })
+            .ToDictionaryAsync(u => u.Id, u => u.Name);
+
+        var list = rawList.Select(l => new
+        {
+            l.Id,
+            l.Reference,
+            l.Date,
+            l.WarehouseName,
+            l.ProductName,
+            l.MovementType,
+            l.TypeLabel,
+            l.Qty,
+            l.RunningBalance,
+            l.UnitCost,
+            l.TotalCost,
+            l.Notes,
+            CreatedBy = (!string.IsNullOrEmpty(l.CreatedByUserId) && users.TryGetValue(l.CreatedByUserId, out var uname))
+                ? uname
+                : "المدير (Administrator)"
+        }).ToList();
+
         return Ok(list);
     }
 
@@ -534,6 +560,8 @@ public class WarehouseProductsController : ControllerBase
         public string Reason { get; set; } = "تسوية جرد دوري";
         public bool IsDamage { get; set; }
         public string? Notes { get; set; }
+        public string? UserId { get; set; }
+        public string? UserName { get; set; }
     }
 
     [AllowAnonymous]
@@ -562,7 +590,20 @@ public class WarehouseProductsController : ControllerBase
         var refDoc = $"ADJ-{now.Year}-{count:D4}";
 
         var currentUserId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                         ?? User?.FindFirst("sub")?.Value;
+                         ?? User?.FindFirst("sub")?.Value
+                         ?? req.UserId;
+
+        if (string.IsNullOrEmpty(currentUserId) && !string.IsNullOrEmpty(req.UserName))
+        {
+            var u = await _userManager.FindByNameAsync(req.UserName);
+            if (u != null) currentUserId = u.Id;
+        }
+
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            var admin = await _userManager.FindByNameAsync("Administrator");
+            if (admin != null) currentUserId = admin.Id;
+        }
 
         var ledger = new StockLedger
         {

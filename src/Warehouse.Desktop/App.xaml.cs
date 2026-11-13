@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Threading;
 using BlazorBase.ERPFrontServices.OrderTrackServices;
 using BlazorBase.ERPFrontServices.ComplaintServices;
@@ -207,14 +207,16 @@ public partial class App : Application
         services.AddSingleton<BlazorBase.API.ApiSettings>(sp =>
             sp.GetRequiredService<IOptions<BlazorBase.API.ApiSettings>>().Value);
 
-        // HTTP Client
+        // HTTP Client with automatic JWT Bearer token injection
+        services.AddTransient<Warehouse.Desktop.Auth.AuthTokenHandler>();
         services.AddHttpClient(configuration["ApiSettings:ApiName"]!,
             client => { client.BaseAddress = new Uri(configuration["ApiSettings:BaseUrl"]!); })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 UseCookies = true,
                 AllowAutoRedirect = true
-            });
+            })
+            .AddHttpMessageHandler<Warehouse.Desktop.Auth.AuthTokenHandler>();
 
         // Register default HttpClient as well for services that don't specify a name
         services.AddScoped(sp => 

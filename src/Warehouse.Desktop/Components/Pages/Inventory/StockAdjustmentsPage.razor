@@ -4,6 +4,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LocalizationService LocalizerService
+@inject CommonProperties _commonProperties
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
@@ -336,7 +337,9 @@
                 CurrentQuantity = _currentSystemQty,
                 Reason = _adjReason,
                 IsDamage = _adjIsDamage,
-                Notes = _adjNotes
+                Notes = _adjNotes,
+                UserId = _commonProperties?.CurrentUserId,
+                UserName = _commonProperties?.CurrentUser
             };
 
             var res = await Http.PostAsJsonAsync("api/warehouseproducts/adjust", payload);

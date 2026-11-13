@@ -121,6 +121,74 @@ public class PurchaseOrdersController : ControllerBase
                 l.CreatedByName,
                 l.EventDate
             }).ToListAsync();
+
+        if (!logs.Any())
+        {
+            var po = await _db.PurchaseOrders.FindAsync(id);
+            if (po != null)
+            {
+                var uname = "Administrator";
+                if (!string.IsNullOrEmpty(po.CreatedByUserId))
+                {
+                    var u = await _userManager.FindByIdAsync(po.CreatedByUserId);
+                    if (u != null) uname = u.DisplayName ?? u.ArabicName ?? u.UserName ?? uname;
+                }
+
+                var createdLog = new PurchaseOrderLog
+                {
+                    PurchaseOrderId = id,
+                    EventType = "Created",
+                    OldStatus = null,
+                    NewStatus = "مسودة",
+                    Description = $"تم إنشاء أمر الشراء {po.OrderNumber}",
+                    CreatedByName = uname,
+                    EventDate = po.OrderDate
+                };
+                _db.PurchaseOrderLogs.Add(createdLog);
+
+                if (po.Status != PurchaseOrderStatus.Draft)
+                {
+                    var statusAr = po.Status switch
+                    {
+                        PurchaseOrderStatus.Approved => "معتمد",
+                        PurchaseOrderStatus.PartiallyReceived => "مستلم جزئياً",
+                        PurchaseOrderStatus.FullyReceived => "مستلم بالكامل",
+                        PurchaseOrderStatus.Cancelled => "ملغي",
+                        _ => po.Status.ToString()
+                    };
+                    var evType = po.Status == PurchaseOrderStatus.Cancelled ? "Cancelled" :
+                                 (po.Status == PurchaseOrderStatus.FullyReceived || po.Status == PurchaseOrderStatus.PartiallyReceived ? "GrnCreated" : "Approved");
+
+                    var currentLog = new PurchaseOrderLog
+                    {
+                        PurchaseOrderId = id,
+                        EventType = evType,
+                        OldStatus = "مسودة",
+                        NewStatus = statusAr,
+                        Description = $"تحديث حالة أمر الشراء إلى {statusAr}",
+                        CreatedByName = uname,
+                        EventDate = po.OrderDate.AddMinutes(5)
+                    };
+                    _db.PurchaseOrderLogs.Add(currentLog);
+                }
+                await _db.SaveChangesAsync();
+
+                logs = await _db.PurchaseOrderLogs
+                    .Where(l => l.PurchaseOrderId == id)
+                    .OrderByDescending(l => l.EventDate)
+                    .Select(l => new
+                    {
+                        l.Id,
+                        l.EventType,
+                        l.OldStatus,
+                        l.NewStatus,
+                        l.Description,
+                        l.CreatedByName,
+                        l.EventDate
+                    }).ToListAsync();
+            }
+        }
+
         return Ok(logs);
     }
 

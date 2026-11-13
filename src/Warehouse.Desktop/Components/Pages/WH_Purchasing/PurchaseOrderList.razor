@@ -21,24 +21,29 @@
                  OnClick="@(() => _activeTab = 0)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
             الكل (@_orders.Count)
         </MudChip>
-        <MudChip T="string" Color="@(_activeTab == 1 ? MudBlazor.Color.Info : MudBlazor.Color.Default)"
+        <MudChip T="string" Color="@(_activeTab == 1 ? MudBlazor.Color.Default : MudBlazor.Color.Default)"
                  Variant="@(_activeTab == 1 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                  OnClick="@(() => _activeTab = 1)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
             مسودة (@_orders.Count(o => o.Status == "Draft"))
         </MudChip>
-        <MudChip T="string" Color="@(_activeTab == 2 ? MudBlazor.Color.Success : MudBlazor.Color.Default)"
+        <MudChip T="string" Color="@(_activeTab == 2 ? MudBlazor.Color.Info : MudBlazor.Color.Default)"
                  Variant="@(_activeTab == 2 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                  OnClick="@(() => _activeTab = 2)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
             معتمد (@_orders.Count(o => o.Status == "Approved"))
         </MudChip>
-        <MudChip T="string" Color="@(_activeTab == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)"
+        <MudChip T="string" Color="@(_activeTab == 3 ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
                  Variant="@(_activeTab == 3 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                  OnClick="@(() => _activeTab = 3)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
-            مغلق (@_orders.Count(o => o.Status == "Closed"))
+            مستلم جزئياً (@_orders.Count(o => o.Status == "PartiallyReceived"))
         </MudChip>
-        <MudChip T="string" Color="@(_activeTab == 4 ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
+        <MudChip T="string" Color="@(_activeTab == 4 ? MudBlazor.Color.Success : MudBlazor.Color.Default)"
                  Variant="@(_activeTab == 4 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                  OnClick="@(() => _activeTab = 4)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            مستلم بالكامل (@_orders.Count(o => o.Status == "FullyReceived"))
+        </MudChip>
+        <MudChip T="string" Color="@(_activeTab == 5 ? MudBlazor.Color.Error : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 5 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 5)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
             ملغي (@_orders.Count(o => o.Status == "Cancelled"))
         </MudChip>
     </MudPaper>
@@ -112,67 +117,6 @@
     </MudCard>
 </div>
 
-@if (_showLogsDialog)
-{
-    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true })">
-        <TitleContent>
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@Icons.Material.Filled.History" Class="ml-2" />
-                سجل أحداث - @_logsPoNumber
-            </MudText>
-        </TitleContent>
-        <DialogContent>
-            @if (_logsLoading)
-            {
-                <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Info" />
-            }
-            else if (!_poLogs.Any())
-            {
-                <MudAlert Severity="MudBlazor.Severity.Info">لا توجد أحداث مسجلة لهذا الأمر</MudAlert>
-            }
-            else
-            {
-                <MudTimeline TimelineOrientation="TimelineOrientation.Vertical" TimelinePosition="TimelinePosition.Start">
-                    @foreach (var log in _poLogs)
-                    {
-                        <MudTimelineItem Color="@log.EventColor" Size="MudBlazor.Size.Small">
-                            <ItemContent>
-                                <MudCard Outlined="true" Class="mb-2">
-                                    <MudCardContent Style="padding:12px;">
-                                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-                                            <MudChip T="string" Color="@log.EventColor" Size="MudBlazor.Size.Small">@log.EventTypeAr</MudChip>
-                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                                @log.EventDate.ToLocalTime().ToString("yyyy/MM/dd hh:mm tt")
-                                            </MudText>
-                                        </div>
-                                        @if (!string.IsNullOrEmpty(log.OldStatus) && !string.IsNullOrEmpty(log.NewStatus) && log.OldStatus != log.NewStatus)
-                                        {
-                                            <MudText Typo="Typo.body2" Class="mt-1">
-                                                الحالة: <strong>@log.OldStatus</strong> ← <strong style="color:#22c55e">@log.NewStatus</strong>
-                                            </MudText>
-                                        }
-                                        @if (!string.IsNullOrEmpty(log.Description))
-                                        {
-                                            <MudText Typo="Typo.body2" Class="mt-1">@log.Description</MudText>
-                                        }
-                                        <MudText Typo="Typo.caption" Class="mt-1">
-                                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="ml-1" />
-                                            بواسطة: <strong>@(log.CreatedByName ?? "النظام")</strong>
-                                        </MudText>
-                                    </MudCardContent>
-                                </MudCard>
-                            </ItemContent>
-                        </MudTimelineItem>
-                    }
-                </MudTimeline>
-            }
-        </DialogContent>
-        <DialogActions>
-            <MudButton OnClick="@(() => _showLogsDialog = false)" Variant="MudBlazor.Variant.Filled">إغلاق</MudButton>
-        </DialogActions>
-    </MudDialog>
-}
-
 @code {
     private bool _loading = false;
     private int _activeTab = 0;
@@ -180,7 +124,7 @@
 
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
 
-    private string[] StatusFilters = { "", "Draft", "Approved", "Closed", "Cancelled" };
+    private string[] StatusFilters = { "", "Draft", "Approved", "PartiallyReceived", "FullyReceived", "Cancelled" };
 
     private IEnumerable<PurchaseOrderDto> FilteredOrders =>
         string.IsNullOrEmpty(StatusFilters[_activeTab])
@@ -277,77 +221,42 @@
     }
 
     // ── Audit Log Dialog ──────────────────────────────────────────────────────
-    private bool _showLogsDialog = false;
-    private string _logsPoNumber = "";
-    private List<PoLogDto> _poLogs = new();
-    private bool _logsLoading = false;
-
     private async Task ShowLogs(PurchaseOrderDto po)
     {
-        _logsPoNumber = po.DisplayPONumber;
-        _showLogsDialog = true;
-        _logsLoading = true;
-        _poLogs = new();
-        try
+        var parameters = new DialogParameters
         {
-            var result = await Http.GetFromJsonAsync<List<PoLogDto>>($"/api/purchaseorders/{po.Id}/logs");
-            _poLogs = result ?? new();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"خطأ في تحميل السجل: {ex.Message}", MudBlazor.Severity.Error);
-        }
-        finally { _logsLoading = false; }
-    }
-
-    private class PoLogDto
-    {
-        public int Id { get; set; }
-        public string? EventType { get; set; }
-        public string? OldStatus { get; set; }
-        public string? NewStatus { get; set; }
-        public string? Description { get; set; }
-        public string? CreatedByName { get; set; }
-        public DateTime EventDate { get; set; }
-
-        public string EventTypeAr => EventType switch
-        {
-            "Created"       => "إنشاء",
-            "Approved"      => "اعتماد",
-            "Edited"        => "تعديل",
-            "GrnCreated"    => "استلام بضاعة",
-            "Cancelled"     => "إلغاء",
-            "StatusChanged" => "تغيير حالة",
-            _               => EventType ?? ""
+            ["PoId"] = po.Id,
+            ["PoNumber"] = po.DisplayPONumber
         };
-
-        public MudBlazor.Color EventColor => EventType switch
+        var options = new MudBlazor.DialogOptions
         {
-            "Created"    => MudBlazor.Color.Default,
-            "Approved"   => MudBlazor.Color.Success,
-            "GrnCreated" => MudBlazor.Color.Warning,
-            "Cancelled"  => MudBlazor.Color.Error,
-            "Edited"     => MudBlazor.Color.Info,
-            _            => MudBlazor.Color.Default
+            MaxWidth = MudBlazor.MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
         };
+        await DialogService.ShowAsync<PurchaseOrderLogsDialog>($"سجل أحداث - {po.DisplayPONumber}", parameters, options);
     }
 
     private Color GetStatusColor(string status) => status switch
     {
-        "Draft"     => MudBlazor.Color.Default,
-        "Approved"  => MudBlazor.Color.Success,
-        "Closed"    => MudBlazor.Color.Info,
-        "Cancelled" => MudBlazor.Color.Error,
-        _           => MudBlazor.Color.Default
+        "Draft"             => MudBlazor.Color.Default,
+        "Approved"          => MudBlazor.Color.Info,
+        "PartiallyReceived" => MudBlazor.Color.Warning,
+        "FullyReceived"     => MudBlazor.Color.Success,
+        "Closed"            => MudBlazor.Color.Primary,
+        "Cancelled"         => MudBlazor.Color.Error,
+        _                   => MudBlazor.Color.Default
     };
 
     private string GetStatusLabel(string status) => status switch
     {
-        "Draft"     => "مسودة",
-        "Approved"  => "معتمد",
-        "Closed"    => "مغلق",
-        "Cancelled" => "ملغي",
-        _           => status
+        "Draft"             => "مسودة",
+        "Approved"          => "معتمد",
+        "PartiallyReceived" => "مستلم جزئياً",
+        "FullyReceived"     => "مستلم بالكامل",
+        "Closed"            => "مغلق",
+        "Cancelled"         => "ملغي",
+        _                   => status
     };
 
     // DTOs
