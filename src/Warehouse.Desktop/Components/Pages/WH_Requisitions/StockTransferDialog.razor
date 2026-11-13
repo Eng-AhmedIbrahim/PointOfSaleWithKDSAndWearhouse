@@ -7,20 +7,21 @@
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
 
-<MudDialog>
+<MudDialog Style="min-width:900px; max-width:1100px; width:95vw; direction:rtl;">
     <TitleContent>
-        <MudText MudBlazor.Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
-            تحويل مخزني جديد
-        </MudText>
+        <div style="display:flex; align-items:center; gap:10px; padding:4px 0; direction:rtl;">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Style="color:#b45309; font-size:28px;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#1e293b;">تحويل مخزني جديد</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <div dir="@(IsArabic ? "rtl" : "ltr")">
-            <MudGrid Spacing="2">
+        <div dir="rtl" style="padding: 8px 4px;">
+            <MudGrid Spacing="3">
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Label="من المخزن" @bind-Value="Model.FromWarehouseId"
+                    <MudSelect T="int?" Label="من المخزن *" @bind-Value="Model.FromWarehouseId"
                                Required="true" Variant="MudBlazor.Variant.Outlined"
-                               For="@(() => Model.FromWarehouseId)">
+                               For="@(() => Model.FromWarehouseId)"
+                               AnchorOrigin="Origin.BottomCenter">
                         @foreach (var w in _warehouses)
                         {
                             <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
@@ -28,9 +29,10 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Label="إلى المخزن" @bind-Value="Model.ToWarehouseId"
+                    <MudSelect T="int?" Label="إلى المخزن *" @bind-Value="Model.ToWarehouseId"
                                Required="true" Variant="MudBlazor.Variant.Outlined"
-                               For="@(() => Model.ToWarehouseId)">
+                               For="@(() => Model.ToWarehouseId)"
+                               AnchorOrigin="Origin.BottomCenter">
                         @foreach (var w in _warehouses.Where(w => w.Id != (Model.FromWarehouseId ?? -1)))
                         {
                             <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
@@ -40,31 +42,41 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="تاريخ التحويل" @bind-Date="Model.TransferDate"
                                    Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
-                                   Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
+                                   Culture="@(new System.Globalization.CultureInfo("ar-EG"))" />
                 </MudItem>
-                <MudItem xs="12">
+                <MudItem xs="12" sm="6">
                     <MudTextField T="string" Label="ملاحظات عامة" @bind-Value="Model.Notes"
-                                  Lines="2" Variant="MudBlazor.Variant.Outlined" />
+                                  Lines="1" Variant="MudBlazor.Variant.Outlined" />
                 </MudItem>
             </MudGrid>
 
             <MudDivider Class="my-4" />
-            <MudText MudBlazor.Typo="Typo.subtitle1" Class="mb-2"><b>الأصناف المحولة</b></MudText>
 
-            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:700; color:#1e293b;">الأصناف المحولة</MudText>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+                           Variant="MudBlazor.Variant.Filled" Size="MudBlazor.Size.Small"
+                           OnClick="AddLine" Style="border-radius:8px;">
+                    إضافة صنف
+                </MudButton>
+            </div>
+
+            <MudTable Items="_lines" Dense="true" Bordered="true" Striped="true" Class="mb-3"
+                      Style="direction:rtl; border-radius:8px; overflow:hidden;">
                 <HeaderContent>
-                    <MudTh>المنتج</MudTh>
-                    <MudTh>الوحدة</MudTh>
-                    <MudTh>الكمية</MudTh>
-                    <MudTh>الموقع (من)</MudTh>
-                    <MudTh>الموقع (إلى)</MudTh>
-                    <MudTh>ملاحظات</MudTh>
-                    <MudTh></MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">المنتج</MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">الوحدة</MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">الكمية</MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">الموقع (من)</MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">الموقع (إلى)</MudTh>
+                    <MudTh Style="background:#f8fafc; font-weight:700; color:#475569; text-align:right;">ملاحظات</MudTh>
+                    <MudTh Style="background:#f8fafc; width:48px;"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.ProductId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                   Style="min-width:160px;" AnchorOrigin="Origin.BottomCenter">
                             @foreach (var p in _products)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.DisplayName</MudSelectItem>
@@ -73,7 +85,8 @@
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.UnitId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                   Style="min-width:100px;" AnchorOrigin="Origin.BottomCenter">
                             @foreach (var u in _units)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)u.Id)">@u.DisplayName</MudSelectItem>
@@ -82,12 +95,14 @@
                     </MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.Qty"
-                                         Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense"
-                                         Min="0.01m" Style="width:90px;" />
+                                         Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                         HideSpinButtons="true"
+                                         Min="0.01m" Style="width:100px;" />
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.FromLocationId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                   Placeholder="اختياري" Style="min-width:120px;" AnchorOrigin="Origin.BottomCenter">
                             @foreach (var l in _locations)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.DisplayName</MudSelectItem>
@@ -96,7 +111,8 @@
                     </MudTd>
                     <MudTd>
                         <MudSelect T="int?" @bind-Value="context.ToLocationId"
-                                   Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" Placeholder="اختياري">
+                                   Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                   Placeholder="اختياري" Style="min-width:120px;" AnchorOrigin="Origin.BottomCenter">
                             @foreach (var l in _locations)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)l.Id)">@l.DisplayName</MudSelectItem>
@@ -105,31 +121,31 @@
                     </MudTd>
                     <MudTd>
                         <MudTextField T="string" @bind-Value="context.Notes"
-                                      Variant="MudBlazor.Variant.Outlined" Dense="true" MudBlazor.Margin="Margin.Dense" />
+                                      Variant="MudBlazor.Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                      Style="min-width:120px;" />
                     </MudTd>
-                    <MudTd>
+                    <MudTd Style="text-align:center;">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
                                        Size="MudBlazor.Size.Small" OnClick="@(() => RemoveLine(context))" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
-
-            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
-                       Variant="MudBlazor.Variant.Outlined" Size="MudBlazor.Size.Small" OnClick="AddLine">
-                إضافة صنف
-            </MudButton>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
-        <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
-                   Class="wh-btn-primary" OnClick="Execute" Disabled="_executing">
-            @if (_executing)
-            {
-                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            تنفيذ التحويل
-        </MudButton>
+        <div style="display:flex; gap:10px; padding:4px 8px; direction:rtl; width:100%; justify-content:flex-start;">
+            <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
+                       Class="wh-btn-primary" OnClick="Execute" Disabled="_executing"
+                       Style="border-radius:8px; padding:8px 24px; font-weight:700;">
+                @if (_executing)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="ml-2" />
+                }
+                تنفيذ التحويل
+            </MudButton>
+            <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined"
+                       Style="border-radius:8px; padding:8px 20px;">إلغاء</MudButton>
+        </div>
     </DialogActions>
 </MudDialog>
 
