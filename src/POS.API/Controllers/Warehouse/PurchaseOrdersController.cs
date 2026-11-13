@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
 using Pos.Repository.Data;
+using Microsoft.AspNetCore.Identity;
+using Pos.Repository.Identity;
 
 namespace POS.API.Controllers.Warehouse;
 
@@ -15,8 +17,45 @@ namespace POS.API.Controllers.Warehouse;
 public class PurchaseOrdersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public PurchaseOrdersController(AppDbContext db) => _db = db;
+    private readonly UserManager<AppUser> _userManager;
 
+    public PurchaseOrdersController(AppDbContext db, UserManager<AppUser> userManager)
+    {
+        _db = db;
+        _userManager = userManager;
+    }
+
+    // ── Helper: get current user id & name ───────────────────────────────────
+    private string? GetUserId() =>
+        User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+        ?? User?.FindFirst("sub")?.Value;
+
+    private async Task<(string? Id, string Name)> GetCurrentUserInfoAsync()
+    {
+        var uid = GetUserId();
+        if (string.IsNullOrEmpty(uid)) return (null, "النظام");
+        var user = await _userManager.FindByIdAsync(uid);
+        return (uid, user?.DisplayName ?? user?.UserName ?? "النظام");
+    }
+
+    private async Task AddLogAsync(int poId, string eventType,
+        string? oldStatus, string? newStatus,
+        string? description, string? userId, string? userName)
+    {
+        _db.PurchaseOrderLogs.Add(new PurchaseOrderLog
+        {
+            PurchaseOrderId = poId,
+            EventType = eventType,
+            OldStatus = oldStatus,
+            NewStatus = newStatus,
+            Description = description,
+            CreatedByUserId = userId,
+            CreatedByName = userName,
+            EventDate = DateTime.UtcNow
+        });
+    }
+
+    // ── GET all ──────────────────────────────────────────────────────────────
     [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] PurchaseOrderStatus? status)
@@ -29,6 +68,11 @@ public class PurchaseOrdersController : ControllerBase
             OrderNumber = p.OrderNumber,
             PONumber = p.OrderNumber,
             Status = p.Status.ToString(),
+            StatusAr = p.Status == PurchaseOrderStatus.Draft ? "مسودة"
+                     : p.Status == PurchaseOrderStatus.Approved ? "معتمد"
+                     : p.Status == PurchaseOrderStatus.PartiallyReceived ? "مستلم جزئياً"
+                     : p.Status == PurchaseOrderStatus.FullyReceived ? "مستلم بالكامل"
+                     : "ملغي",
             p.OrderDate,
             p.ExpectedDeliveryDate,
             p.SupplierId,
@@ -38,11 +82,14 @@ public class PurchaseOrdersController : ControllerBase
             p.SubTotal,
             p.TaxAmount,
             p.TotalAmount,
+            p.Notes,
+            p.CreatedByUserId,
             LineCount = p.Lines.Count,
             GRNsCount = p.GoodsReceiptNotes.Count
         }).ToListAsync());
     }
 
+    // ── GET by id ─────────────────────────────────────────────────────────────
     [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
@@ -56,45 +103,124 @@ public class PurchaseOrdersController : ControllerBase
         return Ok(po);
     }
 
+    // ── GET audit log ─────────────────────────────────────────────────────────
+    [AllowAnonymous]
+    [HttpGet("{id}/logs")]
+    public async Task<IActionResult> GetLogs(int id)
+    {
+        var logs = await _db.PurchaseOrderLogs
+            .Where(l => l.PurchaseOrderId == id)
+            .OrderByDescending(l => l.EventDate)
+            .Select(l => new
+            {
+                l.Id,
+                l.EventType,
+                l.OldStatus,
+                l.NewStatus,
+                l.Description,
+                l.CreatedByName,
+                l.EventDate
+            }).ToListAsync();
+        return Ok(logs);
+    }
+
+    // ── CREATE ────────────────────────────────────────────────────────────────
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PurchaseOrder model)
     {
+        var (uid, uname) = await GetCurrentUserInfoAsync();
         var year = DateTime.Now.Year;
         var count = await _db.PurchaseOrders.CountAsync(p => p.OrderDate.Year == year) + 1;
         model.OrderNumber = $"PO-{year}-{count:D4}";
         model.Status = PurchaseOrderStatus.Draft;
         model.OrderDate = DateTime.UtcNow;
-        // Calculate totals
+        model.CreatedByUserId = uid;
         model.SubTotal = model.Lines.Sum(l => l.OrderedQuantity * l.UnitPrice);
         model.TotalAmount = model.SubTotal + model.TaxAmount;
         _db.PurchaseOrders.Add(model);
         await _db.SaveChangesAsync();
+
+        await AddLogAsync(model.Id, "Created", null, "مسودة",
+            $"تم إنشاء أمر الشراء {model.OrderNumber}", uid, uname);
+        await _db.SaveChangesAsync();
+
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, new { model.Id, model.OrderNumber });
     }
 
+    // ── EDIT ──────────────────────────────────────────────────────────────────
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Edit(int id, [FromBody] PurchaseOrder model)
+    {
+        var po = await _db.PurchaseOrders.Include(p => p.Lines).FirstOrDefaultAsync(p => p.Id == id);
+        if (po == null) return NotFound();
+        if (po.Status != PurchaseOrderStatus.Draft)
+            return BadRequest(new { message = "لا يمكن تعديل أمر شراء غير مسودة" });
+
+        var (uid, uname) = await GetCurrentUserInfoAsync();
+
+        po.SupplierId = model.SupplierId;
+        po.WarehouseId = model.WarehouseId;
+        po.ExpectedDeliveryDate = model.ExpectedDeliveryDate;
+        po.Notes = model.Notes;
+        po.TaxAmount = model.TaxAmount;
+
+        // Replace lines
+        _db.PurchaseOrderLines.RemoveRange(po.Lines);
+        po.Lines = model.Lines;
+        po.SubTotal = po.Lines.Sum(l => l.OrderedQuantity * l.UnitPrice);
+        po.TotalAmount = po.SubTotal + po.TaxAmount;
+
+        await AddLogAsync(id, "Edited", po.Status.ToString(), po.Status.ToString(),
+            $"تم تعديل بيانات أمر الشراء", uid, uname);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "تم الحفظ" });
+    }
+
+    // ── APPROVE ───────────────────────────────────────────────────────────────
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> Approve(int id)
     {
         var po = await _db.PurchaseOrders.FindAsync(id);
         if (po == null) return NotFound();
-        if (po.Status != PurchaseOrderStatus.Draft) return BadRequest(new { message = "يمكن اعتماد أوامر الشراء في حالة المسودة فقط" });
+        if (po.Status != PurchaseOrderStatus.Draft)
+            return BadRequest(new { message = "يمكن اعتماد أوامر الشراء في حالة المسودة فقط" });
+
+        var (uid, uname) = await GetCurrentUserInfoAsync();
+        var oldStatus = "مسودة";
         po.Status = PurchaseOrderStatus.Approved;
+
+        await AddLogAsync(id, "Approved", oldStatus, "معتمد",
+            $"تم اعتماد أمر الشراء", uid, uname);
         await _db.SaveChangesAsync();
+
         return Ok(new { message = "تم اعتماد أمر الشراء" });
     }
 
+    // ── CANCEL ────────────────────────────────────────────────────────────────
     [HttpPost("{id}/cancel")]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> Cancel(int id, [FromBody] CancelPoDto? dto = null)
     {
         var po = await _db.PurchaseOrders.FindAsync(id);
         if (po == null) return NotFound();
-        if (po.Status == PurchaseOrderStatus.FullyReceived) return BadRequest(new { message = "لا يمكن إلغاء أمر شراء مكتمل الاستلام" });
+        if (po.Status == PurchaseOrderStatus.FullyReceived)
+            return BadRequest(new { message = "لا يمكن إلغاء أمر شراء مكتمل الاستلام" });
+
+        var (uid, uname) = await GetCurrentUserInfoAsync();
+        var oldStatusAr = po.Status == PurchaseOrderStatus.Draft ? "مسودة"
+                        : po.Status == PurchaseOrderStatus.Approved ? "معتمد"
+                        : po.Status == PurchaseOrderStatus.PartiallyReceived ? "مستلم جزئياً"
+                        : "غير معروف";
         po.Status = PurchaseOrderStatus.Cancelled;
+
+        await AddLogAsync(id, "Cancelled", oldStatusAr, "ملغي",
+            $"تم إلغاء أمر الشراء. السبب: {dto?.Reason ?? "لم يُحدد"}", uid, uname);
         await _db.SaveChangesAsync();
-        return Ok();
+
+        return Ok(new { message = "تم إلغاء أمر الشراء" });
     }
 
-    // GRN - Goods Receipt Notes
+    // ── GRN - Goods Receipt Notes ─────────────────────────────────────────────
     [AllowAnonymous]
     [HttpGet("{poId}/grn")]
     public async Task<IActionResult> GetGRNs(int poId)
@@ -109,9 +235,12 @@ public class PurchaseOrdersController : ControllerBase
         if (po.Status != PurchaseOrderStatus.Approved && po.Status != PurchaseOrderStatus.PartiallyReceived)
             return BadRequest(new { message = "أمر الشراء يجب أن يكون معتمداً" });
 
+        var (uid, uname) = await GetCurrentUserInfoAsync();
+
         model.PurchaseOrderId = poId;
         model.SupplierId = po.SupplierId;
         model.WarehouseId = po.WarehouseId;
+        model.ReceivedByUserId = uid;
         var year = DateTime.Now.Year;
         var count = await _db.GoodsReceiptNotes.CountAsync() + 1;
         model.GrnNumber = $"GRN-{year}-{count:D4}";
@@ -124,26 +253,22 @@ public class PurchaseOrdersController : ControllerBase
             var product = await _db.WarehouseProducts.Include(p => p.ProductUnits).FirstOrDefaultAsync(p => p.Id == line.ProductId);
             if (product == null) continue;
 
-            // Convert received qty to base unit
             decimal baseQty = line.QuantityReceived;
             var pUnit = product.ProductUnits.FirstOrDefault(u => u.UnitId == line.UnitId);
             if (pUnit != null) baseQty *= pUnit.ConversionFactorToBase;
 
-            // Update or create StockBalance
             var balance = await _db.StockBalances.FirstOrDefaultAsync(b => b.WarehouseId == model.WarehouseId && b.ProductId == line.ProductId);
             if (balance == null)
             {
                 balance = new StockBalance { WarehouseId = model.WarehouseId, ProductId = line.ProductId };
                 _db.StockBalances.Add(balance);
             }
-            // Weighted average cost calculation
             var oldValue = balance.QuantityOnHand * balance.WeightedAverageCost;
             var newValue = baseQty * line.UnitCost;
             balance.QuantityOnHand += baseQty;
             balance.WeightedAverageCost = balance.QuantityOnHand > 0 ? (oldValue + newValue) / balance.QuantityOnHand : line.UnitCost;
             balance.LastUpdated = DateTime.UtcNow;
 
-            // Write StockLedger entry
             _db.StockLedger.Add(new StockLedger
             {
                 WarehouseId = model.WarehouseId, ProductId = line.ProductId,
@@ -152,26 +277,29 @@ public class PurchaseOrdersController : ControllerBase
                 UnitCost = line.UnitCost, TotalCost = baseQty * line.UnitCost,
                 ReferenceDocumentType = "GRN", ReferenceDocumentNumber = model.GrnNumber,
                 BatchNumber = line.BatchNumber, ExpiryDate = line.ExpiryDate,
-                MovementDate = DateTime.UtcNow
+                MovementDate = DateTime.UtcNow,
+                CreatedByUserId = uid
             });
 
-            // Update product cost
             product.WeightedAverageCost = balance.WeightedAverageCost;
             product.LastPurchaseCost = line.UnitCost;
 
-            // Update PO line received qty
             var poLine = po.Lines.FirstOrDefault(l => l.ProductId == line.ProductId);
             if (poLine != null) poLine.ReceivedQuantity += line.QuantityReceived;
         }
 
-        // Update PO status
         bool allReceived = po.Lines.All(l => l.ReceivedQuantity >= l.OrderedQuantity);
+        var oldStatusAr = po.Status == PurchaseOrderStatus.Approved ? "معتمد" : "مستلم جزئياً";
         po.Status = allReceived ? PurchaseOrderStatus.FullyReceived : PurchaseOrderStatus.PartiallyReceived;
+        var newStatusAr = allReceived ? "مستلم بالكامل" : "مستلم جزئياً";
 
-        // Save GRN and ledger first to ensure model.Id is generated from DB
         await _db.SaveChangesAsync();
 
-        // Update supplier invoice
+        // Log GRN creation
+        await AddLogAsync(poId, "GrnCreated", oldStatusAr, newStatusAr,
+            $"تم إنشاء إذن استلام {model.GrnNumber} بواسطة {uname}", uid, uname);
+
+        // Create supplier invoice
         var supplierInvoice = new SupplierInvoice
         {
             SupplierId = po.SupplierId,
@@ -183,11 +311,15 @@ public class PurchaseOrdersController : ControllerBase
         };
         _db.SupplierInvoices.Add(supplierInvoice);
 
-        // Update supplier balance
         var supplier = await _db.WH_Suppliers.FindAsync(po.SupplierId);
         if (supplier != null) supplier.CurrentBalance += supplierInvoice.TotalAmount;
 
         await _db.SaveChangesAsync();
         return Ok(new { GrnId = model.Id, GrnNumber = model.GrnNumber });
     }
+}
+
+public class CancelPoDto
+{
+    public string? Reason { get; set; }
 }

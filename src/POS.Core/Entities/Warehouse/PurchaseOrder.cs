@@ -9,6 +9,17 @@ public enum PurchaseOrderStatus
     Cancelled = 5
 }
 
+public enum PurchaseOrderEventType
+{
+    Created = 1,
+    StatusChanged = 2,
+    Edited = 3,
+    GrnCreated = 4,
+    Cancelled = 5,
+    Approved = 6,
+    SentToSupplier = 7
+}
+
 public class PurchaseOrder : BaseEntity
 {
     public string OrderNumber { get; set; } = string.Empty; // e.g. PO-2026-0001
@@ -31,6 +42,23 @@ public class PurchaseOrder : BaseEntity
 
     public ICollection<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
     public ICollection<GoodsReceiptNote> GoodsReceiptNotes { get; set; } = new List<GoodsReceiptNote>();
+    public ICollection<PurchaseOrderLog> Logs { get; set; } = new List<PurchaseOrderLog>();
+}
+
+public class PurchaseOrderLog : BaseEntity
+{
+    public int PurchaseOrderId { get; set; }
+    public PurchaseOrder? PurchaseOrder { get; set; }
+
+    public string EventType { get; set; } = string.Empty;
+    // Created | StatusChanged | Edited | GrnCreated | Cancelled | Approved
+
+    public string? OldStatus { get; set; }
+    public string? NewStatus { get; set; }
+    public string? Description { get; set; }
+    public string? CreatedByUserId { get; set; }
+    public string? CreatedByName { get; set; }
+    public DateTime EventDate { get; set; } = DateTime.UtcNow;
 }
 
 public class PurchaseOrderLine : BaseEntity

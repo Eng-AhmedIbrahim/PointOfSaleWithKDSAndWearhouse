@@ -95,6 +95,11 @@ public class AppDbContext : DbContext
             po.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<PurchaseOrderLog>(pol =>
+        {
+            pol.HasOne(x => x.PurchaseOrder).WithMany(po => po.Logs).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<PurchaseOrderLine>(pol =>
         {
             pol.HasOne(x => x.PurchaseOrder).WithMany(p => p.Lines).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
@@ -204,6 +209,7 @@ public class AppDbContext : DbContext
     public DbSet<SupplierPayment> SupplierPayments { get; set; }
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+    public DbSet<PurchaseOrderLog> PurchaseOrderLogs { get; set; }
     public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }
     public DbSet<GoodsReceiptNoteLine> GoodsReceiptNoteLines { get; set; }
     public DbSet<BranchRequisition> BranchRequisitions { get; set; }

@@ -33,19 +33,23 @@
                         <MudNumericField @bind-Value="_paymentAmount" Label="المبلغ المدفوع *"
                                          Variant="MudBlazor.Variant.Outlined" Min="0.01m"
                                          HideSpinButtons="true"
-                                         Adornment="Adornment.End" AdornmentText="ج.م" />
+                                         Adornment="Adornment.Start" AdornmentText="ج.م"
+                                         Style="direction:rtl;" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
                         <MudSelect @bind-Value="_paymentMethod" Label="طريقة الدفع" T="string"
-                                   Variant="MudBlazor.Variant.Outlined">
-                            <MudSelectItem Value="@("كاش")">كاش</MudSelectItem>
-                            <MudSelectItem Value="@("تحويل بنكي")">تحويل بنكي</MudSelectItem>
-                            <MudSelectItem Value="@("شيك")">شيك</MudSelectItem>
+                                   Variant="MudBlazor.Variant.Outlined"
+                                   Style="direction:rtl;">
+                            @foreach (var m in _paymentMethods)
+                            {
+                                <MudSelectItem Value="@m.NameAr">@m.NameAr</MudSelectItem>
+                            }
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="4">
                         <MudTextField @bind-Value="_paymentNotes" Label="ملاحظات"
-                                      Variant="MudBlazor.Variant.Outlined" />
+                                      Variant="MudBlazor.Variant.Outlined"
+                                      Style="direction:rtl;" />
                     </MudItem>
                 </MudGrid>
             </MudCardContent>
@@ -112,7 +116,7 @@
         <MudItem xs="12" sm="4">
             <MudCard Class="wh-card" Style="border-right: 4px solid #1976d2;">
                 <MudCardContent>
-                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">الرصيد الحالي</MudText>
+                    <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">المديونية المتبقية</MudText>
                     <MudText MudBlazor.Typo="Typo.h6" Style="@(CurrentBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
                         @CurrentBalance.ToString("N2")
                     </MudText>
@@ -134,12 +138,15 @@
                     <MudTh>المرجع</MudTh>
                     <MudTh>مديونية</MudTh>
                     <MudTh>سداد</MudTh>
+                    <MudTh>طريقة الدفع</MudTh>
+                    <MudTh>بواسطة</MudTh>
+                    <MudTh>ملاحظات</MudTh>
                     <MudTh>الرصيد التراكمي</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.Date.ToString("yyyy/MM/dd")</MudTd>
+                    <MudTd>@context.Date.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                     <MudTd>
-                        <MudChip T="string" Color="@(context.TransactionType == "فاتورة" ? MudBlazor.Color.Warning : MudBlazor.Color.Success)"
+                        <MudChip T="string" Color="@(context.TransactionType == "فاتورة مشتريات" ? MudBlazor.Color.Warning : MudBlazor.Color.Success)"
                                  Size="MudBlazor.Size.Small">@context.TransactionType</MudChip>
                     </MudTd>
                     <MudTd>@context.Reference</MudTd>
@@ -155,6 +162,15 @@
                             <MudText Style="color:green">@context.Credit.ToString("N2")</MudText>
                         }
                     </MudTd>
+                    <MudTd>@(context.PaymentMethod ?? "-")</MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrEmpty(context.CreatedBy))
+                        {
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info">@context.CreatedBy</MudChip>
+                        }
+                        else { <span>-</span> }
+                    </MudTd>
+                    <MudTd>@(context.Notes ?? "-")</MudTd>
                     <MudTd>
                         <MudText Style="@(context.RunningBalance > 0 ? "color:red;font-weight:bold" : "color:green;font-weight:bold")">
                             @context.RunningBalance.ToString("N2")
@@ -178,6 +194,7 @@
 
     private List<SupplierLookup> Suppliers = new();
     private List<AccountTransactionDto> Transactions = new();
+    private List<PaymentMethodDto> _paymentMethods = new();
 
     private decimal TotalDebit => Transactions.Sum(t => t.Debit);
     private decimal TotalCredit => Transactions.Sum(t => t.Credit);
@@ -185,7 +202,9 @@
 
     record SupplierLookup(int Id, string Name);
     record AccountTransactionDto(DateTime Date, string TransactionType, string Reference,
-        decimal Debit, decimal Credit, decimal RunningBalance);
+        decimal Debit, decimal Credit, decimal RunningBalance,
+        string? CreatedBy, string? PaymentMethod, string? Notes);
+    record PaymentMethodDto(int Id, string NameAr, string NameEn);
 
     protected override async Task OnInitializedAsync()
     {
@@ -196,8 +215,20 @@
             if (int.TryParse(query["supplierId"], out var sid))
                 SelectedSupplierId = sid;
 
-            var result = await Http.GetFromJsonAsync<List<SupplierLookup>>("/api/suppliers/lookup");
-            Suppliers = result ?? new();
+            var suppliersTask = Http.GetFromJsonAsync<List<SupplierLookup>>("/api/suppliers/lookup");
+            var methodsTask = Http.GetFromJsonAsync<List<PaymentMethodDto>>("/api/suppliers/payment-methods");
+            await Task.WhenAll(suppliersTask, methodsTask);
+
+            Suppliers = suppliersTask.Result ?? new();
+            _paymentMethods = methodsTask.Result ?? new();
+            if (!_paymentMethods.Any())
+                _paymentMethods = new List<PaymentMethodDto>
+                {
+                    new(1, "نقدي", "Cash"),
+                    new(2, "تحويل بنكي", "BankTransfer"),
+                    new(3, "شيك", "Cheque")
+                };
+            _paymentMethod = _paymentMethods.First().NameAr;
 
             if (SelectedSupplierId != 0) await LoadAccounts();
         }
@@ -235,13 +266,13 @@
     private bool _showPaymentForm = false;
     private bool _paymentLoading = false;
     private decimal _paymentAmount = 0;
-    private string _paymentMethod = "كاش";
+    private string _paymentMethod = "";
     private string _paymentNotes = "";
 
     private void OpenPaymentDialog()
     {
         _paymentAmount = 0;
-        _paymentMethod = "كاش";
+        _paymentMethod = _paymentMethods.FirstOrDefault()?.NameAr ?? "نقدي";
         _paymentNotes = "";
         _showPaymentForm = true;
     }
@@ -256,7 +287,7 @@
         _paymentLoading = true;
         try
         {
-            var payload = new { Amount = _paymentAmount, Method = _paymentMethod, Notes = _paymentNotes };
+            var payload = new { Amount = _paymentAmount, PaymentMethod = _paymentMethod, Notes = _paymentNotes };
             var resp = await Http.PostAsJsonAsync($"/api/suppliers/{SelectedSupplierId}/payments", payload);
             if (resp.IsSuccessStatusCode)
             {
@@ -265,6 +296,17 @@
                 await LoadAccounts();
             }
             else
+            {
+                Snackbar.Add("فشل تسجيل الدفعة", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { _paymentLoading = false; }
+    }
+}
             {
                 Snackbar.Add("فشل تسجيل الدفعة", MudBlazor.Severity.Error);
             }

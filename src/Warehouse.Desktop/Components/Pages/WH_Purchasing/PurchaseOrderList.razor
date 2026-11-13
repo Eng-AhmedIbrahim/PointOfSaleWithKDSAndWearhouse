@@ -98,6 +98,8 @@
                                     <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="MudBlazor.Color.Error"
                                                   Title="إلغاء" OnClick="@(() => CancelPO(context))" />
                                 }
+                                <MudIconButton Icon="@Icons.Material.Filled.History" Color="MudBlazor.Color.Info"
+                                              Title="سجل الأحداث" OnClick="@(() => ShowLogs(context))" />
                             </MudButtonGroup>
                         </MudTd>
                     </RowTemplate>
@@ -109,6 +111,67 @@
         </MudCardContent>
     </MudCard>
 </div>
+
+@if (_showLogsDialog)
+{
+    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.History" Class="ml-2" />
+                سجل أحداث - @_logsPoNumber
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            @if (_logsLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Info" />
+            }
+            else if (!_poLogs.Any())
+            {
+                <MudAlert Severity="MudBlazor.Severity.Info">لا توجد أحداث مسجلة لهذا الأمر</MudAlert>
+            }
+            else
+            {
+                <MudTimeline TimelineOrientation="TimelineOrientation.Vertical" TimelinePosition="TimelinePosition.Start">
+                    @foreach (var log in _poLogs)
+                    {
+                        <MudTimelineItem Color="@log.EventColor" Size="MudBlazor.Size.Small">
+                            <ItemContent>
+                                <MudCard Outlined="true" Class="mb-2">
+                                    <MudCardContent Style="padding:12px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                                            <MudChip T="string" Color="@log.EventColor" Size="MudBlazor.Size.Small">@log.EventTypeAr</MudChip>
+                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                @log.EventDate.ToLocalTime().ToString("yyyy/MM/dd hh:mm tt")
+                                            </MudText>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(log.OldStatus) && !string.IsNullOrEmpty(log.NewStatus) && log.OldStatus != log.NewStatus)
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mt-1">
+                                                الحالة: <strong>@log.OldStatus</strong> ← <strong style="color:#22c55e">@log.NewStatus</strong>
+                                            </MudText>
+                                        }
+                                        @if (!string.IsNullOrEmpty(log.Description))
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mt-1">@log.Description</MudText>
+                                        }
+                                        <MudText Typo="Typo.caption" Class="mt-1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="ml-1" />
+                                            بواسطة: <strong>@(log.CreatedByName ?? "النظام")</strong>
+                                        </MudText>
+                                    </MudCardContent>
+                                </MudCard>
+                            </ItemContent>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showLogsDialog = false)" Variant="MudBlazor.Variant.Filled">إغلاق</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
 
 @code {
     private bool _loading = false;
@@ -192,17 +255,81 @@
 
     private async Task CancelPO(PurchaseOrderDto po)
     {
+        // طلب سبب الإلغاء
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد الإلغاء",
+            $"هل أنت متأكد من إلغاء أمر الشراء {po.DisplayPONumber}؟",
+            yesText: "نعم، إلغاء", cancelText: "لا");
+        if (confirm != true) return;
+
         try
         {
-            var resp = await Http.PostAsync($"/api/purchaseorders/{po.Id}/cancel", null);
+            var payload = new { Reason = "تم الإلغاء من واجهة المستخدم" };
+            var resp = await Http.PostAsJsonAsync($"/api/purchaseorders/{po.Id}/cancel", payload);
             if (resp.IsSuccessStatusCode)
             {
-                Snackbar.Add("تم إلغاء أمر الشراء", MudBlazor.Severity.Info);
+                Snackbar.Add("تم إلغاء أمر الشراء وتسجيله في السجل", MudBlazor.Severity.Info);
                 await LoadOrders();
             }
             else Snackbar.Add("فشل إلغاء أمر الشراء", MudBlazor.Severity.Error);
         }
         catch (Exception ex) { Snackbar.Add($"خطأ: {ex.Message}", MudBlazor.Severity.Error); }
+    }
+
+    // ── Audit Log Dialog ──────────────────────────────────────────────────────
+    private bool _showLogsDialog = false;
+    private string _logsPoNumber = "";
+    private List<PoLogDto> _poLogs = new();
+    private bool _logsLoading = false;
+
+    private async Task ShowLogs(PurchaseOrderDto po)
+    {
+        _logsPoNumber = po.DisplayPONumber;
+        _showLogsDialog = true;
+        _logsLoading = true;
+        _poLogs = new();
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<PoLogDto>>($"/api/purchaseorders/{po.Id}/logs");
+            _poLogs = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل السجل: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally { _logsLoading = false; }
+    }
+
+    private class PoLogDto
+    {
+        public int Id { get; set; }
+        public string? EventType { get; set; }
+        public string? OldStatus { get; set; }
+        public string? NewStatus { get; set; }
+        public string? Description { get; set; }
+        public string? CreatedByName { get; set; }
+        public DateTime EventDate { get; set; }
+
+        public string EventTypeAr => EventType switch
+        {
+            "Created"       => "إنشاء",
+            "Approved"      => "اعتماد",
+            "Edited"        => "تعديل",
+            "GrnCreated"    => "استلام بضاعة",
+            "Cancelled"     => "إلغاء",
+            "StatusChanged" => "تغيير حالة",
+            _               => EventType ?? ""
+        };
+
+        public MudBlazor.Color EventColor => EventType switch
+        {
+            "Created"    => MudBlazor.Color.Default,
+            "Approved"   => MudBlazor.Color.Success,
+            "GrnCreated" => MudBlazor.Color.Warning,
+            "Cancelled"  => MudBlazor.Color.Error,
+            "Edited"     => MudBlazor.Color.Info,
+            _            => MudBlazor.Color.Default
+        };
     }
 
     private Color GetStatusColor(string status) => status switch

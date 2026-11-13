@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
 using Pos.Repository.Data;
+using Microsoft.AspNetCore.Identity;
+using Pos.Repository.Identity;
 
 namespace POS.API.Controllers.Warehouse;
 
@@ -15,7 +17,12 @@ namespace POS.API.Controllers.Warehouse;
 public class SuppliersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public SuppliersController(AppDbContext db) => _db = db;
+    private readonly UserManager<AppUser> _userManager;
+    public SuppliersController(AppDbContext db, UserManager<AppUser> userManager)
+    {
+        _db = db;
+        _userManager = userManager;
+    }
 
     [AllowAnonymous]
     [HttpGet]
@@ -271,14 +278,51 @@ public class SuppliersController : ControllerBase
     {
         var supplier = await _db.WH_Suppliers.FindAsync(supplierId);
         if (supplier == null) return NotFound();
-        model.SupplierId = supplierId; model.PaymentDate = DateTime.UtcNow;
+
+        // احفظ معلومات المستخدم الذي أجرى العملية
+        var userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                  ?? User?.FindFirst("sub")?.Value;
+        model.SupplierId = supplierId;
+        model.PaymentDate = DateTime.UtcNow;
+        model.CreatedByUserId = userId;
+
         var year = DateTime.Now.Year;
         var count = await _db.SupplierPayments.CountAsync() + 1;
         model.PaymentNumber = $"PAY-{year}-{count:D4}";
         supplier.CurrentBalance -= model.Amount;
         _db.SupplierPayments.Add(model);
         await _db.SaveChangesAsync();
-        return Ok(model);
+
+        // جلب اسم المستخدم لإرجاعه في الاستجابة
+        string? createdByName = null;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            createdByName = user?.DisplayName ?? user?.UserName;
+        }
+
+        return Ok(new {
+            model.Id,
+            model.PaymentNumber,
+            model.Amount,
+            model.PaymentMethod,
+            model.PaymentDate,
+            model.Notes,
+            CreatedByUserId = userId,
+            CreatedByName = createdByName ?? "النظام"
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("payment-methods")]
+    public async Task<IActionResult> GetPaymentMethods()
+    {
+        var methods = await _db.PaymentMethods
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Id)
+            .Select(p => new { p.Id, p.NameAr, p.NameEn })
+            .ToListAsync();
+        return Ok(methods);
     }
 
     [AllowAnonymous]
@@ -340,34 +384,54 @@ public class SuppliersController : ControllerBase
         var invoices = await _db.SupplierInvoices.Where(i => i.SupplierId == supplierId).ToListAsync();
         var payments = await _db.SupplierPayments.Where(p => p.SupplierId == supplierId).ToListAsync();
 
-        var list = new List<object>();
+        // جلب أسماء المستخدمين لعمليات الدفع
+        var userIds = payments
+            .Where(p => !string.IsNullOrEmpty(p.CreatedByUserId))
+            .Select(p => p.CreatedByUserId!)
+            .Distinct()
+            .ToList();
+        var userNames = new Dictionary<string, string>();
+        if (userIds.Any())
+        {
+            var users = _userManager.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, Name = u.DisplayName ?? u.UserName })
+                .ToList();
+            foreach (var u in users)
+                if (!string.IsNullOrEmpty(u.Id))
+                    userNames[u.Id] = u.Name ?? "النظام";
+        }
+
+        // دمج الحركات وترتيبها بالتاريخ
+        var allTrans = new List<(DateTime Date, string Type, string Ref, decimal Debit, decimal Credit, string? CreatedBy, string? Method, string? Notes)>();
+
+        foreach (var inv in invoices)
+            allTrans.Add((inv.InvoiceDate, "فاتورة مشتريات", inv.InvoiceNumber ?? "", inv.TotalAmount, 0m, null, null, null));
+
+        foreach (var p in payments)
+        {
+            var byName = !string.IsNullOrEmpty(p.CreatedByUserId) && userNames.TryGetValue(p.CreatedByUserId!, out var n) ? n : "النظام";
+            allTrans.Add((p.PaymentDate, "سند صرف / سداد", p.PaymentNumber ?? "", 0m, p.Amount, byName, p.PaymentMethod, p.Notes));
+        }
+
+        var sorted = allTrans.OrderBy(t => t.Date).ToList();
         decimal running = 0;
-
-        foreach (var inv in invoices.OrderBy(i => i.InvoiceDate))
+        var list = sorted.Select(t =>
         {
-            running += inv.TotalAmount;
-            list.Add(new {
-                Date = inv.InvoiceDate,
-                TransactionType = "فاتورة مشتريات",
-                Reference = inv.InvoiceNumber,
-                Debit = inv.TotalAmount,
-                Credit = 0m,
-                RunningBalance = running
-            });
-        }
-
-        foreach (var p in payments.OrderBy(p => p.PaymentDate))
-        {
-            running -= p.Amount;
-            list.Add(new {
-                Date = p.PaymentDate,
-                TransactionType = "سند صرف / سداد",
-                Reference = p.PaymentNumber,
-                Debit = 0m,
-                Credit = p.Amount,
-                RunningBalance = running
-            });
-        }
+            running += t.Debit - t.Credit;
+            return new
+            {
+                Date = t.Date,
+                TransactionType = t.Type,
+                Reference = t.Ref,
+                Debit = t.Debit,
+                Credit = t.Credit,
+                RunningBalance = running,
+                CreatedBy = t.CreatedBy,
+                PaymentMethod = t.Method,
+                Notes = t.Notes
+            };
+        }).ToList();
 
         return Ok(list);
     }
