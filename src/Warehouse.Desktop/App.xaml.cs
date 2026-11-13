@@ -208,6 +208,7 @@ public partial class App : Application
             sp.GetRequiredService<IOptions<BlazorBase.API.ApiSettings>>().Value);
 
         // HTTP Client with automatic JWT Bearer token injection
+        services.AddSingleton<Warehouse.Desktop.Auth.TokenStore>();
         services.AddTransient<Warehouse.Desktop.Auth.AuthTokenHandler>();
         services.AddHttpClient(configuration["ApiSettings:ApiName"]!,
             client => { client.BaseAddress = new Uri(configuration["ApiSettings:BaseUrl"]!); })

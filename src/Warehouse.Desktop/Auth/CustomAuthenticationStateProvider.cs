@@ -6,13 +6,15 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly CommonProperties _commonProperties;
+    private readonly TokenStore _tokenStore;
     private ClaimsPrincipal _currentUser = new(new ClaimsIdentity());
     private bool _isInitialized = false;
 
-    public CustomAuthenticationStateProvider(IJSRuntime jsRuntime, CommonProperties commonProperties)
+    public CustomAuthenticationStateProvider(IJSRuntime jsRuntime, CommonProperties commonProperties, TokenStore tokenStore)
     {
         _jsRuntime = jsRuntime;
         _commonProperties = commonProperties;
+        _tokenStore = tokenStore;
     }
 
     public async Task InitializeAsync()
@@ -27,6 +29,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             {
                 _currentUser = ParseClaimsFromJwt(token);
                 _commonProperties.AuthUser = _currentUser;
+                _tokenStore.Token = token;
             }
         }
         catch (Exception ex)
@@ -48,6 +51,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         _currentUser = ParseClaimsFromJwt(token);
         _commonProperties.AuthUser = _currentUser; // Store in CommonProperties
+        _tokenStore.Token = token;
         _isInitialized = true;
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
@@ -59,6 +63,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
         _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
         _commonProperties.AuthUser = _currentUser; // Reset in CommonProperties
+        _tokenStore.Token = null;
         _isInitialized = false;
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
