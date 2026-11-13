@@ -119,10 +119,8 @@
         try
         {
             var appDate = await AppDateService.GetAppDate();
-            var dateToUse = (appDate.PosDate.Date < DateTime.Today.AddDays(-3) || appDate.PosDate.Date > DateTime.Today)
-                ? DateTime.Today
-                : appDate.PosDate;
-            _dateRange = new DateRange(dateToUse, dateToUse);
+            var posDate = appDate.PosDate.Date;
+            _dateRange = new DateRange(posDate, posDate);
         }
         catch
         {
