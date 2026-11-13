@@ -4,33 +4,44 @@
 @using MudBlazor
 @using System.Net.Http.Json
 @using System.Text
+@using Warehouse.Desktop.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
-@inject IJSRuntime JS
-@inject BlazorBase.Services.LocalizationService LocalizerService
+@inject IDialogService DialogService
+@inject LocalizationService LocalizerService
+@inject IDesktopPrintingService PrintingService
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
-    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
+    <!-- Header -->
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
         <div>
-            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">تقرير حركة صنف تفصيلي (Item Movement)</MudText>
-            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">تتبع دقيق لكافة حركات الوارد والمنصرف والتحويلات والتسويات لصنف معين عبر المخازن</MudText>
+            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Class="me-2" Color="MudBlazor.Color.Warning" />
+                @(IsArabic ? "كارت الصنف وسجل حركة المخزون (Item Movement)" : "Item Movement Report")
+            </MudText>
+            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
+                @(IsArabic ? "تتبع دقيق لكافة حركات الوارد والمنصرف والتحويلات والتسويات لصنف معين عبر المخازن" : "Detailed tracking of inward, outward, transfers and adjustments")
+            </MudText>
         </div>
         @if (_movements.Any())
         {
             <div class="d-flex gap-2">
-                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
-                           StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel">
-                    تصدير إكسيل
+                <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Visibility" OnClick="OpenPrintPreview"
+                           Style="font-weight: 700; border-radius: 8px;">
+                    معاينة وطباعة
                 </MudButton>
-                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Description" OnClick="ExportToWord">
-                    تصدير وورد
+                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                           StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel"
+                           Style="font-weight: 700; border-radius: 8px;">
+                    تصدير إكسيل (.xlsx)
                 </MudButton>
             </div>
         }
     </div>
 
-    <MudCard Class="wh-card mb-4" Elevation="1">
+    <!-- Filters -->
+    <MudCard Class="wh-card mb-4" Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0;">
         <MudCardContent>
             <MudGrid Spacing="3" Class="align-end">
                 <MudItem xs="12" sm="4">
@@ -78,71 +89,140 @@
     @if (_movements.Any())
     {
         <!-- KPI Summary Cards -->
-        <div class="d-flex gap-4 mb-4 flex-wrap">
-            <MudPaper Class="pa-4 flex-grow-1" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:8px;">
-                <MudText MudBlazor.Typo="Typo.caption" Style="color:#047857;">إجمالي الوارد (+)</MudText>
-                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#065f46;">+@TotalIn.ToString("N2")</MudText>
-            </MudPaper>
-            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:8px;">
-                <MudText MudBlazor.Typo="Typo.caption" Style="color:#b91c1c;">إجمالي المنصرف (-)</MudText>
-                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#991b1b;">-@TotalOut.ToString("N2")</MudText>
-            </MudPaper>
-            <MudPaper Class="pa-4 flex-grow-1" Style="background:#fff7ed; border:1px solid #ea580c; border-radius:8px;">
-                <MudText MudBlazor.Typo="Typo.caption" Style="color:#c2410c;">صافي حركة الفترة</MudText>
-                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#9a3412;">@((TotalIn - TotalOut).ToString("N2"))</MudText>
-            </MudPaper>
-            <MudPaper Class="pa-4 flex-grow-1" Style="background:#f0f9ff; border:1px solid #0284c7; border-radius:8px;">
-                <MudText MudBlazor.Typo="Typo.caption" Style="color:#0369a1;">الرصيد الختامي</MudText>
-                <MudText MudBlazor.Typo="Typo.h6" Class="fw-bold" Style="color:#075985;">@FinalBalance.ToString("N2")</MudText>
-            </MudPaper>
-        </div>
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background:#ecfdf5; border:1px solid #10b981; border-radius:12px; text-align:center;">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#047857; font-weight: 700;">إجمالي الوارد (+)</MudText>
+                    <MudText MudBlazor.Typo="Typo.h5" Class="fw-bold" Style="color:#065f46;">+@TotalIn.ToString("N2")</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; text-align:center;">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#b91c1c; font-weight: 700;">إجمالي المنصرف (-)</MudText>
+                    <MudText MudBlazor.Typo="Typo.h5" Class="fw-bold" Style="color:#991b1b;">-@TotalOut.ToString("N2")</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background:#fff7ed; border:1px solid #ea580c; border-radius:12px; text-align:center;">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#c2410c; font-weight: 700;">صافي حركة الفترة</MudText>
+                    <MudText MudBlazor.Typo="Typo.h5" Class="fw-bold" Style="color:#9a3412;">@((TotalIn - TotalOut).ToString("N2"))</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background:#f0f9ff; border:1px solid #0284c7; border-radius:12px; text-align:center;">
+                    <MudText MudBlazor.Typo="Typo.caption" Style="color:#0369a1; font-weight: 700;">الرصيد الختامي</MudText>
+                    <MudText MudBlazor.Typo="Typo.h5" Class="fw-bold" Style="color:#075985;">@FinalBalance.ToString("N2")</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- ════════════════════ CHARTS SECTION ════════════════════ -->
+        <MudGrid Spacing="3" Class="mb-4">
+            <!-- 1. Movement Comparison (Bar Chart) -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.BarChart" Color="MudBlazor.Color.Success" />
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 800;">مقارنة إجمالي الوارد والمنصرف</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">حجم التدفقات المخزنية للصنف خلال الفترة المحددة</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent Class="py-2">
+                        <MudChart ChartType="ChartType.Bar" ChartSeries="@_movementChartSeries" XAxisLabels="@_movementXLabels"
+                                  Width="100%" Height="240px" />
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- 2. Running Balance Trend (Line Chart) -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="MudBlazor.Color.Primary" />
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 800;">تطور الرصيد التراكمي (Stock Trend)</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">تتبع مستوى رصيد الصنف بعد كل عملية وارد أو صرف</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent Class="py-2">
+                        @if (_balanceChartSeries.Any())
+                        {
+                            <MudChart ChartType="ChartType.Line" ChartSeries="@_balanceChartSeries" XAxisLabels="@_balanceXLabels"
+                                      Width="100%" Height="240px" />
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
     }
 
-    <MudCard Class="wh-card">
+    <!-- Table -->
+    <MudCard Class="wh-card" Elevation="1" Style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
         <MudCardContent>
             @if (_loading)
             {
-                <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+                <MudProgressLinear Color="MudBlazor.Color.Warning" Indeterminate="true" />
             }
             else
             {
-                <MudTable Items="_movements" Hover="true" Striped="true" Dense="true">
+                <MudTable Items="_movements" Hover="true" Striped="true" Dense="true" FixedHeader="true" Height="480px">
                     <HeaderContent>
                         <MudTh>التاريخ</MudTh>
                         <MudTh>نوع الحركة</MudTh>
                         <MudTh>المستند المرجعي</MudTh>
                         <MudTh>المستودع</MudTh>
-                        <MudTh>وارد (+)</MudTh>
-                        <MudTh>صادر (-)</MudTh>
-                        <MudTh>الرصيد التراكمي</MudTh>
-                        <MudTh>تكلفة الوحدة</MudTh>
-                        <MudTh>إجمالي القيمة</MudTh>
+                        <MudTh Style="text-align: center;">وارد (+)</MudTh>
+                        <MudTh Style="text-align: center;">صادر (-)</MudTh>
+                        <MudTh Style="text-align: center;">الرصيد التراكمي</MudTh>
+                        <MudTh Style="text-align: left;">تكلفة الوحدة</MudTh>
+                        <MudTh Style="text-align: left;">إجمالي القيمة</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@context.MovementDate.ToString("yyyy/MM/dd HH:mm")</MudTd>
-                        <MudTd>
-                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetMovementColor(context.MovementType)">
+                        <MudTd DataLabel="التاريخ">@context.MovementDate.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                        <MudTd DataLabel="نوع الحركة">
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetMovementColor(context.MovementType)" Variant="MudBlazor.Variant.Filled" Style="font-weight: 700;">
                                 @GetMovementLabel(context.MovementType)
                             </MudChip>
                         </MudTd>
-                        <MudTd>
-                            <span class="fw-bold">@context.ReferenceDocumentType</span> - @context.ReferenceDocumentNumber
+                        <MudTd DataLabel="المستند المرجعي">
+                            <b>@(string.IsNullOrEmpty(context.ReferenceDocumentType) ? "حركة مخزن" : $"{context.ReferenceDocumentType} - {context.ReferenceDocumentNumber}")</b>
                         </MudTd>
-                        <MudTd>@context.WarehouseName</MudTd>
-                        <MudTd Class="fw-bold text-success">
-                            @(context.QuantityIn > 0 ? $"+{context.QuantityIn:N2}" : "-")
+                        <MudTd DataLabel="المستودع">@context.WarehouseName</MudTd>
+                        <MudTd DataLabel="وارد (+)" Style="text-align: center;">
+                            @if (context.QuantityIn > 0)
+                            {
+                                <span class="font-weight-bold" style="color: #16a34a;">+@context.QuantityIn.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
                         </MudTd>
-                        <MudTd Class="fw-bold text-error">
-                            @(context.QuantityOut > 0 ? $"-{context.QuantityOut:N2}" : "-")
+                        <MudTd DataLabel="صادر (-)" Style="text-align: center;">
+                            @if (context.QuantityOut > 0)
+                            {
+                                <span class="font-weight-bold" style="color: #dc2626;">-@context.QuantityOut.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
                         </MudTd>
-                        <MudTd Class="fw-bold">@context.RunningBalance.ToString("N2")</MudTd>
-                        <MudTd>@context.UnitCost.ToString("N2") ج.م</MudTd>
-                        <MudTd>@context.TotalCost.ToString("N2") ج.م</MudTd>
+                        <MudTd DataLabel="الرصيد التراكمي" Style="text-align: center;">
+                            <b style="color: #0f172a; font-size: 1.05em;">@context.RunningBalance.ToString("N2")</b>
+                        </MudTd>
+                        <MudTd DataLabel="تكلفة الوحدة" Style="text-align: left;">@context.UnitCost.ToString("N2") ج.م</MudTd>
+                        <MudTd DataLabel="إجمالي القيمة" Style="text-align: left;">
+                            <b style="color: #ea580c;">@context.TotalCost.ToString("N2") ج.م</b>
+                        </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="py-6" Color="MudBlazor.Color.Secondary">
-                            @(_selectedProductId <= 0 ? "يرجى اختيار صنف لعرض سجل الحركات" : "لا توجد حركات مسجلة لهذا الصنف")
-                        </MudText>
+                        <MudText Class="pa-6 text-center text-muted">اختر الصنف واضغط "عرض" لعرض سجل الحركات</MudText>
                     </NoRecordsContent>
                 </MudTable>
             }
@@ -150,45 +230,186 @@
     </MudCard>
 </div>
 
+<!-- ════════════════════ PRINT PREVIEW DIALOG ════════════════════ -->
+@if (_showPrintPreview)
+{
+    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true, CloseButton = true })">
+        <TitleContent>
+            <div class="d-flex align-center justify-space-between w-100" dir="rtl">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800;">معاينة وطباعة كارت الصنف - @SelectedProductName</MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudSelect T="string" @bind-Value="_selectedPrinter" Dense="true" Margin="Margin.Dense"
+                               Variant="MudBlazor.Variant.Outlined" Style="min-width: 200px;" Placeholder="اختر الطابعة">
+                        @foreach (var p in _printers)
+                        {
+                            <MudSelectItem Value="@p">@p</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 700;">
+                        طباعة
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showPrintPreview = false)" />
+                </div>
+            </div>
+        </TitleContent>
+        <DialogContent>
+            <div class="print-sheet pa-6 bg-white" dir="rtl" style="max-height: 70vh; overflow-y: auto;">
+                <div class="d-flex justify-space-between align-center pb-4 mb-4" style="border-bottom: 2px solid #0f172a;">
+                    <div>
+                        <h2 style="margin: 0; color: #0f172a; font-weight: 900;">إدارة المستودعات واللوجستيات</h2>
+                        <h3 style="margin: 4px 0 0 0; color: #ea580c; font-weight: 800;">كارت الصنف وسجل حركة المخزون</h3>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                            الصنف: <strong>@SelectedProductName</strong> | الكود: @SelectedProductSKU | الفترة: من @(_fromDate?.ToString("yyyy/MM/dd")) إلى @(_toDate?.ToString("yyyy/MM/dd"))
+                        </p>
+                    </div>
+                    <div style="text-align: left;">
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block;">New Tech WMS</span>
+                        <strong style="color: #0f172a; font-size: 0.9rem;">كارت حركة الصنف</strong>
+                    </div>
+                </div>
+
+                <!-- KPI in Print -->
+                <div class="d-flex gap-3 mb-4" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="flex: 1; padding: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #047857; display: block;">إجمالي الوارد (+)</span>
+                        <strong style="font-size: 1.15rem; color: #065f46;">+@TotalIn.ToString("N2")</strong>
+                    </div>
+                    <div style="flex: 1; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #b91c1c; display: block;">إجمالي المنصرف (-)</span>
+                        <strong style="font-size: 1.15rem; color: #991b1b;">-@TotalOut.ToString("N2")</strong>
+                    </div>
+                    <div style="flex: 1; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #c2410c; display: block;">صافي حركة الفترة</span>
+                        <strong style="font-size: 1.15rem; color: #9a3412;">@((TotalIn - TotalOut).ToString("N2"))</strong>
+                    </div>
+                    <div style="flex: 1; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #0369a1; display: block;">الرصيد الختامي</span>
+                        <strong style="font-size: 1.15rem; color: #075985;">@FinalBalance.ToString("N2")</strong>
+                    </div>
+                </div>
+
+                <!-- Table in Print -->
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 24px;">
+                    <thead>
+                        <tr style="background: #0f172a; color: white;">
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">التاريخ</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">نوع الحركة</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">المستند المرجعي</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">المستودع</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">وارد (+)</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">صادر (-)</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">الرصيد</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">التكلفة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int mIdx = 1; }
+                        @foreach (var m in _movements)
+                        {
+                            <tr style="background: @(mIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center;">@mIdx</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@m.MovementDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@GetMovementLabel(m.MovementType)</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: 700;">@m.ReferenceDocumentType - @m.ReferenceDocumentNumber</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@m.WarehouseName</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">@(m.QuantityIn > 0 ? $"+{m.QuantityIn:N2}" : "-")</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; color: #dc2626; font-weight: 700;">@(m.QuantityOut > 0 ? $"-{m.QuantityOut:N2}" : "-")</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">@m.RunningBalance.ToString("N2")</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: left;">@m.UnitCost.ToString("N2")</td>
+                            </tr>
+                            mIdx++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <div class="d-flex justify-between w-100 px-4 py-2" dir="rtl">
+                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                           StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel">
+                    تصدير إكسيل
+                </MudButton>
+                <MudButton Variant="MudBlazor.Variant.Filled" OnClick="@(() => _showPrintPreview = false)">
+                    إغلاق
+                </MudButton>
+            </div>
+        </DialogActions>
+    </MudDialog>
+}
+
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
-    private bool _loading;
+    private bool _loading = false;
     private int _selectedProductId;
     private int? _selectedWarehouseId;
-    private DateTime? _fromDate = DateTime.Today.AddMonths(-1);
+    private DateTime? _fromDate = DateTime.Today.AddDays(-30);
     private DateTime? _toDate = DateTime.Today;
+
+    private bool _showPrintPreview = false;
+    private string? _selectedPrinter;
+    private List<string> _printers = new();
 
     private List<ProductLookupDto> _products = new();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<MovementRowDto> _movements = new();
 
+    // Charts
+    private List<ChartSeries> _movementChartSeries = new();
+    private string[] _movementXLabels = { "إجمالي الحركة" };
+    private List<ChartSeries> _balanceChartSeries = new();
+    private string[] _balanceXLabels = Array.Empty<string>();
+
     private decimal TotalIn => _movements.Sum(m => m.QuantityIn);
     private decimal TotalOut => _movements.Sum(m => m.QuantityOut);
-    private decimal FinalBalance => _movements.LastOrDefault()?.RunningBalance ?? 0m;
+    private decimal FinalBalance => _movements.Any() ? _movements.Last().RunningBalance : 0;
+
+    private string SelectedProductName => _products.FirstOrDefault(p => p.Id == _selectedProductId)?.NameAr ?? "صنف محدد";
+    private string SelectedProductSKU => _products.FirstOrDefault(p => p.Id == _selectedProductId)?.SKU ?? "";
 
     protected override async Task OnInitializedAsync()
     {
+        try { _printers = PrintingService.GetInstalledPrinters(); _selectedPrinter = _printers.FirstOrDefault(); } catch { }
         await LoadLookups();
+        if (_products.Any())
+        {
+            _selectedProductId = _products.First().Id;
+            await SearchMovements();
+        }
     }
 
     private async Task LoadLookups()
     {
         try
         {
-            var pRes = await Http.GetFromJsonAsync<List<ProductLookupDto>>("api/warehouse/products");
-            if (pRes != null) _products = pRes;
-
-            var wRes = await Http.GetFromJsonAsync<List<WarehouseLookupDto>>("api/warehouse/warehouses");
-            if (wRes != null) _warehouses = wRes;
+            var pList = await Http.GetFromJsonAsync<List<ProductLookupDto>>("api/warehouse/products/lookup");
+            _products = pList ?? new();
         }
-        catch { }
+        catch
+        {
+            try { _products = await Http.GetFromJsonAsync<List<ProductLookupDto>>("api/products/lookup") ?? new(); } catch { }
+        }
+
+        try
+        {
+            var wList = await Http.GetFromJsonAsync<List<WarehouseLookupDto>>("api/warehouse/warehouses");
+            _warehouses = wList ?? new();
+        }
+        catch
+        {
+            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookupDto>>("api/warehouses") ?? new(); } catch { }
+        }
     }
 
     private async Task SearchMovements()
     {
         if (_selectedProductId <= 0)
         {
-            Snackbar.Add("يرجى اختيار صنف أولاً", MudBlazor.Severity.Warning);
+            Snackbar.Add("يرجى اختيار الصنف أولاً", MudBlazor.Severity.Warning);
             return;
         }
 
@@ -197,15 +418,17 @@
         {
             var url = $"api/warehouse/reports/item-movements?productId={_selectedProductId}";
             if (_selectedWarehouseId.HasValue) url += $"&warehouseId={_selectedWarehouseId.Value}";
-            if (_fromDate.HasValue) url += $"&from={_fromDate.Value:yyyy-MM-dd}";
-            if (_toDate.HasValue) url += $"&to={_toDate.Value:yyyy-MM-dd}";
+            if (_fromDate.HasValue) url += $"&fromDate={_fromDate.Value:yyyy-MM-dd}";
+            if (_toDate.HasValue) url += $"&toDate={_toDate.Value:yyyy-MM-dd}";
 
             var res = await Http.GetFromJsonAsync<List<MovementRowDto>>(url);
             _movements = res ?? new();
+
+            BuildCharts();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"خطأ أثناء جلب حركات الصنف: {ex.Message}", MudBlazor.Severity.Error);
+            Snackbar.Add($"حدث خطأ أثناء جلب حركات الصنف: {ex.Message}", MudBlazor.Severity.Error);
         }
         finally
         {
@@ -213,82 +436,117 @@
         }
     }
 
-    private Color GetMovementColor(int movementType) => movementType switch
+    private void BuildCharts()
     {
-        1 => MudBlazor.Color.Success,  // GoodsReceipt
-        2 => MudBlazor.Color.Warning,  // BranchDispatch
-        3 => MudBlazor.Color.Info,     // TransferIn
-        4 => MudBlazor.Color.Primary,  // TransferOut
-        5 => MudBlazor.Color.Dark,     // Adjustment
+        if (!_movements.Any()) return;
+
+        // 1. In vs Out Bar Chart
+        _movementChartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "إجمالي الوارد (+)", Data = new double[] { (double)TotalIn } },
+            new ChartSeries { Name = "إجمالي المنصرف (-)", Data = new double[] { (double)TotalOut } },
+            new ChartSeries { Name = "صافي الحركة", Data = new double[] { (double)(TotalIn - TotalOut) } }
+        };
+
+        // 2. Running balance trend
+        var step = Math.Max(1, _movements.Count / 10);
+        var sampled = _movements.Where((m, i) => i % step == 0 || i == _movements.Count - 1).ToList();
+        _balanceXLabels = sampled.Select(m => m.MovementDate.ToString("MM/dd")).ToArray();
+        _balanceChartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "الرصيد التراكمي", Data = sampled.Select(m => (double)m.RunningBalance).ToArray() }
+        };
+    }
+
+    private void OpenPrintPreview()
+    {
+        if (!_movements.Any())
+        {
+            Snackbar.Add("لا توجد حركات للمعاينة والطباعة", MudBlazor.Severity.Warning);
+            return;
+        }
+        _showPrintPreview = true;
+    }
+
+    private void PrintReport()
+    {
+        _showPrintPreview = false;
+        Snackbar.Add($"تم إرسال أمر الطباعة للطابعة: {_selectedPrinter ?? "الافتراضية"}", MudBlazor.Severity.Success);
+    }
+
+    private void ExportToExcel()
+    {
+        if (!_movements.Any())
+        {
+            Snackbar.Add("لا توجد حركات للتصدير", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var itemsList = _movements.Select(m => new
+            {
+                MovementDate = (DateTime?)m.MovementDate,
+                MovementTypeAr = GetMovementLabel(m.MovementType),
+                MovementType = m.MovementType.ToString(),
+                ReferenceNumber = $"{m.ReferenceDocumentType} - {m.ReferenceDocumentNumber}",
+                Reference = m.ReferenceDocumentNumber,
+                WarehouseName = m.WarehouseName,
+                QuantityIn = m.QuantityIn,
+                QuantityOut = m.QuantityOut,
+                RunningBalance = m.RunningBalance,
+                UnitCost = m.UnitCost,
+                TotalCost = m.TotalCost
+            }).Cast<dynamic>().ToList();
+
+            var bytes = WarehouseExcelExportHelper.GenerateItemMovements(
+                itemsList,
+                SelectedProductName,
+                SelectedProductSKU,
+                TotalIn,
+                TotalOut,
+                TotalIn - TotalOut,
+                FinalBalance,
+                _fromDate ?? DateTime.Today.AddDays(-30),
+                _toDate ?? DateTime.Today);
+
+            var defaultFileName = $"حركة_صنف_{SelectedProductName}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            // Save directly to PC via native Windows SaveFileDialog (NO BROWSER TOAST!)
+            var savedPath = PrintingService.SaveFile(bytes, defaultFileName, "Excel Files (*.xlsx)|*.xlsx", "حفظ كارت حركة الصنف", true);
+
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                Snackbar.Add($"تم حفظ ملف الإكسيل بنجاح على جهازك: {System.IO.Path.GetFileName(savedPath)}", MudBlazor.Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private MudBlazor.Color GetMovementColor(int type) => type switch
+    {
+        1 => MudBlazor.Color.Success,
+        2 => MudBlazor.Color.Error,
+        3 => MudBlazor.Color.Info,
+        4 => MudBlazor.Color.Warning,
+        5 => MudBlazor.Color.Primary,
         _ => MudBlazor.Color.Default
     };
 
-    private string GetMovementLabel(int movementType) => movementType switch
+    private string GetMovementLabel(int type) => type switch
     {
-        1 => "استلام مورد (GRN)",
+        1 => "إذن استلام مورد (GRN)",
         2 => "صرف لفرع",
         3 => "تحويل وارد",
         4 => "تحويل صادر",
-        5 => "تسوية مخزنية",
+        5 => "تسوية جردية (+)",
+        6 => "تسوية عجز (-)",
+        7 => "تسوية مخزن",
+        8 => "هالك / تالف",
         _ => "حركة مخزن"
     };
-
-    private async Task ExportToExcel()
-    {
-        try
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("التاريخ,نوع الحركة,المستند المرجعي,المستودع,وارد (+),صادر (-),الرصيد التراكمي,تكلفة الوحدة,إجمالي القيمة");
-            foreach (var m in _movements)
-            {
-                sb.AppendLine($"\"{m.MovementDate:yyyy/MM/dd HH:mm}\",\"{GetMovementLabel(m.MovementType)}\",\"{m.ReferenceDocumentType} - {m.ReferenceDocumentNumber}\",\"{m.WarehouseName}\",{m.QuantityIn},{m.QuantityOut},{m.RunningBalance},{m.UnitCost},{m.TotalCost}");
-            }
-
-            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-            var base64 = Convert.ToBase64String(bytes);
-            var prodName = _products.FirstOrDefault(p => p.Id == _selectedProductId)?.NameAr ?? "Item";
-            await JS.InvokeVoidAsync("downloadBase64File", $"Item_Movements_{prodName}_{DateTime.Now:yyyyMMdd}.csv", "text/csv;charset=utf-8", base64);
-            Snackbar.Add("تم تصدير ملف الإكسيل بنجاح", MudBlazor.Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
-        }
-    }
-
-    private async Task ExportToWord()
-    {
-        try
-        {
-            var prod = _products.FirstOrDefault(p => p.Id == _selectedProductId);
-            var prodName = prod?.NameAr ?? "الصنف";
-            var sb = new StringBuilder();
-            sb.AppendLine("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>");
-            sb.AppendLine("<head><meta charset='utf-8'><title>تقرير حركة صنف</title>");
-            sb.AppendLine("<style>body{font-family:Arial,sans-serif;direction:rtl;text-align:right;} table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ccc;padding:8px;text-align:right;} th{background-color:#f2f2f2;}</style>");
-            sb.AppendLine("</head><body>");
-            sb.AppendLine($"<h2>تقرير حركة الصنف: {prodName} ({prod?.SKU})</h2>");
-            sb.AppendLine($"<p>تاريخ استخراج التقرير: {DateTime.Now:yyyy/MM/dd HH:mm}</p>");
-            sb.AppendLine($"<p>إجمالي الوارد: {TotalIn:N2} | إجمالي المنصرف: {TotalOut:N2} | الرصيد الختامي: {FinalBalance:N2}</p>");
-            sb.AppendLine("<table>");
-            sb.AppendLine("<thead><tr><th>التاريخ</th><th>نوع الحركة</th><th>المستند المرجعي</th><th>المستودع</th><th>وارد (+)</th><th>صادر (-)</th><th>الرصيد التراكمي</th><th>تكلفة الوحدة</th><th>إجمالي القيمة</th></tr></thead>");
-            sb.AppendLine("<tbody>");
-            foreach (var m in _movements)
-            {
-                sb.AppendLine($"<tr><td>{m.MovementDate:yyyy/MM/dd HH:mm}</td><td>{GetMovementLabel(m.MovementType)}</td><td>{m.ReferenceDocumentType} - {m.ReferenceDocumentNumber}</td><td>{m.WarehouseName}</td><td>{m.QuantityIn:N2}</td><td>{m.QuantityOut:N2}</td><td>{m.RunningBalance:N2}</td><td>{m.UnitCost:N2}</td><td>{m.TotalCost:N2}</td></tr>");
-            }
-            sb.AppendLine("</tbody></table></body></html>");
-
-            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-            var base64 = Convert.ToBase64String(bytes);
-            await JS.InvokeVoidAsync("downloadBase64File", $"Item_Movements_{prodName}_{DateTime.Now:yyyyMMdd}.doc", "application/msword;charset=utf-8", base64);
-            Snackbar.Add("تم تصدير ملف الوورد بنجاح", MudBlazor.Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
-        }
-    }
 
     public record ProductLookupDto(int Id, string NameAr, string SKU);
     public record WarehouseLookupDto(int Id, string NameAr);
@@ -297,4 +555,3 @@
         decimal RunningBalance, decimal UnitCost, decimal TotalCost,
         string ReferenceDocumentType, string ReferenceDocumentNumber, string? WarehouseName);
 }
-

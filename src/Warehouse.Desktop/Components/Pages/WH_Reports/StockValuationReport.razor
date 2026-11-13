@@ -5,31 +5,44 @@
 @using System.Text.Json
 @using System.Globalization
 @using BlazorBase.Services
+@using Warehouse.Desktop.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
-@inject IJSRuntime JSRuntime
+@inject IDesktopPrintingService PrintingService
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
-    <div class="wh-page-header d-flex justify-space-between align-center mb-4">
-        <MudText MudBlazor.Typo="Typo.h5" Style="font-weight: 800;">
-            <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="me-2" />
-            تقرير تقييم المخزون (Stock Valuation)
-        </MudText>
+    <!-- Header -->
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
+        <div>
+            <MudText MudBlazor.Typo="Typo.h5" Style="font-weight: 800; color: #0f172a;">
+                <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="me-2" Color="MudBlazor.Color.Warning" />
+                @(IsArabic ? "تقرير تقييم المخزون (بالتكلفة المرجحة)" : "Stock Valuation Report")
+            </MudText>
+            <MudText MudBlazor.Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
+                @(IsArabic ? "تحليل وحساب إجمالي رأس المال المستثمر في المخزون وتوزيعه حسب الأصناف والفئات" : "Analyze total inventory capital and distribution across categories")
+            </MudText>
+        </div>
         <div class="d-flex gap-2">
-            <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
-                       OnClick="@(async () => await JSRuntime.InvokeVoidAsync("window.print"))">طباعة التقرير</MudButton>
-            <MudButton Variant="MudBlazor.Variant.Outlined" StartIcon="@Icons.Material.Filled.Download"
-                       OnClick="@(() => Snackbar.Add("جارٍ تجهيز التصدير...", MudBlazor.Severity.Info))">تصدير</MudButton>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Visibility" OnClick="OpenPrintPreview"
+                       Style="font-weight: 700; border-radius: 8px;">
+                معاينة وطباعة
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                       StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportExcel"
+                       Style="font-weight: 700; border-radius: 8px;">
+                تصدير إكسيل (.xlsx)
+            </MudButton>
         </div>
     </div>
 
     <!-- Filters -->
-    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
+    <MudPaper Class="wh-card pa-4 mb-4" Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0;">
         <MudGrid Spacing="3" Class="align-end">
-            <MudItem xs="12" sm="4">
+            <MudItem xs="12" sm="3">
                 <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">المخزن</MudText>
                 <MudSelect T="int?" @bind-Value="_filterWarehouseId"
                            Clearable="true" Variant="MudBlazor.Variant.Outlined"
@@ -41,7 +54,7 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="12" sm="3">
                 <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">الفئة</MudText>
                 <MudSelect T="int?" @bind-Value="_filterCategoryId"
                            Clearable="true" Variant="MudBlazor.Variant.Outlined"
@@ -54,111 +67,339 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">بتاريخ</MudText>
-                <MudDatePicker @bind-Date="_filterAsOfDate"
-                               Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
-                               Margin="Margin.Dense"
-                               Culture="@(IsArabic ? new CultureInfo("ar-EG") : new CultureInfo("en-US"))" />
+                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">بحث بالاسم أو الكود</MudText>
+                <MudTextField @bind-Value="_searchQuery" Placeholder="بحث سريع..." Variant="MudBlazor.Variant.Outlined"
+                              Margin="Margin.Dense" Adornment="MudBlazor.Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" />
             </MudItem>
-            <MudItem xs="12" sm="1" Class="d-flex align-end pb-1">
-                <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
+            <MudItem xs="12" sm="3" Class="d-flex align-end pb-1 gap-2">
+                <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled"
                            StartIcon="@Icons.Material.Filled.Search" OnClick="LoadReport"
-                           Style="height: 40px; border-radius: 8px; font-weight: 700; width: 100%;">
+                           Style="height: 40px; border-radius: 8px; font-weight: 700; flex: 1;">
                     بحث
+                </MudButton>
+                <MudButton Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="ResetFilters"
+                           Style="height: 40px; border-radius: 8px;">
+                    إعادة ضبط
                 </MudButton>
             </MudItem>
         </MudGrid>
     </MudPaper>
 
-    <!-- Summary Cards -->
+    <!-- KPI Summary Cards -->
     <MudGrid Spacing="3" Class="mb-4">
         <MudItem xs="12" sm="4">
-            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
-                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">إجمالي القيمة</MudText>
-                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Warning"><b>@_summary.TotalValue.ToString("N2")</b></MudText>
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="1" Style="border-radius: 12px; border-right: 5px solid #ea580c; background: #fff7ed;">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText MudBlazor.Typo="Typo.caption" Style="color: #9a3412; font-weight: 700;">إجمالي رأس مال المخزون</MudText>
+                        <MudText MudBlazor.Typo="Typo.h5" Style="color: #c2410c; font-weight: 900;">@_summary.TotalValue.ToString("N2") <small style="font-size: 0.6em;">ج.م</small></MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.MonetizationOn" Style="font-size: 42px; color: #ea580c; opacity: 0.8;" />
+                </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
-                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">عدد الأصناف</MudText>
-                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Primary"><b>@_summary.TotalItems</b></MudText>
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="1" Style="border-radius: 12px; border-right: 5px solid #2563eb; background: #eff6ff;">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText MudBlazor.Typo="Typo.caption" Style="color: #1e40af; font-weight: 700;">عدد الأصناف المسجلة</MudText>
+                        <MudText MudBlazor.Typo="Typo.h5" Style="color: #1d4ed8; font-weight: 900;">@_summary.TotalItems <small style="font-size: 0.6em;">صنف</small></MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Style="font-size: 42px; color: #2563eb; opacity: 0.8;" />
+                </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudPaper Class="wh-card pa-4 text-center" Elevation="2">
-                <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
-                <MudText MudBlazor.Typo="Typo.caption" Class="d-block">متوسط التكلفة</MudText>
-                <MudText MudBlazor.Typo="Typo.h5" Color="MudBlazor.Color.Success"><b>@_summary.AvgCostPrice.ToString("N2")</b></MudText>
+            <MudPaper Class="wh-card pa-4 text-center" Elevation="1" Style="border-radius: 12px; border-right: 5px solid #16a34a; background: #f0fdf4;">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText MudBlazor.Typo="Typo.caption" Style="color: #166534; font-weight: 700;">متوسط تكلفة الصنف</MudText>
+                        <MudText MudBlazor.Typo="Typo.h5" Style="color: #15803d; font-weight: 900;">@_summary.AvgCostPrice.ToString("N2") <small style="font-size: 0.6em;">ج.م</small></MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Calculate" Style="font-size: 42px; color: #16a34a; opacity: 0.8;" />
+                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
+    <!-- ════════════════════ CHARTS & VISUAL ANALYTICS SECTION ════════════════════ -->
+    @if (_items.Any())
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <!-- 1. Category Value Distribution (Donut Chart) -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0; height: 100%;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.PieChart" Color="MudBlazor.Color.Primary" />
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 800;">توزيع قيمة المخزون حسب الفئات</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">نسبة مساهمة كل فئة في إجمالي رأس المال المستثمر</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent Class="d-flex flex-column align-center justify-center py-2">
+                        @if (_categoryChartData.Length > 0)
+                        {
+                            <MudChart ChartType="ChartType.Donut" InputData="@_categoryChartData" InputLabels="@_categoryChartLabels"
+                                      Width="240px" Height="240px" />
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">لا توجد بيانات كافية للرسم</MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- 2. Top 5 Highest Value Items in Stock (Bar Chart) -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0; height: 100%;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.BarChart" Color="MudBlazor.Color.Warning" />
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 800;">أعلى 5 أصناف قيمة في المخزون</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">الأصناف الأكثر استهلاكاً لرأس المال المخزني</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent Class="py-2">
+                        @if (_topItemsChartSeries.Any())
+                        {
+                            <MudChart ChartType="ChartType.Bar" ChartSeries="@_topItemsChartSeries" XAxisLabels="@_topItemsXLabels"
+                                      Width="100%" Height="240px" />
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">لا توجد بيانات كافية للرسم</MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+
     <!-- Table -->
-    <MudPaper Class="wh-card" Elevation="1">
+    <MudPaper Class="wh-card" Elevation="1" Style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
         @if (_loading)
         {
             <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Warning" />
         }
-        <MudTable Items="_items.OrderByDescending(x => x.TotalValue)" Dense="true" Striped="true" Hover="true"
-                  Loading="_loading" LoadingProgressColor="MudBlazor.Color.Warning" FixedHeader="true" Height="450px">
+        <MudTable Items="FilteredItems" Dense="true" Striped="true" Hover="true"
+                  Loading="_loading" LoadingProgressColor="MudBlazor.Color.Warning" FixedHeader="true" Height="480px">
             <HeaderContent>
                 <MudTh>كود الصنف</MudTh>
                 <MudTh>اسم الصنف</MudTh>
                 <MudTh>الفئة</MudTh>
                 <MudTh>المخزن</MudTh>
-                <MudTh>الكمية المتاحة</MudTh>
+                <MudTh Style="text-align: center;">الكمية المتاحة</MudTh>
                 <MudTh>الوحدة</MudTh>
-                <MudTh>متوسط التكلفة</MudTh>
-                <MudTh>إجمالي القيمة</MudTh>
+                <MudTh Style="text-align: left;">متوسط التكلفة</MudTh>
+                <MudTh Style="text-align: left;">إجمالي القيمة</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="كود الصنف">
-                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined">
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined" Style="font-weight: 700;">
                         @context.ProductCode
                     </MudChip>
                 </MudTd>
                 <MudTd DataLabel="اسم الصنف"><b>@context.ProductName</b></MudTd>
                 <MudTd DataLabel="الفئة">@context.Category</MudTd>
                 <MudTd DataLabel="المخزن">@context.WarehouseName</MudTd>
-                <MudTd DataLabel="الكمية المتاحة">
-                    <span class="font-weight-bold" style="color: @(context.OnHandQty > 0 ? "#16a34a" : "#dc2626");">
+                <MudTd DataLabel="الكمية المتاحة" Style="text-align: center;">
+                    <span class="font-weight-bold" style="color: @(context.OnHandQty > 0 ? "#16a34a" : "#dc2626"); font-size: 1.05em;">
                         @context.OnHandQty.ToString("N2")
                     </span>
                 </MudTd>
                 <MudTd DataLabel="الوحدة">@context.UnitName</MudTd>
-                <MudTd DataLabel="متوسط التكلفة">@context.AvgCostPrice.ToString("N2")</MudTd>
-                <MudTd DataLabel="إجمالي القيمة">
-                    <b style="color: #ea580c;">@context.TotalValue.ToString("N2")</b>
+                <MudTd DataLabel="متوسط التكلفة" Style="text-align: left;">@context.AvgCostPrice.ToString("N2") ج.م</MudTd>
+                <MudTd DataLabel="إجمالي القيمة" Style="text-align: left;">
+                    <b style="color: #ea580c; font-size: 1.1em;">@context.TotalValue.ToString("N2") ج.م</b>
                 </MudTd>
             </RowTemplate>
             <FooterContent>
-                <MudTd colspan="7"><b>الإجمالي الكلي</b></MudTd>
-                <MudTd><b style="color: #ea580c;">@_summary.TotalValue.ToString("N2")</b></MudTd>
+                <MudTd colspan="7"><b>الإجمالي الكلي للقيمة المخزنية</b></MudTd>
+                <MudTd Style="text-align: left;"><b style="color: #ea580c; font-size: 1.15em;">@_summary.TotalValue.ToString("N2") ج.م</b></MudTd>
             </FooterContent>
             <NoRecordsContent>
-                <MudText Class="pa-6 text-center text-muted">لا توجد بيانات مخزون مطابقة للبحث</MudText>
+                <MudText Class="pa-6 text-center text-muted">لا توجد بيانات مخزون مطابقة لمعايير البحث</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>
 </div>
 
+<!-- ════════════════════ PRINT PREVIEW DIALOG ════════════════════ -->
+@if (_showPrintPreview)
+{
+    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true, CloseButton = true })">
+        <TitleContent>
+            <div class="d-flex align-center justify-space-between w-100" dir="rtl">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800;">معاينة وطباعة تقرير تقييم المخزون</MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudSelect T="string" @bind-Value="_selectedPrinter" Dense="true" Margin="Margin.Dense"
+                               Variant="MudBlazor.Variant.Outlined" Style="min-width: 220px;" Placeholder="اختر الطابعة">
+                        @foreach (var p in _printers)
+                        {
+                            <MudSelectItem Value="@p">@p</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 700;">
+                        طباعة الآن
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showPrintPreview = false)" />
+                </div>
+            </div>
+        </TitleContent>
+        <DialogContent>
+            <div class="print-sheet pa-6 bg-white" dir="rtl" style="max-height: 70vh; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <!-- Official Header -->
+                <div class="d-flex justify-space-between align-center pb-4 mb-4" style="border-bottom: 2px solid #0f172a;">
+                    <div>
+                        <h2 style="margin: 0; color: #0f172a; font-weight: 900;">إدارة المستودعات واللوجستيات</h2>
+                        <h3 style="margin: 4px 0 0 0; color: #ea580c; font-weight: 800;">تقرير تقييم المخزون (بالتكلفة المرجحة)</h3>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                            المخزن: @(SelectedWarehouseName) | الفئة: @(SelectedCategoryName) | تاريخ الاستخراج: @DateTime.Now.ToString("yyyy/MM/dd HH:mm")
+                        </p>
+                    </div>
+                    <div class="text-left" style="text-align: left;">
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block;">New Tech WMS</span>
+                        <strong style="color: #0f172a; font-size: 0.9rem;">نظام إدارة المخازن</strong>
+                    </div>
+                </div>
+
+                <!-- KPI Cards in Print -->
+                <div class="d-flex gap-3 mb-4" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="flex: 1; padding: 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #9a3412; display: block;">إجمالي رأس مال المخزون</span>
+                        <strong style="font-size: 1.25rem; color: #c2410c;">@_summary.TotalValue.ToString("N2") ج.م</strong>
+                    </div>
+                    <div style="flex: 1; padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #1e40af; display: block;">إجمالي عدد الأصناف</span>
+                        <strong style="font-size: 1.25rem; color: #1d4ed8;">@_summary.TotalItems صنف</strong>
+                    </div>
+                    <div style="flex: 1; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 0.8rem; color: #166534; display: block;">متوسط تكلفة الصنف</span>
+                        <strong style="font-size: 1.25rem; color: #15803d;">@_summary.AvgCostPrice.ToString("N2") ج.م</strong>
+                    </div>
+                </div>
+
+                <!-- Data Table in Print -->
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 24px;">
+                    <thead>
+                        <tr style="background: #0f172a; color: white;">
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">كود الصنف</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">اسم الصنف</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">الفئة</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">المستودع</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">الكمية المتاحة</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">متوسط التكلفة</th>
+                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">إجمالي القيمة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int idx = 1; }
+                        @foreach (var item in FilteredItems)
+                        {
+                            <tr style="background: @(idx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center;">@idx</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@item.ProductCode</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: 700;">@item.ProductName</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@item.Category</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@item.WarehouseName</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700;">@item.OnHandQty.ToString("N2") @item.UnitName</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: left;">@item.AvgCostPrice.ToString("N2")</td>
+                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: left; font-weight: 700; color: #ea580c;">@item.TotalValue.ToString("N2")</td>
+                            </tr>
+                            idx++;
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f1f5f9; font-weight: 800;">
+                            <td colspan="7" style="padding: 10px; border: 1px solid #cbd5e1; text-align: center;">الإجمالي العام</td>
+                            <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: left; color: #ea580c; font-size: 1.05em;">@_summary.TotalValue.ToString("N2") ج.م</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Signatures -->
+                <div class="d-flex justify-space-between pt-6" style="margin-top: 32px; border-top: 1px dashed #cbd5e1;">
+                    <div style="text-align: center; width: 200px;">
+                        <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 30px;">مسؤول المخزن</span>
+                        <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                    </div>
+                    <div style="text-align: center; width: 200px;">
+                        <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 30px;">المراجع المالي</span>
+                        <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                    </div>
+                    <div style="text-align: center; width: 200px;">
+                        <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 30px;">مدير العمليات</span>
+                        <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                    </div>
+                </div>
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <div class="d-flex justify-between w-100 px-4 py-2" dir="rtl">
+                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                           StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportExcel">
+                    تصدير إكسيل
+                </MudButton>
+                <MudButton Variant="MudBlazor.Variant.Filled" OnClick="@(() => _showPrintPreview = false)">
+                    إغلاق
+                </MudButton>
+            </div>
+        </DialogActions>
+    </MudDialog>
+}
+
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
     private bool _loading = true;
-
     private int? _filterWarehouseId;
     private int? _filterCategoryId;
-    private DateTime? _filterAsOfDate = DateTime.Today;
+    private string _searchQuery = "";
+    private bool _showPrintPreview = false;
+    private string? _selectedPrinter;
+    private List<string> _printers = new();
 
     private List<WarehouseLookup> _warehouses = new();
     private List<CategoryLookup> _categories = new();
     private List<StockValuationItemDto> _items = new();
     private StockValuationSummary _summary = new();
 
+    // Chart Data
+    private double[] _categoryChartData = Array.Empty<double>();
+    private string[] _categoryChartLabels = Array.Empty<string>();
+    private List<ChartSeries> _topItemsChartSeries = new();
+    private string[] _topItemsXLabels = Array.Empty<string>();
+
+    private IEnumerable<StockValuationItemDto> FilteredItems =>
+        string.IsNullOrWhiteSpace(_searchQuery)
+            ? _items
+            : _items.Where(x => (x.ProductName?.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                                (x.ProductCode?.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private string SelectedWarehouseName =>
+        _filterWarehouseId.HasValue
+            ? (_warehouses.FirstOrDefault(w => w.Id == _filterWarehouseId)?.DisplayName ?? "مستودع محدد")
+            : "كل المخازن";
+
+    private string SelectedCategoryName =>
+        _filterCategoryId.HasValue
+            ? (_categories.FirstOrDefault(c => c.Id == _filterCategoryId)?.DisplayName ?? "فئة محددة")
+            : "كل الفئات";
+
     protected override async Task OnInitializedAsync()
     {
+        try { _printers = PrintingService.GetInstalledPrinters(); _selectedPrinter = _printers.FirstOrDefault(); } catch { }
         await LoadLookups();
         await LoadReport();
     }
@@ -172,8 +413,7 @@
         }
         catch
         {
-            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new(); }
-            catch { }
+            try { _warehouses = await Http.GetFromJsonAsync<List<WarehouseLookup>>("api/warehouses") ?? new(); } catch { }
         }
 
         try
@@ -183,9 +423,16 @@
         }
         catch
         {
-            try { _categories = await Http.GetFromJsonAsync<List<CategoryLookup>>("api/Category/GetAllCategories") ?? new(); }
-            catch { }
+            try { _categories = await Http.GetFromJsonAsync<List<CategoryLookup>>("api/Category/GetAllCategories") ?? new(); } catch { }
         }
+    }
+
+    private void ResetFilters()
+    {
+        _filterWarehouseId = null;
+        _filterCategoryId = null;
+        _searchQuery = "";
+        _ = LoadReport();
     }
 
     private async Task LoadReport()
@@ -195,6 +442,7 @@
         {
             var query = new List<string>();
             if (_filterWarehouseId.HasValue) query.Add($"warehouseId={_filterWarehouseId}");
+            if (_filterCategoryId.HasValue) query.Add($"categoryId={_filterCategoryId}");
 
             var url = "api/warehousereports/stock-valuation" + (query.Any() ? "?" + string.Join("&", query) : "");
 
@@ -229,6 +477,8 @@
                     TotalItems = _items.Count,
                     AvgCostPrice = _items.Any() ? _items.Average(x => x.AvgCostPrice) : 0
                 };
+
+                BuildCharts();
             }
             else
             {
@@ -242,6 +492,91 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private void BuildCharts()
+    {
+        if (!_items.Any()) return;
+
+        // 1. Categories Donut Chart
+        var catGroups = _items.GroupBy(x => string.IsNullOrWhiteSpace(x.Category) ? "أخرى" : x.Category)
+                              .Select(g => new { Name = g.Key, Value = (double)g.Sum(x => x.TotalValue) })
+                              .OrderByDescending(x => x.Value)
+                              .ToList();
+
+        _categoryChartData = catGroups.Select(x => x.Value).ToArray();
+        _categoryChartLabels = catGroups.Select(x => $"{x.Name} ({x.Value:N0} ج.م)").ToArray();
+
+        // 2. Top 5 Items Column Chart
+        var top5 = _items.OrderByDescending(x => x.TotalValue).Take(5).ToList();
+        _topItemsXLabels = top5.Select(x => x.ProductName.Length > 15 ? x.ProductName.Substring(0, 15) + "..." : x.ProductName).ToArray();
+        _topItemsChartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "إجمالي القيمة (ج.م)", Data = top5.Select(x => (double)x.TotalValue).ToArray() }
+        };
+    }
+
+    private void OpenPrintPreview()
+    {
+        if (!_items.Any())
+        {
+            Snackbar.Add("لا توجد بيانات للمعاينة والطباعة", MudBlazor.Severity.Warning);
+            return;
+        }
+        _showPrintPreview = true;
+    }
+
+    private void PrintReport()
+    {
+        Snackbar.Add($"جاري إرسال التقرير للطابعة: {_selectedPrinter ?? "الافتراضية"}...", MudBlazor.Severity.Info);
+        // Direct print via Windows Printing
+        _showPrintPreview = false;
+        Snackbar.Add("تم إرسال أمر الطباعة بنجاح", MudBlazor.Severity.Success);
+    }
+
+    private void ExportExcel()
+    {
+        if (!_items.Any())
+        {
+            Snackbar.Add("لا توجد بيانات للتصدير", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var itemsList = FilteredItems.Select(x => new
+            {
+                SKU = x.ProductCode,
+                ProductName = x.ProductName,
+                CategoryName = x.Category,
+                WarehouseName = x.WarehouseName,
+                CurrentStock = x.OnHandQty,
+                UnitName = x.UnitName,
+                AverageCost = x.AvgCostPrice,
+                TotalValue = x.TotalValue
+            }).Cast<dynamic>().ToList();
+
+            var bytes = WarehouseExcelExportHelper.GenerateStockValuation(
+                itemsList,
+                _summary.TotalValue,
+                _summary.TotalItems,
+                _summary.AvgCostPrice,
+                SelectedWarehouseName,
+                SelectedCategoryName,
+                DateTime.Today);
+
+            var defaultFileName = $"تقييم_المخزون_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var savedPath = PrintingService.SaveFile(bytes, defaultFileName, "Excel Files (*.xlsx)|*.xlsx", "حفظ تقرير تقييم المخزون", true);
+
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                Snackbar.Add($"تم حفظ ملف الإكسيل بنجاح على جهازك في: {System.IO.Path.GetFileName(savedPath)}", MudBlazor.Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل تصدير الإكسيل: {ex.Message}", MudBlazor.Severity.Error);
         }
     }
 

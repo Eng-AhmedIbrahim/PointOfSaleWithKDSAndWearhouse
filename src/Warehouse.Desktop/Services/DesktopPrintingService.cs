@@ -1,4 +1,6 @@
-﻿using System.Drawing.Printing;
+﻿using System.Diagnostics;
+using System.Drawing.Printing;
+using System.IO;
 using System.Windows;
 using Microsoft.Win32;
 using PdfiumViewer;
@@ -10,7 +12,8 @@ public interface IDesktopPrintingService
     void PrintPdf(byte[] pdfData, string? printerName = null);
     void PrintWithPrinterDialog(byte[] pdfData);
     List<string> GetInstalledPrinters();
-    void SaveFileWithDialog(byte[] fileData, string defaultFileName, string filter, string title = "Ø­ÙØ¸ Ø§Ù„Ù…Ù„Ù");
+    void SaveFileWithDialog(byte[] fileData, string defaultFileName, string filter, string title = "حفظ الملف");
+    string? SaveFile(byte[] fileData, string defaultFileName, string filter, string title = "حفظ الملف", bool openAfterSave = false);
 }
 
 public class DesktopPrintingService : IDesktopPrintingService
@@ -27,10 +30,10 @@ public class DesktopPrintingService : IDesktopPrintingService
                 using var ms = new MemoryStream(pdfData);
                 using var pdfDocument = PdfDocument.Load(ms);
                 using var printDocument = pdfDocument.CreatePrintDocument();
-                
+
                 if (!string.IsNullOrEmpty(printerName))
                     printDocument.PrinterSettings.PrinterName = printerName;
-                
+
                 printDocument.Print();
             }
             catch (Exception ex)
@@ -66,9 +69,14 @@ public class DesktopPrintingService : IDesktopPrintingService
         return printers;
     }
 
-    public void SaveFileWithDialog(byte[] fileData, string defaultFileName, string filter, string title = "Ø­ÙØ¸ Ø§Ù„Ù…Ù„Ù")
+    public void SaveFileWithDialog(byte[] fileData, string defaultFileName, string filter, string title = "حفظ الملف")
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        SaveFile(fileData, defaultFileName, filter, title, false);
+    }
+
+    public string? SaveFile(byte[] fileData, string defaultFileName, string filter, string title = "حفظ الملف", bool openAfterSave = false)
+    {
+        return Application.Current.Dispatcher.Invoke(() =>
         {
             var dialog = new SaveFileDialog
             {
@@ -81,8 +89,24 @@ public class DesktopPrintingService : IDesktopPrintingService
             };
 
             if (dialog.ShowDialog() == true)
+            {
                 File.WriteAllBytes(dialog.FileName, fileData);
+
+                if (openAfterSave)
+                {
+                    try
+                    {
+                        var psi = new ProcessStartInfo(dialog.FileName) { UseShellExecute = true };
+                        Process.Start(psi);
+                    }
+                    catch
+                    {
+                        // Ignore if default app couldn't be opened
+                    }
+                }
+                return dialog.FileName;
+            }
+            return null;
         });
     }
 }
-
