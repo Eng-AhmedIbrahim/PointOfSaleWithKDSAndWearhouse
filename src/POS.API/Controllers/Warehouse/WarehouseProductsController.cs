@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS.Core.Entities.Warehouse;
@@ -13,7 +14,12 @@ namespace POS.API.Controllers.Warehouse;
 public class WarehouseProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public WarehouseProductsController(AppDbContext db) => _db = db;
+    private readonly UserManager<AppUser> _userManager;
+    public WarehouseProductsController(AppDbContext db, UserManager<AppUser> userManager)
+    {
+        _db = db;
+        _userManager = userManager;
+    }
 
     [AllowAnonymous]
     [HttpGet]
@@ -386,7 +392,7 @@ public class WarehouseProductsController : ControllerBase
         if (productId.HasValue) query = query.Where(l => l.ProductId == productId.Value);
         if (from.HasValue) query = query.Where(l => l.MovementDate >= from.Value);
         if (to.HasValue) query = query.Where(l => l.MovementDate <= to.Value);
-        var items = await query.OrderByDescending(l => l.MovementDate).Skip((page - 1) * pageSize).Take(pageSize)
+        var rawItems = await query.OrderByDescending(l => l.MovementDate).Skip((page - 1) * pageSize).Take(pageSize)
             .Select(l => new {
                 l.Id,
                 Date = l.MovementDate,
@@ -405,9 +411,20 @@ public class WarehouseProductsController : ControllerBase
                 l.UnitCost,
                 l.TotalCost,
                 l.Notes,
-                CreatedBy = l.CreatedByUserId ?? "النظام",
                 l.CreatedByUserId
             }).ToListAsync();
+
+        // جلب أسماء المستخدمين
+        var userIds = rawItems.Where(i => !string.IsNullOrEmpty(i.CreatedByUserId)).Select(i => i.CreatedByUserId!).Distinct().ToList();
+        var users = _userManager.Users.Where(u => userIds.Contains(u.Id)).Select(u => new { u.Id, DisplayName = u.DisplayName ?? u.UserName ?? u.Email }).ToDictionary(u => u.Id, u => u.DisplayName);
+
+        var items = rawItems.Select(l => new {
+            l.Id, l.Date, l.MovementDate, l.TransactionRef, l.TransactionType, l.MovementType,
+            l.ProductName, l.WarehouseName, l.Qty, l.QuantityIn, l.QuantityOut, l.RunningBalance,
+            l.UnitName, l.CostPrice, l.UnitCost, l.TotalCost, l.Notes, l.CreatedByUserId,
+            CreatedBy = string.IsNullOrEmpty(l.CreatedByUserId) ? "النظام" : (users.TryGetValue(l.CreatedByUserId, out var name) ? name : l.CreatedByUserId)
+        }).ToList();
+
         return Ok(items);
     }
 

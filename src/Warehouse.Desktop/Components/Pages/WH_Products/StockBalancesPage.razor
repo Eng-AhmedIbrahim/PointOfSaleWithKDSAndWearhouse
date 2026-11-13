@@ -25,7 +25,9 @@
                 <MudItem xs="12" md="4">
                     <MudSelect T="int?" @bind-Value="SelectedWarehouseId" Label="المستودع"
                                Variant="MudBlazor.Variant.Outlined" Clearable="true"
-                               AdornmentIcon="@Icons.Material.Filled.Warehouse">
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Warehouse"
+                               Style="direction:rtl; text-align:right;">
                         @foreach (var wh in Warehouses)
                         {
                             <MudSelectItem T="int?" Value="@((int?)wh.Id)">@wh.DisplayName</MudSelectItem>
@@ -86,7 +88,7 @@
                         </MudText>
                     </MudTd>
                     <MudTd DataLabel="الوحدة">@context.DisplayUnit</MudTd>
-                    <MudTd DataLabel="آخر تحديث">@context.LastUpdated.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                    <MudTd DataLabel="آخر تحديث">@context.LastUpdated.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudText MudBlazor.Align="MudBlazor.Align.Center" Class="pa-4 mud-text-secondary">لا توجد بيانات مخزون</MudText>
