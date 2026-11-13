@@ -316,7 +316,7 @@ public class SuppliersController : ControllerBase
                 UnitPrice = c.AgreedPrice,
                 StartDate = (DateTime?)c.ValidFrom,
                 EndDate = c.ValidTo,
-                IsPreferred = true,
+                IsPreferred = c.IsPreferred,
                 c.IsActive
             }).ToListAsync();
         return Ok(contracts);
@@ -371,6 +371,19 @@ public class SuppliersController : ControllerBase
 
         return Ok(list);
     }
+
+    [AllowAnonymous]
+    [HttpPatch("price-contracts/{contractId}/preferred")]
+    public async Task<IActionResult> SetPreferred(int contractId, [FromBody] SetPreferredDto dto)
+    {
+        var contract = await _db.SupplierPriceContracts.FindAsync(contractId);
+        if (contract == null) return NotFound();
+        contract.IsPreferred = dto.IsPreferred;
+        await _db.SaveChangesAsync();
+        return Ok(new { contractId, IsPreferred = dto.IsPreferred });
+    }
+
+public class SetPreferredDto { public bool IsPreferred { get; set; } }
 
 public class SupplierInputDto
 {

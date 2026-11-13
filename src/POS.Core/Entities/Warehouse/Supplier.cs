@@ -51,4 +51,5 @@ public class SupplierPriceContract : BaseEntity
     public DateTime? ValidTo { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsPreferred { get; set; } = false;
 }
