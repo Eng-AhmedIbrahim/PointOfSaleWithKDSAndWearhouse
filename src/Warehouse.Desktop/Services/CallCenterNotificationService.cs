@@ -1,4 +1,4 @@
-﻿namespace Warehouse.Desktop.Services;
+namespace Warehouse.Desktop.Services;
 
 public class CallCenterNotificationService : IDisposable, IAsyncDisposable
 {
@@ -36,7 +36,7 @@ public class CallCenterNotificationService : IDisposable, IAsyncDisposable
 
             connection.On<OrderDto>("ReceiveNewDeliveryOrder", (order) =>
             {
-                _deliveryInvocation.TriggerShowNotification($"Ø¬Ø¯ÙŠØ¯: Ø·Ù„Ø¨ ØªÙˆØµÙŠÙ„ Ø¨Ø±Ù‚Ù… {order.OrderId} Ù…Ù† {order.CustomerName}", Severity.Info);
+                _deliveryInvocation.TriggerShowNotification($"جديد: طلب توصيل برقم {order.OrderId} من {order.CustomerName}", Severity.Info);
                 
                 _deliveryInvocation.TriggerNewOrderReceived();
 
@@ -63,13 +63,13 @@ public class CallCenterNotificationService : IDisposable, IAsyncDisposable
 
             connection.On<OrderDto>("ReceiveOrderDispatched", (order) =>
             {
-                _deliveryInvocation.TriggerShowNotification($"ØªÙ… Ø®Ø±ÙˆØ¬ Ø§Ù„Ø·Ù„Ø¨ Ø±Ù‚Ù… {order.OrderId} Ù…Ø¹ Ø§Ù„Ø³Ø§Ø¦Ù‚ {order.DriverName}", Severity.Success);
+                _deliveryInvocation.TriggerShowNotification($"تم خروج الطلب رقم {order.OrderId} مع السائق {order.DriverName}", Severity.Success);
                 _deliveryInvocation.TriggerNewOrderReceived(); // Refresh UI if needed
             });
 
             connection.On<OrderDto>("ReceiveOrderCollected", (order) =>
             {
-                _deliveryInvocation.TriggerShowNotification($"ØªÙ… ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨ Ø±Ù‚Ù… {order.OrderId} Ø¨Ù†Ø¬Ø§Ø­", Severity.Info);
+                _deliveryInvocation.TriggerShowNotification($"تم تسليم الطلب رقم {order.OrderId} بنجاح", Severity.Info);
                 _deliveryInvocation.TriggerNewOrderReceived(); // Refresh UI if needed
             });
 

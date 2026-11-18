@@ -17,10 +17,26 @@ namespace POS.API.Controllers
     {
         private readonly AppDbContext _context;
         private const string CentralSecret = "POS_SYSTEM_v1_SECURE_KEY_2026_MASTER";
+        private const string MasterSignKey = "NEW_TECH_HMAC_SIGNATURE_SECRET_v2_2026_ANTI_THEFT";
+        public const string LicenseManagerAdminSecret = "LM_SUPER_ADMIN_AUTHORIZATION_TOKEN_SECRET_2026";
 
         public LicenseController(AppDbContext context)
         {
             _context = context;
+        }
+
+        public static string ComputeDeviceSignature(string hardwareId, string licenseKey, DateTime expiryDate)
+        {
+            var raw = $"{hardwareId.Trim().ToLower()}|{licenseKey.Trim()}|{expiryDate:yyyy-MM-dd HH:mm:ss}";
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(MasterSignKey));
+            return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(raw)));
+        }
+
+        public static string ComputeLicenseRowSignature(string licenseKey, int customerId, int branchId, string dateLimit)
+        {
+            var raw = $"{licenseKey.Trim()}|{customerId}|{branchId}|{dateLimit.Trim()}";
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(MasterSignKey));
+            return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(raw)));
         }
 
         [HttpPost("RegisterDevice")]
@@ -35,7 +51,7 @@ namespace POS.API.Controllers
 
             int branchId = info.Value.BranchId;
             int maxDevices = info.Value.MaxDevices;
-            string licenseTypeStr = info.Value.Type switch { 1 => "POSOnly", 2 => "BackOfficeOnly", 3 => "Full", _ => "POSOnly" };
+            string licenseTypeStr = info.Value.Type switch { 1 => "POSOnly", 2 => "BackOfficeOnly", 3 => "Full", 4 => "WarehouseOnly", _ => "POSOnly" };
             
             // Validate Expiry
             if (DateTime.Now > info.Value.ExpiryDate)
@@ -57,6 +73,24 @@ namespace POS.API.Controllers
             var activeDevicesCount = await _context.LicensedDevices
                 .CountAsync(d => d.BranchId == branchId && d.LicenseType == licenseTypeStr && d.LicenseKey == request.LicenseKey);
 
+            // 2c. ANTI-CLONE CHECK: Verify that the LicenseKey exists in Licenses table and its signature is authentic
+            var licenseRecord = await _context.Licenses
+                .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey && l.BranchID == branchId);
+
+            if (licenseRecord == null)
+            {
+                return BadRequest("مفتاح الترخيص غير مسجل في قاعدة البيانات لهذا الفرع.");
+            }
+
+            if (!string.IsNullOrEmpty(licenseRecord.Signature))
+            {
+                var expectedLicSig = ComputeLicenseRowSignature(licenseRecord.LicenseKey, licenseRecord.CustomerID, licenseRecord.BranchID, licenseRecord.DateLimit ?? "");
+                if (licenseRecord.Signature != expectedLicSig)
+                {
+                    return BadRequest("تم اكتشاف نسخ غير شرعي للترخيص من قاعدة بيانات أخرى.");
+                }
+            }
+
             var existingDevice = await _context.LicensedDevices
                 .FirstOrDefaultAsync(d => d.HardwareId == request.HardwareId && d.BranchId == branchId && d.LicenseKey == request.LicenseKey);
 
@@ -65,6 +99,7 @@ namespace POS.API.Controllers
                 // Already registered in this branch; update expiry if needed
                 existingDevice.ExpiryDate = info.Value.ExpiryDate;
                 existingDevice.LicenseType = licenseTypeStr;
+                existingDevice.Signature = ComputeDeviceSignature(existingDevice.HardwareId, existingDevice.LicenseKey ?? request.LicenseKey, existingDevice.ExpiryDate);
 
                 // Also update Licenses table if exists
                 var existingLicense = await _context.Licenses
@@ -86,7 +121,7 @@ namespace POS.API.Controllers
                 return BadRequest("لقد تجاوزت الحد الأقصى للأجهزة المسموح بها لهذا الفرع.");
             }
 
-            // 3. Register New Device
+            // 3. Register New Device with HMAC Digital Signature
             var newDevice = new LicensedDevice
             {
                 HardwareId = request.HardwareId,
@@ -94,15 +129,13 @@ namespace POS.API.Controllers
                 ActivationDate = DateTime.Now,
                 ExpiryDate = info.Value.ExpiryDate,
                 LicenseType = licenseTypeStr,
-                LicenseKey = request.LicenseKey
+                LicenseKey = request.LicenseKey,
+                Signature = ComputeDeviceSignature(request.HardwareId, request.LicenseKey, info.Value.ExpiryDate)
             };
 
             _context.LicensedDevices.Add(newDevice);
 
             // Also update Licenses table
-            var licenseRecord = await _context.Licenses
-                .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey && l.BranchID == branchId);
-                
             if (licenseRecord != null)
             {
                 licenseRecord.ComputerName = Environment.MachineName;
@@ -118,6 +151,13 @@ namespace POS.API.Controllers
         [HttpGet("GenerateKey")]
         public IActionResult GenerateKey(int branchId = 1, int licenseType = 1, int maxDevices = 3, int expiryMonths = 12)
         {
+            // SECURITY: Require Secret Header so only LicenseManager can generate keys
+            var adminSecret = Request.Headers["X-License-Manager-Secret"].ToString();
+            if (adminSecret != LicenseManagerAdminSecret)
+            {
+                return StatusCode(403, new { Message = "غير مصرح بتوليد التراخيص إلا من خلال تطبيق License Manager المعتمد." });
+            }
+
             // licenseType: 0 = POSOnly, 1 = Full
             var payload = new
             {
@@ -147,23 +187,27 @@ namespace POS.API.Controllers
             // Log to Licenses table
             var branch = _context.Branches.Include(b => b.Company).FirstOrDefault(b => b.Id == branchId);
             
+            var dateLimit = payload.ExpiryDate.ToString("yyyyMMddhhmmss.fff");
+            var custId = branch?.CompanyId ?? 1;
+
             var newLicense = new POS.Core.Entities.Settings.License
             {
-                CustomerID = branch?.CompanyId ?? 1,
+                CustomerID = custId,
                 CustomerName = branch?.Company?.ArabicName ?? (branch != null ? "Backend" : "Unknown"),
                 BranchID = branchId,
                 BranchName = branch?.Name ?? "Main Branch",
                 LicenseKey = base64String,
                 GenerateDate = DateTime.Now.ToString("MMM dd yyyy"),
-                DateLimit = payload.ExpiryDate.ToString("yyyyMMddhhmmss.fff"),
-                LicenseType = licenseType switch { 1 => "POSOnly", 2 => "BackOfficeOnly", 3 => "Full", _ => "POSOnly" },
-                CreationDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                DateLimit = dateLimit,
+                LicenseType = licenseType switch { 1 => "POSOnly", 2 => "BackOfficeOnly", 3 => "Full", 4 => "WarehouseOnly", _ => "POSOnly" },
+                CreationDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Signature = ComputeLicenseRowSignature(base64String, custId, branchId, dateLimit)
             };
             
             _context.Licenses.Add(newLicense);
             _context.SaveChanges();
 
-            string typeName = licenseType switch { 1 => "POS Only", 2 => "BackOffice Only", 3 => "Full (Back+Front)", _ => "POS Only" };
+            string typeName = licenseType switch { 1 => "POS Only", 2 => "BackOffice Only", 3 => "Full (Back+Front)", 4 => "Warehouse Only", _ => "POS Only" };
 
             return Ok(new { 
                 Message = "احتفظ بهذا المفتاح، وقم بإدخاله في شاشة التفعيل الخاصة بالفرع.",
@@ -231,24 +275,72 @@ namespace POS.API.Controllers
             return Ok(licenses);
         }
 
+        [HttpGet("health")]
+        public async Task<IActionResult> Health()
+        {
+            try
+            {
+                bool canConnect = await _context.Database.CanConnectAsync();
+                if (canConnect)
+                {
+                    return Ok(new { status = "Healthy", database = true });
+                }
+                return StatusCode(503, new { status = "Unhealthy", database = false, message = "تعذر الاتصال بقاعدة البيانات" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(503, new { status = "Unhealthy", database = false, message = ex.Message });
+            }
+        }
+
         [HttpGet("CheckDevice")]
-        public async Task<IActionResult> CheckDevice([FromQuery] string hardwareId)
+        public async Task<IActionResult> CheckDevice([FromQuery] string hardwareId, [FromQuery] string? scope = null)
         {
             if (string.IsNullOrWhiteSpace(hardwareId))
                 return BadRequest("HardwareId is required.");
 
-            var device = await _context.LicensedDevices
-                .FirstOrDefaultAsync(d => d.HardwareId == hardwareId && d.ExpiryDate > DateTime.Now);
+            IQueryable<LicensedDevice> query = _context.LicensedDevices
+                .Where(d => d.HardwareId == hardwareId && d.ExpiryDate > DateTime.Now);
+
+            if (!string.IsNullOrEmpty(scope))
+            {
+                if (scope.Equals("Warehouse", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(d => d.LicenseType == "WarehouseOnly" || d.LicenseType == "4");
+                }
+                else if (scope.Equals("BackOffice", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(d => d.LicenseType == "BackOfficeOnly" || d.LicenseType == "2" || d.LicenseType == "Full" || d.LicenseType == "3");
+                }
+                else if (scope.Equals("POS", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(d => d.LicenseType == "POSOnly" || d.LicenseType == "1" || d.LicenseType == "Full" || d.LicenseType == "3");
+                }
+            }
+
+            var device = await query.FirstOrDefaultAsync();
 
             if (device == null)
                 return Ok(new { Licensed = false, LicenseType = (string?)null });
 
-            // Normalize: handles both old numeric ("1","2","3") and new string format
+            // ANTI-TAMPER CHECK: Verify HMAC Signature to prevent manual DB edits
+            if (!string.IsNullOrEmpty(device.Signature))
+            {
+                var expectedSig = ComputeDeviceSignature(device.HardwareId, device.LicenseKey ?? "", device.ExpiryDate);
+                if (device.Signature != expectedSig)
+                {
+                    // Tampered manually in SQL!
+                    return Ok(new { Licensed = false, LicenseType = (string?)null, Message = "تم اكتشاف تلاعب أمني في قاعدة البيانات. الجهاز غير مرخص." });
+                }
+            }
+
+            // Normalize: handles both old numeric ("1","2","3","4") and new string format
             string normalizedType = device.LicenseType switch
             {
-                "1" or "POSOnly"       => "POSOnly",
-                "2" or "BackOfficeOnly" => "BackOfficeOnly",
-                "3" or "Full"          => "Full",
+                "1" or "POSOnly"           => "POSOnly",
+                "2" or "BackOfficeOnly"    => "BackOfficeOnly",
+                "3" or "Full"              => "Full",
+                "4" or "WarehouseOnly"     => "WarehouseOnly",
                 _ => device.LicenseType
             };
 

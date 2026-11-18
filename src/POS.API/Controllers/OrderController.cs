@@ -1,4 +1,4 @@
-using POS.Core.Services.Contract.VoidServices;
+﻿using POS.Core.Services.Contract.VoidServices;
 using Microsoft.AspNetCore.Diagnostics;
 using POS.Core.Entities.Customer;
 
@@ -832,9 +832,9 @@ public class OrderController : BaseApiController
             {
                 await _voidService.VoidOrderAsync(
                     order.Id,
-                    orderDto.VoidReason ?? "Ø¥Ù„ØºØ§Ø¡ Ù…Ù† Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
+                    orderDto.VoidReason ?? "إلغاء من الكول سنتر",
                     orderDto.VoidBy ?? "CC",
-                    orderDto.VoidByName ?? "Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
+                    orderDto.VoidByName ?? "الكول سنتر",
                     returnToStock: true);
 
                 order = await _orderService.GetOrderByIdAsync(order.Id) ?? order;
@@ -880,9 +880,9 @@ public class OrderController : BaseApiController
                 await _voidService.VoidItemsAsync(
                     order.Id,
                     itemsToVoidAtBranch,
-                    orderDto.VoidReason ?? "Ø¥Ù„ØºØ§Ø¡ ØµÙ†Ù Ù…Ù† Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
+                    orderDto.VoidReason ?? "إلغاء صنف من الكول سنتر",
                     orderDto.VoidBy ?? "CC",
-                    orderDto.VoidByName ?? "Ø§Ù„ÙƒÙˆÙ„ Ø³Ù†ØªØ±",
+                    orderDto.VoidByName ?? "الكول سنتر",
                     returnToStock: true);
 
                 order = await _orderService.GetOrderByIdAsync(order.Id) ?? order;

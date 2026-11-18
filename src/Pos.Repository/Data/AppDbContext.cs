@@ -148,6 +148,37 @@ public class AppDbContext : DbContext
         {
             sp.HasOne(x => x.Supplier).WithMany(s => s.Payments).HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
         });
+
+        modelBuilder.Entity<POS.Core.Entities.Payment.Expense>(e =>
+        {
+            e.HasMany(x => x.Items).WithOne(x => x.Expense).HasForeignKey(x => x.ExpenseId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductionRecipe>(pr =>
+        {
+            pr.HasOne(x => x.ProducedProduct).WithMany().HasForeignKey(x => x.ProducedProductId).OnDelete(DeleteBehavior.Restrict);
+            pr.HasOne(x => x.YieldUnit).WithMany().HasForeignKey(x => x.YieldUnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProductionRecipeIngredient>(pri =>
+        {
+            pri.HasOne(x => x.ProductionRecipe).WithMany(r => r.Ingredients).HasForeignKey(x => x.ProductionRecipeId).OnDelete(DeleteBehavior.Cascade);
+            pri.HasOne(x => x.IngredientProduct).WithMany().HasForeignKey(x => x.IngredientProductId).OnDelete(DeleteBehavior.Restrict);
+            pri.HasOne(x => x.Unit).WithMany().HasForeignKey(x => x.UnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProductionOrder>(po =>
+        {
+            po.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            po.HasOne(x => x.ProducedProduct).WithMany().HasForeignKey(x => x.ProducedProductId).OnDelete(DeleteBehavior.Restrict);
+            po.HasOne(x => x.ProductionRecipe).WithMany().HasForeignKey(x => x.ProductionRecipeId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ProductionOrderLine>(pol =>
+        {
+            pol.HasOne(x => x.ProductionOrder).WithMany(o => o.Lines).HasForeignKey(x => x.ProductionOrderId).OnDelete(DeleteBehavior.Cascade);
+            pol.HasOne(x => x.IngredientProduct).WithMany().HasForeignKey(x => x.IngredientProductId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     public DbSet<AttributeItem> AttributeItems { get; set; }
@@ -184,6 +215,9 @@ public class AppDbContext : DbContext
     public DbSet<OrderVoidItem> OrderVoidItems { get; set; }
     public DbSet<POS.Core.Entities.Payment.PaymentMethodEntity> PaymentMethods { get; set; }
     public DbSet<POS.Core.Entities.Payment.Expense> Expenses { get; set; }
+    public DbSet<POS.Core.Entities.Payment.ExpenseItem> ExpenseItems { get; set; }
+    public DbSet<POS.Core.Entities.Inventory.BranchInventoryCostBatch> BranchInventoryCostBatches { get; set; }
+    public DbSet<POS.Core.Entities.Reporting.BranchDailyPnL> BranchDailyPnLSnapshots { get; set; }
     public DbSet<POS.Core.Entities.Settings.DispatcherSetting> DispatcherSettings { get; set; }
     public DbSet<HqSetting> HqSettings { get; set; }
     public DbSet<LicensedDevice> LicensedDevices { get; set; }
@@ -224,7 +258,15 @@ public class AppDbContext : DbContext
     public DbSet<GoodsReceiptNoteLine> GoodsReceiptNoteLines { get; set; }
     public DbSet<BranchRequisition> BranchRequisitions { get; set; }
     public DbSet<BranchRequisitionLine> BranchRequisitionLines { get; set; }
+    public DbSet<SupplierReturn> SupplierReturns { get; set; }
+    public DbSet<SupplierReturnLine> SupplierReturnLines { get; set; }
     public DbSet<RequisitionLog> RequisitionLogs { get; set; }
     public DbSet<StockLedger> StockLedger { get; set; }
     public DbSet<StockBalance> StockBalances { get; set; }
+
+    // Central Manufacturing & Production
+    public DbSet<ProductionRecipe> ProductionRecipes { get; set; }
+    public DbSet<ProductionRecipeIngredient> ProductionRecipeIngredients { get; set; }
+    public DbSet<ProductionOrder> ProductionOrders { get; set; }
+    public DbSet<ProductionOrderLine> ProductionOrderLines { get; set; }
 }

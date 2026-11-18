@@ -145,3 +145,44 @@ public class SupplierPayment : BaseEntity
     public string? Notes { get; set; }
     public string? CreatedByUserId { get; set; }
 }
+
+public class SupplierReturn : BaseEntity
+{
+    public string ReturnNumber { get; set; } = string.Empty; // e.g. SRTN-2026-0001
+    public int? PurchaseOrderId { get; set; }
+    public PurchaseOrder? PurchaseOrder { get; set; }
+
+    public int? GoodsReceiptNoteId { get; set; }
+    public GoodsReceiptNote? GoodsReceiptNote { get; set; }
+
+    public int WarehouseId { get; set; }
+    public Warehouse? Warehouse { get; set; }
+
+    public int SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
+
+    public DateTime ReturnDate { get; set; } = DateTime.UtcNow;
+    public string? Reason { get; set; }
+    public string? ReturnedByUserId { get; set; }
+    public decimal TotalAmount { get; set; }
+
+    public ICollection<SupplierReturnLine> Lines { get; set; } = new List<SupplierReturnLine>();
+}
+
+public class SupplierReturnLine : BaseEntity
+{
+    public int SupplierReturnId { get; set; }
+    public SupplierReturn? SupplierReturn { get; set; }
+
+    public int ProductId { get; set; }
+    public WarehouseProduct? Product { get; set; }
+
+    public int UnitId { get; set; }
+    public WarehouseUnit? Unit { get; set; }
+
+    public decimal QuantityReturned { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal TotalCost { get; set; }
+    public string? Reason { get; set; }
+    public string? BatchNumber { get; set; }
+}

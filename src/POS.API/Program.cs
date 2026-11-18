@@ -84,6 +84,66 @@ try
     await dbContext.Database.MigrateAsync();
     await identityDbContext.Database.MigrateAsync();
 
+    // Hotfix: Ensure Warehouse schema is always complete across all databases (PointOfSaleDB, PointOfSaleDBb, etc.)
+    await dbContext.Database.ExecuteSqlRawAsync(@"
+        IF COL_LENGTH('Warehouses', 'ApiUrl') IS NULL
+            ALTER TABLE Warehouses ADD ApiUrl nvarchar(max) NULL;
+
+        IF COL_LENGTH('WarehouseProducts', 'CategoryId') IS NULL
+            ALTER TABLE WarehouseProducts ADD CategoryId int NULL;
+
+        IF COL_LENGTH('SupplierPriceContracts', 'IsPreferred') IS NULL
+            ALTER TABLE SupplierPriceContracts ADD IsPreferred bit NOT NULL DEFAULT 0;
+
+        IF COL_LENGTH('BranchRequisitions', 'RowVersion') IS NULL
+            ALTER TABLE BranchRequisitions ADD RowVersion rowversion NULL;
+
+        IF OBJECT_ID('WarehouseCategories') IS NULL
+        BEGIN
+            CREATE TABLE WarehouseCategories (
+                Id int NOT NULL PRIMARY KEY,
+                Code nvarchar(max) NOT NULL,
+                NameAr nvarchar(max) NOT NULL,
+                NameEn nvarchar(max) NULL,
+                Description nvarchar(max) NULL,
+                IsActive bit NOT NULL
+            );
+        END
+
+        IF OBJECT_ID('PurchaseOrderLogs') IS NULL
+        BEGIN
+            CREATE TABLE PurchaseOrderLogs (
+                Id int NOT NULL IDENTITY(1, 1) PRIMARY KEY,
+                PurchaseOrderId int NOT NULL,
+                EventType nvarchar(max) NOT NULL,
+                OldStatus nvarchar(max) NULL,
+                NewStatus nvarchar(max) NULL,
+                Description nvarchar(max) NULL,
+                CreatedByUserId nvarchar(max) NULL,
+                CreatedByName nvarchar(max) NULL,
+                EventDate datetime2 NOT NULL,
+                CONSTRAINT FK_PurchaseOrderLogs_PurchaseOrders_PurchaseOrderId FOREIGN KEY (PurchaseOrderId) REFERENCES PurchaseOrders(Id) ON DELETE CASCADE
+            );
+        END
+
+        IF OBJECT_ID('RequisitionLogs') IS NULL
+        BEGIN
+            CREATE TABLE RequisitionLogs (
+                Id int NOT NULL IDENTITY(1, 1) PRIMARY KEY,
+                RequisitionId int NOT NULL,
+                EventType nvarchar(max) NOT NULL,
+                OldStatus nvarchar(max) NULL,
+                NewStatus nvarchar(max) NULL,
+                Description nvarchar(max) NULL,
+                ChangedByUserId nvarchar(max) NULL,
+                ChangedByName nvarchar(max) NULL,
+                ChangedByRole nvarchar(max) NULL,
+                EventDate datetime2 NOT NULL,
+                CONSTRAINT FK_RequisitionLogs_BranchRequisitions_RequisitionId FOREIGN KEY (RequisitionId) REFERENCES BranchRequisitions(Id) ON DELETE CASCADE
+            );
+        END
+    ");
+
     // Hotfix: Ensure Permissions table schema is correct if migrations were out of sync
     await identityDbContext.Database.ExecuteSqlRawAsync(@"
         -- 1. Rename NameEn to ScreenEnglishName if it exists and target doesn't
@@ -311,6 +371,193 @@ try
         END
     ");
 
+
+    await dbContext.Database.ExecuteSqlRawAsync(@"
+        IF OBJECT_ID('ExpenseItems') IS NULL
+        BEGIN
+            CREATE TABLE ExpenseItems (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [ExpenseId] INT NOT NULL,
+                [ItemType] INT NOT NULL DEFAULT 0,
+                [ItemId] INT NULL,
+                [ItemName] NVARCHAR(250) NOT NULL,
+                [Quantity] DECIMAL(18,3) NOT NULL DEFAULT 1,
+                [UnitPrice] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalPrice] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [UnitName] NVARCHAR(50) NULL,
+                [Notes] NVARCHAR(500) NULL,
+                [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT [FK_ExpenseItems_Expenses_ExpenseId] FOREIGN KEY ([ExpenseId]) REFERENCES [Expenses] ([Id]) ON DELETE CASCADE
+            );
+        END
+
+        IF OBJECT_ID('ProductionRecipes') IS NULL
+        BEGIN
+            CREATE TABLE ProductionRecipes (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [Code] NVARCHAR(100) NOT NULL,
+                [Name] NVARCHAR(250) NOT NULL,
+                [ProducedProductId] INT NOT NULL,
+                [YieldQuantity] DECIMAL(18,3) NOT NULL DEFAULT 1,
+                [YieldUnitId] INT NULL,
+                [EstimatedBatchCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [EstimatedUnitCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [Notes] NVARCHAR(1000) NULL,
+                [IsActive] BIT NOT NULL DEFAULT 1,
+                [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT [FK_ProductionRecipes_WarehouseProducts] FOREIGN KEY ([ProducedProductId]) REFERENCES [WarehouseProducts] ([Id])
+            );
+        END
+
+        IF OBJECT_ID('ProductionRecipeIngredients') IS NULL
+        BEGIN
+            CREATE TABLE ProductionRecipeIngredients (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [ProductionRecipeId] INT NOT NULL,
+                [IngredientProductId] INT NOT NULL,
+                [Quantity] DECIMAL(18,3) NOT NULL DEFAULT 0,
+                [UnitId] INT NULL,
+                [WastePercent] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [EstimatedCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [Notes] NVARCHAR(500) NULL,
+                CONSTRAINT [FK_ProductionRecipeIngredients_ProductionRecipes] FOREIGN KEY ([ProductionRecipeId]) REFERENCES [ProductionRecipes] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_ProductionRecipeIngredients_WarehouseProducts] FOREIGN KEY ([IngredientProductId]) REFERENCES [WarehouseProducts] ([Id])
+            );
+        END
+
+        IF OBJECT_ID('ProductionOrders') IS NULL
+        BEGIN
+            CREATE TABLE ProductionOrders (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [OrderNumber] NVARCHAR(100) NOT NULL,
+                [WarehouseId] INT NOT NULL,
+                [ProducedProductId] INT NOT NULL,
+                [ProductionRecipeId] INT NULL,
+                [TargetQuantity] DECIMAL(18,3) NOT NULL DEFAULT 1,
+                [ActualQuantityProduced] DECIMAL(18,3) NOT NULL DEFAULT 1,
+                [Status] INT NOT NULL DEFAULT 0,
+                [OrderDate] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                [CompletedDate] DATETIME2 NULL,
+                [TotalActualCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [UnitCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [Notes] NVARCHAR(1000) NULL,
+                [CreatedByUserId] NVARCHAR(100) NULL,
+                [CreatedByUserName] NVARCHAR(150) NULL,
+                CONSTRAINT [FK_ProductionOrders_Warehouses] FOREIGN KEY ([WarehouseId]) REFERENCES [Warehouses] ([Id]),
+                CONSTRAINT [FK_ProductionOrders_WarehouseProducts] FOREIGN KEY ([ProducedProductId]) REFERENCES [WarehouseProducts] ([Id])
+            );
+        END
+
+        IF OBJECT_ID('ProductionOrderLines') IS NULL
+        BEGIN
+            CREATE TABLE ProductionOrderLines (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [ProductionOrderId] INT NOT NULL,
+                [IngredientProductId] INT NOT NULL,
+                [PlannedQuantity] DECIMAL(18,3) NOT NULL DEFAULT 0,
+                [ActualQuantityConsumed] DECIMAL(18,3) NOT NULL DEFAULT 0,
+                [UnitCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [AvailableStockAtExecution] DECIMAL(18,3) NOT NULL DEFAULT 0,
+                [Notes] NVARCHAR(500) NULL,
+                CONSTRAINT [FK_ProductionOrderLines_ProductionOrders] FOREIGN KEY ([ProductionOrderId]) REFERENCES [ProductionOrders] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_ProductionOrderLines_WarehouseProducts] FOREIGN KEY ([IngredientProductId]) REFERENCES [WarehouseProducts] ([Id])
+            );
+        END
+
+        IF COL_LENGTH('InventoryItems', 'UnitCost') IS NULL
+            ALTER TABLE InventoryItems ADD UnitCost decimal(18,2) NOT NULL DEFAULT 0;
+
+        IF COL_LENGTH('InventoryTransactions', 'UnitCost') IS NULL
+            ALTER TABLE InventoryTransactions ADD UnitCost decimal(18,2) NOT NULL DEFAULT 0;
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BranchInventoryCostBatches')
+        BEGIN
+            CREATE TABLE BranchInventoryCostBatches (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [BranchId] INT NOT NULL DEFAULT 1,
+                [MenuSalesItemId] INT NOT NULL,
+                [ItemName] NVARCHAR(250) NOT NULL,
+                [BatchSource] NVARCHAR(50) NOT NULL,
+                [ReferenceId] NVARCHAR(100) NOT NULL,
+                [OriginalQuantity] DECIMAL(18,3) NOT NULL,
+                [RemainingQuantity] DECIMAL(18,3) NOT NULL,
+                [UnitCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [UnitName] NVARCHAR(50) NULL,
+                [Priority] INT NOT NULL DEFAULT 2,
+                [IsExhausted] BIT NOT NULL DEFAULT 0,
+                [ReceivedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+            );
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BranchDailyPnLSnapshots')
+        BEGIN
+            CREATE TABLE BranchDailyPnLSnapshots (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [Date] DATETIME2 NOT NULL,
+                [BranchId] INT NOT NULL DEFAULT 1,
+                [BranchName] NVARCHAR(200) NULL,
+                [TotalGrossSales] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalDiscounts] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalVoids] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [NetSales] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalCOGS] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalWasteCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalInventoryPurchases] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [GrossProfit] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [GrossProfitMargin] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalExpenses] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [NetProfit] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [OrderCount] INT NOT NULL DEFAULT 0,
+                [CalculatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+            );
+        END
+        ELSE
+        BEGIN
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BranchDailyPnLSnapshots') AND name = 'TotalVoids')
+                ALTER TABLE BranchDailyPnLSnapshots ADD [TotalVoids] DECIMAL(18,2) NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BranchDailyPnLSnapshots') AND name = 'TotalWasteCost')
+                ALTER TABLE BranchDailyPnLSnapshots ADD [TotalWasteCost] DECIMAL(18,2) NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BranchDailyPnLSnapshots') AND name = 'TotalInventoryPurchases')
+                ALTER TABLE BranchDailyPnLSnapshots ADD [TotalInventoryPurchases] DECIMAL(18,2) NOT NULL DEFAULT 0;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BranchRequisitions') AND name = 'IsReturn')
+        BEGIN
+            ALTER TABLE BranchRequisitions ADD [IsReturn] BIT NOT NULL DEFAULT 0;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierReturns')
+        BEGIN
+            CREATE TABLE SupplierReturns (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [ReturnNumber] NVARCHAR(50) NOT NULL,
+                [PurchaseOrderId] INT NULL,
+                [GoodsReceiptNoteId] INT NULL,
+                [WarehouseId] INT NOT NULL,
+                [SupplierId] INT NOT NULL,
+                [ReturnDate] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                [Reason] NVARCHAR(500) NULL,
+                [ReturnedByUserId] NVARCHAR(450) NULL,
+                [TotalAmount] DECIMAL(18,2) NOT NULL DEFAULT 0
+            );
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierReturnLines')
+        BEGIN
+            CREATE TABLE SupplierReturnLines (
+                [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                [SupplierReturnId] INT NOT NULL,
+                [ProductId] INT NOT NULL,
+                [UnitId] INT NOT NULL,
+                [QuantityReturned] DECIMAL(18,4) NOT NULL DEFAULT 0,
+                [UnitCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [TotalCost] DECIMAL(18,2) NOT NULL DEFAULT 0,
+                [Reason] NVARCHAR(500) NULL,
+                [BatchNumber] NVARCHAR(100) NULL
+            );
+        END
+    ");
 
     await PosDbContextDataSeed.SeedAsync(dbContext);
     await AppIdentityDbContextSeed.SeedAsync(userManager, roleManager, identityDbContext);

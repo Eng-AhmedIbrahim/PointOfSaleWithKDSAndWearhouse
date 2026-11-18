@@ -20,6 +20,7 @@ public class InventoryTransaction : BaseEntity
 
     public decimal QuantityChange { get; set; } // Positive for addition, negative for deduction
     public decimal ResultingQuantity { get; set; }
+    public decimal UnitCost { get; set; } = 0;
     
     public TransactionType Type { get; set; }
     public string? ReferenceId { get; set; } // OrderId or BatchId

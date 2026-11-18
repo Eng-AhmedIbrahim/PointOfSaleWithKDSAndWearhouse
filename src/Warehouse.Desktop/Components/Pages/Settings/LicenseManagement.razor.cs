@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -38,7 +38,7 @@ namespace Warehouse.Desktop.Components.Pages.Settings
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¬Ù„Ø¨ Ø§Ù„ØªØ±Ø§Ø®ÙŠØµ: {ex.Message}", Severity.Error);
+                Snackbar.Add($"حدث خطأ أثناء جلب التراخيص: {ex.Message}", Severity.Error);
             }
             finally
             {
@@ -64,9 +64,9 @@ namespace Warehouse.Desktop.Components.Pages.Settings
         private async Task UnlinkDeviceAsync(License license)
         {
             bool? result = await DialogService.ShowMessageBox(
-                "ØªØ£ÙƒÙŠØ¯ Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø§Ø±ØªØ¨Ø§Ø·",
-                $"Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† ÙÙƒ Ø§Ø±ØªØ¨Ø§Ø· Ø§Ù„Ø¬Ù‡Ø§Ø² [{license.ComputerName}] Ø¨Ù‡Ø°Ø§ Ø§Ù„ØªØ±Ø®ÙŠØµØŸ Ø³ÙŠÙØ·Ù„Ø¨ Ù…Ù† Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø² Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙˆØ¯ ØªÙØ¹ÙŠÙ„ Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ø§Ù„Ù…Ø±Ø© Ø§Ù„Ù‚Ø§Ø¯Ù…Ø©.",
-                yesText: "Ù†Ø¹Ù…ØŒ ÙÙƒ Ø§Ù„Ø§Ø±ØªØ¨Ø§Ø·", cancelText: "Ø¥Ù„ØºØ§Ø¡");
+                "تأكيد إزالة الارتباط",
+                $"هل أنت متأكد من فك ارتباط الجهاز [{license.ComputerName}] بهذا الترخيص؟ سيُطلب من هذا الجهاز إدخال كود تفعيل جديد في المرة القادمة.",
+                yesText: "نعم، فك الارتباط", cancelText: "إلغاء");
 
             if (result != true) return;
 
@@ -77,18 +77,18 @@ namespace Warehouse.Desktop.Components.Pages.Settings
 
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add("ØªÙ… ÙÙƒ Ø§Ù„Ø§Ø±ØªØ¨Ø§Ø· Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„ØªØ±Ø®ÙŠØµ Ø£ØµØ¨Ø­ Ù…ØªØ§Ø­Ø§Ù‹ Ø§Ù„Ø¢Ù† Ù„Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙÙŠ Ø¬Ù‡Ø§Ø² Ø¢Ø®Ø±.", Severity.Success);
+                Snackbar.Add("تم فك الارتباط بنجاح. الترخيص أصبح متاحاً الآن للاستخدام في جهاز آخر.", Severity.Success);
                     await LoadLicensesAsync();
                 }
                 else
                 {
                     string error = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Ø­Ø¯Ø« Ø®Ø·Ø£: {error}", Severity.Error);
+                    Snackbar.Add($"حدث خطأ: {error}", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"ÙØ´Ù„ Ø§Ù„Ø§ØªØµØ§Ù„: {ex.Message}", Severity.Error);
+                Snackbar.Add($"فشل الاتصال: {ex.Message}", Severity.Error);
             }
         }
     }

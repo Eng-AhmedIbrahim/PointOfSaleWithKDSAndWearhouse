@@ -13,6 +13,8 @@
 @inject BlazorBase.ERPFrontServices.LicensingServices.ILicenseService LicenseService
 @inject Warehouse.Desktop.Services.WarehouseNotificationService WarehouseNotification
 @inject WarehouseNotificationInvocation WarehouseNotificationEvents
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 
 @implements IDisposable
 
@@ -22,9 +24,36 @@
         <div dir="@(IsArabic ? "rtl" : "ltr")">
             <MudLayout Style="height: 100vh;">
                 <MudMainContent Class="main-content-wrapper py-0">
-                    <NavMenu />
+                    <NavMenu IsLicensedForWarehouse="_isLicensed" />
                     <div class="page-container">
-                        @Body
+                        @if (_isLicensed)
+                        {
+                            @Body
+                        }
+                        else if (_isConnectionError)
+                        {
+                            <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
+                                <MudIcon Icon="@Icons.Material.Filled.CloudOff" Style="font-size: 6rem;" Color="Color.Warning" Class="mb-4" />
+                                <MudText Typo="Typo.h4" Color="Color.Warning" Class="mb-2">تعذر الاتصال بخادم النظام أو قاعدة البيانات</MudText>
+                                <MudText Typo="Typo.body1" Class="mb-4" Style="max-width: 500px;">@(_connectionErrorMessage ?? "يرجى التأكد من تشغيل سيرفر الـ API وقاعدة البيانات والاتصال بالشبكة.")</MudText>
+                                <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" 
+                                           OnClick="CheckLicenseAndConnectionAsync" Disabled="_isCheckingConnection">
+                                    @(_isCheckingConnection ? "جاري الفحص..." : "إعادة المحاولة")
+                                </MudButton>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 6rem; color: #ea580c;" Class="mb-4" />
+                                <MudText Typo="Typo.h4" Style="color: #ea580c; font-weight: 800;" Class="mb-2">هذا الجهاز غير مرخص لنظام المخازن</MudText>
+                                <MudText Typo="Typo.body1" Class="mb-5" Style="color: #64748b; font-size: 1.1rem;">برجاء الضغط على زر "التسجيل" لتفعيل ترخيص المخزن لهذا الجهاز أو الرجوع للإدارة.</MudText>
+                                <MudButton Variant="MudBlazor.Variant.Filled" Size="Size.Large" StartIcon="@Icons.Material.Rounded.AppRegistration"
+                                           OnClick="OpenRegistrationDialog" Style="background: #ea580c; color: white; font-weight: 700; font-size: 1.1rem; border-radius: 12px; padding: 10px 28px;">
+                                    تسجيل وتفعيل ترخيص المخزن
+                                </MudButton>
+                            </div>
+                        }
                     </div>
                 </MudMainContent>
 
@@ -45,7 +74,10 @@
 @code {
     bool _drawerOpen = true;
     bool _isMini = false;
-    bool _isLicensed = true;
+    bool _isLicensed = false;
+    bool _isConnectionError = false;
+    string? _connectionErrorMessage = null;
+    bool _isCheckingConnection = false;
 
     private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
 
@@ -85,7 +117,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isLicensed = true; // WMS uses its own licensing
+        await CheckLicenseAndConnectionAsync();
 
         // Initialize warehouse SignalR connection
         await WarehouseNotification.InitializeAsync();
@@ -99,6 +131,51 @@
         };
 
         _commonProperties.OnChange += _stateChangedHandler;
+    }
+
+    private async Task CheckLicenseAndConnectionAsync()
+    {
+        _isCheckingConnection = true;
+        try
+        {
+            var res = await LicenseService.VerifyDeviceLicenseAsync("Warehouse");
+            if (res.IsConnectionError)
+            {
+                _isConnectionError = true;
+                _isLicensed = false;
+                _connectionErrorMessage = res.ErrorMessage;
+            }
+            else
+            {
+                _isConnectionError = false;
+                _isLicensed = res.IsLicensed;
+                _connectionErrorMessage = null;
+            }
+        }
+        catch
+        {
+            _isConnectionError = true;
+            _isLicensed = false;
+            _connectionErrorMessage = "تعذر الاتصال بسيرفر النظام (API). يرجى التأكد من تشغيل السيرفر.";
+        }
+        finally
+        {
+            _isCheckingConnection = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenRegistrationDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, NoHeader = false };
+        var dialog = await DialogService.ShowAsync<Warehouse.Desktop.Components.Shared.LicenseActivationDialog>(
+            IsArabic ? "تنشيط ترخيص المخزن" : "Activate Warehouse License", 
+            options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await CheckLicenseAndConnectionAsync();
+        }
     }
 
 

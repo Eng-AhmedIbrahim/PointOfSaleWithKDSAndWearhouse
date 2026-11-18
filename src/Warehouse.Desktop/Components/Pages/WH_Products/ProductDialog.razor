@@ -1,6 +1,9 @@
 ﻿@using MudBlazor
+@using DialogOptions = MudBlazor.DialogOptions
+@using Variant = MudBlazor.Variant
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudDialog dir="rtl" Style="max-width: 960px; width: 95vw; border-radius: 20px; overflow: hidden;">
     <TitleContent>
@@ -63,9 +66,16 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">
-                            الفئة (التصنيف) *
-                        </MudText>
+                        <div class="d-flex align-center justify-space-between mb-1">
+                            <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold" Style="color:#475569;">
+                                الفئة (التصنيف) *
+                            </MudText>
+                            <MudLink Typo="MudBlazor.Typo.caption" OnClick="OpenManageCategories" Class="fw-bold cursor-pointer"
+                                     Style="color: #ea580c; text-decoration: none;">
+                                <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" Class="me-1" Style="vertical-align: middle; font-size: 0.95rem;" />
+                                إدارة وإضافة فئات
+                            </MudLink>
+                        </div>
                         <MudSelect T="int?" @bind-Value="Model.CategoryId" Required="true" RequiredError="يرجى اختيار الفئة"
                                    Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
                                    Placeholder="-- اختر فئة الصنف --">
@@ -77,9 +87,16 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">
-                            وحدة التخزين الأساسية *
-                        </MudText>
+                        <div class="d-flex align-center justify-space-between mb-1">
+                            <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold" Style="color:#475569;">
+                                وحدة التخزين الأساسية *
+                            </MudText>
+                            <MudLink Typo="MudBlazor.Typo.caption" OnClick="OpenManageUnits" Class="fw-bold cursor-pointer"
+                                     Style="color: #0284c7; text-decoration: none;">
+                                <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" Class="me-1" Style="vertical-align: middle; font-size: 0.95rem;" />
+                                إدارة وإضافة وحدات
+                            </MudLink>
+                        </div>
                         <MudSelect T="int?" @bind-Value="Model.BaseUnitId" @bind-Value:after="StateHasChanged" Required="true" RequiredError="يرجى تحديد وحدة الأساس"
                                    Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
                                    Placeholder="-- اختر الوحدة الأساسية (كغ، لتر، حبة) --">
@@ -474,4 +491,54 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private async Task OpenManageCategories()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ManageCategoriesDialog>("إدارة فئات وتصنيفات الأصناف المخزنية", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await ReloadCategories();
+        }
+    }
+
+    private async Task ReloadCategories()
+    {
+        try
+        {
+            var cats = await Http.GetFromJsonAsync<List<CategoryDto>>("api/warehouseproducts/categories");
+            if (cats != null)
+            {
+                Categories = cats;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private async Task OpenManageUnits()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ManageUnitsDialog>("إدارة وحدات القياس المخزنية", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await ReloadUnits();
+        }
+    }
+
+    private async Task ReloadUnits()
+    {
+        try
+        {
+            var units = await Http.GetFromJsonAsync<List<UnitDto>>("api/warehouseproducts/units");
+            if (units != null)
+            {
+                Units = units;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
 }

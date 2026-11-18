@@ -103,28 +103,59 @@ public partial class App : Application
             var callCenterService = _serviceProvider.GetRequiredService<CallCenterNotificationService>();
             _ = Task.Run(async () => await callCenterService.InitializeAsync());
 
-            Log.Information("Checking license...");
+            Log.Information("Checking API connection and license...");
             var licenseService = _serviceProvider.GetRequiredService<ILicenseService>();
             
-            bool isLicensed = false;
-            try
+            while (true)
             {
-                isLicensed = Task.Run(async () => await licenseService.IsLicensedAsync()).GetAwaiter().GetResult();
-            }
-            catch (Exception licEx)
-            {
-                Log.Error(licEx, "License check threw an exception");
-                var logPath2 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "POS-Logs");
-                Directory.CreateDirectory(logPath2);
-                File.WriteAllText(Path.Combine(logPath2, $"license-error-{DateTime.Now:yyyyMMdd-HHmmss}.txt"), licEx.ToString());
-            }
+                BlazorBase.ERPFrontServices.LicensingServices.LicenseVerificationResult checkResult;
+                try
+                {
+                    checkResult = Task.Run(async () => await licenseService.VerifyDeviceLicenseAsync("POS")).GetAwaiter().GetResult();
+                }
+                catch (Exception licEx)
+                {
+                    Log.Error(licEx, "License verification exception");
+                    checkResult = new BlazorBase.ERPFrontServices.LicensingServices.LicenseVerificationResult
+                    {
+                        Status = BlazorBase.ERPFrontServices.LicensingServices.LicenseCheckStatus.ApiUnreachable,
+                        ErrorMessage = "تعذر الاتصال بسيرفر النظام (API). يرجى التأكد من تشغيل السيرفر والاتصال بالشبكة."
+                    };
+                }
 
-            if (!isLicensed)
-            {
-                MessageBox.Show("هذا الجهاز غير مرخص. يرجى تسجيل الجهاز وتفعيله من خلال برنامج الإدارة (BackOffice) قبل استخدام نقاط البيع.", 
-                                "ترخيص مفقود أو غير صالح", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown(1);
-                return;
+                if (checkResult.Status == BlazorBase.ERPFrontServices.LicensingServices.LicenseCheckStatus.Valid)
+                {
+                    Log.Information("License verified successfully. LicenseType: {LicenseType}", checkResult.LicenseType);
+                    break;
+                }
+
+                if (checkResult.IsConnectionError)
+                {
+                    var title = checkResult.Status == BlazorBase.ERPFrontServices.LicensingServices.LicenseCheckStatus.DatabaseUnavailable 
+                        ? "خطأ في الاتصال بقاعدة البيانات" 
+                        : "تعذر الاتصال بسيرفر النظام";
+
+                    var msg = $"{checkResult.ErrorMessage}\n\nهل تريد إعادة المحاولة الآن؟\n(نعم = إعادة الفحص، لا = إغلاق البرنامج)";
+                    
+                    var userChoice = MessageBox.Show(msg, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (userChoice == MessageBoxResult.Yes)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        Shutdown(1);
+                        return;
+                    }
+                }
+                else
+                {
+                    // Connected to API & DB, but device is NOT licensed
+                    MessageBox.Show("هذا الجهاز غير مرخص. يرجى تسجيل الجهاز وتفعيله من خلال برنامج الإدارة (BackOffice) قبل استخدام نقاط البيع.", 
+                                    "ترخيص مفقود أو غير صالح", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown(1);
+                    return;
+                }
             }
 
             Log.Information("Creating main window...");

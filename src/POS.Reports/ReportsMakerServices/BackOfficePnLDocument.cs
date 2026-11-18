@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using POS.Contract.Dtos.ReportingDtos;
+using POS.Core.Entities.Reporting;
 
 namespace POS.Reports.ReportsMakerServices;
 
@@ -16,9 +17,10 @@ public class BackOfficePnLDocument : IDocument
     private readonly DateTime _toDate;
     private readonly bool _isEnglish;
     private readonly bool _isThermal;
+    private readonly BranchDailyPnL? _snapshot;
     private const string Currency = "ج.م";
 
-    public BackOfficePnLDocument(SalesSummaryDto summary, string branchName, DateTime from, DateTime to, bool isThermal = false, string lang = "ar")
+    public BackOfficePnLDocument(SalesSummaryDto summary, string branchName, DateTime from, DateTime to, bool isThermal = false, string lang = "ar", BranchDailyPnL? snapshot = null)
     {
         _summary    = summary ?? new SalesSummaryDto();
         _branchName = branchName;
@@ -26,6 +28,7 @@ public class BackOfficePnLDocument : IDocument
         _toDate     = to;
         _isThermal  = isThermal;
         _isEnglish  = (lang ?? "ar").ToLower() == "en";
+        _snapshot   = snapshot;
     }
 
     public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -116,27 +119,33 @@ public class BackOfficePnLDocument : IDocument
 
     private void ComposeA4KpiCards(ColumnDescriptor col)
     {
-        decimal grossSales   = _summary.Overall.TotalSales;
-        decimal totalDisc    = _summary.Overall.TotalDiscount;
-        decimal netSales     = grossSales - totalDisc;
-        decimal totalExpense = _summary.DetailedExpenses?.Sum(e => e.Amount) ?? _summary.Overall.Expenses;
-        decimal netProfit    = netSales - totalExpense;
+        decimal grossSales   = _snapshot?.TotalGrossSales ?? _summary.Overall.TotalSales;
+        decimal totalDisc    = _snapshot?.TotalDiscounts  ?? _summary.Overall.TotalDiscount;
+        decimal netSales     = _snapshot?.NetSales        ?? (grossSales - totalDisc);
+        decimal totalCOGS    = _snapshot?.TotalCOGS       ?? 0m;
+        decimal grossProfit  = _snapshot?.GrossProfit     ?? netSales;
+        decimal totalExpense = _snapshot?.TotalExpenses   ?? (_summary.DetailedExpenses?.Sum(e => e.Amount) ?? _summary.Overall.Expenses);
+        decimal netProfit    = _snapshot?.NetProfit       ?? (netSales - totalExpense);
+        bool    hasSnapshot  = _snapshot != null;
 
         col.Item().PaddingBottom(8).Row(row =>
         {
             KpiCard(row.RelativeItem(), _isEnglish ? "Gross Revenue" : "إجمالي المبيعات",
                 $"{grossSales:0.##} {Currency}", Colors.Blue.Darken4, Colors.Blue.Lighten5);
             row.ConstantItem(8);
-            KpiCard(row.RelativeItem(), _isEnglish ? "Total Discounts" : "إجمالي الخصومات",
-                $"-{totalDisc:0.##} {Currency}", Colors.Orange.Darken4, Colors.Orange.Lighten5);
-            row.ConstantItem(8);
             KpiCard(row.RelativeItem(), _isEnglish ? "Net Revenue" : "صافي المبيعات",
                 $"{netSales:0.##} {Currency}", Colors.Green.Darken4, Colors.Green.Lighten5);
             row.ConstantItem(8);
-            KpiCard(row.RelativeItem(), _isEnglish ? "Total Expenses" : "المصروفات",
+            if (hasSnapshot)
+            {
+                KpiCard(row.RelativeItem(), _isEnglish ? "Gross Profit" : "مجمل الربح",
+                    $"{grossProfit:0.##} {Currency}", Colors.Teal.Darken4, Colors.Teal.Lighten5);
+                row.ConstantItem(8);
+            }
+            KpiCard(row.RelativeItem(), _isEnglish ? "Operating Expenses" : "المصروفات",
                 $"-{totalExpense:0.##} {Currency}", Colors.Red.Darken4, Colors.Red.Lighten5);
             row.ConstantItem(8);
-            KpiCard(row.RelativeItem(), _isEnglish ? "Net Profit" : "صافي الربح التقديري",
+            KpiCard(row.RelativeItem(), hasSnapshot ? (_isEnglish ? "Net Profit (Actual)" : "صافي الربح الفعلي") : (_isEnglish ? "Net Profit (Est.)" : "صافي الربح التقديري"),
                 $"{netProfit:0.##} {Currency}",
                 netProfit >= 0 ? Colors.Green.Darken4 : Colors.Red.Darken4,
                 netProfit >= 0 ? Colors.Green.Lighten5 : Colors.Red.Lighten5);

@@ -52,7 +52,7 @@
                                 @onclick="@(() => AddItemToSection4(item))">
                             @if (item.ByWeight)
                             {
-                                <span class="item-weight-badge">âš–ï¸</span>
+                                <span class="item-weight-badge">⚖️</span>
                             }
                             <span class="item-text" style="@(item.TextSize.HasValue ? $"font-size:{item.TextSize}px" : "")">@(Localizer.GetCurrentLanguage() == "ar" ? item.ArabicName : (item.EnglishName ?? item.ArabicName))</span>
                         </button>
@@ -60,7 +60,7 @@
                     <TooltipContent>
                         <div style="text-align:right; direction:rtl; min-width:120px; padding:4px 2px;">
                             <div style="font-weight:900; font-size:1rem; color:#4ade80; letter-spacing:0.5px;">
-                                @((item.ExtraPrice > 0 ? item.ExtraPrice : item.Price)?.ToString("0.##")) <span style="font-size:0.75rem; opacity:0.8;">Ø¬.Ù…</span>
+                                @((item.ExtraPrice > 0 ? item.ExtraPrice : item.Price)?.ToString("0.##")) <span style="font-size:0.75rem; opacity:0.8;">ج.م</span>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Description))
                             {

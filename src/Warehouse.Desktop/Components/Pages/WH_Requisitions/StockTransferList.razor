@@ -1,4 +1,4 @@
-﻿@page "/transfers"
+@page "/transfers"
 @attribute [Authorize]
 @using MudBlazor
 @using System.Net.Http.Json
@@ -11,13 +11,13 @@
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <div class="wh-page-header d-flex justify-space-between align-center mb-4">
-        <MudText MudBlazor.Typo="Typo.h5">
+        <MudText Typo="Typo.h5">
             <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
-            التحويلات المخزنية
+            التحويلات والشحنات
         </MudText>
         <MudButton Color="MudBlazor.Color.Warning" Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary"
                    StartIcon="@Icons.Material.Filled.Add" OnClick="OpenNewTransferDialog">
-            تحويل مخزني جديد
+            إنشاء تحويل جديد
         </MudButton>
     </div>
 
@@ -25,11 +25,11 @@
     <MudPaper Class="wh-card pa-4 mb-4" Elevation="1">
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="4">
-                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المخزن</MudText>
+                <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">المستودع</MudText>
                 <MudSelect T="int?" @bind-Value="_filterWarehouseId"
                            Clearable="true" Variant="MudBlazor.Variant.Outlined"
                            Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem T="int?" Value="@((int?)null)">-- كل المخازن --</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- كل المستودعات --</MudSelectItem>
                     @foreach (var w in _warehouses)
                     {
                         <MudSelectItem T="int?" Value="@((int?)w.Id)">@w.DisplayName</MudSelectItem>
@@ -37,21 +37,21 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">من تاريخ</MudText>
+                <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">من تاريخ</MudText>
                 <MudDatePicker @bind-Date="_filterFromDate"
                                Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
                                Margin="Margin.Dense"
                                Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">إلى تاريخ</MudText>
+                <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">إلى تاريخ</MudText>
                 <MudDatePicker @bind-Date="_filterToDate"
                                Variant="MudBlazor.Variant.Outlined" DateFormat="yyyy-MM-dd"
                                Margin="Margin.Dense"
                                Culture="@(IsArabic ? new System.Globalization.CultureInfo("ar-EG") : new System.Globalization.CultureInfo("en-US"))" />
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الحالة</MudText>
+                <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block" Style="color:#475569;">الحالة</MudText>
                 <MudSelect T="string?" @bind-Value="_filterStatus"
                            Clearable="true" Variant="MudBlazor.Variant.Outlined"
                            Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
@@ -84,13 +84,13 @@
                   Loading="_loading" LoadingProgressColor="MudBlazor.Color.Warning">
             <HeaderContent>
                 <MudTh>رقم التحويل</MudTh>
-                <MudTh>من المخزن</MudTh>
-                <MudTh>إلى المخزن</MudTh>
+                <MudTh>من مستودع</MudTh>
+                <MudTh>إلى مستودع</MudTh>
                 <MudTh>التاريخ</MudTh>
                 <MudTh>الحالة</MudTh>
                 <MudTh>عدد الأصناف</MudTh>
                 <MudTh>أنشئ بواسطة</MudTh>
-                <MudTh>إجراءات</MudTh>
+                <MudTh>خيارات</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd><b>@context.TransferNumber</b></MudTd>
@@ -111,7 +111,7 @@
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText Class="pa-4 text-center">لا توجد تحويلات مطابقة للفلاتر المحددة</MudText>
+                <MudText Class="pa-4 text-center">لا توجد تحويلات مخزنية تطابق معايير البحث</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>
@@ -149,7 +149,7 @@
             }
             catch
             {
-                Snackbar.Add("حدث خطأ أثناء تحميل المخازن", MudBlazor.Severity.Warning);
+                Snackbar.Add("تعذر جلب قائمة المستودعات", MudBlazor.Severity.Warning);
             }
         }
     }
@@ -170,7 +170,7 @@
         }
         catch
         {
-            Snackbar.Add("حدث خطأ أثناء تحميل التحويلات", MudBlazor.Severity.Error);
+            Snackbar.Add("خطأ أثناء تحميل قائمة التحويلات", MudBlazor.Severity.Error);
         }
         finally
         {
@@ -180,7 +180,7 @@
 
     private async Task OpenNewTransferDialog()
     {
-        var dialog = await DialogService.ShowAsync<StockTransferDialog>("تحويل مخزني جديد");
+        var dialog = await DialogService.ShowAsync<StockTransferDialog>("إنشاء تحويل جديد");
         var result = await dialog.Result;
         if (!result.Canceled)
             await LoadTransfers();
@@ -228,4 +228,3 @@
         int Id, string TransferNumber, string FromWarehouseName, string ToWarehouseName,
         DateTime TransferDate, string Status, int TotalItems, string CreatedBy);
 }
-

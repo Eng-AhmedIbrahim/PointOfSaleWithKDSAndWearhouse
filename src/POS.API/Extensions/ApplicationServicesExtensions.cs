@@ -64,6 +64,8 @@ public static class ApplicationServicesExtensions
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IUnitService, UnitService>();
+        services.AddScoped<IProductionService, ProductionService>();
+        services.AddScoped<IBranchPnLService, BranchPnLService>();
         services.AddSingleton<IEncryptionService, EncryptionService>();
         services.AddReportingInfrastructure();
 

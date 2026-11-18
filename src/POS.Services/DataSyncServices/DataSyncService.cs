@@ -139,8 +139,14 @@ public class DataSyncService : IDataSyncService
                         await SyncSalesItemsIncremental(hqConnString, localConn, transaction, localBranchId);
                     }
 
-                    // Warehouse Supply & Raw Materials Incremental Sync (Preserves Branch Quantities!)
-                    if (request.SyncStoreItems || request.SyncWarehouses)
+                    // 3. Warehouses & Locations Sync (مزامنة المستودعات والمخازن الرئيسية ومواقع التخزين)
+                    if (request.SyncWarehouses)
+                    {
+                        await SyncWarehousesAndLocations(hqConnString, localConn, transaction);
+                    }
+
+                    // 4. Warehouse Supply & Raw Materials Incremental Sync (أصناف المخزن والوحدات والفئات - مع الحفاظ على كميات الفرع)
+                    if (request.SyncStoreItems)
                     {
                         await SyncWarehouseUnits(hqConnString, localConn, transaction);
                         await SyncWarehouseCategories(hqConnString, localConn, transaction);
@@ -270,6 +276,131 @@ public class DataSyncService : IDataSyncService
         }
 
         return builder.ConnectionString;
+    }
+
+    private async Task SyncWarehousesAndLocations(string hqConnString, SqlConnection localConn, SqlTransaction transaction)
+    {
+        using (var hqConn = new SqlConnection(hqConnString))
+        {
+            await hqConn.OpenAsync();
+
+            // 1. Sync Warehouses (مزامنة المستودعات والمخازن الرئيسية)
+            var checkWCmd = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Warehouses'", hqConn);
+            if (Convert.ToInt32(await checkWCmd.ExecuteScalarAsync()) > 0)
+            {
+                var wCmd = new SqlCommand("SELECT * FROM [Warehouses]", hqConn);
+                using (var reader = await wCmd.ExecuteReaderAsync())
+                {
+                    var dt = new DataTable();
+                    dt.Load(reader);
+
+                    var hasIdCmd = new SqlCommand("SELECT OBJECTPROPERTY(OBJECT_ID('[Warehouses]'), 'TableHasIdentity')", localConn, transaction);
+                    bool hasIdentity = Convert.ToInt32(await hasIdCmd.ExecuteScalarAsync()) == 1;
+                    string idOn = hasIdentity ? "SET IDENTITY_INSERT [Warehouses] ON;\n    " : "";
+                    string idOff = hasIdentity ? "\n    SET IDENTITY_INSERT [Warehouses] OFF;" : "";
+
+                    var upsertSql = $@"
+IF EXISTS (SELECT 1 FROM [Warehouses] WHERE [Id] = @Id)
+BEGIN
+    UPDATE [Warehouses]
+    SET [Code] = @Code,
+        [NameAr] = @NameAr,
+        [NameEn] = @NameEn,
+        [Type] = @Type,
+        [Address] = @Address,
+        [Phone] = @Phone,
+        [ManagerName] = @ManagerName,
+        [IsActive] = @IsActive,
+        [BranchId] = @BranchId,
+        [DefaultSupplyingWarehouseId] = @DefaultSupplyingWarehouseId,
+        [ApiUrl] = @ApiUrl,
+        [UpdatedAt] = GETUTCDATE()
+    WHERE [Id] = @Id;
+END
+ELSE
+BEGIN
+    {idOn}INSERT INTO [Warehouses] (
+        [Id], [Code], [NameAr], [NameEn], [Type], [Address], [Phone], [ManagerName],
+        [IsActive], [BranchId], [DefaultSupplyingWarehouseId], [CreatedAt], [ApiUrl]
+    ) VALUES (
+        @Id, @Code, @NameAr, @NameEn, @Type, @Address, @Phone, @ManagerName,
+        @IsActive, @BranchId, @DefaultSupplyingWarehouseId, @CreatedAt, @ApiUrl
+    );{idOff}
+END";
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        using (var upsertCmd = new SqlCommand(upsertSql, localConn, transaction))
+                        {
+                            upsertCmd.Parameters.AddWithValue("@Id", Convert.ToInt32(row["Id"]));
+                            upsertCmd.Parameters.AddWithValue("@Code", dt.Columns.Contains("Code") && row["Code"] != DBNull.Value ? row["Code"] : "");
+                            upsertCmd.Parameters.AddWithValue("@NameAr", dt.Columns.Contains("NameAr") && row["NameAr"] != DBNull.Value ? row["NameAr"] : "");
+                            upsertCmd.Parameters.AddWithValue("@NameEn", dt.Columns.Contains("NameEn") && row["NameEn"] != DBNull.Value ? row["NameEn"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@Type", dt.Columns.Contains("Type") && row["Type"] != DBNull.Value ? row["Type"] : 1);
+                            upsertCmd.Parameters.AddWithValue("@Address", dt.Columns.Contains("Address") && row["Address"] != DBNull.Value ? row["Address"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@Phone", dt.Columns.Contains("Phone") && row["Phone"] != DBNull.Value ? row["Phone"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@ManagerName", dt.Columns.Contains("ManagerName") && row["ManagerName"] != DBNull.Value ? row["ManagerName"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@IsActive", dt.Columns.Contains("IsActive") && row["IsActive"] != DBNull.Value ? Convert.ToBoolean(row["IsActive"]) : true);
+                            upsertCmd.Parameters.AddWithValue("@BranchId", dt.Columns.Contains("BranchId") && row["BranchId"] != DBNull.Value ? row["BranchId"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@DefaultSupplyingWarehouseId", dt.Columns.Contains("DefaultSupplyingWarehouseId") && row["DefaultSupplyingWarehouseId"] != DBNull.Value ? row["DefaultSupplyingWarehouseId"] : DBNull.Value);
+                            upsertCmd.Parameters.AddWithValue("@CreatedAt", dt.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? row["CreatedAt"] : DateTime.UtcNow);
+                            upsertCmd.Parameters.AddWithValue("@ApiUrl", dt.Columns.Contains("ApiUrl") && row["ApiUrl"] != DBNull.Value ? row["ApiUrl"] : DBNull.Value);
+
+                            await upsertCmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+            }
+
+            // 2. Sync WarehouseLocations (مواقع التخزين)
+            var checkLocCmd = new SqlCommand("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'WarehouseLocations'", hqConn);
+            if (Convert.ToInt32(await checkLocCmd.ExecuteScalarAsync()) > 0)
+            {
+                var locCmd = new SqlCommand("SELECT * FROM [WarehouseLocations]", hqConn);
+                using (var locReader = await locCmd.ExecuteReaderAsync())
+                {
+                    var locDt = new DataTable();
+                    locDt.Load(locReader);
+
+                    var hasLocIdCmd = new SqlCommand("SELECT OBJECTPROPERTY(OBJECT_ID('[WarehouseLocations]'), 'TableHasIdentity')", localConn, transaction);
+                    bool hasLocIdentity = Convert.ToInt32(await hasLocIdCmd.ExecuteScalarAsync()) == 1;
+                    string locIdOn = hasLocIdentity ? "SET IDENTITY_INSERT [WarehouseLocations] ON;\n    " : "";
+                    string locIdOff = hasLocIdentity ? "\n    SET IDENTITY_INSERT [WarehouseLocations] OFF;" : "";
+
+                    var locSql = $@"
+IF EXISTS (SELECT 1 FROM [WarehouseLocations] WHERE [Id] = @Id)
+BEGIN
+    UPDATE [WarehouseLocations]
+    SET [WarehouseId] = @WarehouseId,
+        [Code] = @Code,
+        [Name] = @Name,
+        [IsActive] = @IsActive,
+        [UpdatedAt] = GETUTCDATE()
+    WHERE [Id] = @Id;
+END
+ELSE
+BEGIN
+    {locIdOn}INSERT INTO [WarehouseLocations] ([Id], [WarehouseId], [Code], [Name], [IsActive], [CreatedAt])
+    VALUES (@Id, @WarehouseId, @Code, @Name, @IsActive, @CreatedAt);{locIdOff}
+END";
+
+                    foreach (DataRow row in locDt.Rows)
+                    {
+                        using (var upsertLoc = new SqlCommand(locSql, localConn, transaction))
+                        {
+                            upsertLoc.Parameters.AddWithValue("@Id", Convert.ToInt32(row["Id"]));
+                            upsertLoc.Parameters.AddWithValue("@WarehouseId", Convert.ToInt32(row["WarehouseId"]));
+                            upsertLoc.Parameters.AddWithValue("@Code", locDt.Columns.Contains("Code") && row["Code"] != DBNull.Value ? row["Code"] : "");
+                            upsertLoc.Parameters.AddWithValue("@Name", locDt.Columns.Contains("Name") && row["Name"] != DBNull.Value ? row["Name"] : "");
+                            upsertLoc.Parameters.AddWithValue("@IsActive", locDt.Columns.Contains("IsActive") && row["IsActive"] != DBNull.Value ? Convert.ToBoolean(row["IsActive"]) : true);
+                            upsertLoc.Parameters.AddWithValue("@CreatedAt", locDt.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value ? row["CreatedAt"] : DateTime.UtcNow);
+
+                            await upsertLoc.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private async Task SyncWarehouseUnits(string hqConnString, SqlConnection localConn, SqlTransaction transaction)
@@ -617,12 +748,7 @@ END";
                 while (await kReader.ReadAsync()) validKitchenIds.Add(kReader.GetInt32(0));
             }
 
-            var cmd = new SqlCommand(@"
-SELECT Id, Barcode, ArabicName, EnglishName, NormalizedEnglishName, Price, SecondPrice, ThirdPrice,
-       FourthPrice, FifthPrice, Tax, Description, ImagePath, MainCategoryId, CategoryId,
-       BackColor, TextColor, TextSize, Invisible, HasAttribute, AttributeId, ByWeight,
-       IsInventory, ItemTypeId, KitchenTypeId, PrintInBackupReceipt, CreationDate
-FROM MenuSalesItems", hqConn);
+            var cmd = new SqlCommand("SELECT * FROM [MenuSalesItems]", hqConn);
 
             using (var reader = await cmd.ExecuteReaderAsync())
             {
@@ -685,38 +811,38 @@ END";
                     using (var upsertCmd = new SqlCommand(upsertSql, localConn, transaction))
                     {
                         upsertCmd.Parameters.AddWithValue("@Id", Convert.ToInt32(row["Id"]));
-                        upsertCmd.Parameters.AddWithValue("@Barcode", row["Barcode"] != DBNull.Value ? row["Barcode"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@ArabicName", row["ArabicName"]);
-                        upsertCmd.Parameters.AddWithValue("@EnglishName", row["EnglishName"]);
-                        upsertCmd.Parameters.AddWithValue("@NormalizedEnglishName", row["NormalizedEnglishName"] != DBNull.Value ? row["NormalizedEnglishName"] : (object)row["EnglishName"].ToString().ToUpperInvariant());
-                        upsertCmd.Parameters.AddWithValue("@Price", row["Price"] != DBNull.Value ? row["Price"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@SecondPrice", row["SecondPrice"] != DBNull.Value ? row["SecondPrice"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@ThirdPrice", row["ThirdPrice"] != DBNull.Value ? row["ThirdPrice"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@FourthPrice", row["FourthPrice"] != DBNull.Value ? row["FourthPrice"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@FifthPrice", row["FifthPrice"] != DBNull.Value ? row["FifthPrice"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@Tax", row["Tax"] != DBNull.Value ? row["Tax"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@Description", row["Description"] != DBNull.Value ? row["Description"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@ImagePath", row["ImagePath"] != DBNull.Value ? row["ImagePath"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@MainCategoryId", row["MainCategoryId"] != DBNull.Value ? row["MainCategoryId"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@CategoryId", row["CategoryId"] != DBNull.Value ? row["CategoryId"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@BackColor", row["BackColor"] != DBNull.Value ? row["BackColor"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@TextColor", row["TextColor"] != DBNull.Value ? row["TextColor"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@TextSize", row["TextSize"] != DBNull.Value ? row["TextSize"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@Invisible", Convert.ToBoolean(row["Invisible"]));
-                        upsertCmd.Parameters.AddWithValue("@HasAttribute", Convert.ToBoolean(row["HasAttribute"]));
-                        upsertCmd.Parameters.AddWithValue("@AttributeId", row["AttributeId"] != DBNull.Value ? row["AttributeId"] : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@ByWeight", Convert.ToBoolean(row["ByWeight"]));
-                        upsertCmd.Parameters.AddWithValue("@IsInventory", Convert.ToBoolean(row["IsInventory"]));
-                        upsertCmd.Parameters.AddWithValue("@ItemTypeId", row["ItemTypeId"] != DBNull.Value ? row["ItemTypeId"] : 1);
+                        upsertCmd.Parameters.AddWithValue("@Barcode", dt.Columns.Contains("Barcode") && row["Barcode"] != DBNull.Value ? row["Barcode"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@ArabicName", dt.Columns.Contains("ArabicName") ? row["ArabicName"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@EnglishName", dt.Columns.Contains("EnglishName") ? row["EnglishName"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@NormalizedEnglishName", dt.Columns.Contains("NormalizedEnglishName") && row["NormalizedEnglishName"] != DBNull.Value ? row["NormalizedEnglishName"] : (object)(row["EnglishName"]?.ToString() ?? "").ToUpperInvariant());
+                        upsertCmd.Parameters.AddWithValue("@Price", dt.Columns.Contains("Price") && row["Price"] != DBNull.Value ? row["Price"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@SecondPrice", dt.Columns.Contains("SecondPrice") && row["SecondPrice"] != DBNull.Value ? row["SecondPrice"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@ThirdPrice", dt.Columns.Contains("ThirdPrice") && row["ThirdPrice"] != DBNull.Value ? row["ThirdPrice"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@FourthPrice", dt.Columns.Contains("FourthPrice") && row["FourthPrice"] != DBNull.Value ? row["FourthPrice"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@FifthPrice", dt.Columns.Contains("FifthPrice") && row["FifthPrice"] != DBNull.Value ? row["FifthPrice"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@Tax", dt.Columns.Contains("Tax") && row["Tax"] != DBNull.Value ? row["Tax"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@Description", dt.Columns.Contains("Description") && row["Description"] != DBNull.Value ? row["Description"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@ImagePath", dt.Columns.Contains("ImagePath") && row["ImagePath"] != DBNull.Value ? row["ImagePath"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@MainCategoryId", dt.Columns.Contains("MainCategoryId") && row["MainCategoryId"] != DBNull.Value ? row["MainCategoryId"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@CategoryId", dt.Columns.Contains("CategoryId") && row["CategoryId"] != DBNull.Value ? row["CategoryId"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@BackColor", dt.Columns.Contains("BackColor") && row["BackColor"] != DBNull.Value ? row["BackColor"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@TextColor", dt.Columns.Contains("TextColor") && row["TextColor"] != DBNull.Value ? row["TextColor"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@TextSize", dt.Columns.Contains("TextSize") && row["TextSize"] != DBNull.Value ? row["TextSize"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@Invisible", dt.Columns.Contains("Invisible") && row["Invisible"] != DBNull.Value && Convert.ToBoolean(row["Invisible"]));
+                        upsertCmd.Parameters.AddWithValue("@HasAttribute", dt.Columns.Contains("HasAttribute") && row["HasAttribute"] != DBNull.Value && Convert.ToBoolean(row["HasAttribute"]));
+                        upsertCmd.Parameters.AddWithValue("@AttributeId", dt.Columns.Contains("AttributeId") && row["AttributeId"] != DBNull.Value ? row["AttributeId"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@ByWeight", dt.Columns.Contains("ByWeight") && row["ByWeight"] != DBNull.Value && Convert.ToBoolean(row["ByWeight"]));
+                        upsertCmd.Parameters.AddWithValue("@IsInventory", dt.Columns.Contains("IsInventory") && row["IsInventory"] != DBNull.Value && Convert.ToBoolean(row["IsInventory"]));
+                        upsertCmd.Parameters.AddWithValue("@ItemTypeId", dt.Columns.Contains("ItemTypeId") && row["ItemTypeId"] != DBNull.Value ? row["ItemTypeId"] : 1);
                         object kitchenVal = DBNull.Value;
-                        if (row["KitchenTypeId"] != DBNull.Value && int.TryParse(row["KitchenTypeId"].ToString(), out int kId) && validKitchenIds.Contains(kId))
+                        if (dt.Columns.Contains("KitchenTypeId") && row["KitchenTypeId"] != DBNull.Value && int.TryParse(row["KitchenTypeId"].ToString(), out int kId) && validKitchenIds.Contains(kId))
                         {
                             kitchenVal = kId;
                         }
                         upsertCmd.Parameters.AddWithValue("@KitchenTypeId", kitchenVal);
-                        upsertCmd.Parameters.AddWithValue("@PrintInBackupReceipt", row["PrintInBackupReceipt"] != DBNull.Value ? row["PrintInBackupReceipt"] : DBNull.Value);
+                        upsertCmd.Parameters.AddWithValue("@PrintInBackupReceipt", dt.Columns.Contains("PrintInBackupReceipt") && row["PrintInBackupReceipt"] != DBNull.Value ? row["PrintInBackupReceipt"] : DBNull.Value);
                         upsertCmd.Parameters.AddWithValue("@BranchId", localBranchId > 0 ? (object)localBranchId : DBNull.Value);
-                        upsertCmd.Parameters.AddWithValue("@CreationDate", row["CreationDate"] != DBNull.Value ? row["CreationDate"] : DateTime.UtcNow);
+                        upsertCmd.Parameters.AddWithValue("@CreationDate", dt.Columns.Contains("CreationDate") && row["CreationDate"] != DBNull.Value ? row["CreationDate"] : DateTime.UtcNow);
 
                         await upsertCmd.ExecuteNonQueryAsync();
                     }
@@ -769,16 +895,17 @@ END";
             string identityOn = hasIdentity ? $"SET IDENTITY_INSERT [{tableName}] ON;\n    " : "";
             string identityOff = hasIdentity ? $"\n    SET IDENTITY_INSERT [{tableName}] OFF;" : "";
 
+            // Use _p_ prefix to avoid SQL Server reserved keyword conflicts (e.g. TEXTSIZE, ROWCOUNT, etc.)
             var setClause = validUpdateCols.Count > 0
-                ? string.Join(", ", validUpdateCols.Select(c => $"[{c}] = @{c}"))
-                : "[Id] = @Id";
+                ? string.Join(", ", validUpdateCols.Select(c => $"[{c}] = @_p_{c}"))
+                : "[Id] = @_p_Id";
             var insertCols = string.Join(", ", commonCols.Select(c => $"[{c}]"));
-            var insertParams = string.Join(", ", commonCols.Select(c => $"@{c}"));
+            var insertParams = string.Join(", ", commonCols.Select(c => $"@_p_{c}"));
 
             var sql = $@"
-IF EXISTS (SELECT 1 FROM [{tableName}] WHERE [Id] = @Id)
+IF EXISTS (SELECT 1 FROM [{tableName}] WHERE [Id] = @_p_Id)
 BEGIN
-    UPDATE [{tableName}] SET {setClause} WHERE [Id] = @Id;
+    UPDATE [{tableName}] SET {setClause} WHERE [Id] = @_p_Id;
 END
 ELSE
 BEGIN
@@ -791,7 +918,8 @@ END";
                 {
                     foreach (var col in commonCols)
                     {
-                        upsertCmd.Parameters.AddWithValue($"@{col}", row[col] ?? DBNull.Value);
+                        var val = row[col];
+                        upsertCmd.Parameters.AddWithValue($"@_p_{col}", (val == null || val == DBNull.Value) ? DBNull.Value : val);
                     }
                     await upsertCmd.ExecuteNonQueryAsync();
                 }

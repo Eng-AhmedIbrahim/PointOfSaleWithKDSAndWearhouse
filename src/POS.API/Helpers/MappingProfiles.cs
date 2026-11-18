@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using AutoMapper;
 using POS.Core.Entities;
 using POS.Core.Entities.DineIn;
@@ -417,7 +417,11 @@ public class MappingProfiles : Profile
             .ForMember(dest => dest.SpentBy, opt => opt.MapFrom(src => src.SpentBy))
             .ForMember(dest => dest.IsPayoutFromDrawer, opt => opt.MapFrom(src => src.IsPayoutFromDrawer))
             .ForMember(dest => dest.BranchId, opt => opt.MapFrom(src => src.BranchId))
-            .ForMember(dest => dest.ShiftId, opt => opt.MapFrom(src => src.ShiftId));
+            .ForMember(dest => dest.ShiftId, opt => opt.MapFrom(src => src.ShiftId))
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items))
+            .ReverseMap();
+
+        CreateMap<POS.Core.Entities.Payment.ExpenseItem, POS.Contract.Dtos.ReportingDtos.ExpenseItemDto>().ReverseMap();
     }
 }
 

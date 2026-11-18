@@ -18,4 +18,6 @@ public class Expense : BaseEntity
     
     // Flag to indicate if this was taken from the cash drawer
     public bool IsPayoutFromDrawer { get; set; } = true;
+
+    public virtual ICollection<ExpenseItem> Items { get; set; } = new List<ExpenseItem>();
 }

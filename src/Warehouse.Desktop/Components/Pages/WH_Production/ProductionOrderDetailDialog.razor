@@ -1,0 +1,153 @@
+@using MudBlazor
+@using POS.Contract.Dtos.InventoryDtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog dir="rtl" Style="max-width: 850px; width: 90vw; border-radius: 16px; overflow: hidden;">
+    <TitleContent>
+        <div class="d-flex align-center justify-space-between pa-2 border-b w-100">
+            <div class="d-flex align-center gap-3">
+                <div class="pa-2 rounded-xl" style="background:#ea580c; color: white;">
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="MudBlazor.Size.Medium" />
+                </div>
+                <div>
+                    <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 900; color: #1e293b;">
+                        أمر إنتاج وتشغيل: @(_order?.OrderNumber ?? "")
+                    </MudText>
+                    <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">
+                        تفاصيل الخامات المصروفة وتكلفة المنتج المصنّع
+                    </MudText>
+                </div>
+            </div>
+            @if (_order != null)
+            {
+                <MudChip T="string" Color="@GetStatusColor(_order.Status)" Variant="MudBlazor.Variant.Filled" Style="font-weight: 800;">
+                    @_order.StatusText
+                </MudChip>
+            }
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Warning" />
+            </div>
+        }
+        else if (_order != null)
+        {
+            <div class="pa-2">
+                <!-- Summary Card -->
+                <MudGrid Spacing="2" Class="mb-3 pa-3 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">المخزن</MudText>
+                        <MudText Typo="MudBlazor.Typo.body2" Style="font-weight: 800;">@_order.WarehouseName</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الصنف المصنّع</MudText>
+                        <MudText Typo="MudBlazor.Typo.body2" Style="font-weight: 800; color: #ea580c;">@_order.ProducedProductName</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">الكمية المنتجة</MudText>
+                        <MudText Typo="MudBlazor.Typo.body2" Style="font-weight: 900; color: #16a34a;">
+                            @_order.ActualQuantityProduced.ToString("N2") @_order.ProducedProductUnitName
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">تكلفة الوحدة المنتجة</MudText>
+                        <MudText Typo="MudBlazor.Typo.body2" Style="font-weight: 900; color: #0284c7;">
+                            @_order.UnitCost.ToString("N2") ج.م
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Consumed Ingredients -->
+                <MudText Typo="MudBlazor.Typo.subtitle2" Class="fw-bold mb-2" Style="color: #1e293b;">
+                    الخامات المصروفة والمستهلكة للتشغيل:
+                </MudText>
+
+                <MudPaper Elevation="0" Style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <MudTable Items="_order.Lines" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh Style="font-weight: 800; background: #f8fafc;">الخامة</MudTh>
+                            <MudTh Style="font-weight: 800; background: #f8fafc;">الكمية المستهلكة</MudTh>
+                            <MudTh Style="font-weight: 800; background: #f8fafc;">سعر تكلفة الوحدة</MudTh>
+                            <MudTh Style="font-weight: 800; background: #f8fafc;">إجمالي التكلفة</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="الخامة">
+                                <span style="font-weight: 700; color: #1e293b;">@context.IngredientProductName</span>
+                            </MudTd>
+                            <MudTd DataLabel="الكمية">
+                                <span style="font-weight: 800; color: #0284c7;">@context.ActualQuantityConsumed.ToString("N3")</span>
+                                <small style="color: #64748b;"> @context.UnitName</small>
+                            </MudTd>
+                            <MudTd DataLabel="سعر الوحدة">
+                                @context.UnitCost.ToString("N2") ج.م
+                            </MudTd>
+                            <MudTd DataLabel="إجمالي التكلفة">
+                                <span style="font-weight: 800; color: #b45309;">@context.TotalCost.ToString("N2") ج.م</span>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+
+                    <div class="pa-3 d-flex justify-space-between align-center" style="background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                        <span style="font-weight: 800; color: #475569;">إجمالي تكلفة الخامات في أمر التشغيل:</span>
+                        <span style="font-weight: 900; color: #ea580c; font-size: 1.15rem;">
+                            @_order.TotalActualCost.ToString("N2") ج.م
+                        </span>
+                    </div>
+                </MudPaper>
+
+                @if (!string.IsNullOrEmpty(_order.Notes))
+                {
+                    <div class="mt-3 pa-2 rounded" style="background: #fefce8; border: 1px solid #fef08a;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #854d0e;">ملاحظات:</span>
+                        <span style="font-size: 0.8rem; color: #713f12;"> @_order.Notes</span>
+                    </div>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <div class="pa-2">
+            <MudButton OnClick="Close" Variant="MudBlazor.Variant.Outlined">إغلاق</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int OrderId { get; set; }
+
+    private bool _loading = true;
+    private ProductionOrderDto? _order;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _order = await Http.GetFromJsonAsync<ProductionOrderDto>($"api/warehouse/production/orders/{OrderId}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل في تحميل تفاصيل أمر الإنتاج: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private MudBlazor.Color GetStatusColor(int status) => status switch
+    {
+        0 => MudBlazor.Color.Default,
+        1 => MudBlazor.Color.Info,
+        2 => MudBlazor.Color.Success,
+        3 => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Default
+    };
+
+    private void Close() => MudDialog.Close();
+}

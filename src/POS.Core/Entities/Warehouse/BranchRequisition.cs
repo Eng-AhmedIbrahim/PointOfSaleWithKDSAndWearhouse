@@ -30,6 +30,7 @@ public class BranchRequisition : BaseEntity
     public string? RerouteReason { get; set; }
 
     public RequisitionStatus Status { get; set; } = RequisitionStatus.Draft;
+    public bool IsReturn { get; set; } = false; // True = مرتجع من الفرع إلى المخزن الرئيسي
     public DateTime RequestDate { get; set; } = DateTime.UtcNow;
     public DateTime? RequiredDate { get; set; }
 

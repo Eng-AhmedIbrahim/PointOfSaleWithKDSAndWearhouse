@@ -1,0 +1,312 @@
+@using MudBlazor
+@using POS.Contract.Dtos.InventoryDtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog dir="rtl" Style="max-width: 900px; width: 95vw; border-radius: 16px; overflow: hidden;">
+    <TitleContent>
+        <div class="d-flex align-center gap-3 pa-2 border-b">
+            <div class="pa-2 rounded-xl" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="MudBlazor.Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="MudBlazor.Typo.h6" Style="font-weight: 900; color: #1e293b;">
+                    @(RecipeId > 0 ? "تعديل وصفة تصنيع (BOM)" : "إضافة وصفة تصنيع جديدة (BOM)")
+                </MudText>
+                <MudText Typo="MudBlazor.Typo.caption" Color="MudBlazor.Color.Secondary">
+                    تعريف الصنف المُصنّع وكميات الخامات ونسب الهالك لحساب التكلفة آلياً
+                </MudText>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_loadingInit)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Warning" />
+            </div>
+        }
+        else
+        {
+            <MudGrid Spacing="2" Class="pt-2">
+                <!-- Recipe Name & Code -->
+                <MudItem xs="12" md="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">اسم الوصفة *</MudText>
+                    <MudTextField @bind-Value="_recipe.Name" Placeholder="مثال: خلطة تتبيلة شاورما دجاج 50 كغ..."
+                                  Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">كود الوصفة (BOM Code)</MudText>
+                    <MudTextField @bind-Value="_recipe.Code" Placeholder="اتركه فارغاً للتوليد التلقائي..."
+                                  Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <!-- Target Produced Product & Yield -->
+                <MudItem xs="12" md="8">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">الصنف المُصنّع الناتج من هذه الوصفة *</MudText>
+                    <MudSelect T="int" @bind-Value="_recipe.ProducedProductId" @bind-Value:after="OnProducedProductChanged"
+                               Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
+                               Placeholder="-- اختر الصنف المصنّع --">
+                        @foreach (var prod in _products)
+                        {
+                            <MudSelectItem Value="@prod.Id">@prod.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">كمية المعيار الناتجة (Yield) *</MudText>
+                    <MudNumericField T="decimal" @bind-Value="_recipe.YieldQuantity" @bind-Value:after="RecalculateCosts"
+                                     Format="N2" Min="0.01m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                     Adornment="Adornment.End" AdornmentText="@_yieldUnitName" />
+                </MudItem>
+
+                <!-- Ingredients Table Header -->
+                <MudItem xs="12">
+                    <div class="d-flex justify-space-between align-center mt-3 mb-2">
+                        <MudText Typo="MudBlazor.Typo.subtitle2" Style="font-weight: 800; color: #1e293b;">
+                            <MudIcon Icon="@Icons.Material.Filled.FormatListBulleted" Size="MudBlazor.Size.Small" Class="me-1" Style="vertical-align: middle;" />
+                            الخامات والمكونات الداخلة في المعيار:
+                        </MudText>
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="MudBlazor.Variant.Outlined"
+                                   Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small" OnClick="AddIngredientLine"
+                                   Style="border-radius: 8px; font-weight: 700;">
+                            + إضافة خامة للوصفة
+                        </MudButton>
+                    </div>
+
+                    @if (!_recipe.Ingredients.Any())
+                    {
+                        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="my-2">
+                            لا توجد خامات مضافة بعد. اضغط على "+ إضافة خامة للوصفة" لإدراج المكونات.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudPaper Elevation="0" Style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                            <MudTable Items="_recipe.Ingredients" Dense="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh Style="font-weight: 800; background: #f8fafc; width: 40%;">الخامة</MudTh>
+                                    <MudTh Style="font-weight: 800; background: #f8fafc; width: 20%;">الكمية المطلوبة</MudTh>
+                                    <MudTh Style="font-weight: 800; background: #f8fafc; width: 15%;">نسبة الهالك (%)</MudTh>
+                                    <MudTh Style="font-weight: 800; background: #f8fafc; width: 20%;">التكلفة التقديرية</MudTh>
+                                    <MudTh Style="font-weight: 800; background: #f8fafc; width: 5%;"></MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="الخامة">
+                                        <MudSelect T="int" Value="@context.IngredientProductId"
+                                                   ValueChanged="@((val) => OnIngredientChanged(context, val))"
+                                                   Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                            @foreach (var prod in _products)
+                                            {
+                                                <MudSelectItem Value="@prod.Id">@prod.DisplayName</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudTd>
+                                    <MudTd DataLabel="الكمية">
+                                        <MudNumericField T="decimal" Value="@context.Quantity"
+                                                         ValueChanged="@((val) => { context.Quantity = val; RecalculateCosts(); })"
+                                                         Format="N3" Min="0.001m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                                         Adornment="Adornment.End" AdornmentText="@context.UnitName" />
+                                    </MudTd>
+                                    <MudTd DataLabel="نسبة الهالك">
+                                        <MudNumericField T="decimal" Value="@context.WastePercent"
+                                                         ValueChanged="@((val) => { context.WastePercent = val; RecalculateCosts(); })"
+                                                         Format="N1" Min="0m" Max="100m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                                         Adornment="Adornment.End" AdornmentText="%" />
+                                    </MudTd>
+                                    <MudTd DataLabel="التكلفة">
+                                        <span style="font-weight: 800; color: #b45309;">@context.EstimatedCost.ToString("N2") ج.م</span>
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
+                                                       Size="MudBlazor.Size.Small" OnClick="@(() => RemoveIngredientLine(context))" />
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+
+                            <div class="pa-3 d-flex justify-space-between align-center flex-wrap gap-2" style="background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                                <div>
+                                    <span style="font-weight: 700; color: #475569;">إجمالي تكلفة المعيار: </span>
+                                    <span style="font-weight: 900; color: #b45309; font-size: 1.05rem;">@_recipe.EstimatedBatchCost.ToString("N2") ج.م</span>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 700; color: #475569;">تكلفة الوحدة الواحدة: </span>
+                                    <span style="font-weight: 900; color: #16a34a; font-size: 1.15rem;">@_recipe.EstimatedUnitCost.ToString("N2") ج.م</span>
+                                    <small style="color: #64748b;"> / @_yieldUnitName</small>
+                                </div>
+                            </div>
+                        </MudPaper>
+                    }
+                </MudItem>
+
+                <!-- Notes -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_recipe.Notes" Lines="2"
+                                  Placeholder="طريقة التحضير، تعليمات التخزين، الملاحظات..."
+                                  Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex gap-2 pa-2 w-100 justify-end" dir="rtl">
+            <MudButton OnClick="Cancel" Variant="MudBlazor.Variant.Outlined">إلغاء</MudButton>
+            <MudButton OnClick="Save" Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                       Disabled="_isSaving || string.IsNullOrWhiteSpace(_recipe.Name) || _recipe.ProducedProductId <= 0 || !_recipe.Ingredients.Any()"
+                       Style="font-weight: 800; min-width: 140px; background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                حفظ الوصفة (BOM)
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int RecipeId { get; set; }
+
+    private bool _loadingInit = true;
+    private bool _isSaving = false;
+
+    private ProductionRecipeDto _recipe = new() { YieldQuantity = 1 };
+    private string _yieldUnitName = "وحدة";
+    private List<ProductLookupDto> _products = new();
+
+    private class ProductLookupDto
+    {
+        public int Id { get; set; }
+        public string? SKU { get; set; }
+        public string NameAr { get; set; } = string.Empty;
+        public string? UnitName { get; set; }
+        public decimal Cost { get; set; }
+        public string DisplayName => !string.IsNullOrEmpty(SKU) ? $"{NameAr} ({SKU})" : NameAr;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loadingInit = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<ProductLookupDto>>("api/warehouse/products?activeOnly=true");
+            _products = res ?? new();
+
+            if (RecipeId > 0)
+            {
+                var recipes = await Http.GetFromJsonAsync<List<ProductionRecipeDto>>("api/warehouse/production/recipes");
+                var existing = recipes?.FirstOrDefault(r => r.Id == RecipeId);
+                if (existing != null)
+                {
+                    _recipe = existing;
+                    var prod = _products.FirstOrDefault(p => p.Id == _recipe.ProducedProductId);
+                    _yieldUnitName = prod?.UnitName ?? _recipe.YieldUnitName ?? "وحدة";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ في تحميل البيانات: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loadingInit = false;
+        }
+    }
+
+    private void OnProducedProductChanged()
+    {
+        var prod = _products.FirstOrDefault(p => p.Id == _recipe.ProducedProductId);
+        if (prod != null)
+        {
+            _yieldUnitName = prod.UnitName ?? "وحدة";
+            _recipe.ProducedProductName = prod.NameAr;
+            if (string.IsNullOrWhiteSpace(_recipe.Name))
+                _recipe.Name = $"وصفة تشغيل {prod.NameAr}";
+        }
+        RecalculateCosts();
+    }
+
+    private void AddIngredientLine()
+    {
+        var defaultProd = _products.FirstOrDefault();
+        _recipe.Ingredients.Add(new ProductionRecipeIngredientDto
+        {
+            IngredientProductId = defaultProd?.Id ?? 0,
+            IngredientProductName = defaultProd?.NameAr ?? "",
+            UnitName = defaultProd?.UnitName ?? "وحدة",
+            Quantity = 1,
+            WastePercent = 0
+        });
+        RecalculateCosts();
+    }
+
+    private void OnIngredientChanged(ProductionRecipeIngredientDto line, int prodId)
+    {
+        line.IngredientProductId = prodId;
+        var prod = _products.FirstOrDefault(p => p.Id == prodId);
+        if (prod != null)
+        {
+            line.IngredientProductName = prod.NameAr;
+            line.UnitName = prod.UnitName ?? "وحدة";
+        }
+        RecalculateCosts();
+    }
+
+    private void RemoveIngredientLine(ProductionRecipeIngredientDto line)
+    {
+        _recipe.Ingredients.Remove(line);
+        RecalculateCosts();
+    }
+
+    private void RecalculateCosts()
+    {
+        decimal total = 0;
+        foreach (var ing in _recipe.Ingredients)
+        {
+            var prod = _products.FirstOrDefault(p => p.Id == ing.IngredientProductId);
+            decimal cost = prod?.Cost ?? 0;
+            decimal baseQty = ing.Quantity;
+            decimal wasteQty = ing.WastePercent > 0 ? baseQty * (ing.WastePercent / 100m) : 0;
+            decimal lineCost = Math.Round((baseQty + wasteQty) * cost, 2);
+            ing.EstimatedCost = lineCost;
+            total += lineCost;
+        }
+
+        _recipe.EstimatedBatchCost = total;
+        _recipe.EstimatedUnitCost = _recipe.YieldQuantity > 0 ? Math.Round(total / _recipe.YieldQuantity, 2) : total;
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        _isSaving = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/warehouse/production/recipes", _recipe);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حفظ وصفة التصنيع (BOM) بنجاح!", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل في حفظ الوصفة: {error}", MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"حدث خطأ: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

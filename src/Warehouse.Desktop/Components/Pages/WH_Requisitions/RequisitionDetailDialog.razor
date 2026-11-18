@@ -1,11 +1,14 @@
 @using MudBlazor
 @using System.Net.Http.Json
 @using BlazorBase.Services
+@using Warehouse.Desktop.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject LocalizationService LocalizerService
+@inject IDesktopPrintingService PrintingService
+@inject IJSRuntime JS
 
 <MudDialog dir="rtl" Style="max-width: 1000px; width: 95vw; border-radius: 20px; overflow: hidden;">
     <TitleContent>
@@ -34,7 +37,20 @@
                     </MudText>
                 </div>
             </div>
-            <MudIconButton Icon="@Icons.Material.Rounded.Close" Color="MudBlazor.Color.Default" OnClick="Cancel" Style="border-radius: 50%;" />
+            <div class="d-flex align-center gap-2">
+                @if (_requisition != null)
+                {
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small"
+                               StartIcon="@Icons.Material.Rounded.Print" OnClick="@(() => _showPrintPreview = true)" Style="font-weight: 700; border-radius: 8px;">
+                        معاينة وطباعة
+                    </MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small"
+                               StartIcon="@Icons.Material.Rounded.TableChart" OnClick="ExportExcel" Style="font-weight: 700; border-radius: 8px;">
+                        إكسيل
+                    </MudButton>
+                }
+                <MudIconButton Icon="@Icons.Material.Rounded.Close" Color="MudBlazor.Color.Default" OnClick="Cancel" Style="border-radius: 50%;" />
+            </div>
         </div>
     </TitleContent>
 
@@ -438,6 +454,95 @@
     </DialogActions>
 </MudDialog>
 
+@if (_showPrintPreview && _requisition != null)
+{
+    <div class="wh-print-overlay" @onclick="@(() => _showPrintPreview = false)">
+        <div class="wh-print-dialog-card" @onclick:stopPropagation="true">
+            <div class="wh-print-dialog-header no-print">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Rounded.Inventory2" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800; color: #0f172a;">معاينة وطباعة إذن طلبية التوريد - @_requisition.RequisitionNumber</MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 800; border-radius: 8px;">
+                        طباعة الآن
+                    </MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                               StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportExcel" Style="font-weight: 700; border-radius: 8px;">
+                        تصدير إكسيل (.xlsx)
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showPrintPreview = false)" />
+                </div>
+            </div>
+
+            <div class="wh-print-dialog-body">
+                <div class="wh-printable-sheet" dir="rtl">
+                    <!-- Clean Header (Voucher Title Only) -->
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px;">
+                        <h2 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 1.4rem;">إذن طلبية توريد فرع (@_requisition.RequisitionNumber)</h2>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                            الفرع الطالب: <strong>@(!string.IsNullOrEmpty(_requisition.FromBranchName) ? _requisition.FromBranchName : _requisition.BranchName)</strong> |
+                            المخزن المورد: <strong>@(!string.IsNullOrEmpty(_requisition.ToWarehouseName) ? _requisition.ToWarehouseName : _requisition.WarehouseName)</strong> |
+                            تاريخ: @_requisition.RequestDate.ToString("yyyy/MM/dd hh:mm tt")
+                        </p>
+                    </div>
+
+                    <!-- Table of Items -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 24px;">
+                        <thead>
+                            <tr style="background: #0f172a; color: white;">
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">اسم الصنف</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">الوحدة</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">الكمية المطلوبة</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">الكمية المعتمدة</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">المشحونة</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">المستلمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rlIdx = 1; }
+                            @foreach (var line in _requisition.Lines)
+                            {
+                                <tr style="background: @(rlIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center;">@rlIdx</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; font-weight: 700;">@line.ProductName</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center;">@line.UnitName</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700;">@line.RequestedQuantity.ToString("0.##")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">@(line.ApprovedQuantity?.ToString("0.##") ?? "-")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; color: #ea580c; font-weight: 700;">@(line.DispatchedQuantity?.ToString("0.##") ?? "-")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; color: #2563eb; font-weight: 700;">@(line.ReceivedQuantity?.ToString("0.##") ?? "-")</td>
+                                </tr>
+                                rlIdx++;
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (!string.IsNullOrWhiteSpace(_requisition.Notes))
+                    {
+                        <div style="margin-bottom: 20px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;">
+                            <strong>ملاحظات:</strong> @_requisition.Notes
+                        </div>
+                    }
+
+                    <!-- Signatures -->
+                    <div style="display: flex; justify-content: space-around; margin-top: 24px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">أمين المستودع (الصارف)</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">المستلم بالفرع / السائق</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public int RequisitionId { get; set; }
@@ -464,6 +569,64 @@
     private string _rejectionReason = string.Empty;
     private string _dispatchNotes = string.Empty;
     private string _receiveNotes = string.Empty;
+    private bool _showPrintPreview = false;
+
+    private async Task PrintReport()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printReportElement", ".wh-printable-sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء فتح الطباعة: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private void ExportExcel()
+    {
+        if (_requisition == null || !_requisition.Lines.Any())
+        {
+            Snackbar.Add("لا توجد بنود للتصدير", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var lines = _requisition.Lines.Select(l => new
+            {
+                ProductName = l.ProductName,
+                UnitName = l.UnitName,
+                RequestedQty = l.RequestedQuantity,
+                ApprovedQty = l.ApprovedQuantity,
+                DispatchedQty = l.DispatchedQuantity,
+                ReceivedQty = l.ReceivedQuantity
+            }).Cast<dynamic>().ToList();
+
+            var fromBranch = !string.IsNullOrEmpty(_requisition.FromBranchName) ? _requisition.FromBranchName : (_requisition.BranchName ?? "الفرع");
+            var toWarehouse = !string.IsNullOrEmpty(_requisition.ToWarehouseName) ? _requisition.ToWarehouseName : (_requisition.WarehouseName ?? "المخزن");
+
+            var bytes = WarehouseExcelExportHelper.GenerateRequisitionDetails(
+                _requisition.RequisitionNumber,
+                fromBranch,
+                toWarehouse,
+                _requisition.RequestDate,
+                GetStatusLabel(_requisition.Status),
+                lines);
+
+            var defaultFileName = $"طلب_توريد_{_requisition.RequisitionNumber}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var savedPath = PrintingService.SaveFile(bytes, defaultFileName, "Excel Files (*.xlsx)|*.xlsx", "حفظ تفاصيل الطلبية", true);
+
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                Snackbar.Add($"تم حفظ ملف الإكسيل بنجاح: {System.IO.Path.GetFileName(savedPath)}", MudBlazor.Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

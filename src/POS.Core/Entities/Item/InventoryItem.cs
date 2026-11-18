@@ -34,6 +34,7 @@ public class InventoryItem : BaseEntity
     public string? UnitNameEn { get; set; }
     public int? ItemTypeId { get; set; }
     public string? ItemTypeCode { get; set; }
+    public decimal UnitCost { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

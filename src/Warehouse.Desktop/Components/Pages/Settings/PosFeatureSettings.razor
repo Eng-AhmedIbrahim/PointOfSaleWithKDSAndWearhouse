@@ -1,8 +1,12 @@
 ﻿@page "/settings/features"
 @using POS.Contract.Dtos.OrderDto
+@using BlazorBase.ERPFrontServices.LicensingServices
+@using Microsoft.Extensions.Configuration
 @inject IPosFeatureSettingsService FeatureSettingsService
 @inject ISnackbar Snackbar
 @inject BlazorBase.Services.LocalizationService Localizer
+@inject ILicenseService LicenseService
+@inject IConfiguration Configuration
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-10" dir="rtl">
     <MudText Typo="Typo.h4" GutterBottom="true" Style="font-weight: 900; color: #1e293b;" Align="Align.Right">
@@ -14,7 +18,67 @@
         <span class="badge bg-primary text-white px-2 py-1 rounded">@Environment.MachineName</span>
     </MudText>
 
-    @if (_isLoading)
+    @if (!_isUnlocked)
+    {
+        <MudPaper Elevation="6" Class="pa-8 mx-auto" Style="max-width: 420px; border-radius: 20px; border: 2px solid #e2e8f0;">
+            <MudStack AlignItems="MudBlazor.AlignItems.Center" Spacing="4">
+                <MudIcon Icon="@Icons.Material.Rounded.Lock" Size="Size.Large" Color="Color.Warning" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h6" Align="Align.Center" Style="font-weight: 800; color: #1e293b;">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "هذه الصفحة محمية بكلمة مرور" : "This page is password protected")
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "أدخل بيانات مدير النظام للمتابعة" : "Enter admin credentials to continue")
+                </MudText>
+
+                <div style="width: 100%; text-align: right;">
+                    <MudText Typo="Typo.body2" Class="mb-1" Style="font-weight: 700; color: #475569;">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "اسم المستخدم" : "Username")
+                    </MudText>
+                    <MudTextField @bind-Value="_inputUser"
+                                  Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "أدخل اسم المستخدم..." : "Enter username...")"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  FullWidth="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Rounded.Person"
+                                  Margin="Margin.Dense" />
+                </div>
+
+                <div style="width: 100%; text-align: right;">
+                    <MudText Typo="Typo.body2" Class="mb-1" Style="font-weight: 700; color: #475569;">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "كلمة المرور" : "Password")
+                    </MudText>
+                    <MudTextField @bind-Value="_inputPass"
+                                  Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "أدخل كلمة المرور..." : "Enter password...")"
+                                  Variant="MudBlazor.Variant.Outlined"
+                                  InputType="@_passwordInputType"
+                                  FullWidth="true"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@_passwordIcon"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  OnKeyDown="@OnPasswordKeyDown"
+                                  Margin="Margin.Dense" />
+                </div>
+
+                @if (_loginFailed)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-n2">
+                        @(Localizer.GetCurrentLanguage() == "ar" ? "بيانات الدخول غير صحيحة" : "Invalid credentials")
+                    </MudAlert>
+                }
+
+                <MudButton Variant="MudBlazor.Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           OnClick="TryUnlock"
+                           StartIcon="@Icons.Material.Rounded.LockOpen"
+                           Style="border-radius: 12px; height: 50px; font-weight: 800;">
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "دخول" : "Unlock")
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isLoading)
     {
         <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
     }
@@ -64,7 +128,7 @@
         </MudGrid>
 
         <div class="d-flex justify-start mt-10 mb-10">
-            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="SaveSettings" 
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="SaveSettings"
                        StartIcon="@Icons.Material.Rounded.Save" Style="border-radius: 12px; height: 55px; min-width: 220px; font-weight: 800; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);">
                 @(Localizer.GetCurrentLanguage() == "ar" ? "حفظ التغييرات" : "Save Changes")
             </MudButton>
@@ -84,27 +148,86 @@
     private List<PosFeatureSettingToReturnDto> _settings = new();
     private bool _isLoading = true;
 
+    // --- Password gate state ---
+    private bool _isUnlocked = false;
+    private string _inputUser = string.Empty;
+    private string _inputPass = string.Empty;
+    private bool _loginFailed = false;
+    private bool _showPassword = false;
+    private InputType _passwordInputType => _showPassword ? InputType.Text : InputType.Password;
+    private string _passwordIcon => _showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff;
+
+    private void TogglePasswordVisibility()
+    {
+        _showPassword = !_showPassword;
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadSettings();
+        // Page loads in locked state; settings are loaded after unlock
+    }
+
+    private async Task TryUnlock()
+    {
+        _loginFailed = false;
+
+        string userHash = ComputeSha256Hash(_inputUser.Trim());
+        string passHash = ComputeSha256Hash(_inputPass.Trim());
+
+        // Check PosFeaturesAdmin configuration
+        var cfgUserHash = Configuration["PosFeaturesAdmin:UsernameHash"];
+        var cfgPassHash = Configuration["PosFeaturesAdmin:PasswordHash"];
+
+        // Fallbacks if not set in config
+        if (string.IsNullOrEmpty(cfgUserHash))
+            cfgUserHash = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+        if (string.IsNullOrEmpty(cfgPassHash))
+            cfgPassHash = "cc99973a7604ded36362b2c5fb1873698680edfbdf0ed211fb054c6759df21aa";
+
+        bool ok = string.Equals(userHash, cfgUserHash, StringComparison.OrdinalIgnoreCase) &&
+                  string.Equals(passHash, cfgPassHash, StringComparison.OrdinalIgnoreCase);
+
+        if (ok)
+        {
+            _isUnlocked = true;
+            await LoadSettings();
+        }
+        else
+        {
+            _loginFailed = true;
+            Snackbar.Add(
+                Localizer.GetCurrentLanguage() == "ar" ? "بيانات الدخول غير صحيحة" : "Invalid credentials",
+                Severity.Error);
+        }
+    }
+
+    private string ComputeSha256Hash(string input)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        byte[] bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+    }
+
+    private async Task OnPasswordKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await TryUnlock();
     }
 
     private void OnSettingChanged(PosFeatureSettingToReturnDto setting, bool newValue)
     {
         setting.Value = newValue;
 
-        // If a startup screen is being enabled, disable the other startup screens automatically (mutually exclusive)
+        // Startup screens are mutually exclusive
         if (newValue && setting.FeatureName != null && setting.FeatureName.StartsWith("Startup_"))
         {
-            var otherStartupSettings = _settings.Where(s => 
-                s.FeatureName != null && 
-                s.FeatureName.StartsWith("Startup_") && 
+            var otherStartupSettings = _settings.Where(s =>
+                s.FeatureName != null &&
+                s.FeatureName.StartsWith("Startup_") &&
                 s.FeatureName != setting.FeatureName);
-                
+
             foreach (var other in otherStartupSettings)
-            {
                 other.Value = false;
-            }
         }
     }
 
@@ -115,9 +238,11 @@
         {
             _settings = await FeatureSettingsService.GetSettingsByComputerNameAsync(Environment.MachineName);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "فشل تحميل إعدادات الخصائص" : "Failed to load feature settings", Severity.Error);
+            Snackbar.Add(
+                Localizer.GetCurrentLanguage() == "ar" ? "فشل تحميل إعدادات الخصائص" : "Failed to load feature settings",
+                Severity.Error);
         }
         finally
         {
@@ -130,11 +255,15 @@
         var result = await FeatureSettingsService.UpdateSettingsAsync(Environment.MachineName, _settings);
         if (result)
         {
-            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم حفظ إعدادات الخصائص بنجاح" : "Feature settings saved successfully", Severity.Success);
+            Snackbar.Add(
+                Localizer.GetCurrentLanguage() == "ar" ? "تم حفظ إعدادات الخصائص بنجاح" : "Feature settings saved successfully",
+                Severity.Success);
         }
         else
         {
-            Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "فشل حفظ الإعدادات" : "Failed to save settings", Severity.Error);
+            Snackbar.Add(
+                Localizer.GetCurrentLanguage() == "ar" ? "فشل حفظ الإعدادات" : "Failed to save settings",
+                Severity.Error);
         }
     }
 
@@ -142,11 +271,13 @@
     {
         return screenName switch
         {
-            "Dine-In Hall" => Icons.Material.Rounded.TableBar,
-            "POS (Actions)" => Icons.Material.Rounded.AdsClick,
+            "Items"           => Icons.Material.Rounded.QrCodeScanner,
+            "Dine-In Hall"    => Icons.Material.Rounded.TableBar,
+            "POS (Actions)"   => Icons.Material.Rounded.AdsClick,
             "POS (Section 4)" => Icons.Material.Rounded.ShoppingBag,
-            "POS Navbar" => Icons.Material.Rounded.Navigation,
-            _ => Icons.Material.Rounded.Settings
+            "POS Navbar"      => Icons.Material.Rounded.Navigation,
+            "P&L / الأرباح"   => Icons.Material.Rounded.BarChart,
+            _                 => Icons.Material.Rounded.Settings
         };
     }
 }

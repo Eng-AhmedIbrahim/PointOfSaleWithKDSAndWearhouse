@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,8 +19,7 @@ namespace BlazorBase.ERPFrontServices.LicensingServices
         private const string InternalSecret = "POS_SYSTEM_v1_SECURE_KEY_2026";
 
         // Cache to avoid repeated API calls on every check
-        private static (bool Licensed, string? LicenseType)? _cachedResult = null;
-        private static DateTime _cacheExpiry = DateTime.MinValue;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (bool Licensed, string? LicenseType, DateTime Expiry)> _scopeCache = new();
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private static string? _cachedHardwareId = null;
 
@@ -52,36 +51,143 @@ namespace BlazorBase.ERPFrontServices.LicensingServices
         // Check device license directly from the API (database) with caching
         private async Task<(bool Licensed, string? LicenseType)> CheckDeviceFromApiAsync()
         {
-            // Return cached result if still valid
-            if (_cachedResult.HasValue && DateTime.Now < _cacheExpiry)
-                return _cachedResult.Value;
+            var res = await VerifyDeviceLicenseAsync("POS");
+            return (res.IsLicensed, res.LicenseType);
+        }
 
+        public async Task<(bool IsConnected, string? ErrorMessage)> CheckHealthAsync()
+        {
+            try
+            {
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(3));
+                var response = await _httpClient.GetAsync("api/License/health", cts.Token);
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+                
+                if ((int)response.StatusCode == 503)
+                {
+                    return (false, "تم الاتصال بالخادم (API)، ولكن تعذر الاتصال بقاعدة البيانات. يرجى التأكد من تشغيل خدمة SQL Server.");
+                }
+
+                return (false, $"استجاب الخادم برمز خطأ: {(int)response.StatusCode}");
+            }
+            catch (HttpRequestException)
+            {
+                return (false, "تعذر الوصول إلى سيرفر النظام (API). يرجى التأكد من تشغيل السيرفر والاتصال بالشبكة.");
+            }
+            catch (TaskCanceledException)
+            {
+                return (false, "انتهت مهلة الاتصال بسيرفر النظام (Timeout). يرجى فحص الشبكة وتشغيل السيرفر.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"خطأ في الاتصال بالخادم: {ex.Message}");
+            }
+        }
+
+        public async Task<LicenseVerificationResult> VerifyDeviceLicenseAsync(string requiredScope = "POS")
+        {
+            // Return cached result if still valid for this specific scope
+            if (_scopeCache.TryGetValue(requiredScope, out var cached) && DateTime.Now < cached.Expiry)
+            {
+                var cachedType = cached.LicenseType;
+                bool auth = requiredScope switch
+                {
+                    "BackOffice" => cachedType == "BackOfficeOnly" || cachedType == "Full",
+                    "Warehouse" => cachedType == "WarehouseOnly",
+                    "POS" => cachedType == "POSOnly" || cachedType == "Full",
+                    _ => cachedType == "Full"
+                };
+
+                if (auth)
+                {
+                    return new LicenseVerificationResult
+                    {
+                        Status = LicenseCheckStatus.Valid,
+                        LicenseType = cachedType
+                    };
+                }
+            }
+
+            // 1. Health check first: is API and Database reachable?
+            var (isConnected, errorMsg) = await CheckHealthAsync();
+            if (!isConnected)
+            {
+                var isDbDown = errorMsg != null && errorMsg.Contains("قاعدة البيانات");
+                return new LicenseVerificationResult
+                {
+                    Status = isDbDown ? LicenseCheckStatus.DatabaseUnavailable : LicenseCheckStatus.ApiUnreachable,
+                    ErrorMessage = errorMsg
+                };
+            }
+
+            // 2. Query device license from API scoped
             try
             {
                 var hardwareId = await GetHardwareIdAsync();
                 using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(4));
                 var response = await _httpClient.GetAsync(
-                    $"api/License/CheckDevice?hardwareId={Uri.EscapeDataString(hardwareId)}",
+                    $"api/License/CheckDevice?hardwareId={Uri.EscapeDataString(hardwareId)}&scope={Uri.EscapeDataString(requiredScope)}",
                     cts.Token);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _cachedResult = (false, null);
-                    _cacheExpiry = DateTime.Now.AddSeconds(30); // retry sooner on failure
-                    return _cachedResult.Value;
+                    _scopeCache[requiredScope] = (false, null, DateTime.Now.AddSeconds(15));
+                    return new LicenseVerificationResult
+                    {
+                        Status = LicenseCheckStatus.Unlicensed,
+                        ErrorMessage = "تعذر التحقق من ترخيص الجهاز."
+                    };
                 }
 
                 var result = await response.Content.ReadFromJsonAsync<CheckDeviceResult>();
-                _cachedResult = (result?.Licensed ?? false, result?.LicenseType);
-                _cacheExpiry = DateTime.Now.Add(CacheDuration);
-                return _cachedResult.Value;
+                if (result == null || !result.Licensed || string.IsNullOrEmpty(result.LicenseType))
+                {
+                    _scopeCache[requiredScope] = (false, null, DateTime.Now.AddSeconds(15));
+                    return new LicenseVerificationResult
+                    {
+                        Status = LicenseCheckStatus.Unlicensed,
+                        ErrorMessage = "هذا الجهاز غير مرخص. يرجى تسجيل الجهاز وتفعيله من خلال برنامج الإدارة قبل الاستخدام."
+                    };
+                }
+
+                // Check scope authorization
+                bool isAuthorized = requiredScope switch
+                {
+                    "BackOffice" => result.LicenseType == "BackOfficeOnly" || result.LicenseType == "Full",
+                    "Warehouse" => result.LicenseType == "WarehouseOnly",
+                    "POS" => result.LicenseType == "POSOnly" || result.LicenseType == "Full",
+                    _ => result.LicenseType == "Full"
+                };
+
+                if (!isAuthorized)
+                {
+                    _scopeCache[requiredScope] = (false, result.LicenseType, DateTime.Now.AddSeconds(15));
+                    return new LicenseVerificationResult
+                    {
+                        Status = LicenseCheckStatus.Unlicensed,
+                        LicenseType = result.LicenseType,
+                        ErrorMessage = $"نوع ترخيص هذا الجهاز ({result.LicenseType}) لا يسمح باستخدام {requiredScope}."
+                    };
+                }
+
+                _scopeCache[requiredScope] = (true, result.LicenseType, DateTime.Now.Add(CacheDuration));
+
+                return new LicenseVerificationResult
+                {
+                    Status = LicenseCheckStatus.Valid,
+                    LicenseType = result.LicenseType
+                };
             }
-            catch
+            catch (Exception ex)
             {
-                // If API unreachable, use last cached value if exists, else deny
-                if (_cachedResult.HasValue)
-                    return _cachedResult.Value;
-                return (false, null);
+                return new LicenseVerificationResult
+                {
+                    Status = LicenseCheckStatus.ApiUnreachable,
+                    ErrorMessage = $"تعذر الاتصال بالخادم: {ex.Message}"
+                };
             }
         }
 
@@ -93,20 +199,20 @@ namespace BlazorBase.ERPFrontServices.LicensingServices
 
         public async Task<bool> IsLicensedAsync()
         {
-            var (licensed, licenseType) = await CheckDeviceFromApiAsync();
-            if (!licensed || licenseType == null) return false;
-
-            // POSOnly (1) or Full (3)
-            return licenseType == "POSOnly" || licenseType == "Full";
+            var res = await VerifyDeviceLicenseAsync("POS");
+            return res.IsLicensed;
         }
 
         public async Task<bool> IsBackOfficeAuthorizedAsync()
         {
-            var (licensed, licenseType) = await CheckDeviceFromApiAsync();
-            if (!licensed || licenseType == null) return false;
+            var res = await VerifyDeviceLicenseAsync("BackOffice");
+            return res.IsLicensed;
+        }
 
-            // BackOfficeOnly (2) or Full (3)
-            return licenseType == "BackOfficeOnly" || licenseType == "Full";
+        public async Task<bool> IsWarehouseAuthorizedAsync()
+        {
+            var res = await VerifyDeviceLicenseAsync("Warehouse");
+            return res.IsLicensed;
         }
 
         public Task<string> GetHardwareIdAsync()
@@ -221,6 +327,8 @@ namespace BlazorBase.ERPFrontServices.LicensingServices
 
             // 5. Save Encrypted offline
             await SaveLicenseAsync(licenseInfo);
+
+            _scopeCache.Clear();
 
             return (true, "تم تفعيل الجهاز وتسجيله في الفرع بنجاح.");
         }

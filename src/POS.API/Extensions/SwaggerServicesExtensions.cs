@@ -11,6 +11,7 @@ public static class SwaggerServicesExtensions
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "MultaqaTech", Version = "v1" });
+            c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {

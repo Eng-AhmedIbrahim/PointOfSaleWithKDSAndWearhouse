@@ -119,9 +119,9 @@
     {
         <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
             <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
-            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù…ÙŠØ²Ø© Ø§Ù„Ù…Ø®Ø§Ø²Ù† ØºÙŠØ± Ù…ÙØ¹Ù„Ø©" : "Inventory Feature Disabled")</h2>
-            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„ 'ØªØªØ¨Ø¹ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†' Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®ØµØ§Ø¦Øµ Ø£ÙˆÙ„Ø§Ù‹." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
-            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ميزة المخازن غير مفعلة" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "يرجى تفعيل 'تتبع المخزون' من إعدادات الخصائص أولاً." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الرجوع للرئيسية" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
         </div>
     }
     else
@@ -132,13 +132,13 @@
                     <RadzenIcon Icon="straighten" />
                 </div>
                 <div class="header-text-compact">
-                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ¹Ø±ÙŠÙ Ø§Ù„ÙˆØ­Ø¯Ø§Øª" : "Unit Hub")</h1>
-                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¯Ø§Ø±Ø© ÙˆØ­Ø¯Ø§Øª Ø§Ù„Ù‚ÙŠØ§Ø³ (ÙƒÙŠÙ„ÙˆØŒ Ø¬Ø±Ø§Ù…ØŒ Ù„ØªØ±ØŒ Ø¥Ù„Ø®)" : "Manage all measurement units")</p>
+                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "تعريف الوحدات" : "Unit Hub")</h1>
+                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "إدارة وحدات القياس (كيلو، جرام، لتر، إلخ)" : "Manage all measurement units")</p>
                 </div>
             </div>
             <RadzenButton Click="() => OpenUnitDialog(null)" 
                           Icon="add" 
-                          Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¶Ø§ÙØ© ÙˆØ­Ø¯Ø©" : "New Unit")" 
+                          Text="@(Localizer.GetCurrentLanguage() == "ar" ? "إضافة وحدة" : "New Unit")" 
                           Class="premium-add-btn" />
         </div>
 
@@ -146,7 +146,7 @@
             <div class="stat-card-compact total">
                 <div class="mini-icon"><RadzenIcon Icon="list_alt" /></div>
                 <div class="stat-data">
-                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙˆØ­Ø¯Ø§Øª" : "Total")</div>
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "إجمالي الوحدات" : "Total")</div>
                     <div class="value">@Units.Count</div>
                 </div>
             </div>
@@ -157,21 +157,21 @@
                         AllowFiltering="true" FilterMode="FilterMode.Simple" 
                         AllowPaging="false" AllowSorting="true" 
                         Style="height: 100%;" AllowColumnResize="true"
-                        EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "Ù„Ø§ ØªÙˆØ¬Ø¯ ÙˆØ­Ø¯Ø§Øª Ù…Ø¹Ø±ÙØ© Ø­Ø§Ù„ÙŠØ§Ù‹" : "No units defined")">
+                        EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد وحدات معرفة حالياً" : "No units defined")">
             <Columns>
-                <RadzenDataGridColumn TItem="UnitDto" Property="ArabicName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠ" : "Arabic Name")">
+                <RadzenDataGridColumn TItem="UnitDto" Property="ArabicName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الاسم بالعربي" : "Arabic Name")">
                     <Template Context="unit">
                         <span style="font-weight: 900; color: #1e293b;">@unit.ArabicName</span>
                     </Template>
                 </RadzenDataGridColumn>
                 
-                <RadzenDataGridColumn TItem="UnitDto" Property="EnglishName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ" : "English Name")">
+                <RadzenDataGridColumn TItem="UnitDto" Property="EnglishName" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الاسم بالإنجليزي" : "English Name")">
                      <Template Context="unit">
                         <span style="font-weight: 700; color: #64748b;">@unit.EnglishName</span>
                     </Template>
                 </RadzenDataGridColumn>
                 
-                <RadzenDataGridColumn TItem="UnitDto" Property="Code" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ÙƒÙˆØ¯ / Ø§Ù„Ø±Ù…Ø²" : "Code")" Width="150px">
+                <RadzenDataGridColumn TItem="UnitDto" Property="Code" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الكود / الرمز" : "Code")" Width="150px">
                     <Template Context="unit">
                         <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@unit.Code" Style="border-radius: 8px; padding: 5px 15px; font-weight: 900; background: #eff6ff; color: #3b82f6;" />
                     </Template>
@@ -179,7 +179,7 @@
 
                 <RadzenDataGridColumn TItem="UnitDto" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="120px">
                     <HeaderTemplate>
-                        <span style="font-weight: 850;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª" : "Actions")</span>
+                        <span style="font-weight: 850;">@(Localizer.GetCurrentLanguage() == "ar" ? "إجراءات" : "Actions")</span>
                     </HeaderTemplate>
                     <Template Context="unit">
                         <div class="d-flex justify-content-center gap-2">
@@ -237,10 +237,10 @@
     {
         var parameters = new DialogParameters<PremiumConfirmDialog>
         {
-            { x => x.Title, Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø°Ù Ø§Ù„ÙˆØ­Ø¯Ø©" : "Delete Unit" },
-            { x => x.Message, Localizer.GetCurrentLanguage() == "ar" ? "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ­Ø¯Ø©ØŸ Ù‚Ø¯ ÙŠØ¤Ø«Ø± Ø°Ù„Ùƒ Ø¹Ù„Ù‰ Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ§Ù„ÙˆØ­Ø¯Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§." : "Are you sure you want to delete this unit? This might affect related items." },
-            { x => x.ConfirmText, Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø°Ù Ù†Ù‡Ø§Ø¦ÙŠ" : "Delete Permanently" },
-            { x => x.CancelText, Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø­Ø°Ù" : "Cancel" },
+            { x => x.Title, Localizer.GetCurrentLanguage() == "ar" ? "حذف الوحدة" : "Delete Unit" },
+            { x => x.Message, Localizer.GetCurrentLanguage() == "ar" ? "هل أنت متأكد من حذف هذه الوحدة؟ قد يؤثر ذلك على الأصناف والوحدات المرتبطة بها." : "Are you sure you want to delete this unit? This might affect related items." },
+            { x => x.ConfirmText, Localizer.GetCurrentLanguage() == "ar" ? "حذف نهائي" : "Delete Permanently" },
+            { x => x.CancelText, Localizer.GetCurrentLanguage() == "ar" ? "إلغاء الحذف" : "Cancel" },
             { x => x.Icon, "delete_forever" },
             { x => x.StyleClass, "danger" }
         };
@@ -254,10 +254,9 @@
             var response = await UnitService.DeleteUnitAsync(id);
             if (response.Success)
             {
-                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "ØªÙ… Ø§Ù„Ø­Ø°Ù Ø¨Ù†Ø¬Ø§Ø­" : "Deleted successfully", Severity.Success);
+                Snackbar.Add(Localizer.GetCurrentLanguage() == "ar" ? "تم الحذف بنجاح" : "Deleted successfully", Severity.Success);
                 await LoadUnits();
             }
         }
     }
 }
-

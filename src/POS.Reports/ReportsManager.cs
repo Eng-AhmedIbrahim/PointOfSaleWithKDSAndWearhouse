@@ -592,7 +592,47 @@ public class ReportsManager : IReportsManager
         {
             var summary = await _reportingService.GetSalesSummaryAsync(request.FromDate, request.ToDate);
             bool isThermal = IsThermalRequest(request);
-            var document = new BackOfficePnLDocument(summary, branchName, request.FromDate, request.ToDate, isThermal, request.Language);
+
+            POS.Core.Entities.Reporting.BranchDailyPnL? snapshot = null;
+            try
+            {
+                var pnlRepo = _unitOfWork.Repository<POS.Core.Entities.Reporting.BranchDailyPnL>();
+                var pnlSpec = new POS.Core.Specifications.BaseSpecifications<POS.Core.Entities.Reporting.BranchDailyPnL>(s =>
+                    s.Date >= request.FromDate.Date && s.Date <= request.ToDate.Date);
+                var snapshots = await pnlRepo.GetAllWithSpecificationAsync(pnlSpec);
+                if (snapshots != null && snapshots.Any())
+                {
+                    if (snapshots.Count == 1)
+                    {
+                        snapshot = snapshots.First();
+                    }
+                    else
+                    {
+                        decimal aggNetSales = snapshots.Sum(s => s.NetSales);
+                        decimal aggGrossProfit = snapshots.Sum(s => s.GrossProfit);
+                        snapshot = new POS.Core.Entities.Reporting.BranchDailyPnL
+                        {
+                            Date = request.FromDate.Date,
+                            BranchName = branchName,
+                            TotalGrossSales = snapshots.Sum(s => s.TotalGrossSales),
+                            TotalDiscounts = snapshots.Sum(s => s.TotalDiscounts),
+                            NetSales = aggNetSales,
+                            TotalCOGS = snapshots.Sum(s => s.TotalCOGS),
+                            GrossProfit = aggGrossProfit,
+                            TotalExpenses = snapshots.Sum(s => s.TotalExpenses),
+                            NetProfit = snapshots.Sum(s => s.NetProfit),
+                            OrderCount = snapshots.Sum(s => s.OrderCount),
+                            GrossProfitMargin = aggNetSales > 0 ? Math.Round(aggGrossProfit / aggNetSales * 100, 2) : 0m
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to load BranchDailyPnL snapshot in ReportsManager");
+            }
+
+            var document = new BackOfficePnLDocument(summary, branchName, request.FromDate, request.ToDate, isThermal, request.Language, snapshot);
             return new ReportResponseDto { Content = document.GeneratePdf(), ContentType = "application/pdf", FileName = $"PnL_{request.FromDate:yyyyMMdd}.pdf" };
         }
 

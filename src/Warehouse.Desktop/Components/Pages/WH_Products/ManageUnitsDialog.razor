@@ -1,0 +1,321 @@
+@using MudBlazor
+@using Variant = MudBlazor.Variant
+@using DialogOptions = MudBlazor.DialogOptions
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog dir="rtl" Style="max-width: 850px; width: 95vw; border-radius: 16px;">
+    <TitleContent>
+        <div class="d-flex align-center gap-3 pa-2 border-b pb-3" style="border-color: #f1f5f9;">
+            <div class="pa-2 rounded-lg" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white;">
+                <MudIcon Icon="@Icons.Material.Rounded.Straighten" Size="Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight: 800; color: #1e293b;">
+                    إدارة وحدات القياس المخزنية
+                </MudText>
+                <MudText Typo="Typo.caption" Style="color: #64748b;">
+                    تعريف وتعديل وحدات القياس الأساسية والفرعية (كيلوجرام، جرام، لتر، كرتونة، شيكارة، حبة...)
+                </MudText>
+            </div>
+            <MudSpacer />
+            @if (!_isAddingOrEditing)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="StartAdd"
+                           Style="border-radius: 8px; font-weight: 700;">
+                    إضافة وحدة جديدة
+                </MudButton>
+            }
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="py-2" dir="rtl">
+            @if (_isAddingOrEditing)
+            {
+                <MudPaper Class="pa-4 mb-4 rounded-xl" Elevation="0" Style="background: #f0f9ff; border: 1.5px solid #bae6fd;">
+                    <div class="d-flex align-center gap-2 mb-3">
+                        <MudIcon Icon="@(_editingId.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.AddCircle)"
+                                 Color="Color.Info" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 800; color: #0369a1;">
+                            @(_editingId.HasValue ? "تعديل بيانات الوحدة" : "إضافة وحدة قياس جديدة")
+                        </MudText>
+                    </div>
+
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالعربية *</MudText>
+                            <MudTextField @bind-Value="_formModel.NameAr" Placeholder="مثال: كيلوجرام أو كرتونة"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالإنجليزية</MudText>
+                            <MudTextField @bind-Value="_formModel.NameEn" Placeholder="Kilogram / Carton"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الرمز / الاختصار *</MudText>
+                            <MudTextField @bind-Value="_formModel.Symbol" Placeholder="مثال: كغ / كرتونة / لتر"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="12" Class="d-flex align-center pt-2">
+                            <MudCheckBox @bind-Value="_formModel.IsBaseUnit"
+                                         Label="وحدة قياس أساسية (Standard Base Unit مثل كغ، لتر، حبة)"
+                                         Color="Color.Info" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <div class="d-flex justify-end gap-2 mt-3">
+                        <MudButton OnClick="CancelForm" Variant="Variant.Text" Size="Size.Small">إلغاء</MudButton>
+                        <MudButton OnClick="SaveUnit" Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+                                   Disabled="_isSaving" StartIcon="@Icons.Material.Filled.Save"
+                                   Style="border-radius: 8px; font-weight: 700;">
+                            @if (_isSaving) { <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" /> }
+                            @(_editingId.HasValue ? "حفظ التعديلات" : "إضافة الوحدة")
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            }
+
+            <!-- Search Bar -->
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudTextField @bind-Value="_searchText" Placeholder="بحث في الوحدات بالاسم أو الرمز..."
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              AdornmentColor="Color.Info" Immediate="true" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Clearable="true" Style="background: white;" />
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="LoadUnits" Title="تحديث القائمة" />
+            </div>
+
+            <!-- Units Table -->
+            <MudTable Items="FilteredUnits" Dense="true" Hover="true" Striped="true"
+                      Loading="_isLoading" LoadingProgressColor="Color.Info" Elevation="0"
+                      Style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                <HeaderContent>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الرمز / الاختصار</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">اسم الوحدة بالعربية</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الاسم بالإنجليزية</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc; text-align: center;">نوع الوحدة</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc; text-align: center;">الإجراءات</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Style="font-weight: 800;">
+                            @(string.IsNullOrWhiteSpace(context.Symbol) ? context.NameAr : context.Symbol)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <span style="font-weight: 700; color: #1e293b;">@context.NameAr</span>
+                    </MudTd>
+                    <MudTd>
+                        <span style="color: #64748b;">@(string.IsNullOrWhiteSpace(context.NameEn) ? "-" : context.NameEn)</span>
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        @if (context.IsBaseUnit)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+                                أساسية
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                فرعية / تعبئة
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="@(() => StartEdit(context))" Title="تعديل الوحدة" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeleteUnit(context))" Title="حذف الوحدة" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-4 text-center text-muted">
+                        لا توجد وحدات قياس مسجلة حالياً
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="d-flex justify-end w-100 px-4 pb-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Default" OnClick="CloseDialog"
+                       Style="border-radius: 8px; font-weight: 700; min-width: 100px;">
+                إغلاق
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    public class UnitItemModel
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public string Symbol { get; set; } = "";
+        public bool IsBaseUnit { get; set; }
+    }
+
+    private List<UnitItemModel> _units = new();
+    private UnitItemModel _formModel = new();
+    private bool _isLoading = false;
+    private bool _isSaving = false;
+    private bool _isAddingOrEditing = false;
+    private int? _editingId = null;
+    private string _searchText = "";
+    private bool _hasChanges = false;
+
+    private IEnumerable<UnitItemModel> FilteredUnits =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? _units
+            : _units.Where(u =>
+                (u.NameAr?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.NameEn?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.Symbol?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnits();
+    }
+
+    private async Task LoadUnits()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<UnitItemModel>>("api/warehouseproducts/units");
+            _units = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء تحميل الوحدات: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void StartAdd()
+    {
+        _editingId = null;
+        _formModel = new UnitItemModel
+        {
+            IsBaseUnit = false
+        };
+        _isAddingOrEditing = true;
+    }
+
+    private void StartEdit(UnitItemModel item)
+    {
+        _editingId = item.Id;
+        _formModel = new UnitItemModel
+        {
+            Id = item.Id,
+            NameAr = item.NameAr,
+            NameEn = item.NameEn,
+            Symbol = item.Symbol,
+            IsBaseUnit = item.IsBaseUnit
+        };
+        _isAddingOrEditing = true;
+    }
+
+    private void CancelForm()
+    {
+        _isAddingOrEditing = false;
+        _editingId = null;
+        _formModel = new();
+    }
+
+    private async Task SaveUnit()
+    {
+        if (string.IsNullOrWhiteSpace(_formModel.NameAr))
+        {
+            Snackbar.Add("يرجى إدخال اسم الوحدة بالعربية", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_formModel.Symbol))
+        {
+            _formModel.Symbol = _formModel.NameAr;
+        }
+
+        _isSaving = true;
+        try
+        {
+            HttpResponseMessage res;
+            if (_editingId.HasValue && _editingId.Value > 0)
+            {
+                res = await Http.PutAsJsonAsync($"api/warehouseproducts/units/{_editingId.Value}", _formModel);
+            }
+            else
+            {
+                res = await Http.PostAsJsonAsync("api/warehouseproducts/units", _formModel);
+            }
+
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add(_editingId.HasValue ? "تم تعديل الوحدة بنجاح" : "تمت إضافة الوحدة بنجاح", Severity.Success);
+                _hasChanges = true;
+                CancelForm();
+                await LoadUnits();
+            }
+            else
+            {
+                var errorText = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل الحفظ: {errorText}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء الحفظ: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteUnit(UnitItemModel item)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد حذف الوحدة",
+            $"هل أنت متأكد من حذف وحدة القياس '{item.NameAr}'؟",
+            yesText: "نعم، حذف", cancelText: "إلغاء");
+
+        if (confirm != true) return;
+
+        try
+        {
+            var res = await Http.DeleteAsync($"api/warehouseproducts/units/{item.Id}");
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حذف الوحدة بنجاح", Severity.Success);
+                _hasChanges = true;
+                await LoadUnits();
+            }
+            else
+            {
+                var msg = await res.Content.ReadAsStringAsync();
+                Snackbar.Add(msg.Contains("message") ? msg : "لا يمكن حذف الوحدة لأنها مرتبطة بمنتجات", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء الحذف: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void CloseDialog()
+    {
+        MudDialog.Close(DialogResult.Ok(_hasChanges));
+    }
+}

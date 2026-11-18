@@ -1,13 +1,16 @@
-﻿namespace POS.Services.AppDateServices;
+﻿using POS.Services.ReportingServices;
+
+namespace POS.Services.AppDateServices;
 
 public class AppDateService : IAppDateService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IBranchPnLService _branchPnLService;
 
-
-    public AppDateService(IUnitOfWork unitOfWork)
+    public AppDateService(IUnitOfWork unitOfWork, IBranchPnLService branchPnLService)
     {
         _unitOfWork = unitOfWork;
+        _branchPnLService = branchPnLService;
     }
     public async Task<AppDate> GetAppDateAsync()
     {
@@ -79,6 +82,9 @@ public class AppDateService : IAppDateService
             var appDate = await GetAppDateAsync();
             if (appDate == null) return false;
 
+            // Capture the closing date BEFORE we increment it
+            var closingDate = appDate.PosDate;
+
             // Increment dates
             appDate.PosDate = appDate.PosDate.AddDays(1);
             appDate.StoreDate = appDate.StoreDate.AddDays(1);
@@ -88,6 +94,24 @@ public class AppDateService : IAppDateService
 
             _unitOfWork.Repository<AppDate>().Update(appDate);
             var result = await _unitOfWork.CompleteAsync();
+
+            if (result > 0)
+            {
+                // Fire-and-forget: calculate P&L for the day that just closed
+                // Runs asynchronously so the POS terminal is never blocked
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _branchPnLService.CalculateAndSaveAsync(closingDate, branchId: 1);
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "BranchPnLService background task failed for date {Date}", closingDate);
+                    }
+                });
+            }
+
             return result > 0;
         }
         catch (Exception ex)

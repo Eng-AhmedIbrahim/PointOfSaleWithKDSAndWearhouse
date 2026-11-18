@@ -119,9 +119,9 @@
     {
         <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 60vh;">
             <RadzenIcon Icon="lock" Style="font-size: 4rem; color: #94a3b8; margin-bottom: 1.5rem;" />
-            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù…ÙŠØ²Ø© Ø§Ù„Ù…Ø®Ø§Ø²Ù† ØºÙŠØ± Ù…ÙØ¹Ù„Ø©" : "Inventory Feature Disabled")</h2>
-            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠØ±Ø¬Ù‰ ØªÙØ¹ÙŠÙ„ 'ØªØªØ¨Ø¹ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†' Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®ØµØ§Ø¦Øµ Ø£ÙˆÙ„Ø§Ù‹." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
-            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
+            <h2 style="font-weight: 800; color: #1e293b;">@(Localizer.GetCurrentLanguage() == "ar" ? "ميزة المخازن غير مفعلة" : "Inventory Feature Disabled")</h2>
+            <p style="color: #64748b;">@(Localizer.GetCurrentLanguage() == "ar" ? "يرجى تفعيل 'تتبع المخزون' من إعدادات الخصائص أولاً." : "Please enable 'Inventory Tracking' in system feature settings.")</p>
+            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "الرجوع للرئيسية" : "Back to Home")" Click="@(() => NavManager.NavigateTo("/"))" ButtonStyle="ButtonStyle.Primary" Style="border-radius: 10px; margin-top: 1rem;" />
         </div>
     }
     else
@@ -132,14 +132,14 @@
                     <RadzenIcon Icon="restaurant_menu" />
                 </div>
                 <div class="header-text-compact">
-                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªÙƒØ§Ù„ÙŠÙ ÙˆØ§Ù„Ø±ÙŠØ³ÙŠØ¨ÙŠ" : "BOM & Cost Hub")</h1>
-                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ­Ø¯ÙŠØ¯ Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ­Ø³Ø§Ø¨ Ø§Ù„Ù‡Ø§Ù„Ùƒ" : "Precision ingredient and waste monitoring")</p>
+                    <h1>@(Localizer.GetCurrentLanguage() == "ar" ? "إدارة التكاليف والريسيبي" : "BOM & Cost Hub")</h1>
+                    <p>@(Localizer.GetCurrentLanguage() == "ar" ? "تحديد مكونات الأصناف وحساب الهالك" : "Precision ingredient and waste monitoring")</p>
                 </div>
             </div>
             <div class="header-actions">
                  <MudButton Variant="MudBlazor.Variant.Filled" StartIcon="@Icons.Material.Filled.FileDownload" 
                             Color="Color.Default" Class="rounded-lg" Style="font-weight: 850; background: #f1f5f9; color: #475569; padding: 8px 20px;">
-                    @(Localizer.GetCurrentLanguage() == "ar" ? "ØªØµØ¯ÙŠØ± Ø´ÙŠØª" : "Export Sheet")
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "تصدير شيت" : "Export Sheet")
                  </MudButton>
             </div>
         </div>
@@ -148,14 +148,14 @@
             <div class="stat-card-compact">
                 <div class="mini-icon" style="background: #f0fdf4; color: #16a34a;"><RadzenIcon Icon="check_circle" /></div>
                 <div class="stat-data">
-                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø£ØµÙ†Ø§Ù Ø¨Ø±ÙŠØ³Ø¨ÙŠ" : "Active")</div>
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف بريسبي" : "Active")</div>
                     <div class="value">@Items.Count(x => x.HasRecipe)</div>
                 </div>
             </div>
             <div class="stat-card-compact">
                 <div class="mini-icon" style="background: #fef2f2; color: #dc2626;"><RadzenIcon Icon="error" /></div>
                 <div class="stat-data">
-                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "Ø£ØµÙ†Ø§Ù Ø¨Ø¯ÙˆÙ† Ø±ÙŠØ³Ø¨ÙŠ" : "Missing")</div>
+                    <div class="label">@(Localizer.GetCurrentLanguage() == "ar" ? "أصناف بدون ريسبي" : "Missing")</div>
                     <div class="value">@Items.Count(x => !x.HasRecipe)</div>
                 </div>
             </div>
@@ -164,11 +164,11 @@
         <div class="grid-container-fixed">
             <div class="grid-header-bar">
                 <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight: 950; font-size: 1.1rem; color: #1e293b;">
-                    @(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ­Ù„ÙŠÙ„ Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©" : "Menu BOM Analysis")
+                    @(Localizer.GetCurrentLanguage() == "ar" ? "تحليل مكونات القائمة" : "Menu BOM Analysis")
                 </RadzenText>
                 <div class="search-box-wrap" style="position: relative; width: 400px;">
                     <RadzenIcon Icon="search" Style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem; z-index: 5;" />
-                    <RadzenTextBox Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø¨Ø­Ø« Ø¹Ù† ØµÙ†Ù Ù„ØªØ­Ù„ÙŠÙ„ Ù…ÙƒÙˆÙ†Ø§ØªÙ‡..." : "Search items to analyze BOM...")" 
+                    <RadzenTextBox Placeholder="@(Localizer.GetCurrentLanguage() == "ar" ? "بحث عن صنف لتحليل مكوناته..." : "Search items to analyze BOM...")" 
                                      @bind-Value="SearchTerm" 
                                      Style="width: 100%; border-radius: 10px; padding-left: 38px; border: 2px solid #e2e8f0; height: 40px; font-weight: 700; font-size: 0.9rem;" />
                 </div>
@@ -177,9 +177,9 @@
             <RadzenDataGrid AllowFiltering="true" FilterMode="FilterMode.Simple" AllowPaging="false"
                             AllowSorting="true" Data="@FilteredItems" TItem="RecipeItemSummary" 
                             Style="height: 100%;" AllowColumnResize="true"
-                            EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª" : "No results found")">
+                            EmptyText="@(Localizer.GetCurrentLanguage() == "ar" ? "لا توجد بيانات" : "No results found")">
                 <Columns>
-                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„ØµÙ†Ù" : "Item")" Width="300px">
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الصنف" : "Item")" Width="300px">
                         <Template Context="item">
                             <div class="d-flex align-center gap-3">
                                 <div style="width: 42px; height: 42px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
@@ -193,22 +193,22 @@
                         </Template>
                     </RadzenDataGridColumn>
 
-                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø­Ø§Ù„Ø© Ø§Ù„Ø±ÙŠØ³ÙŠØ¨ÙŠ" : "Status")" Width="150px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "حالة الريسيبي" : "Status")" Width="150px" TextAlign="TextAlign.Center">
                         <Template Context="item">
                             @if (item.HasRecipe)
                             {
-                                <span class="recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "ÙŠÙˆØ¬Ø¯ Ù…ÙƒÙˆÙ†Ø§Øª" : "Has Recipe")</span>
+                                <span class="recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "يوجد مكونات" : "Has Recipe")</span>
                             }
                             else
                             {
-                                <span class="no-recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "Ù„Ù… ÙŠØ­Ø¯Ø¯ Ø¨Ø¹Ø¯" : "No Recipe")</span>
+                                <span class="no-recipe-badge">@(Localizer.GetCurrentLanguage() == "ar" ? "لم يحدد بعد" : "No Recipe")</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
 
-                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡" : "Action")" Width="180px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="RecipeItemSummary" Title="@(Localizer.GetCurrentLanguage() == "ar" ? "الإجراء" : "Action")" Width="180px" TextAlign="TextAlign.Center">
                         <Template Context="item">
-                            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª" : "Edit BOM")" 
+                            <RadzenButton Text="@(Localizer.GetCurrentLanguage() == "ar" ? "تعديل المكونات" : "Edit BOM")" 
                                           Icon="settings" ButtonStyle="ButtonStyle.Primary" 
                                           Size="ButtonSize.Small" Click="@(() => OpenRecipe(item))"
                                           Style="border-radius: 10px; font-weight: 900; padding: 0 20px; background: #6366f1; border: none;" />
@@ -268,4 +268,3 @@
         if (!(await dialog.Result).Canceled) await LoadData();
     }
 }
-

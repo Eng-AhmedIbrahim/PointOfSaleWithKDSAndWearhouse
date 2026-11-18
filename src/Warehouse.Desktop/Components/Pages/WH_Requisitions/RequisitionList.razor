@@ -1,39 +1,59 @@
 ﻿@page "/requisitions"
 @attribute [Authorize]
+@using Warehouse.Desktop.Services
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IDesktopPrintingService PrintingService
+@inject IJSRuntime JS
 @inject BlazorBase.WarehouseNotificationInvocation WarehouseEvents
 @implements IDisposable
 
 <PageTitle>طلبيات الفروع</PageTitle>
 
-<div class="wh-page-wrapper">
-    <div class="wh-page-header">
+<div class="wh-page-wrapper" dir="rtl">
+    <div class="wh-page-header d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
         <div>
-            <h2 class="page-title"><MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Class="me-2"/>طلبيات الفروع</h2>
+            <h2 class="page-title"><MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Class="me-2" Color="MudBlazor.Color.Warning" />طلبيات الفروع</h2>
             <p class="page-subtitle">إدارة ومتابعة جميع طلبيات التوريد من الفروع</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-center flex-wrap">
             @if (_pendingCount > 0)
             {
                 <MudBadge Content="@_pendingCount" Color="MudBlazor.Color.Error" Overlap="true">
                     <MudChip T="string" Color="MudBlazor.Color.Warning" Icon="@Icons.Material.Rounded.Notifications">طلبيات معلقة</MudChip>
                 </MudBadge>
             }
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Info"
+                       StartIcon="@Icons.Material.Rounded.CompareArrows" Href="/reports/branch-requisitions"
+                       Style="font-weight: 700; border-radius: 8px;">
+                تقرير مقارنة الفروع
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Visibility" OnClick="OpenPrintPreview"
+                       Style="font-weight: 700; border-radius: 8px;">
+                معاينة وطباعة
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                       StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel"
+                       Style="font-weight: 700; border-radius: 8px;">
+                تصدير إكسيل (.xlsx)
+            </MudButton>
             <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Rounded.Add"
-                       OnClick="OpenNewDialog">طلبية جديدة</MudButton>
+                       OnClick="OpenNewDialog" Style="font-weight: 700; border-radius: 8px;">
+                + طلبية جديدة
+            </MudButton>
         </div>
     </div>
 
     <!-- Status Filter Tabs -->
-    <MudPaper Class="wh-card mb-4 pa-2" Elevation="0">
+    <MudPaper Class="wh-card mb-4 pa-2" Elevation="0" Style="border-radius: 12px; border: 1px solid #e2e8f0;">
         <div class="d-flex gap-2 flex-wrap">
             @foreach (var tab in _statusTabs)
             {
                 <MudChip T="string" Color="@(_selectedStatus == tab.Status ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
                          Variant="@(_selectedStatus == tab.Status ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
-                         OnClick="@(() => FilterByStatus(tab.Status))" Size="MudBlazor.Size.Small">
+                         OnClick="@(() => FilterByStatus(tab.Status))" Size="MudBlazor.Size.Small" Style="font-weight: 700;">
                     @tab.Label (@GetStatusCount(tab.Status))
                 </MudChip>
             }
@@ -48,7 +68,7 @@
     {
         <MudTable Items="FilteredRequisitions" Dense="true" Hover="true" Striped="true"
                   RowClass="cursor-pointer" OnRowClick="@((MudBlazor.TableRowClickEventArgs<RequisitionDto> e) => OpenDetail(e.Item))"
-                  Class="wh-card" Elevation="0">
+                  Class="wh-card" Elevation="1" Style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
             <HeaderContent>
                 <MudTh>رقم الطلب</MudTh>
                 <MudTh>الفرع</MudTh>
@@ -58,19 +78,21 @@
                 <MudTh>الإجراءات</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><strong class="text-warning">@context.RequisitionNumber</strong></MudTd>
+                <MudTd><strong style="color: #ea580c;">@context.RequisitionNumber</strong></MudTd>
                 <MudTd>@context.BranchName</MudTd>
                 <MudTd>@context.WarehouseName</MudTd>
-                <MudTd>@context.RequestDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd>@context.RequestDate.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                 <MudTd>
-                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled">
+                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="MudBlazor.Size.Small" Variant="MudBlazor.Variant.Filled" Style="font-weight: 700;">
                         @GetStatusLabel(context.Status)
                     </MudChip>
                 </MudTd>
                 <MudTd>
-                    <div class="d-flex gap-1">
+                    <div class="d-flex gap-1" @onclick:stopPropagation="true">
                         <MudIconButton Icon="@Icons.Material.Rounded.Visibility" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info"
                                        OnClick="@(() => OpenDetail(context))" Title="تفاصيل" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning"
+                                       OnClick="@(() => OpenSingleRequisitionPrint(context))" Title="طباعة إذن صرف / استلام الطلبية" />
                         @if (context.Status == 2 || context.Status == 3)
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
@@ -86,9 +108,289 @@
     }
 </div>
 
+<!-- ════════════════════ PRINT PREVIEW MODAL OVERLAY ════════════════════ -->
+@if (_showPrintPreview)
+{
+    <div class="wh-print-overlay" @onclick="@(() => _showPrintPreview = false)">
+        <div class="wh-print-dialog-card" @onclick:stopPropagation="true">
+            <div class="wh-print-dialog-header no-print">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800; color: #0f172a;">معاينة وطباعة سجل طلبيات الفروع</MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 800; border-radius: 8px;">
+                        طباعة الآن
+                    </MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                               StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel" Style="font-weight: 700; border-radius: 8px;">
+                        تصدير إكسيل (.xlsx)
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showPrintPreview = false)" />
+                </div>
+            </div>
+
+            <div class="wh-print-dialog-body">
+                <div class="wh-printable-sheet" dir="rtl">
+                    <!-- Clean Header (Report Title Only) -->
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px;">
+                        <h2 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 1.4rem;">سجل طلبيات التوريد من الفروع</h2>
+                        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                            الحالة: @(_selectedStatus.HasValue ? GetStatusLabel(_selectedStatus.Value) : "جميع الحالات") | تاريخ: @DateTime.Now.ToString("yyyy/MM/dd hh:mm tt")
+                        </p>
+                    </div>
+
+                    <!-- Summary Box in Print -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                        <div style="flex: 1; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #9a3412; display: block; font-weight: 700;">إجمالي الطلبيات المعروضة</span>
+                            <strong style="font-size: 1.2rem; color: #c2410c;">@FilteredRequisitions.Count() طلبية</strong>
+                        </div>
+                        <div style="flex: 1; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #991b1b; display: block; font-weight: 700;">طلبيات معلقة للمراجعة</span>
+                            <strong style="font-size: 1.2rem; color: #dc2626;">@_pendingCount طلبية</strong>
+                        </div>
+                    </div>
+
+                    <!-- Table in Print -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 24px;">
+                        <thead>
+                            <tr style="background: #0f172a; color: white;">
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">رقم الطلب</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">الفرع الطالب</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">المخزن المورد</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">تاريخ الطلب</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rIdx = 1; }
+                            @foreach (var r in FilteredRequisitions)
+                            {
+                                <tr style="background: @(rIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center;">@rIdx</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; font-weight: 700; color: #ea580c;">@r.RequisitionNumber</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0;">@r.BranchName</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0;">@r.WarehouseName</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center;">@r.RequestDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700;">@GetStatusLabel(r.Status)</td>
+                                </tr>
+                                rIdx++;
+                            }
+                        </tbody>
+                    </table>
+
+                    <!-- Signatures -->
+                    <div style="display: flex; justify-content: space-around; margin-top: 24px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">مسؤول طلبيات الفروع</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">أمين المستودع العام</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ════════════════════ SINGLE REQUISITION PRINT MODAL OVERLAY ════════════════════ -->
+@if (_showSinglePrintModal)
+{
+    <div class="wh-print-overlay" @onclick="@(() => _showSinglePrintModal = false)">
+        <div class="wh-print-dialog-card" @onclick:stopPropagation="true">
+            <div class="wh-print-dialog-header no-print">
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Rounded.Inventory2" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800; color: #0f172a;">
+                        طباعة إذن صرف طلبية فرع - @(_singleRequisition?.RequisitionNumber ?? "")
+                    </MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintSingleVoucher" Style="font-weight: 800; border-radius: 8px;">
+                        طباعة إذن الصرف (A4)
+                    </MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                               StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportSingleRequisitionToExcel" Style="font-weight: 700; border-radius: 8px;">
+                        تصدير إكسيل (.xlsx)
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showSinglePrintModal = false)" />
+                </div>
+            </div>
+
+            <div class="wh-print-dialog-body">
+                @if (_singleRequisitionLoading)
+                {
+                    <div class="text-center pa-8">
+                        <MudProgressCircular Color="MudBlazor.Color.Warning" Indeterminate="true" Size="MudBlazor.Size.Large" />
+                        <MudText Typo="Typo.body2" Class="mt-2 text-muted">جاري تجهيز إذن الصرف للطباعة...</MudText>
+                    </div>
+                }
+                else if (_singleRequisition != null)
+                {
+                    <div class="wh-single-requisition-sheet wh-printable-sheet" dir="rtl">
+                        <!-- Voucher Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
+                            <div>
+                                <h3 style="margin: 0; color: #ea580c; font-weight: 900; font-size: 1.1rem;">إدارة المخزن الرئيسي واللوجستيات</h3>
+                                <span style="font-size: 0.78rem; color: #64748b;">مستند رسمي لصرف واستلام طلبيات الفروع</span>
+                            </div>
+                            <div style="text-align: center;">
+                                <h2 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 1.4rem;">إذن صرف واستلام طلبية فرع</h2>
+                                <span style="font-size: 0.85rem; color: #ea580c; font-weight: 800;">رقم الإذن: @_singleRequisition.RequisitionNumber</span>
+                            </div>
+                            <div style="text-align: left; font-size: 0.78rem; color: #64748b;">
+                                <div>تاريخ الطباعة:</div>
+                                <strong style="color: #0f172a;">@DateTime.Now.ToString("yyyy/MM/dd hh:mm tt")</strong>
+                            </div>
+                        </div>
+
+                        <!-- Meta Info Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 0.82rem;">
+                            <div>
+                                <span style="color: #64748b; display: block; font-size: 0.75rem;">الفرع الطالب:</span>
+                                <strong style="color: #0f172a; font-size: 0.95rem;">@(!string.IsNullOrEmpty(_singleRequisition.FromBranchName) ? _singleRequisition.FromBranchName : _singleRequisition.BranchName)</strong>
+                            </div>
+                            <div>
+                                <span style="color: #64748b; display: block; font-size: 0.75rem;">المخزن المورد (الصارف):</span>
+                                <strong style="color: #0f172a; font-size: 0.95rem;">@(!string.IsNullOrEmpty(_singleRequisition.ToWarehouseName) ? _singleRequisition.ToWarehouseName : _singleRequisition.WarehouseName)</strong>
+                            </div>
+                            <div>
+                                <span style="color: #64748b; display: block; font-size: 0.75rem;">تاريخ إنشاء الطلب:</span>
+                                <strong style="color: #0f172a;">@_singleRequisition.RequestDate.ToString("yyyy/MM/dd hh:mm tt")</strong>
+                            </div>
+                            <div>
+                                <span style="color: #64748b; display: block; font-size: 0.75rem;">حالة الطلبية:</span>
+                                <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; background: #ffedd5; color: #c2410c;">
+                                    @GetStatusLabel(_singleRequisition.Status)
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Items Table -->
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 18px;">
+                            <thead>
+                                <tr style="background: #0f172a; color: white;">
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; width: 35px;">#</th>
+                                    <th style="padding: 7px 8px; border: 1px solid #cbd5e1; text-align: right;">كود الصنف</th>
+                                    <th style="padding: 7px 8px; border: 1px solid #cbd5e1; text-align: right;">اسم الصنف والوصف</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center;">الوحدة</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; background: #1e293b;">الكمية المطلوبة</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; background: #065f46;">المعتمدة</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; background: #9a3412;">المنصرفة</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; background: #1e40af;">المستلمة</th>
+                                    <th style="padding: 7px 6px; border: 1px solid #cbd5e1; text-align: center; width: 60px;">فحص المخزن</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int sIdx = 1; }
+                                @foreach (var line in _singleRequisition.Lines)
+                                {
+                                    <tr style="background: @(sIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center;">@sIdx</td>
+                                        <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.8rem; color: #475569;">
+                                            @(!string.IsNullOrEmpty(line.ProductCode) ? line.ProductCode : (line.Product != null ? line.Product.SKU : "-"))
+                                        </td>
+                                        <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: 700; color: #0f172a;">
+                                            @line.ProductName
+                                        </td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center;">@line.UnitName</td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800; font-size: 0.9rem;">
+                                            @line.RequestedQuantity.ToString("0.##")
+                                        </td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 800; font-size: 0.9rem;">
+                                            @(line.ApprovedQuantity?.ToString("0.##") ?? "-")
+                                        </td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center; color: #ea580c; font-weight: 800; font-size: 0.9rem;">
+                                            @(line.DispatchedQuantity?.ToString("0.##") ?? "-")
+                                        </td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center; color: #2563eb; font-weight: 800; font-size: 0.9rem;">
+                                            @(line.ReceivedQuantity?.ToString("0.##") ?? "-")
+                                        </td>
+                                        <td style="padding: 6px 6px; border: 1px solid #e2e8f0; text-align: center; color: #94a3b8;">
+                                            [ &nbsp; ]
+                                        </td>
+                                    </tr>
+                                    sIdx++;
+                                }
+                            </tbody>
+                        </table>
+
+                        @if (!string.IsNullOrWhiteSpace(_singleRequisition.Notes))
+                        {
+                            <div style="margin-bottom: 18px; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; font-size: 0.82rem;">
+                                <strong style="color: #9a3412;">ملاحظات وتعليمات الفرع:</strong> @_singleRequisition.Notes
+                            </div>
+                        }
+
+                        <!-- Dual Signatures Section -->
+                        <div style="margin-top: 24px; padding-top: 14px; border-top: 2px dashed #cbd5e1;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                                <!-- Signature 1: Warehouse Keeper -->
+                                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff;">
+                                    <div style="font-weight: 800; color: #0f172a; margin-bottom: 8px; font-size: 0.9rem;">
+                                        أمين المستودع (الصارف)
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 30px; text-align: right;">
+                                        الاسم: ............................................
+                                    </div>
+                                    <div style="border-top: 1px solid #94a3b8; font-size: 0.8rem; color: #475569; padding-top: 4px;">
+                                        التوقيع / الختم: ................................
+                                    </div>
+                                </div>
+
+                                <!-- Signature 2: Recipient / Driver -->
+                                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff;">
+                                    <div style="font-weight: 800; color: #0f172a; margin-bottom: 8px; font-size: 0.9rem;">
+                                        المستلم بالفرع / السائق الناقل
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 30px; text-align: right;">
+                                        الاسم: ............................................
+                                    </div>
+                                    <div style="border-top: 1px solid #94a3b8; font-size: 0.8rem; color: #475569; padding-top: 4px;">
+                                        التوقيع: ........................................
+                                    </div>
+                                </div>
+
+                                <!-- Signature 3: Warehouse Manager -->
+                                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff;">
+                                    <div style="font-weight: 800; color: #0f172a; margin-bottom: 8px; font-size: 0.9rem;">
+                                        اعتماد مدير المخازن والرقابة
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 30px; text-align: right;">
+                                        الاسم: ............................................
+                                    </div>
+                                    <div style="border-top: 1px solid #94a3b8; font-size: 0.8rem; color: #475569; padding-top: 4px;">
+                                        التوقيع: ........................................
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 0.72rem; color: #94a3b8;">
+                                <span>* يُطبع هذا الإذن من نسختين: نسخة تُحفظ بملفات المخزن ونسخة تُسلم للفرع مع الشحنة.</span>
+                                <span>نظام إدارة المخازن المركزي | New Tech WMS</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<RequisitionDto> _requisitions = new();
     private bool _loading = true;
+    private bool _showPrintPreview = false;
+    private bool _showSinglePrintModal = false;
+    private bool _singleRequisitionLoading = false;
+    private SingleRequisitionDetailDto? _singleRequisition;
     private int? _selectedStatus;
     private int _pendingCount;
 
@@ -138,6 +440,63 @@
 
     private int GetStatusCount(int? status) => status == null ? _requisitions.Count : _requisitions.Count(r => r.Status == status.Value);
     private void FilterByStatus(int? status) => _selectedStatus = status;
+
+    private void OpenPrintPreview()
+    {
+        if (!FilteredRequisitions.Any())
+        {
+            Snackbar.Add("لا توجد طلبيات للمعاينة والطباعة", MudBlazor.Severity.Warning);
+            return;
+        }
+        _showPrintPreview = true;
+    }
+
+    private async Task PrintReport()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printReportElement", ".wh-printable-sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء فتح الطباعة: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private void ExportToExcel()
+    {
+        if (!FilteredRequisitions.Any())
+        {
+            Snackbar.Add("لا توجد طلبيات للتصدير", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var itemsList = FilteredRequisitions.Select(r => new
+            {
+                RequisitionNumber = r.RequisitionNumber,
+                BranchName = r.BranchName,
+                WarehouseName = r.WarehouseName,
+                RequestDate = (DateTime?)r.RequestDate,
+                StatusLabel = GetStatusLabel(r.Status)
+            }).Cast<dynamic>().ToList();
+
+            var statusFilterName = _selectedStatus.HasValue ? GetStatusLabel(_selectedStatus.Value) : "الكل";
+            var bytes = WarehouseExcelExportHelper.GenerateRequisitions(itemsList, statusFilterName);
+            var defaultFileName = $"طلبيات_الفروع_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var savedPath = PrintingService.SaveFile(bytes, defaultFileName, "Excel Files (*.xlsx)|*.xlsx", "حفظ سجل طلبيات الفروع", true);
+
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                Snackbar.Add($"تم حفظ ملف الإكسيل بنجاح على جهازك: {System.IO.Path.GetFileName(savedPath)}", MudBlazor.Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
 
     private async Task OpenDetail(RequisitionDto r)
     {
@@ -193,6 +552,93 @@
         _ => $"حالة {status}"
     };
 
+    private async Task OpenSingleRequisitionPrint(RequisitionDto r)
+    {
+        _showSinglePrintModal = true;
+        _singleRequisitionLoading = true;
+        _singleRequisition = null;
+        StateHasChanged();
+
+        try
+        {
+            var detail = await Http.GetFromJsonAsync<SingleRequisitionDetailDto>($"api/warehouse/requisitions/{r.Id}");
+            if (detail != null)
+            {
+                _singleRequisition = detail;
+            }
+            else
+            {
+                // Fallback to basic info if API returned empty
+                _singleRequisition = new SingleRequisitionDetailDto
+                {
+                    Id = r.Id,
+                    RequisitionNumber = r.RequisitionNumber,
+                    BranchName = r.BranchName,
+                    WarehouseName = r.WarehouseName,
+                    Status = r.Status,
+                    RequestDate = r.RequestDate
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء جلب تفاصيل الإذن: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _singleRequisitionLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PrintSingleVoucher()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printReportElement", ".wh-single-requisition-sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء فتح الطباعة: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
+    private void ExportSingleRequisitionToExcel()
+    {
+        if (_singleRequisition == null) return;
+        try
+        {
+            var lines = _singleRequisition.Lines.Select(l => new
+            {
+                ProductName = l.ProductName,
+                UnitName = l.UnitName,
+                RequestedQty = l.RequestedQuantity,
+                ApprovedQty = l.ApprovedQuantity,
+                DispatchedQty = l.DispatchedQuantity,
+                ReceivedQty = l.ReceivedQuantity
+            }).Cast<dynamic>().ToList();
+
+            var bytes = WarehouseExcelExportHelper.GenerateRequisitionDetails(
+                _singleRequisition.RequisitionNumber,
+                _singleRequisition.BranchName ?? "الفرع",
+                _singleRequisition.WarehouseName ?? "المستودع",
+                _singleRequisition.RequestDate,
+                GetStatusLabel(_singleRequisition.Status),
+                lines);
+
+            var defaultFileName = $"إذن_صرف_{_singleRequisition.RequisitionNumber}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var savedPath = PrintingService.SaveFile(bytes, defaultFileName, "Excel Files (*.xlsx)|*.xlsx", "حفظ إذن صرف الطلبية", true);
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                Snackbar.Add($"تم حفظ ملف الإكسيل بنجاح: {System.IO.Path.GetFileName(savedPath)}", MudBlazor.Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"فشل التصدير: {ex.Message}", MudBlazor.Severity.Error);
+        }
+    }
+
     public void Dispose()
     {
         WarehouseEvents.OnRequisitionListRefresh -= OnWarehouseRefresh;
@@ -210,5 +656,45 @@
         public int TargetWarehouseId { get; set; }
         public string? WarehouseName { get; set; }
         public int LineCount { get; set; }
+    }
+
+    private class SingleRequisitionDetailDto
+    {
+        public int Id { get; set; }
+        public string RequisitionNumber { get; set; } = "";
+        public int Status { get; set; }
+        public DateTime RequestDate { get; set; }
+        public DateTime? RequiredDate { get; set; }
+        public int RequestingBranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string? FromBranchName { get; set; }
+        public int TargetWarehouseId { get; set; }
+        public string? WarehouseName { get; set; }
+        public string? ToWarehouseName { get; set; }
+        public string? Notes { get; set; }
+        public List<SingleRequisitionLineDto> Lines { get; set; } = new();
+    }
+
+    private class SingleRequisitionLineDto
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public string? ProductCode { get; set; }
+        public ProductSimpleDto? Product { get; set; }
+        public string ProductName { get; set; } = "";
+        public int UnitId { get; set; }
+        public string UnitName { get; set; } = "";
+        public decimal RequestedQuantity { get; set; }
+        public decimal? ApprovedQuantity { get; set; }
+        public decimal? DispatchedQuantity { get; set; }
+        public decimal? ReceivedQuantity { get; set; }
+    }
+
+    private class ProductSimpleDto
+    {
+        public int Id { get; set; }
+        public string? SKU { get; set; }
+        public string? NameAr { get; set; }
+        public string? NameEn { get; set; }
     }
 }

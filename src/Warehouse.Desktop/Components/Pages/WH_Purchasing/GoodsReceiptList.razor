@@ -73,7 +73,7 @@
                         <MudTd>@context.OrderNumber</MudTd>
                         <MudTd>@context.SupplierName</MudTd>
                         <MudTd>@context.WarehouseName</MudTd>
-                        <MudTd>@context.ReceiptDate.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                        <MudTd>@context.ReceiptDate.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                         <MudTd>@(string.IsNullOrWhiteSpace(context.SupplierInvoiceNumber) ? "-" : context.SupplierInvoiceNumber)</MudTd>
                         <MudTd>
                             <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">@context.LinesCount بند</MudChip>

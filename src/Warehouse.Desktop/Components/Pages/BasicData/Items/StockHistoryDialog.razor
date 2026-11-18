@@ -9,11 +9,11 @@
     <TitleContent>
         <div class="d-flex align-center justify-space-between w-100" style="padding-inline-end: 2.5rem;">
             <div class="d-flex flex-column align-start">
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="font-weight: 600;">@(IsArabic ? "Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ø­Ø§Ù„ÙŠ" : "Current Balance")</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="font-weight: 600;">@(IsArabic ? "الرصيد الحالي" : "Current Balance")</MudText>
                 <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 900;">@Item.CurrentQuantity.ToString("N2")</MudText>
             </div>
             <div class="d-flex align-center">
-                <MudText Typo="Typo.h5" Style="font-weight: 800;">@(IsArabic ? "Ø³Ø¬Ù„ Ø­Ø±ÙƒØ§Øª Ø§Ù„ØµÙ†Ù" : "Item Transaction History")</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 800;">@(IsArabic ? "سجل حركات الصنف" : "Item Transaction History")</MudText>
                 <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2 ml-2" Style="font-size: 2rem;" />
             </div>
         </div>
@@ -32,15 +32,15 @@
                       Filter="new Func<InventoryTransactionDto,bool>(FilterFunc1)"
                       RowsPerPage="15">
                 <HeaderContent>
-                    <MudTh Style="width: 150px;"><MudTableSortLabel SortBy="new Func<InventoryTransactionDto, object>(x => x.CreatedAt)">@(IsArabic ? "Ø§Ù„ØªØ§Ø±ÙŠØ®" : "Date")</MudTableSortLabel></MudTh>
-                    <MudTh>@(IsArabic ? "Ø§Ù„Ù†ÙˆØ¹" : "Type")</MudTh>
-                    <MudTh Class="text-center">@(IsArabic ? "Ø§Ù„ÙƒÙ…ÙŠØ©" : "Qty")</MudTh>
-                    <MudTh Class="text-center">@(IsArabic ? "Ø§Ù„Ø±ØµÙŠØ¯" : "Balance")</MudTh>
-                    <MudTh>@(IsArabic ? "Ø§Ù„Ù…Ø±Ø¬Ø¹" : "Ref")</MudTh>
-                    <MudTh>@(IsArabic ? "Ø¨ÙˆØ§Ø³Ø·Ø©" : "By")</MudTh>
-                    <MudTh Class="text-center">@(IsArabic ? "Ø§Ù„ØµÙˆØ±" : "Photos")</MudTh>
+                    <MudTh Style="width: 150px;"><MudTableSortLabel SortBy="new Func<InventoryTransactionDto, object>(x => x.CreatedAt)">@(IsArabic ? "التاريخ" : "Date")</MudTableSortLabel></MudTh>
+                    <MudTh>@(IsArabic ? "النوع" : "Type")</MudTh>
+                    <MudTh Class="text-center">@(IsArabic ? "الكمية" : "Qty")</MudTh>
+                    <MudTh Class="text-center">@(IsArabic ? "الرصيد" : "Balance")</MudTh>
+                    <MudTh>@(IsArabic ? "المرجع" : "Ref")</MudTh>
+                    <MudTh>@(IsArabic ? "بواسطة" : "By")</MudTh>
+                    <MudTh Class="text-center">@(IsArabic ? "الصور" : "Photos")</MudTh>
                     <MudTh Style="min-width: 250px;">
-                        <MudText>@(IsArabic ? "Ù…Ù„Ø§Ø­Ø¸Ø§Øª / Ø³Ø¨Ø¨" : "Notes / Reason")</MudText>
+                        <MudText>@(IsArabic ? "ملاحظات / سبب" : "Notes / Reason")</MudText>
                     </MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -101,20 +101,20 @@
                 <LoadingContent>
                     <div class="d-flex flex-column align-center py-8">
                         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-3" />
-                        <MudText>@(IsArabic ? "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø³Ø¬Ù„ Ø§Ù„Ø­Ø±ÙƒØ§Øª..." : "Loading history...")</MudText>
+                        <MudText>@(IsArabic ? "جاري تحميل سجل الحركات..." : "Loading history...")</MudText>
                     </div>
                 </LoadingContent>
                 <NoRecordsContent>
                     <div class="d-flex flex-column align-center py-8">
                         <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Dark" Class="mb-2" />
-                        <MudText Color="Color.Dark">@(IsArabic ? "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø±ÙƒØ§Øª Ù…Ø®Ø²Ù†ÙŠØ© Ù„Ù‡Ø°Ø§ Ø§Ù„ØµÙ†Ù" : "No transactions found")</MudText>
+                        <MudText Color="Color.Dark">@(IsArabic ? "لا توجد حركات مخزنية لهذا الصنف" : "No transactions found")</MudText>
                     </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Class="px-8 flex-grow-1 mx-4 mb-2">@(IsArabic ? "Ø¥ØºÙ„Ø§Ù‚" : "Close")</MudButton>
+        <MudButton OnClick="Close" Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Class="px-8 flex-grow-1 mx-4 mb-2">@(IsArabic ? "إغلاق" : "Close")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -217,16 +217,16 @@
         
         return type switch
         {
-            "StockIn" => "ØªÙˆØ±ÙŠØ¯ Ù…Ø®Ø²Ù†ÙŠ",
-            "StockOut" => "ØµØ±Ù Ù…Ø®Ø²Ù†ÙŠ",
-            "Sale" => "Ø¹Ù…Ù„ÙŠØ© Ø¨ÙŠØ¹",
-            "Return" => "Ù…Ø±ØªØ¬Ø¹",
-            "Void" => "Ø¥Ù„ØºØ§Ø¡ Ø£ÙˆØ±Ø¯Ø±",
-            "Adjustment" => "ØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯",
-            "PhysicalCount" => "Ø¬Ø±Ø¯ ÙØ¹Ù„ÙŠ",
-            "Damage" => "ØªØ§Ù„Ù",
-            "Waste" => "Ù‡Ø§Ù„Ùƒ",
-            "OpeningStock" => "Ø±ØµÙŠØ¯ Ø£ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø©",
+            "StockIn" => "توريد مخزني",
+            "StockOut" => "صرف مخزني",
+            "Sale" => "عملية بيع",
+            "Return" => "مرتجع",
+            "Void" => "إلغاء أوردر",
+            "Adjustment" => "تعديل رصيد",
+            "PhysicalCount" => "جرد فعلي",
+            "Damage" => "تالف",
+            "Waste" => "هالك",
+            "OpeningStock" => "رصيد أول المدة",
             _ => type
         };
     }
@@ -237,21 +237,21 @@
 
         // Common patterns from backend
         if (notes.Contains("Item consumed x"))
-            return notes.Replace("Item consumed x", "ØªÙ… Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø¹Ø¯Ø¯ ");
+            return notes.Replace("Item consumed x", "تم استهلاك عدد ");
 
         if (notes.Contains("Item returned x"))
-            return notes.Replace("Item returned x", "ØªÙ… Ø¥Ø±Ø¬Ø§Ø¹ Ø¹Ø¯Ø¯ ");
+            return notes.Replace("Item returned x", "تم إرجاع عدد ");
 
         if (notes.Contains("Consumed for"))
-            return notes.Replace("Consumed for", "Ù…Ø³ØªÙ‡Ù„Ùƒ Ù„Ù€ ").Replace("x", "Ø¹Ø¯Ø¯ ");
+            return notes.Replace("Consumed for", "مستهلك لـ ").Replace("x", "عدد ");
 
         if (notes.Contains("Returned for"))
-            return notes.Replace("Returned for", "Ù…Ø±ØªØ¬Ø¹ Ù„Ù€ ").Replace("x", "Ø¹Ø¯Ø¯ ");
+            return notes.Replace("Returned for", "مرتجع لـ ").Replace("x", "عدد ");
 
-        if (notes == "Opening stock entry") return "Ø¥Ø¯Ø®Ø§Ù„ Ø±ØµÙŠØ¯ Ø£ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø©";
-        if (notes == "Physical stock adjustment") return "ØªØ¹Ø¯ÙŠÙ„ Ø¬Ø±Ø¯ ÙØ¹Ù„ÙŠ";
-        if (notes == "Initial setup") return "ØªÙ‡ÙŠØ¦Ø© Ø£ÙˆÙ„ÙŠØ©";
-        if (notes == "Manual adjustment from grid") return "ØªØ¹Ø¯ÙŠÙ„ ÙŠØ¯ÙˆÙŠ Ù…Ù† Ø§Ù„Ø¬Ø¯ÙˆÙ„";
+        if (notes == "Opening stock entry") return "إدخال رصيد أول المدة";
+        if (notes == "Physical stock adjustment") return "تعديل جرد فعلي";
+        if (notes == "Initial setup") return "تهيئة أولية";
+        if (notes == "Manual adjustment from grid") return "تعديل يدوي من الجدول";
 
         return notes;
     }
@@ -265,7 +265,7 @@
         var parameters = new DialogParameters { ["Images"] = images };
         
         await DialogService.ShowAsync<TransactionImagesDialog>(
-            IsArabic ? "Ù…Ø¹Ø±Ø¶ Ø§Ù„ØµÙˆØ±" : "Transaction Images", 
+            IsArabic ? "معرض الصور" : "Transaction Images", 
             parameters, 
             options);
     }
@@ -274,9 +274,8 @@
     {
         var options = new MudBlazor.DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium };
         var parameters = new DialogParameters { ["ImageUrl"] = path };
-        await DialogService.ShowAsync<ImagePreviewDialog>(IsArabic ? "Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØµÙˆØ±Ø©" : "Image Preview", parameters, options);
+        await DialogService.ShowAsync<ImagePreviewDialog>(IsArabic ? "معاينة الصورة" : "Image Preview", parameters, options);
     }
 
     void Close() => MudDialog.Close();
 }
-

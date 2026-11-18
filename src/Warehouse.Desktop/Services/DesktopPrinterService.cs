@@ -85,7 +85,7 @@ public class DesktopPrinterService : IPrinterServices
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public async Task<bool> PrintPdfAsync(string pdfFilePath, string printerName)
     {
-        var stopwatch = Stopwatch.StartNew(); // Ø¨Ø¯Ø¡ Ù‚ÙŠØ§Ø³ Ø§Ù„ÙˆÙ‚Øª
+        var stopwatch = Stopwatch.StartNew(); // بدء قياس الوقت
 
         try
         {
@@ -176,7 +176,7 @@ public class DesktopPrinterService : IPrinterServices
         }
         finally
         {
-            stopwatch.Stop(); // Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ù‚ÙŠØ§Ø³
+            stopwatch.Stop(); // إيقاف القياس
             Serilog.Log.Information($"Total time: {stopwatch.Elapsed.TotalSeconds:F2} seconds");
         }
 

@@ -179,6 +179,7 @@ public partial class App : Application
         services.AddRadzenComponents();
         services.AddBlazoredLocalStorage();
         services.AddScoped<Warehouse.Desktop.Services.IDesktopPrintingService, Warehouse.Desktop.Services.DesktopPrintingService>();
+        services.AddScoped<Warehouse.Desktop.Services.WarehouseCurrencyService>();
 
         // Localization
         services.AddLocalization();

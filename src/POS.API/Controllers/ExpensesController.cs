@@ -7,6 +7,7 @@ using System;
 
 namespace POS.API.Controllers;
 
+[AllowAnonymous]
 [ApiController]
 [Route("api/[controller]")]
 public class ExpensesController : ControllerBase

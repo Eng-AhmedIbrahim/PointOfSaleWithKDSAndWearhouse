@@ -3,6 +3,8 @@
 @using BlazorBase.ERPFrontServices.AppDateServices
 @using Microsoft.AspNetCore.Authorization
 @using POS.Contract.Dtos.ReportingDtos
+@using POS.Contract.Dtos.ItemDto
+@using POS.Contract.Dtos.InventoryDtos
 @inject IExpenseFrontService ExpenseService
 @inject IAppDateService AppDateService
 @inject IAuthorizationService AuthorizationService
@@ -11,118 +13,282 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject CommonProperties _commonProperties
+@inject HttpClient Http
 
 <div class="container-fluid py-4" dir="rtl">
     <RadzenText TextStyle="TextStyle.H4" TextAlign="TextAlign.Center" class="mb-2" style="font-weight: 700; color: #1a237e;">
-        إدارة المصروفات والمدفوعات النقديّة
+        إدارة المصروفات ومشتريات الفرع النقدية
     </RadzenText>
-    <RadzenText TextStyle="TextStyle.Subtitle1" TextAlign="TextAlign.Center" class="mb-5" style="color: #5c6bc0;">
-        تسجيل مشتريات أو سحب نقدية من الدرج مع كامل تفاصيل المسئول
+    <RadzenText TextStyle="TextStyle.Subtitle1" TextAlign="TextAlign.Center" class="mb-4" style="color: #5c6bc0;">
+        تسجيل مشتريات الخامات، أصناف البيع، والنثريات من الدرج مع التحديث الآلي لأرصدة وحركات المخزن
     </RadzenText>
 
     <div class="row">
         <!-- Form Section -->
-        <div class="col-md-4 mb-4">
-            <RadzenCard style="border-radius: 12px; border-top: 5px solid #1a237e;" class="rz-shadow-4">
-                <RadzenText TextStyle="TextStyle.H6" class="mb-4">إضافة إذن صرف جديد</RadzenText>
-                
-                <div class="rz-p-sm-4 rz-text-align-center">
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <RadzenLabel Text="المبلغ (EGP)" Component="Amount" class="mb-2 d-block text-end" />
-                            <RadzenNumeric TValue="decimal" @bind-Value="_newExpense.Amount" Format="N2" class="w-100" Name="Amount" />
-                        </div>
-                    </div>
+        <div class="col-lg-5 col-md-12 mb-4">
+            <RadzenCard style="border-radius: 14px; border-top: 5px solid #1a237e;" class="rz-shadow-4 pa-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <RadzenText TextStyle="TextStyle.H6" class="m-0" style="font-weight: 700; color: #1a237e;">
+                        <RadzenIcon Icon="receipt_long" class="me-2" />
+                        إضافة إذن صرف / مشتريات
+                    </RadzenText>
+                    <RadzenBadge BadgeStyle="@(_isDetailedInvoice ? BadgeStyle.Success : BadgeStyle.Info)" IsPill="true"
+                                 Text="@(_isDetailedInvoice ? "فاتورة أصناف ومخزن" : "صرف نثريات مباشر")" />
+                </div>
 
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <RadzenLabel Text="الفئة" Component="Category" class="mb-2 d-block text-end" />
-                            <RadzenDropDown @bind-Value="_newExpense.Category" Data="@_categories" class="w-100" Name="Category" />
-                        </div>
-                    </div>
+                <!-- Mode Selector -->
+                <div class="mb-3 p-2" style="background: #f1f5f9; border-radius: 10px;">
+                    <RadzenSelectBar @bind-Value="_isDetailedInvoice" TValue="bool" class="w-100" Size="ButtonSize.Small">
+                        <Items>
+                            <RadzenSelectBarItem Text="فاتورة أصناف (مادة خام / صنف بيع)" Value="true" />
+                            <RadzenSelectBarItem Text="صرف نثريات سريع" Value="false" />
+                        </Items>
+                    </RadzenSelectBar>
+                </div>
 
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <RadzenLabel Text="المستلم (الجهة / الشخص)" Component="SpentBy" class="mb-2 d-block text-end" />
-                            <RadzenTextBox @bind-Value="_newExpense.SpentBy" class="w-100" Name="SpentBy" />
-                        </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <RadzenLabel Text="الفئة" class="mb-1 d-block text-end fw-bold" />
+                        <RadzenDropDown @bind-Value="_newExpense.Category" Data="@_categories" class="w-100" />
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <RadzenLabel Text="بيان الصرف / الملاحظات" Component="Description" class="mb-2 d-block text-end" />
-                            <RadzenTextArea @bind-Value="_newExpense.Description" Rows="3" class="w-100" Name="Description" />
-                        </div>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-12 text-end">
-                            <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Radzen.Variant.Flat" Shade="Shade.Lighter" Size="AlertSize.Small" class="rz-text-right">
-                                المسئول الحالي: @_cashierName
-                            </RadzenAlert>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <RadzenButton Text="@(_isSaving ? "جاري الحفظ..." : "حفظ إذن الصرف")" Icon="save" 
-                                          ButtonStyle="ButtonStyle.Primary" class="w-100" 
-                                          Disabled="@_isSaving" Click="SaveExpense" />
-                        </div>
+                    <div class="col-6">
+                        <RadzenLabel Text="المستلم (الجهة / المورد)" class="mb-1 d-block text-end fw-bold" />
+                        <RadzenTextBox @bind-Value="_newExpense.SpentBy" Placeholder="مثال: تاجر الجملة / الكاشير" class="w-100" />
                     </div>
                 </div>
+
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <RadzenLabel Text="بيان عام / ملاحظات الفاتورة" class="mb-1 d-block text-end fw-bold" />
+                        <RadzenTextBox @bind-Value="_newExpense.Description" Placeholder="ملاحظات توضيحية..." class="w-100" />
+                    </div>
+                </div>
+
+                @if (!_isDetailedInvoice)
+                {
+                    <!-- Simple Mode: Direct Amount -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <RadzenLabel Text="المبلغ الإجمالي (EGP)" class="mb-1 d-block text-end fw-bold" />
+                            <RadzenNumeric TValue="decimal" @bind-Value="_newExpense.Amount" Format="N2" class="w-100" Style="font-size: 1.2rem; font-weight: 700; color: #1a237e;" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Detailed Invoice Mode: Multi-Item Entry -->
+                    <div class="p-3 mb-3" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;">
+                        <RadzenText TextStyle="TextStyle.Subtitle2" class="mb-2 fw-bold" style="color: #0f172a;">
+                            <RadzenIcon Icon="add_circle" class="me-1 text-primary" />
+                            إضافة بند إلى الفاتورة:
+                        </RadzenText>
+
+                        <!-- Item Type Selector -->
+                        <div class="mb-2">
+                            <RadzenSelectBar @bind-Value="_currentItemType" TValue="int" Size="ButtonSize.ExtraSmall" class="w-100" Change="@OnItemTypeChanged">
+                                <Items>
+                                    <RadzenSelectBarItem Text="صنف بيع" Value="2" />
+                                    <RadzenSelectBarItem Text="مادة خام" Value="1" />
+                                    <RadzenSelectBarItem Text="نثرية" Value="0" />
+                                </Items>
+                            </RadzenSelectBar>
+                        </div>
+
+                        @if (_currentItemType == 2)
+                        {
+                            <!-- Sales Item Selector -->
+                            <div class="mb-2">
+                                <RadzenLabel Text="اختر صنف البيع:" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenDropDown TValue="int?" @bind-Value="_selectedSalesItemId" Data="@_salesItems"
+                                                TextProperty="ArabicName" ValueProperty="Id"
+                                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                Placeholder="-- ابحث عن صنف البيع (كنزات، مياه...) --"
+                                                Change="OnSalesItemSelected" class="w-100" />
+                            </div>
+                        }
+                        else if (_currentItemType == 1)
+                        {
+                            <!-- Raw Material Selector -->
+                            <div class="mb-2">
+                                <RadzenLabel Text="اختر المادة الخام المخزنية:" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenDropDown TValue="int?" @bind-Value="_selectedRawMaterialId" Data="@_rawMaterials"
+                                                TextProperty="Name" ValueProperty="Id"
+                                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                Placeholder="-- ابحث عن المادة الخام (أرز، لحوم، زيت، سكر...) --"
+                                                Change="OnRawMaterialSelected" class="w-100" />
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- General Sundry Free Text -->
+                            <div class="mb-2">
+                                <RadzenLabel Text="بيان البند / النثرية:" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenTextBox @bind-Value="_lineItemName" Placeholder="مثال: أدوات نظافة / لمبات إنارة" class="w-100" />
+                            </div>
+                        }
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <RadzenLabel Text="الكمية" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenNumeric TValue="decimal" @bind-Value="_lineQuantity" Min="0.01m" Step="1" class="w-100" Change="CalculateLineTotal" />
+                            </div>
+                            <div class="col-4">
+                                <RadzenLabel Text="سعر الوحدة" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenNumeric TValue="decimal" @bind-Value="_lineUnitPrice" Min="0" Step="1" Format="N2" class="w-100" Change="CalculateLineTotal" />
+                            </div>
+                            <div class="col-4">
+                                <RadzenLabel Text="الإجمالي" class="mb-1 d-block text-end small text-muted" />
+                                <RadzenNumeric TValue="decimal" @bind-Value="_lineTotalPrice" ReadOnly="true" Format="N2" class="w-100" Style="font-weight: 700; background: #f8fafc;" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.85rem;" title="الوحدة المسجلة في السيستم">
+                                    <RadzenIcon Icon="straighten" class="me-1 text-primary" style="font-size: 0.95rem; vertical-align: middle;" />
+                                    الوحدة: <strong>@(string.IsNullOrWhiteSpace(_lineUnitName) ? "غير محددة" : _lineUnitName)</strong>
+                                </span>
+                                <RadzenTextBox @bind-Value="_lineUnitName" Placeholder="تعديل الوحدة..." Style="max-width: 100px; height: 28px; font-size: 0.75rem;" />
+                            </div>
+                            <RadzenButton Text="إضافة للفاتورة" Icon="playlist_add" ButtonStyle="ButtonStyle.Success"
+                                          Size="ButtonSize.Small" Click="AddLineItem"
+                                          Title="إضافة هذا الصنف إلى جدول بنود الفاتورة الحالية" />
+                        </div>
+                    </div>
+
+                    <!-- Line Items Table -->
+                    @if (_invoiceItems.Any())
+                    {
+                        <div class="mb-3 border rounded-3 p-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                                <span class="fw-bold small text-dark">بنود الفاتورة (@_invoiceItems.Count):</span>
+                                <span class="badge bg-primary fs-6">الإجمالي: @_invoiceItems.Sum(i => i.TotalPrice).ToString("N2") ج.م</span>
+                            </div>
+
+                            <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                                <table class="table table-sm table-hover bg-white mb-0 text-center align-middle" style="font-size: 0.85rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>النوع</th>
+                                            <th class="text-start">الصنف / البيان</th>
+                                            <th>الكمية</th>
+                                            <th>السعر</th>
+                                            <th>الإجمالي</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in _invoiceItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @if (item.ItemType == 2)
+                                                    {
+                                                        <span class="badge bg-success" style="font-size: 0.7rem;">صنف بيع</span>
+                                                    }
+                                                    else if (item.ItemType == 1)
+                                                    {
+                                                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">مادة خام</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">نثريات</span>
+                                                    }
+                                                </td>
+                                                <td class="text-start fw-bold">@item.ItemName</td>
+                                                <td>@item.Quantity.ToString("G29") @(item.UnitName ?? "")</td>
+                                                <td>@item.UnitPrice.ToString("N2")</td>
+                                                <td class="text-primary fw-bold">@item.TotalPrice.ToString("N2")</td>
+                                                <td>
+                                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
+                                                                  Variant="Radzen.Variant.Text" Click="@(() => RemoveLineItem(item))" />
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center mb-3" style="border-radius: 8px;">
+                        <RadzenIcon Icon="warehouse" class="me-2" style="font-size: 1.2rem;" />
+                        <span>عند الحفظ، سيتم <strong>زيادة كميات الأصناف</strong> تلقائياً في المخزن وتسجيل حركة وارد في سجل حركات الصنف.</span>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <div class="p-2 text-center" style="background: #e0f2fe; border-radius: 8px; color: #0369a1; font-weight: 700;">
+                        المسئول الحالي: @_cashierName
+                    </div>
+                </div>
+
+                <RadzenButton Text="@(_isSaving ? "جاري الحفظ وتحديث المخزن..." : $"حفظ إذن الصرف ({(_isDetailedInvoice ? _invoiceItems.Sum(i => i.TotalPrice) : _newExpense.Amount):N2} EGP)")"
+                              Icon="save" ButtonStyle="ButtonStyle.Primary" class="w-100 py-2"
+                              Style="font-weight: 700; border-radius: 8px;"
+                              Disabled="@_isSaving" Click="SaveExpense" />
             </RadzenCard>
         </div>
 
         <!-- History Table Section -->
-        <div class="col-md-8">
-            <RadzenCard style="border-radius: 12px;" class="rz-shadow-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-                    <RadzenText TextStyle="TextStyle.H6" class="m-0 mb-2">سجل حركة المصروفات</RadzenText>
+        <div class="col-lg-7 col-md-12">
+            <RadzenCard style="border-radius: 14px;" class="rz-shadow-4 pa-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <RadzenText TextStyle="TextStyle.H6" class="m-0 fw-bold" style="color: #1a237e;">
+                        <RadzenIcon Icon="history" class="me-2" />
+                        سجل حركة المصروفات والمشتريات
+                    </RadzenText>
                     
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <RadzenText TextStyle="TextStyle.Body2" class="m-0">من:</RadzenText>
-                        <RadzenDatePicker @bind-Value="_fromDate" DateFormat="yyyy-MM-dd" style="width: 130px;" />
-                        <RadzenText TextStyle="TextStyle.Body2" class="m-0">إلى:</RadzenText>
-                        <RadzenDatePicker @bind-Value="_toDate" DateFormat="yyyy-MM-dd" style="width: 130px;" />
+                        <RadzenText TextStyle="TextStyle.Body2" class="m-0 fw-bold">من:</RadzenText>
+                        <RadzenDatePicker @bind-Value="_fromDate" DateFormat="yyyy-MM-dd" style="width: 125px;" />
+                        <RadzenText TextStyle="TextStyle.Body2" class="m-0 fw-bold">إلى:</RadzenText>
+                        <RadzenDatePicker @bind-Value="_toDate" DateFormat="yyyy-MM-dd" style="width: 125px;" />
                         <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="LoadExpenses" />
                     </div>
                 </div>
 
                 <RadzenDataGrid Data="@_expenses" TItem="ExpenseDto" IsLoading="@_isLoading" 
-                                AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="10"
+                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                AllowSorting="true" AllowPaging="true" PageSize="10"
                                 Density="Density.Compact" class="rz-border-radius-2">
                     <Columns>
-                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Date" Title="التاريخ" Width="140px">
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Date" Title="التاريخ" Width="135px">
                             <Template Context="data">
-                                @data.Date.ToString("yyyy-MM-dd HH:mm")
+                                <span class="small fw-bold">@data.Date.ToString("yyyy-MM-dd HH:mm")</span>
                             </Template>
                         </RadzenDataGridColumn>
                         
-                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Category" Title="الفئة" Width="130px">
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Category" Title="الفئة" Width="110px">
                             <Template Context="data">
                                 <RadzenBadge BadgeStyle="BadgeStyle.Primary" IsPill="true" Text="@data.Category" />
                             </Template>
                         </RadzenDataGridColumn>
 
-                        <RadzenDataGridColumn TItem="ExpenseDto" Property="CreatedByName" Title="المسئول (الكاشير)" Width="130px">
+                        <RadzenDataGridColumn TItem="ExpenseDto" Title="البيان / الأصناف" Width="220px">
                             <Template Context="data">
-                                <span title="ID: @data.CreatedById">@data.CreatedByName</span>
-                            </Template>
-                        </RadzenDataGridColumn>
-                        
-                        <RadzenDataGridColumn TItem="ExpenseDto" Title="البيان / المستلم">
-                            <Template Context="data">
-                                <div style="white-space:normal">
-                                    <strong>@data.SpentBy</strong><br/>
-                                    <span style="font-size: 0.85em; color: #666;">@data.Description</span>
+                                <div style="white-space: normal;">
+                                    @if (!string.IsNullOrEmpty(data.SpentBy))
+                                    {
+                                        <div class="small fw-bold text-dark">@data.SpentBy</div>
+                                    }
+                                    <div class="text-muted small">@data.Description</div>
+                                    @if (data.Items != null && data.Items.Any())
+                                    {
+                                        <div class="mt-1">
+                                            <button class="btn btn-sm btn-outline-info py-0 px-2" style="font-size: 0.75rem;" @onclick="@(() => ShowExpenseDetails(data))">
+                                                <i class="bi bi-list-check me-1"></i>
+                                                تفاصيل البنود (@data.Items.Count أصناف)
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
 
-                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Amount" Title="المبلغ" Width="100px">
+                        <RadzenDataGridColumn TItem="ExpenseDto" Property="Amount" Title="المبلغ" Width="105px">
                             <Template Context="data">
-                                <strong style="color: #d32f2f;">@data.Amount.ToString("N2")</strong>
+                                <strong style="color: #d32f2f; font-size: 1rem;">@data.Amount.ToString("N2")</strong>
                             </Template>
                         </RadzenDataGridColumn>
 
@@ -138,13 +304,11 @@
                     </Columns>
                 </RadzenDataGrid>
 
-                <div class="mt-4 p-3" style="background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" class="m-0">إجمالي مصروفات الفترة المحددة:</RadzenText>
-                        <RadzenText TextStyle="TextStyle.H6" class="m-0" style="color: #d32f2f; font-weight: 800;">
-                            @_expenses.Sum(e => e.Amount).ToString("N2") EGP
-                        </RadzenText>
-                    </div>
+                <div class="mt-3 p-3 d-flex justify-content-between align-items-center" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <RadzenText TextStyle="TextStyle.Subtitle1" class="m-0 fw-bold">إجمالي مصروفات الفترة المحددة:</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H5" class="m-0 fw-bold" style="color: #d32f2f;">
+                        @_expenses.Sum(e => e.Amount).ToString("N2") EGP
+                    </RadzenText>
                 </div>
             </RadzenCard>
         </div>
@@ -157,17 +321,35 @@
     private bool _isLoading = true;
     private bool _isSaving = false;
     private bool _canDeleteExpense = false;
-    
+
+    // Detailed Invoice Mode
+    private bool _isDetailedInvoice = true;
+    private int _currentItemType = 2; // Default to Sales Item (e.g. Canz, Water)
+    private int? _selectedSalesItemId;
+    private int? _selectedRawMaterialId;
+    private string _lineItemName = "";
+    private decimal _lineQuantity = 1;
+    private decimal _lineUnitPrice = 0;
+    private decimal _lineTotalPrice = 0;
+    private string? _lineUnitName = "";
+    private List<ExpenseItemDto> _invoiceItems = new();
+
+    // Lookups
+    private List<MenuSalesItemsToReturnDto> _salesItems = new();
+    private List<RawMaterialLookupDto> _rawMaterials = new();
+    private Dictionary<int, string> _itemUnitsMap = new();
+
     private DateTime? _currentAppDate;
     private DateTime? _fromDate;
     private DateTime? _toDate;
-    
+
     private string _cashierId = "-";
     private string _cashierName = "Unknown";
 
     private List<string> _categories = new()
     {
         "مشتريات خامات",
+        "مشتريات بضاعة للبيع",
         "نثريات / صيانة",
         "مرتبات / سلف",
         "فواتير / غاز / كهرباء",
@@ -192,15 +374,219 @@
                 _toDate = DateTime.Today;
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error retrieving AppDate: {ex.Message}");
             _fromDate = DateTime.Today;
             _toDate = DateTime.Today;
         }
 
         await LoadUserInfo();
+        await LoadLookups();
         await LoadExpenses();
+    }
+
+    private async Task LoadLookups()
+    {
+        // 1. Load Inventory Items to map units & local inventory
+        try
+        {
+            var invRes = await Http.GetFromJsonAsync<List<InventoryItemDto>>("api/Inventory/GetAll");
+            if (invRes != null)
+            {
+                foreach (var inv in invRes)
+                {
+                    var u = !string.IsNullOrWhiteSpace(inv.UnitNameAr) ? inv.UnitNameAr : (!string.IsNullOrWhiteSpace(inv.Unit) ? inv.Unit : "");
+                    if (!string.IsNullOrWhiteSpace(u))
+                    {
+                        _itemUnitsMap[inv.MenuSalesItemId] = u;
+                        _itemUnitsMap[inv.Id] = u;
+                    }
+                }
+            }
+        }
+        catch { }
+
+        // 2. Load Sales Items
+        List<MenuSalesItemsToReturnDto>? allItems = null;
+        try
+        {
+            allItems = await Http.GetFromJsonAsync<List<MenuSalesItemsToReturnDto>>("api/Item/GetAllItems");
+            if (allItems != null)
+            {
+                // Only genuine retail sales items (exclude raw materials which have ItemTypeId == 2 or Invisible == true)
+                _salesItems = allItems
+                    .Where(i => (i.ItemTypeId == null || i.ItemTypeId == 1) && !i.Invisible)
+                    .OrderBy(i => i.ArabicName)
+                    .ToList();
+            }
+        }
+        catch { }
+
+        // 3. Load Raw Materials
+        try
+        {
+            var rawRes = await Http.GetFromJsonAsync<List<RawMaterialLookupDto>>("api/warehouseproducts/lookup");
+            _rawMaterials = rawRes ?? new List<RawMaterialLookupDto>();
+        }
+        catch { }
+
+        // Also add any raw materials from allItems (ItemTypeId == 2 or Invisible == true) to _rawMaterials if not already present
+        if (allItems != null)
+        {
+            var localRaws = allItems.Where(i => i.ItemTypeId == 2 || i.Invisible).ToList();
+            foreach (var raw in localRaws)
+            {
+                if (!_rawMaterials.Any(r => r.Id == raw.Id || (r.NameAr != null && r.NameAr.Equals(raw.ArabicName, StringComparison.OrdinalIgnoreCase)) || r.Name.Equals(raw.ArabicName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    string unit = "جرام";
+                    if (_itemUnitsMap.TryGetValue(raw.Id, out var u) && !string.IsNullOrWhiteSpace(u))
+                    {
+                        unit = u;
+                    }
+                    else if (raw.ByWeight)
+                    {
+                        unit = "جرام";
+                    }
+
+                    _rawMaterials.Add(new RawMaterialLookupDto
+                    {
+                        Id = raw.Id,
+                        Name = raw.ArabicName ?? raw.EnglishName ?? "",
+                        NameAr = raw.ArabicName,
+                        UnitName = unit,
+                        BaseUnitName = unit,
+                        LastPurchaseCost = raw.Price ?? 0,
+                        WeightedAverageCost = raw.Price ?? 0
+                    });
+                }
+            }
+        }
+
+        // Ensure UnitName is populated from BaseUnitName or _itemUnitsMap
+        foreach (var r in _rawMaterials)
+        {
+            if (string.IsNullOrWhiteSpace(r.UnitName) && !string.IsNullOrWhiteSpace(r.BaseUnitName))
+            {
+                r.UnitName = r.BaseUnitName;
+            }
+            if (string.IsNullOrWhiteSpace(r.UnitName) && _itemUnitsMap.TryGetValue(r.Id, out var u))
+            {
+                r.UnitName = u;
+            }
+        }
+
+        _rawMaterials = _rawMaterials.OrderBy(r => r.NameAr ?? r.Name).ToList();
+    }
+
+    private void OnItemTypeChanged(int val)
+    {
+        _currentItemType = val;
+        _lineItemName = "";
+        _lineUnitPrice = 0;
+        _lineQuantity = 1;
+        _lineTotalPrice = 0;
+        _lineUnitName = "";
+        _selectedSalesItemId = null;
+        _selectedRawMaterialId = null;
+    }
+
+    private void OnSalesItemSelected(object? val)
+    {
+        if (val is int itemId)
+        {
+            var item = _salesItems.FirstOrDefault(i => i.Id == itemId);
+            if (item != null)
+            {
+                _lineItemName = item.ArabicName ?? item.EnglishName ?? "";
+                _lineUnitPrice = item.Price ?? 0;
+                
+                if (_itemUnitsMap.TryGetValue(itemId, out var unit) && !string.IsNullOrWhiteSpace(unit))
+                {
+                    _lineUnitName = unit;
+                }
+                else if (item.ByWeight)
+                {
+                    _lineUnitName = "جرام";
+                }
+                else
+                {
+                    _lineUnitName = "حبة / قطعة";
+                }
+                
+                CalculateLineTotal();
+            }
+        }
+    }
+
+    private void OnRawMaterialSelected(object? val)
+    {
+        if (val is int rawId)
+        {
+            var raw = _rawMaterials.FirstOrDefault(r => r.Id == rawId);
+            if (raw != null)
+            {
+                _lineItemName = raw.NameAr ?? raw.Name;
+                _lineUnitPrice = raw.LastPurchaseCost > 0 ? raw.LastPurchaseCost : raw.WeightedAverageCost;
+                
+                string? unit = !string.IsNullOrWhiteSpace(raw.UnitName) ? raw.UnitName : raw.BaseUnitName;
+                if (string.IsNullOrWhiteSpace(unit) && _itemUnitsMap.TryGetValue(rawId, out var u))
+                {
+                    unit = u;
+                }
+                _lineUnitName = !string.IsNullOrWhiteSpace(unit) ? unit : "جرام";
+                
+                CalculateLineTotal();
+            }
+        }
+    }
+
+    private void CalculateLineTotal()
+    {
+        _lineTotalPrice = _lineQuantity * _lineUnitPrice;
+    }
+
+    private void AddLineItem()
+    {
+        if (string.IsNullOrWhiteSpace(_lineItemName))
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى تحديد الصنف أولاً");
+            return;
+        }
+
+        if (_lineQuantity <= 0)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى إدخال كمية صحيحة أكبر من 0");
+            return;
+        }
+
+        var itemDto = new ExpenseItemDto
+        {
+            ItemType = _currentItemType,
+            ItemId = _currentItemType == 2 ? _selectedSalesItemId : (_currentItemType == 1 ? _selectedRawMaterialId : null),
+            ItemName = _lineItemName,
+            Quantity = _lineQuantity,
+            UnitPrice = _lineUnitPrice,
+            TotalPrice = _lineTotalPrice > 0 ? _lineTotalPrice : (_lineQuantity * _lineUnitPrice),
+            UnitName = _lineUnitName
+        };
+
+        _invoiceItems.Add(itemDto);
+
+        // Reset inputs for next item
+        _lineQuantity = 1;
+        _lineUnitPrice = 0;
+        _lineTotalPrice = 0;
+        _lineItemName = "";
+        _lineUnitName = "";
+        _selectedSalesItemId = null;
+        _selectedRawMaterialId = null;
+
+        NotificationService.Notify(NotificationSeverity.Info, "تمت الإضافة", "تمت إضافة البند إلى الفاتورة");
+    }
+
+    private void RemoveLineItem(ExpenseItemDto item)
+    {
+        _invoiceItems.Remove(item);
     }
 
     private async Task LoadUserInfo()
@@ -216,7 +602,6 @@
             _canDeleteExpense = isAdmin || (await AuthorizationService.AuthorizeAsync(user, "CanDeleteExpenseAtBackOffice")).Succeeded;
         }
 
-        // Try all claim types that may hold the display name
         string? displayNameClaim = user?.FindFirst("DisplayName")?.Value ?? user?.FindFirst("displayName")?.Value;
         string? nameClaim = user?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
                              ?? user?.FindFirst("name")?.Value
@@ -225,7 +610,7 @@
                      ?? user?.Claims?.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                      ?? _commonProperties.CurrentUserId
                      ?? "-";
-        // Build cashier name: prefer DisplayName if it's not a generic system name
+
         var candidates = new[] { displayNameClaim, nameClaim, _commonProperties.CurrentUser, user?.Identity?.Name };
         _cashierName = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c) && c != "System" && c != "system")
                      ?? displayNameClaim
@@ -242,7 +627,7 @@
             var to = _toDate ?? _currentAppDate ?? DateTime.Today;
             _expenses = await ExpenseService.GetExpenses(from, to);
         }
-        catch (Exception ex)
+        catch
         {
             NotificationService.Notify(NotificationSeverity.Error, "خطأ", "فشل في تحميل المصروفات");
         }
@@ -254,10 +639,24 @@
 
     private async Task SaveExpense()
     {
-        if (_newExpense.Amount <= 0)
+        if (_isDetailedInvoice)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى إدخال مبلغ صحيح");
-            return;
+            if (!_invoiceItems.Any())
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى إضافة بند واحد على الأقل إلى الفاتورة");
+                return;
+            }
+            _newExpense.Amount = _invoiceItems.Sum(i => i.TotalPrice);
+            _newExpense.Items = new List<ExpenseItemDto>(_invoiceItems);
+        }
+        else
+        {
+            if (_newExpense.Amount <= 0)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "تنبيه", "يرجى إدخال مبلغ صحيح");
+                return;
+            }
+            _newExpense.Items = new List<ExpenseItemDto>();
         }
 
         _isSaving = true;
@@ -274,22 +673,89 @@
 
             await ExpenseService.AddExpense(_newExpense);
             
-            NotificationService.Notify(NotificationSeverity.Success, "نجاح", "تم حفظ إذن الصرف بنجاح");
+            NotificationService.Notify(NotificationSeverity.Success, "نجاح", "تم حفظ إذن الصرف وتحديث أرصدة وحركات المخزن بنجاح");
+            
             _newExpense = new ExpenseDto 
             { 
                 Category = "مشتريات خامات", 
                 Date = _currentAppDate.HasValue ? _currentAppDate.Value.Date + DateTime.Now.TimeOfDay : DateTime.Now 
             };
+            _invoiceItems.Clear();
+
             await LoadExpenses();
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "خطأ", "خطأ في الحفظ");
+            NotificationService.Notify(NotificationSeverity.Error, "خطأ", $"خطأ في الحفظ: {ex.Message}");
         }
         finally
         {
             _isSaving = false;
         }
+    }
+
+    private async Task ShowExpenseDetails(ExpenseDto expense)
+    {
+        await DialogService.OpenAsync($"تفاصيل إذن صرف #{expense.Id}", ds =>
+            @<div dir="rtl" class="p-2">
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted">المستلم: </span><strong>@expense.SpentBy</strong>
+                    </div>
+                    <div>
+                        <span class="text-muted">الإجمالي: </span><strong class="text-danger fs-5">@expense.Amount.ToString("N2") EGP</strong>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>النوع</th>
+                                <th class="text-start">الصنف / البيان</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (expense.Items != null)
+                            {
+                                int idx = 1;
+                                foreach (var item in expense.Items)
+                                {
+                                    <tr>
+                                        <td>@(idx++)</td>
+                                        <td>
+                                            @if (item.ItemType == 2)
+                                            {
+                                                <span class="badge bg-success">صنف بيع</span>
+                                            }
+                                            else if (item.ItemType == 1)
+                                            {
+                                                <span class="badge bg-warning text-dark">مادة خام</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">نثريات</span>
+                                            }
+                                        </td>
+                                        <td class="text-start fw-bold">@item.ItemName</td>
+                                        <td>@item.Quantity.ToString("G29") @(item.UnitName ?? "")</td>
+                                        <td>@item.UnitPrice.ToString("N2")</td>
+                                        <td class="text-primary fw-bold">@item.TotalPrice.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <RadzenButton Text="إغلاق" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => ds.Close())" />
+                </div>
+            </div>,
+            new Radzen.DialogOptions { Width = "650px", CloseDialogOnOverlayClick = true }
+        );
     }
 
     private async Task ConfirmDelete(int id)
@@ -315,5 +781,18 @@
                 NotificationService.Notify(NotificationSeverity.Error, "خطأ", "فشل الحذف");
             }
         }
+    }
+
+    public class RawMaterialLookupDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? NameAr { get; set; }
+        public string? SKU { get; set; }
+        public string? Barcode { get; set; }
+        public string? UnitName { get; set; }
+        public string? BaseUnitName { get; set; }
+        public decimal WeightedAverageCost { get; set; }
+        public decimal LastPurchaseCost { get; set; }
     }
 }

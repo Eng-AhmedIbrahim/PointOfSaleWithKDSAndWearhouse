@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -241,6 +241,22 @@ public class WarehouseProductsController : ControllerBase
         return Ok(cat);
     }
 
+    [AllowAnonymous]
+    [HttpDelete("categories/{id}")]
+    public async Task<IActionResult> DeleteCategory(int id)
+    {
+        var cat = await _db.WarehouseCategories.FindAsync(id);
+        if (cat == null) return NotFound();
+
+        bool hasProducts = await _db.WarehouseProducts.AnyAsync(p => p.CategoryId == id);
+        if (hasProducts)
+            return BadRequest(new { message = "لا يمكن حذف الفئة لأنها مرتبطة بمنتجات مخزنية بالفعل" });
+
+        _db.WarehouseCategories.Remove(cat);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "تم حذف الفئة بنجاح" });
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -299,6 +315,7 @@ public class WarehouseProductsController : ControllerBase
         return Ok(list);
     }
 
+    [AllowAnonymous]
     [HttpPost("units")]
     public async Task<IActionResult> CreateUnit([FromBody] WarehouseUnit unit)
     {
@@ -321,6 +338,7 @@ public class WarehouseProductsController : ControllerBase
         return Ok(unit);
     }
 
+    [AllowAnonymous]
     [HttpPut("units/{id}")]
     public async Task<IActionResult> UpdateUnit(int id, [FromBody] WarehouseUnit model)
     {
@@ -329,6 +347,23 @@ public class WarehouseProductsController : ControllerBase
         u.NameAr = model.NameAr; u.NameEn = model.NameEn; u.Symbol = model.Symbol; u.IsBaseUnit = model.IsBaseUnit;
         await _db.SaveChangesAsync();
         return Ok(u);
+    }
+
+    [AllowAnonymous]
+    [HttpDelete("units/{id}")]
+    public async Task<IActionResult> DeleteUnit(int id)
+    {
+        var u = await _db.WarehouseUnits.FindAsync(id);
+        if (u == null) return NotFound();
+
+        bool hasProducts = await _db.WarehouseProducts.AnyAsync(p => p.BaseUnitId == id) ||
+                           await _db.WarehouseProductUnits.AnyAsync(pu => pu.UnitId == id);
+        if (hasProducts)
+            return BadRequest(new { message = "لا يمكن حذف الوحدة لأنها مرتبطة بمنتجات مخزنية بالفعل" });
+
+        _db.WarehouseUnits.Remove(u);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "تم حذف الوحدة بنجاح" });
     }
 
     // Product Units (conversions)
@@ -442,7 +477,10 @@ public class WarehouseProductsController : ControllerBase
                 p.Barcode,
                 p.NameAr,
                 p.NameEn,
-                BaseUnitName = p.BaseUnit != null ? p.BaseUnit.NameAr : null
+                BaseUnitName = p.BaseUnit != null ? p.BaseUnit.NameAr : null,
+                UnitName = p.BaseUnit != null ? p.BaseUnit.NameAr : null,
+                p.WeightedAverageCost,
+                p.LastPurchaseCost
             }).ToListAsync();
         return Ok(prods);
     }
@@ -493,10 +531,147 @@ public class WarehouseProductsController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("transfer")]
-    public async Task<IActionResult> ExecuteTransfer([FromBody] System.Text.Json.JsonElement payload)
+    public async Task<IActionResult> ExecuteTransfer([FromBody] StockTransferRequestDto dto)
     {
-        return Ok(new { success = true, transferNumber = $"TR-{DateTime.Now.Year}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}" });
+        if (dto == null || dto.FromWarehouseId <= 0 || dto.ToWarehouseId <= 0)
+            return BadRequest(new { message = "يرجى تحديد المخزن المصدر والمخزن المستهدف" });
+
+        if (dto.FromWarehouseId == dto.ToWarehouseId)
+            return BadRequest(new { message = "يجب أن يختلف المخزن المصدر عن المخزن المستهدف" });
+
+        if (dto.Lines == null || !dto.Lines.Any(l => l.ProductId > 0 && l.Qty > 0))
+            return BadRequest(new { message = "يرجى إضافة صنف واحد على الأقل بكمية صحيحة" });
+
+        var fromWarehouse = await _db.Warehouses.FindAsync(dto.FromWarehouseId);
+        var toWarehouse = await _db.Warehouses.FindAsync(dto.ToWarehouseId);
+        if (fromWarehouse == null || toWarehouse == null)
+            return BadRequest(new { message = "أحد المستودعات المحددة غير موجود" });
+
+        var year = DateTime.Now.Year;
+        var transferNumber = $"TR-{year}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+        var movementDate = DateTime.TryParse(dto.TransferDate, out var td) ? td : DateTime.UtcNow;
+
+        using var tx = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var line in dto.Lines.Where(l => l.ProductId > 0 && l.Qty > 0))
+            {
+                var product = await _db.WarehouseProducts
+                    .Include(p => p.ProductUnits)
+                    .FirstOrDefaultAsync(p => p.Id == line.ProductId);
+
+                if (product == null) continue;
+
+                // Unit conversion to base unit
+                decimal baseQty = line.Qty;
+                if (line.UnitId.HasValue && line.UnitId.Value != product.BaseUnitId)
+                {
+                    var pu = product.ProductUnits?.FirstOrDefault(u => u.UnitId == line.UnitId.Value);
+                    if (pu != null && pu.ConversionFactorToBase > 0)
+                        baseQty *= pu.ConversionFactorToBase;
+                }
+
+                // Check source warehouse stock
+                var fromBalance = await _db.StockBalances
+                    .FirstOrDefaultAsync(b => b.WarehouseId == dto.FromWarehouseId && b.ProductId == line.ProductId);
+
+                decimal available = fromBalance?.QuantityOnHand ?? 0m;
+                if (available < baseQty)
+                {
+                    await tx.RollbackAsync();
+                    return BadRequest(new { message = $"رصيد الصنف '{product.NameAr}' في مستودع '{fromWarehouse.NameAr}' غير كافٍ. المتاح: {available:N2}, المطلوب: {baseQty:N2}" });
+                }
+
+                // 1. Deduct from source warehouse
+                fromBalance!.QuantityOnHand -= baseQty;
+                fromBalance.LastUpdated = DateTime.UtcNow;
+
+                decimal unitCost = product.WeightedAverageCost > 0 ? product.WeightedAverageCost : product.LastPurchaseCost;
+
+                _db.StockLedger.Add(new StockLedger
+                {
+                    WarehouseId = dto.FromWarehouseId,
+                    ProductId = line.ProductId,
+                    MovementType = StockMovementType.TransferOut,
+                    QuantityIn = 0,
+                    QuantityOut = baseQty,
+                    RunningBalance = fromBalance.QuantityOnHand,
+                    UnitCost = unitCost,
+                    TotalCost = Math.Round(baseQty * unitCost, 2),
+                    ReferenceDocumentType = "StockTransfer",
+                    ReferenceDocumentNumber = transferNumber,
+                    MovementDate = movementDate,
+                    Notes = $"تحويل إلى {toWarehouse.NameAr} | {line.Notes ?? dto.Notes}"
+                });
+
+                // 2. Add to destination warehouse
+                var toBalance = await _db.StockBalances
+                    .FirstOrDefaultAsync(b => b.WarehouseId == dto.ToWarehouseId && b.ProductId == line.ProductId);
+
+                if (toBalance == null)
+                {
+                    toBalance = new StockBalance
+                    {
+                        WarehouseId = dto.ToWarehouseId,
+                        ProductId = line.ProductId,
+                        QuantityOnHand = baseQty,
+                        LastUpdated = DateTime.UtcNow
+                    };
+                    _db.StockBalances.Add(toBalance);
+                }
+                else
+                {
+                    toBalance.QuantityOnHand += baseQty;
+                    toBalance.LastUpdated = DateTime.UtcNow;
+                }
+
+                _db.StockLedger.Add(new StockLedger
+                {
+                    WarehouseId = dto.ToWarehouseId,
+                    ProductId = line.ProductId,
+                    MovementType = StockMovementType.TransferIn,
+                    QuantityIn = baseQty,
+                    QuantityOut = 0,
+                    RunningBalance = toBalance.QuantityOnHand,
+                    UnitCost = unitCost,
+                    TotalCost = Math.Round(baseQty * unitCost, 2),
+                    ReferenceDocumentType = "StockTransfer",
+                    ReferenceDocumentNumber = transferNumber,
+                    MovementDate = movementDate,
+                    Notes = $"تحويل وارد من {fromWarehouse.NameAr} | {line.Notes ?? dto.Notes}"
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            return Ok(new { success = true, transferNumber, message = "تم تنفيذ التحويل بين المستودعات وتحديث الأرصدة بنجاح" });
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            return StatusCode(500, new { message = $"فشل تنفيذ التحويل: {ex.Message}" });
+        }
     }
+public class StockTransferRequestDto
+{
+    public int FromWarehouseId { get; set; }
+    public int ToWarehouseId { get; set; }
+    public string? TransferDate { get; set; }
+    public string? Notes { get; set; }
+    public List<StockTransferLineRequestDto> Lines { get; set; } = new();
+}
+
+public class StockTransferLineRequestDto
+{
+    public int ProductId { get; set; }
+    public int? UnitId { get; set; }
+    public decimal Qty { get; set; }
+    public int? FromLocationId { get; set; }
+    public int? ToLocationId { get; set; }
+    public string? Notes { get; set; }
+}
+
 
     [AllowAnonymous]
     [HttpGet("adjustments")]

@@ -1,0 +1,319 @@
+@using MudBlazor
+@using Variant = MudBlazor.Variant
+@using DialogOptions = MudBlazor.DialogOptions
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog dir="rtl" Style="max-width: 850px; width: 95vw; border-radius: 16px;">
+    <TitleContent>
+        <div class="d-flex align-center gap-3 pa-2 border-b pb-3" style="border-color: #f1f5f9;">
+            <div class="pa-2 rounded-lg" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                <MudIcon Icon="@Icons.Material.Rounded.Category" Size="Size.Medium" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight: 800; color: #1e293b;">
+                    إدارة فئات وتصنيفات الأصناف المخزنية
+                </MudText>
+                <MudText Typo="Typo.caption" Style="color: #64748b;">
+                    تعريف وتعديل فئات المواد الخام والمنتجات (الزيوت، اللحوم، البقوليات، التعبئة والتغليف...)
+                </MudText>
+            </div>
+            <MudSpacer />
+            @if (!_isAddingOrEditing)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="StartAdd"
+                           Style="border-radius: 8px; font-weight: 700;">
+                    إضافة فئة جديدة
+                </MudButton>
+            }
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="py-2" dir="rtl">
+            @if (_isAddingOrEditing)
+            {
+                <MudPaper Class="pa-4 mb-4 rounded-xl" Elevation="0" Style="background: #fffbeb; border: 1.5px solid #fde68a;">
+                    <div class="d-flex align-center gap-2 mb-3">
+                        <MudIcon Icon="@(_editingId.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.AddCircle)"
+                                 Color="Color.Warning" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 800; color: #92400e;">
+                            @(_editingId.HasValue ? "تعديل بيانات الفئة" : "إضافة فئة تصنيف جديدة")
+                        </MudText>
+                    </div>
+
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">كود الفئة *</MudText>
+                            <MudTextField @bind-Value="_formModel.Code" Placeholder="مثال: CAT-01"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالعربية *</MudText>
+                            <MudTextField @bind-Value="_formModel.NameAr" Placeholder="مثال: لحوم ودواجن"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الاسم بالإنجليزية</MudText>
+                            <MudTextField @bind-Value="_formModel.NameEn" Placeholder="Meat & Poultry"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="8">
+                            <MudText Typo="Typo.caption" Class="fw-bold mb-1 d-block text-muted">الوصف / ملاحظات</MudText>
+                            <MudTextField @bind-Value="_formModel.Description" Placeholder="وصف مختصر لمحتويات هذه الفئة..."
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex align-center pt-4">
+                            <MudCheckBox @bind-Value="_formModel.IsActive" Label="الفئة نشطة" Color="Color.Warning" Dense="true" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <div class="d-flex justify-end gap-2 mt-3">
+                        <MudButton OnClick="CancelForm" Variant="Variant.Text" Size="Size.Small">إلغاء</MudButton>
+                        <MudButton OnClick="SaveCategory" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small"
+                                   Disabled="_isSaving" StartIcon="@Icons.Material.Filled.Save"
+                                   Style="border-radius: 8px; font-weight: 700;">
+                            @if (_isSaving) { <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" /> }
+                            @(_editingId.HasValue ? "حفظ التعديلات" : "إضافة الفئة")
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            }
+
+            <!-- Search Bar -->
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudTextField @bind-Value="_searchText" Placeholder="بحث في الفئات بالاسم أو الكود..."
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              AdornmentColor="Color.Warning" Immediate="true" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Clearable="true" Style="background: white;" />
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="LoadCategories" Title="تحديث القائمة" />
+            </div>
+
+            <!-- Categories Table -->
+            <MudTable Items="FilteredCategories" Dense="true" Hover="true" Striped="true"
+                      Loading="_isLoading" LoadingProgressColor="Color.Warning" Elevation="0"
+                      Style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                <HeaderContent>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الكود</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">اسم الفئة</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الاسم بالإنجليزية</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc;">الوصف</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc; text-align: center;">الحالة</MudTh>
+                    <MudTh Style="font-weight: 800; background: #f8fafc; text-align: center;">الإجراءات</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Style="font-weight: 700;">
+                            @context.Code
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <span style="font-weight: 700; color: #1e293b;">@context.NameAr</span>
+                    </MudTd>
+                    <MudTd>
+                        <span style="color: #64748b;">@(context.NameEn ?? "-")</span>
+                    </MudTd>
+                    <MudTd>
+                        <span style="color: #64748b; font-size: 0.85rem;">@(context.Description ?? "-")</span>
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Error)"
+                                 Variant="Variant.Filled">
+                            @(context.IsActive ? "نشط" : "معطل")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="@(() => StartEdit(context))" Title="تعديل الفئة" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeleteCategory(context))" Title="حذف الفئة" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-4 text-center text-muted">
+                        لا توجد فئات مسجلة حالياً
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <div class="d-flex justify-end w-100 px-4 pb-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Default" OnClick="CloseDialog"
+                       Style="border-radius: 8px; font-weight: 700; min-width: 100px;">
+                إغلاق
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    public class CategoryItemModel
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    private List<CategoryItemModel> _categories = new();
+    private CategoryItemModel _formModel = new();
+    private bool _isLoading = false;
+    private bool _isSaving = false;
+    private bool _isAddingOrEditing = false;
+    private int? _editingId = null;
+    private string _searchText = "";
+    private bool _hasChanges = false;
+
+    private IEnumerable<CategoryItemModel> FilteredCategories =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? _categories
+            : _categories.Where(c =>
+                (c.NameAr?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.NameEn?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.Code?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<CategoryItemModel>>("api/warehouseproducts/categories");
+            _categories = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء تحميل الفئات: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void StartAdd()
+    {
+        _editingId = null;
+        var nextNum = _categories.Count + 1;
+        _formModel = new CategoryItemModel
+        {
+            Code = $"CAT-{nextNum:D2}",
+            IsActive = true
+        };
+        _isAddingOrEditing = true;
+    }
+
+    private void StartEdit(CategoryItemModel item)
+    {
+        _editingId = item.Id;
+        _formModel = new CategoryItemModel
+        {
+            Id = item.Id,
+            Code = item.Code,
+            NameAr = item.NameAr,
+            NameEn = item.NameEn,
+            Description = item.Description,
+            IsActive = item.IsActive
+        };
+        _isAddingOrEditing = true;
+    }
+
+    private void CancelForm()
+    {
+        _isAddingOrEditing = false;
+        _editingId = null;
+        _formModel = new();
+    }
+
+    private async Task SaveCategory()
+    {
+        if (string.IsNullOrWhiteSpace(_formModel.Code) || string.IsNullOrWhiteSpace(_formModel.NameAr))
+        {
+            Snackbar.Add("يرجى إدخال كود الفئة واسم الفئة بالعربية", Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            HttpResponseMessage res;
+            if (_editingId.HasValue && _editingId.Value > 0)
+            {
+                res = await Http.PutAsJsonAsync($"api/warehouseproducts/categories/{_editingId.Value}", _formModel);
+            }
+            else
+            {
+                res = await Http.PostAsJsonAsync("api/warehouseproducts/categories", _formModel);
+            }
+
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add(_editingId.HasValue ? "تم تعديل الفئة بنجاح" : "تمت إضافة الفئة بنجاح", Severity.Success);
+                _hasChanges = true;
+                CancelForm();
+                await LoadCategories();
+            }
+            else
+            {
+                var errorText = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"فشل الحفظ: {errorText}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء الحفظ: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteCategory(CategoryItemModel item)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد حذف الفئة",
+            $"هل أنت متأكد من حذف الفئة '{item.NameAr}'؟",
+            yesText: "نعم، حذف", cancelText: "إلغاء");
+
+        if (confirm != true) return;
+
+        try
+        {
+            var res = await Http.DeleteAsync($"api/warehouseproducts/categories/{item.Id}");
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("تم حذف الفئة بنجاح", Severity.Success);
+                _hasChanges = true;
+                await LoadCategories();
+            }
+            else
+            {
+                var msg = await res.Content.ReadAsStringAsync();
+                Snackbar.Add(msg.Contains("message") ? msg : "لا يمكن حذف الفئة لأنها مرتبطة بأصناف", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء الحذف: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void CloseDialog()
+    {
+        MudDialog.Close(DialogResult.Ok(_hasChanges));
+    }
+}

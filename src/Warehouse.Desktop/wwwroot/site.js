@@ -146,3 +146,62 @@ window.revokeBlobUrl = (url) => {
         URL.revokeObjectURL(url);
     }
 };
+// Isolated pure printing for A4 report sheets without extra pages or UI clutter
+window.printReportElement = function (selector) {
+    try {
+        var target = document.querySelector(selector || '.wh-printable-sheet');
+        if (!target) {
+            window.print();
+            return;
+        }
+
+        var oldIframe = document.getElementById('wh-print-isolated-frame');
+        if (oldIframe) {
+            oldIframe.parentNode.removeChild(oldIframe);
+        }
+
+        var iframe = document.createElement('iframe');
+        iframe.id = 'wh-print-isolated-frame';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.opacity = '0';
+        document.body.appendChild(iframe);
+
+        var doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write('<!DOCTYPE html>' +
+            '<html dir="rtl" lang="ar">' +
+            '<head>' +
+            '<meta charset="utf-8" />' +
+            '<title>طباعة</title>' +
+            '<link href="fonts.css" rel="stylesheet" />' +
+            '<style>' +
+            '* { box-sizing: border-box; }' +
+            'html, body { margin: 0; padding: 0; background: #fff; font-family: "Tajawal", "Segoe UI", Tahoma, sans-serif; direction: rtl; color: #0f172a; width: 100%; }' +
+            '@page { size: A4 portrait; margin: 10mm 8mm; }' +
+            '.wh-printable-sheet { width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; }' +
+            'table { width: 100%; border-collapse: collapse; page-break-inside: auto; }' +
+            'tr { page-break-inside: avoid; page-break-after: auto; }' +
+            'thead { display: table-header-group; }' +
+            'tfoot { display: table-footer-group; }' +
+            '</style>' +
+            '</head>' +
+            '<body>' +
+            target.outerHTML +
+            '</body>' +
+            '</html>');
+        doc.close();
+
+        setTimeout(function () {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        }, 300);
+    } catch (e) {
+        console.error('Print error:', e);
+        window.print();
+    }
+};

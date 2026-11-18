@@ -99,6 +99,7 @@
 
     private List<ReportCategory> _reportCategories = new();
     private bool _isCentralCallCenterEnabled = false;
+    private bool _isPnlEnabled = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -112,6 +113,17 @@
         catch
         {
             _isCentralCallCenterEnabled = false;
+        }
+
+        try
+        {
+            _isPnlEnabled = await FeatureSettingsService.IsFeatureEnabledAsync("EnableBranchCostAndPnlTracking", Environment.MachineName)
+                            || await FeatureSettingsService.IsFeatureEnabledAsync("EnableBranchCostAndPnlTracking")
+                            || CommonProps.IsFeatureEnabled("EnableBranchCostAndPnlTracking");
+        }
+        catch
+        {
+            _isPnlEnabled = false;
         }
 
 
@@ -194,12 +206,6 @@
                         Description = IsArabic ? "سجل جميع طلبات الضيافة والمسئولين" : "Log of all hospitality orders and reasons",
                         Icon = Icons.Material.Rounded.WineBar
                     },
-                    new ReportInfo {
-                        Id = "PnLReport",
-                        Name = IsArabic ? "الأرباح والخسائر (P&L)" : "Profit & Loss",
-                        Description = IsArabic ? "ملخص الإيرادات والمصروفات وصافي الربح" : "Summary of revenues, expenses, and net profit",
-                        Icon = Icons.Material.Rounded.Analytics
-                    }
                 }
             },
             new ReportCategory
@@ -263,6 +269,21 @@
                     Name = IsArabic ? "مقارنة مبيعات الفروع" : "Branch Sales Comparison",
                     Description = IsArabic ? "مقارنة أداء الفروع وإجمالي الطلبات وأعلى فرع مع رسم بياني" : "Compare branch performance, order counts, and top branch with chart",
                     Icon = Icons.Material.Rounded.Compare
+                });
+            }
+        }
+
+        if (_isPnlEnabled)
+        {
+            var salesCat = _reportCategories.FirstOrDefault(c => c.Reports.Any(r => r.Id == "SalesSummary"));
+            if (salesCat != null && !salesCat.Reports.Any(r => r.Id == "PnLReport"))
+            {
+                salesCat.Reports.Add(new ReportInfo
+                {
+                    Id = "PnLReport",
+                    Name = IsArabic ? "الأرباح والخسائر (P&L)" : "Profit & Loss",
+                    Description = IsArabic ? "ملخص الإيرادات والمصروفات وصافي الربح" : "Summary of revenues, expenses, and net profit",
+                    Icon = Icons.Material.Rounded.Analytics
                 });
             }
         }

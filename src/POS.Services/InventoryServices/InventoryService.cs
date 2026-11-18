@@ -160,6 +160,7 @@ public class InventoryService : IInventoryService
                 InventoryItemId = inventory.Id,
                 QuantityChange = quantityChange,
                 ResultingQuantity = inventory.CurrentQuantity,
+                UnitCost = inventory.UnitCost,
                 Type = type,
                 ReferenceId = referenceId,
                 Notes = notes,

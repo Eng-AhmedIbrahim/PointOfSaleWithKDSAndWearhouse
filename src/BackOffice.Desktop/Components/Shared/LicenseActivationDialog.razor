@@ -150,19 +150,22 @@
     }
 
     private string GetLicenseLabel(License l) {
-        if (l.LicenseType == "Full" || l.LicenseType == "3") return "POS & BackOffice";
+        if (l.LicenseType == "Full" || l.LicenseType == "3") return "Full (POS+Back+Warehouse)";
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return "Warehouse";
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return "BackOffice";
         if (l.LicenseType == "POSOnly" || l.LicenseType == "1") return "POS";
         return l.LicenseType ?? "غير معروف";
     }
     private MudBlazor.Color GetLicenseColor(License l) {
         if (l.LicenseType == "Full"          || l.LicenseType == "3") return MudBlazor.Color.Success;
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return MudBlazor.Color.Primary;
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return MudBlazor.Color.Info;
         if (l.LicenseType == "POSOnly"        || l.LicenseType == "1") return MudBlazor.Color.Warning;
         return MudBlazor.Color.Default;
     }
     private string GetLicenseIcon(License l) {
         if (l.LicenseType == "Full"          || l.LicenseType == "3") return Icons.Material.Filled.Stars;
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return Icons.Material.Filled.Warehouse;
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return Icons.Material.Filled.AdminPanelSettings;
         return Icons.Material.Filled.PointOfSale;
     }
@@ -197,6 +200,8 @@
             BlazorBase.ERPFrontServices.LicensingServices.LicenseType licType;
             if (license.LicenseType == "Full" || license.LicenseType == "3")
                 licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.Full;
+            else if (license.LicenseType == "WarehouseOnly" || license.LicenseType == "4")
+                licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.WarehouseOnly;
             else if (license.LicenseType == "BackOfficeOnly" || license.LicenseType == "2")
                 licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.BackOfficeOnly;
             else

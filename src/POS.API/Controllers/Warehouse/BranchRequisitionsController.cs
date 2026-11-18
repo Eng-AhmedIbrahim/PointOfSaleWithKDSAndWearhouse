@@ -236,7 +236,7 @@ public class BranchRequisitionsController : ControllerBase
             }
             else
             {
-                return BadRequest(new { message = "Ù„Ø§ ØªÙˆØ¬Ø¯ ÙØ±ÙˆØ¹ Ù…Ø³Ø¬Ù„Ø© Ø¨Ø§Ù„Ù†Ø¸Ø§Ù… Ù„Ø±Ø¨Ø· Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ±ÙŠØ¯ Ø¨Ù‡Ø§" });
+                return BadRequest(new { message = "لا توجد فروع مسجلة بالنظام لربط طلب التوريد بها" });
             }
         }
 
@@ -250,7 +250,7 @@ public class BranchRequisitionsController : ControllerBase
             }
             else
             {
-                return BadRequest(new { message = "Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯" });
+                return BadRequest(new { message = "المستودع المستهدف غير موجود" });
             }
         }
 
@@ -277,7 +277,7 @@ public class BranchRequisitionsController : ControllerBase
             {
                 RequisitionId = model.Id,
                 RequisitionNumber = model.RequisitionNumber,
-                BranchName = branch?.Name ?? "Ø§Ù„ÙØ±Ø¹",
+                BranchName = branch?.Name ?? "الفرع",
                 Timestamp = DateTime.UtcNow
             };
             await _hub.Clients.All.SendAsync("NewRequisitionReceived", payload);
@@ -301,7 +301,7 @@ public class BranchRequisitionsController : ControllerBase
             && existing.Status != RequisitionStatus.PendingSync
             && existing.Status != RequisitionStatus.ModificationProposed)
         {
-            return BadRequest(new { message = "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© Ø¨Ø¹Ø¯ Ø§Ø¹ØªÙ…Ø§Ø¯Ù‡Ø§ Ø£Ùˆ Ø´Ø­Ù†Ù‡Ø§" });
+            return BadRequest(new { message = "لا يمكن تعديل الطلبية بعد اعتمادها أو شحنها" });
         }
 
         existing.RequiredDate = model.RequiredDate;
@@ -332,11 +332,11 @@ public class BranchRequisitionsController : ControllerBase
             RequisitionId = existing.Id,
             RequisitionNumber = existing.RequisitionNumber,
             Status = "Modified",
-            Message = $"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© {existing.RequisitionNumber} Ù…Ù† ÙØ±Ø¹ {branch?.Name}",
+            Message = $"تم تعديل الطلبية {existing.RequisitionNumber} من فرع {branch?.Name}",
             Timestamp = DateTime.UtcNow
         });
 
-        return Ok(new { message = "ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­" });
+        return Ok(new { message = "تم تعديل الطلبية بنجاح" });
     }
 
     [HttpPost("{id}/submit")]

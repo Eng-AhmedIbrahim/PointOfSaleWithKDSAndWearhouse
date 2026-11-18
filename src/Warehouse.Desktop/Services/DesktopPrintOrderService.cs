@@ -1,4 +1,4 @@
-﻿namespace Warehouse.Desktop.Services;
+namespace Warehouse.Desktop.Services;
 
 public class DesktopPrintOrderService : IPrintOrderService
 {
@@ -227,7 +227,7 @@ public class DesktopPrintOrderService : IPrintOrderService
 
         _commonProperties.OrderDto!.SkipPrintingOnServer = true;
 
-        // Guard: Ù„Ø§ ØªØ±Ø³Ù„ Ø·Ù„Ø¨ ÙØ§Ø¶ÙŠ Ù„Ù„Ù€ API
+            // Guard: لا ترسل طلب فاضي للـ API
         if (_commonProperties.OrderDto.OrderDetails == null || !_commonProperties.OrderDto.OrderDetails.Any())
         {
             Log.Warning("PrintTakeAwayOrder: OrderDetails is empty! TableItems count={Count}. Cannot create order.",

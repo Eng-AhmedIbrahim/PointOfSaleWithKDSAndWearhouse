@@ -60,4 +60,10 @@ public class License
 
     [MaxLength(250)]
     public string? TechnicalName { get; set; }
+
+    /// <summary>
+    /// HMAC-SHA256 Digital Signature verifying row integrity and binding it to this specific customer/branch.
+    /// </summary>
+    [MaxLength(128)]
+    public string? Signature { get; set; }
 }

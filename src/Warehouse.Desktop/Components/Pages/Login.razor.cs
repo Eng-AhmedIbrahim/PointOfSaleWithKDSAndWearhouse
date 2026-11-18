@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Warehouse.Desktop.Components.Pages;
 
@@ -102,7 +102,7 @@ public partial class Login
             }
             else
             {
-                Snackbar.Add("ÙØ´Ù„ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„: Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø£Ùˆ Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø³Ø±ÙŠ ØºÙŠØ± ØµØ­ÙŠØ­", Severity.Error);
+            Snackbar.Add("فشل تسجيل الدخول: اسم المستخدم أو الرقم السري غير صحيح", Severity.Error);
                 _pin = string.Empty;
                 StateHasChanged(); 
                 await pinInput.FocusAsync();
@@ -110,7 +110,7 @@ public partial class Login
         }
         catch (Exception ex)
         {
-            Snackbar.Add("ÙØ´Ù„ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„: Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø¯Ø®ÙˆÙ„", Severity.Error);
+            Snackbar.Add("فشل تسجيل الدخول: حدث خطأ أثناء عملية الدخول", Severity.Error);
             _pin = string.Empty;
             StateHasChanged();
             await pinInput.FocusAsync();

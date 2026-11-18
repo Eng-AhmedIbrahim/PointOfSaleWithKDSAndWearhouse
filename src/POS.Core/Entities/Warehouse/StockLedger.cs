@@ -9,7 +9,9 @@ public enum StockMovementType
     TransferOut = 5,         // خروج تحويل مخزني
     TransferIn = 6,          // دخول تحويل مخزني
     InventoryAdjustment = 7, // تسوية جرد (عجز أو زيادة)
-    WasteDamage = 8          // تالف أو هالك
+    WasteDamage = 8,         // تالف أو هالك
+    ProductionConsume = 9,   // صرف خامات للتصنيع والتشغيل المركزي
+    ProductionOutput = 10    // استلام منتج مصنّع / نصف مصنع في المخزن
 }
 
 public class StockLedger : BaseEntity

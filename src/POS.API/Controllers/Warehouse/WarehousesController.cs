@@ -45,7 +45,7 @@ public class WarehousesController : ControllerBase
         return Ok(w);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] POS.Core.Entities.Warehouse.Warehouse model)
     {
@@ -57,7 +57,7 @@ public class WarehousesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, model);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] POS.Core.Entities.Warehouse.Warehouse model)
     {
@@ -75,7 +75,7 @@ public class WarehousesController : ControllerBase
         return Ok(existing);
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

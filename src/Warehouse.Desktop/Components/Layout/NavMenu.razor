@@ -3,13 +3,14 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
 @implements IDisposable
 
 <div class="top-nav-professional" dir="@(IsArabic ? "rtl" : "ltr")">
     <!-- Brand & Warehouse Badge -->
     <div class="nav-brand">
-        <div class="logo-container" @onclick='() => NavigateTo("/")' style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
-            <img src="images/Logo.png" alt="Warehouse Logo" style="height: 44px; width: auto; object-fit: contain;" />
+        <div class="logo-container" @onclick='() => NavigateTo("/")' style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <img src="images/Logo.png" alt="Warehouse Logo" style="height: 38px; width: auto; object-fit: contain;" />
             <div class="brand-text-block">
                 <span class="brand-title-main">@(IsArabic ? "إدارة المخزن الرئيسي" : "Main Warehouse System")</span>
                 <span class="brand-badge-role">@(IsArabic ? "اللوجستيات والإمداد" : "Central Supply Hub")</span>
@@ -19,34 +20,49 @@
 
     <!-- Clean Warehouse Navigation Menu -->
     <div class="nav-tabs-container">
+        @if (IsLicensedForWarehouse)
+        {
         <!-- 1. Dashboard -->
         <div class="tab-item @(IsActive("/") ? "active" : "")" @onclick='() => NavigateTo("/")'>
             <MudIcon Icon="@Icons.Material.Rounded.Dashboard" Size="Size.Small" Class="tab-icon" />
             <span class="tab-text">@(IsArabic ? "لوحة التحكم" : "Dashboard")</span>
         </div>
 
-        <!-- 2. Warehouses & Branches -->
-        <div class="tab-item @(IsActive("/warehouses") ? "active" : "")" @onclick='() => NavigateTo("/warehouses")'>
-            <MudIcon Icon="@Icons.Material.Rounded.HomeWork" Size="Size.Small" Class="tab-icon" />
-            <span class="tab-text">@(IsArabic ? "المستودعات والفروع" : "Warehouses")</span>
-        </div>
-
-        <!-- 3. Products & Inventory Units Menu -->
+        <!-- 2. Warehouses & Inventory Menu -->
         <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
             <ActivatorContent>
-                <div class="tab-item @(IsActivePrefix("/products") || IsActivePrefix("/inventory") ? "active" : "")">
+                <div class="tab-item @(IsActivePrefix("/warehouses") || IsActivePrefix("/products") || IsActivePrefix("/inventory") || IsActivePrefix("/transfers") ? "active" : "")">
                     <MudIcon Icon="@Icons.Material.Rounded.Inventory2" Size="Size.Small" Class="tab-icon" />
-                    <span class="tab-text">@(IsArabic ? "الأصناف والمخزون" : "Inventory")</span>
+                    <span class="tab-text">@(IsArabic ? "المستودعات والمخزون" : "Inventory & Stock")</span>
                     <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
                 </div>
             </ActivatorContent>
             <ChildContent>
+                <MudMenuItem Href="/warehouses">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.HomeWork" Size="Size.Small" />
+                        @(IsArabic ? "المستودعات والفروع" : "Warehouses & Branches")
+                    </div>
+                </MudMenuItem>
                 <MudMenuItem Href="/products">
                     <div class="menu-item-content">
                         <MudIcon Icon="@Icons.Material.Rounded.Category" Size="Size.Small" />
                         @(IsArabic ? "بطاقات الأصناف والوحدات" : "Products & Multi-Units")
                     </div>
                 </MudMenuItem>
+                <MudMenuItem OnClick="OpenCategoriesDialog">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Filled.FolderSpecial" Size="Size.Small" />
+                        @(IsArabic ? "فئات وتصنيفات الأصناف" : "Product Categories")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem OnClick="OpenUnitsDialog">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Filled.Straighten" Size="Size.Small" />
+                        @(IsArabic ? "وحدات القياس المخزنية" : "Warehouse Units")
+                    </div>
+                </MudMenuItem>
+                <MudDivider Class="my-1" />
                 <MudMenuItem Href="/inventory/balances">
                     <div class="menu-item-content">
                         <MudIcon Icon="@Icons.Material.Rounded.Balance" Size="Size.Small" />
@@ -59,29 +75,34 @@
                         @(IsArabic ? "سجل حركة المخزون (Stock Ledger)" : "Stock Ledger")
                     </div>
                 </MudMenuItem>
-                <MudDivider Class="my-1" />
                 <MudMenuItem Href="/inventory/adjustments">
                     <div class="menu-item-content">
                         <MudIcon Icon="@Icons.Material.Rounded.Rule" Size="Size.Small" />
                         @(IsArabic ? "الجرد الدوري والتسويات" : "Stocktake & Adjustments")
                     </div>
                 </MudMenuItem>
+                <MudMenuItem Href="/transfers">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" />
+                        @(IsArabic ? "التحويلات والشحنات بين الفروع" : "Transfers")
+                    </div>
+                </MudMenuItem>
             </ChildContent>
         </MudMenu>
 
-        <!-- 4. Suppliers Menu -->
+        <!-- 3. Purchasing & Suppliers Menu -->
         <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
             <ActivatorContent>
-                <div class="tab-item @(IsActivePrefix("/suppliers") ? "active" : "")">
-                    <MudIcon Icon="@Icons.Material.Rounded.PeopleAlt" Size="Size.Small" Class="tab-icon" />
-                    <span class="tab-text">@(IsArabic ? "الموردين" : "Suppliers")</span>
+                <div class="tab-item @(IsActivePrefix("/suppliers") || IsActivePrefix("/purchasing") ? "active" : "")">
+                    <MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Size="Size.Small" Class="tab-icon" />
+                    <span class="tab-text">@(IsArabic ? "المشتريات" : "Purchasing")</span>
                     <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
                 </div>
             </ActivatorContent>
             <ChildContent>
                 <MudMenuItem Href="/suppliers">
                     <div class="menu-item-content">
-                        <MudIcon Icon="@Icons.Material.Rounded.ContactPage" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Rounded.PeopleAlt" Size="Size.Small" />
                         @(IsArabic ? "دليل الموردين وشروط الدفع" : "Suppliers Directory")
                     </div>
                 </MudMenuItem>
@@ -97,19 +118,7 @@
                         @(IsArabic ? "كشف حسابات ومدفوعات الموردين" : "Supplier Ledger & Aging")
                     </div>
                 </MudMenuItem>
-            </ChildContent>
-        </MudMenu>
-
-        <!-- 5. Purchasing & GRN -->
-        <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
-            <ActivatorContent>
-                <div class="tab-item @(IsActivePrefix("/purchasing") ? "active" : "")">
-                    <MudIcon Icon="@Icons.Material.Rounded.ShoppingCart" Size="Size.Small" Class="tab-icon" />
-                    <span class="tab-text">@(IsArabic ? "المشتريات والاستلام" : "Purchasing & GRN")</span>
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
-                </div>
-            </ActivatorContent>
-            <ChildContent>
+                <MudDivider Class="my-1" />
                 <MudMenuItem Href="/purchasing/orders">
                     <div class="menu-item-content">
                         <MudIcon Icon="@Icons.Material.Rounded.PostAdd" Size="Size.Small" />
@@ -125,19 +134,39 @@
             </ChildContent>
         </MudMenu>
 
-        <!-- 6. Branch Requisitions -->
-        <div class="tab-item @(IsActivePrefix("/requisitions") ? "active" : "")" @onclick='() => NavigateTo("/requisitions")'>
-            <MudIcon Icon="@Icons.Material.Rounded.MoveToInbox" Size="Size.Small" Class="tab-icon" />
-            <span class="tab-text">@(IsArabic ? "طلبات الفروع" : "Branch Requisitions")</span>
-        </div>
+        <!-- 4. Production & Requisitions Menu -->
+        <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
+            <ActivatorContent>
+                <div class="tab-item @(IsActivePrefix("/production") || IsActivePrefix("/requisitions") ? "active" : "")">
+                    <MudIcon Icon="@Icons.Material.Rounded.PrecisionManufacturing" Size="Size.Small" Class="tab-icon" />
+                    <span class="tab-text">@(IsArabic ? "الطلبات والتشغيل" : "Operations")</span>
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
+                </div>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Href="/requisitions">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.MoveToInbox" Size="Size.Small" />
+                        @(IsArabic ? "طلبيات واحتياجات الفروع" : "Branch Requisitions")
+                    </div>
+                </MudMenuItem>
+                <MudDivider Class="my-1" />
+                <MudMenuItem Href="/production/orders">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.FactCheck" Size="Size.Small" />
+                        @(IsArabic ? "أوامر الإنتاج والتشغيل" : "Production Orders")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem Href="/production/recipes">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.MenuBook" Size="Size.Small" />
+                        @(IsArabic ? "وصفات التصنيع (BOM)" : "Bill of Materials (BOM)")
+                    </div>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
 
-        <!-- 7. Stock Transfers -->
-        <div class="tab-item @(IsActivePrefix("/transfers") ? "active" : "")" @onclick='() => NavigateTo("/transfers")'>
-            <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" Class="tab-icon" />
-            <span class="tab-text">@(IsArabic ? "التحويلات والشحنات" : "Transfers")</span>
-        </div>
-
-        <!-- 8. Reports -->
+        <!-- 5. Reports Menu -->
         <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
             <ActivatorContent>
                 <div class="tab-item @(IsActivePrefix("/reports") ? "active" : "")">
@@ -151,6 +180,12 @@
                     <div class="menu-item-content">
                         <MudIcon Icon="@Icons.Material.Rounded.MonetizationOn" Size="Size.Small" />
                         @(IsArabic ? "تقرير تقييم المخزون (بالتكلفة المرجحة)" : "Stock Valuation Report")
+                    </div>
+                </MudMenuItem>
+                <MudMenuItem Href="/reports/branch-requisitions">
+                    <div class="menu-item-content">
+                        <MudIcon Icon="@Icons.Material.Rounded.CompareArrows" Size="Size.Small" />
+                        @(IsArabic ? "تقرير مقارنة وتحليل طلبيات الفروع" : "Branch Requisitions & Comparisons")
                     </div>
                 </MudMenuItem>
                 <MudMenuItem Href="/reports/item-movements">
@@ -186,12 +221,12 @@
             </ChildContent>
         </MudMenu>
 
-        <!-- 9. Staff & Permissions -->
+        <!-- 6. Staff & Permissions Menu -->
         <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" ListClass="pa-2" PopoverClass="settings-menu-popover">
             <ActivatorContent>
                 <div class="tab-item @(IsActivePrefix("/basicdata/users") || IsActivePrefix("/basicdata/roles") || IsActivePrefix("/basicdata/permissions") ? "active" : "")">
                     <MudIcon Icon="@Icons.Material.Rounded.Badge" Size="Size.Small" Class="tab-icon" />
-                    <span class="tab-text">@(IsArabic ? "الموظفين والصلاحيات" : "Staff & Roles")</span>
+                    <span class="tab-text">@(IsArabic ? "الصلاحيات" : "Staff & Roles")</span>
                     <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="dropdown-arrow" />
                 </div>
             </ActivatorContent>
@@ -216,10 +251,17 @@
                 </MudMenuItem>
             </ChildContent>
         </MudMenu>
+        }
     </div>
 
     <!-- Actions: Language & User & Logout -->
-    <div class="nav-actions" style="margin-inline-start: auto; display: flex; align-items: center; gap: 12px;">
+    <div class="nav-actions">
+        <!-- Registration / License Button -->
+        <button class="nav-action-btn registration-btn" @onclick="OpenRegistrationDialog" title="@(IsArabic ? "تسجيل وتفعيل الترخيص" : "License Registration")" style="background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.35);">
+            <MudIcon Icon="@Icons.Material.Rounded.AppRegistration" Size="Size.Small" />
+            <span class="action-btn-text">@(IsArabic ? "التسجيل" : "License")</span>
+        </button>
+
         <!-- Language Switcher -->
         <button class="nav-action-btn" @onclick="ToggleLanguage" title="@(IsArabic ? "English" : "العربية")">
             <MudIcon Icon="@Icons.Material.Rounded.Translate" Size="Size.Small" />
@@ -235,6 +277,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public bool IsLicensedForWarehouse { get; set; } = true;
+
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
 
     protected override void OnInitialized()
@@ -282,6 +327,20 @@
         NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 
+    private async Task OpenCategoriesDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<Warehouse.Desktop.Components.Pages.WH_Products.ManageCategoriesDialog>(
+            IsArabic ? "إدارة فئات وتصنيفات الأصناف المخزنية" : "Warehouse Categories", options);
+    }
+
+    private async Task OpenUnitsDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<Warehouse.Desktop.Components.Pages.WH_Products.ManageUnitsDialog>(
+            IsArabic ? "إدارة وحدات القياس المخزنية" : "Warehouse Units", options);
+    }
+
     private async Task Logout()
     {
         await LocalStorage.RemoveItemAsync("authToken");
@@ -290,5 +349,18 @@
             await customProvider.NotifyUserLogout();
         }
         NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+
+    private async Task OpenRegistrationDialog()
+    {
+        var options = new MudBlazor.DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, NoHeader = false };
+        var dialog = await DialogService.ShowAsync<Warehouse.Desktop.Components.Shared.LicenseActivationDialog>(
+            IsArabic ? "تنشيط ترخيص المخزن" : "Activate Warehouse License", 
+            options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        }
     }
 }

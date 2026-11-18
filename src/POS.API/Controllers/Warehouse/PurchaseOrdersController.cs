@@ -385,9 +385,149 @@ public class PurchaseOrdersController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(new { GrnId = model.Id, GrnNumber = model.GrnNumber });
     }
+
+    [HttpGet("returns")]
+    public async Task<IActionResult> GetSupplierReturns([FromQuery] int? supplierId, [FromQuery] int? warehouseId)
+    {
+        var query = _db.SupplierReturns
+            .Include(r => r.Supplier)
+            .Include(r => r.Warehouse)
+            .Include(r => r.Lines).ThenInclude(l => l.Product)
+            .Include(r => r.Lines).ThenInclude(l => l.Unit)
+            .AsQueryable();
+
+        if (supplierId.HasValue) query = query.Where(r => r.SupplierId == supplierId.Value);
+        if (warehouseId.HasValue) query = query.Where(r => r.WarehouseId == warehouseId.Value);
+
+        var list = await query.OrderByDescending(r => r.ReturnDate).ToListAsync();
+        return Ok(list);
+    }
+
+    [HttpPost("returns")]
+    public async Task<IActionResult> CreateSupplierReturn([FromBody] SupplierReturnInputDto dto)
+    {
+        if (dto.Lines == null || !dto.Lines.Any())
+            return BadRequest(new { message = "يجب تحديد أصناف للإرجاع" });
+
+        var warehouse = await _db.Warehouses.FindAsync(dto.WarehouseId);
+        if (warehouse == null) return BadRequest(new { message = "المستودع غير موجود" });
+
+        var supplier = await _db.WH_Suppliers.FindAsync(dto.SupplierId);
+        if (supplier == null) return BadRequest(new { message = "المورد غير موجود" });
+
+        var (uid, uname) = await GetCurrentUserInfoAsync();
+        var year = DateTime.Now.Year;
+        var count = await _db.SupplierReturns.CountAsync() + 1;
+        var returnNumber = $"SRTN-{year}-{count:D4}";
+
+        decimal totalReturnAmount = 0m;
+        var returnModel = new SupplierReturn
+        {
+            ReturnNumber = returnNumber,
+            PurchaseOrderId = dto.PurchaseOrderId,
+            GoodsReceiptNoteId = dto.GoodsReceiptNoteId,
+            WarehouseId = dto.WarehouseId,
+            SupplierId = dto.SupplierId,
+            ReturnDate = DateTime.UtcNow,
+            Reason = dto.Reason,
+            ReturnedByUserId = uid
+        };
+
+        foreach (var line in dto.Lines)
+        {
+            if (line.Quantity <= 0) continue;
+
+            var product = await _db.WarehouseProducts.Include(p => p.ProductUnits).FirstOrDefaultAsync(p => p.Id == line.ProductId);
+            if (product == null) continue;
+
+            decimal baseQty = line.Quantity;
+            var pUnit = product.ProductUnits.FirstOrDefault(u => u.UnitId == line.UnitId);
+            if (pUnit != null && pUnit.ConversionFactorToBase > 0)
+                baseQty *= pUnit.ConversionFactorToBase;
+
+            var balance = await _db.StockBalances.FirstOrDefaultAsync(b => b.WarehouseId == dto.WarehouseId && b.ProductId == line.ProductId);
+            if (balance == null || balance.QuantityOnHand < baseQty)
+            {
+                return BadRequest(new { message = $"رصيد الصنف ({product.NameAr ?? product.NameEn}) غير كافٍ في المخزن للإرجاع" });
+            }
+
+            decimal lineCost = line.UnitCost > 0 ? line.UnitCost : balance.WeightedAverageCost;
+            decimal lineTotal = baseQty * lineCost;
+            totalReturnAmount += lineTotal;
+
+            // Deduct stock from central warehouse
+            balance.QuantityOnHand -= baseQty;
+            balance.LastUpdated = DateTime.UtcNow;
+
+            // Log movement as SupplierReturn
+            _db.StockLedger.Add(new StockLedger
+            {
+                WarehouseId = dto.WarehouseId,
+                ProductId = line.ProductId,
+                MovementType = StockMovementType.SupplierReturn,
+                QuantityOut = baseQty,
+                RunningBalance = balance.QuantityOnHand,
+                UnitCost = lineCost,
+                TotalCost = lineTotal,
+                ReferenceDocumentType = "SRTN",
+                ReferenceDocumentNumber = returnNumber,
+                BatchNumber = line.BatchNumber,
+                Notes = line.Reason ?? dto.Reason,
+                MovementDate = DateTime.UtcNow,
+                CreatedByUserId = uid
+            });
+
+            returnModel.Lines.Add(new SupplierReturnLine
+            {
+                ProductId = line.ProductId,
+                UnitId = line.UnitId,
+                QuantityReturned = line.Quantity,
+                UnitCost = lineCost,
+                TotalCost = lineTotal,
+                Reason = line.Reason ?? dto.Reason,
+                BatchNumber = line.BatchNumber
+            });
+        }
+
+        returnModel.TotalAmount = totalReturnAmount;
+        _db.SupplierReturns.Add(returnModel);
+
+        // Deduct returned value from supplier current balance (reduces debt)
+        supplier.CurrentBalance = Math.Max(0, supplier.CurrentBalance - totalReturnAmount);
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "تم تسجيل مرتجع المورد بنجاح وخصم الرصيد من المخزن والمورد",
+            ReturnId = returnModel.Id,
+            ReturnNumber = returnModel.ReturnNumber,
+            TotalAmount = totalReturnAmount
+        });
+    }
 }
 
 public class CancelPoDto
 {
     public string? Reason { get; set; }
+}
+
+public class SupplierReturnInputDto
+{
+    public int? PurchaseOrderId { get; set; }
+    public int? GoodsReceiptNoteId { get; set; }
+    public int WarehouseId { get; set; }
+    public int SupplierId { get; set; }
+    public string? Reason { get; set; }
+    public List<SupplierReturnLineInputDto> Lines { get; set; } = new();
+}
+
+public class SupplierReturnLineInputDto
+{
+    public int ProductId { get; set; }
+    public int UnitId { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitCost { get; set; }
+    public string? Reason { get; set; }
+    public string? BatchNumber { get; set; }
 }

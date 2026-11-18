@@ -115,7 +115,7 @@
                     <MudTh>بواسطة</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="التاريخ">@context.Date.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                    <MudTd DataLabel="التاريخ">@context.Date.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                     <MudTd DataLabel="رقم المرجع">
                         <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Variant="MudBlazor.Variant.Outlined" Style="font-weight: 600;">
                             @context.TransactionRef

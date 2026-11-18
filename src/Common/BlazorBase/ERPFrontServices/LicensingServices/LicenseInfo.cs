@@ -6,7 +6,8 @@ namespace BlazorBase.ERPFrontServices.LicensingServices
     {
         POSOnly = 1,
         BackOfficeOnly = 2,
-        Full = 3
+        Full = 3,
+        WarehouseOnly = 4
     }
 
     public class LicenseInfo

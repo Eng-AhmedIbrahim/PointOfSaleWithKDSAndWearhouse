@@ -53,7 +53,7 @@
                 <span class="metric-label">@(IsArabic ? "قيمة المخزون الإجمالية" : "Total Stock Valuation")</span>
                 <div class="metric-icon-wrap"><MudIcon Icon="@Icons.Material.Rounded.AccountBalanceWallet" /></div>
             </div>
-            <div class="metric-value">@_stats.TotalValuation.ToString("N0") <span class="unit">@(IsArabic ? "ج.م" : "EGP")</span></div>
+            <div class="metric-value">@_stats.TotalValuation.ToString("0.##") <span class="unit">@(IsArabic ? "ج.م" : "EGP")</span></div>
             <div class="metric-footer positive">
                 <MudIcon Icon="@Icons.Material.Rounded.TrendingUp" Size="Size.Small" />
                 <span>@(IsArabic ? "محدث لحظياً عبر سجل المخزون" : "Weighted Avg Costing")</span>
@@ -127,7 +127,7 @@
                             <div class="table-row" style="cursor: pointer;" @onclick='() => NavigateTo("/requisitions")'>
                                 <span class="code">@req.RequisitionNumber</span>
                                 <span>@req.BranchName</span>
-                                <span>@req.Date.ToString("yyyy/MM/dd HH:mm")</span>
+                                <span>@req.Date.ToString("yyyy/MM/dd hh:mm tt")</span>
                                 <span class="status-pill @GetStatusClass(req.Status)">@GetStatusText(req.Status)</span>
                             </div>
                         }

@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @using MudBlazor.Utilities
 
 <MudThemeProvider Theme="@_customTheme" />
@@ -29,6 +29,18 @@
                         {
                             @Body
                         }
+                        else if (_isConnectionError)
+                        {
+                            <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
+                                <MudIcon Icon="@Icons.Material.Filled.CloudOff" Style="font-size: 6rem;" Color="Color.Warning" Class="mb-4" />
+                                <MudText Typo="Typo.h4" Color="Color.Warning" Class="mb-2">تعذر الاتصال بخادم النظام أو قاعدة البيانات</MudText>
+                                <MudText Typo="Typo.body1" Class="mb-4" Style="max-width: 500px;">@(_connectionErrorMessage ?? "يرجى التأكد من تشغيل سيرفر الـ API وقاعدة البيانات والاتصال بالشبكة.")</MudText>
+                                <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" 
+                                           OnClick="CheckLicenseAndConnectionAsync" Disabled="_isCheckingConnection">
+                                    @(_isCheckingConnection ? "جاري الفحص..." : "إعادة المحاولة")
+                                </MudButton>
+                            </div>
+                        }
                         else
                         {
                             <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
@@ -58,6 +70,9 @@
     bool _drawerOpen = true;
     bool _isMini = false;
     bool _isLicensed = true;
+    bool _isConnectionError = false;
+    string? _connectionErrorMessage = null;
+    bool _isCheckingConnection = false;
 
     private bool IsArabic => Localizer.GetCurrentLanguage() == "ar";
 
@@ -97,7 +112,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isLicensed = await LicenseService.IsBackOfficeAuthorizedAsync();
+        await CheckLicenseAndConnectionAsync();
 
         try
         {
@@ -124,6 +139,38 @@
         };
 
         _commonProperties.OnChange += _stateChangedHandler;
+    }
+
+    private async Task CheckLicenseAndConnectionAsync()
+    {
+        _isCheckingConnection = true;
+        try
+        {
+            var res = await LicenseService.VerifyDeviceLicenseAsync("BackOffice");
+            if (res.IsConnectionError)
+            {
+                _isConnectionError = true;
+                _isLicensed = false;
+                _connectionErrorMessage = res.ErrorMessage;
+            }
+            else
+            {
+                _isConnectionError = false;
+                _isLicensed = res.IsLicensed;
+                _connectionErrorMessage = null;
+            }
+        }
+        catch
+        {
+            _isConnectionError = true;
+            _isLicensed = false;
+            _connectionErrorMessage = "تعذر الاتصال بسيرفر النظام (API). يرجى التأكد من تشغيل السيرفر.";
+        }
+        finally
+        {
+            _isCheckingConnection = false;
+            StateHasChanged();
+        }
     }
 
 

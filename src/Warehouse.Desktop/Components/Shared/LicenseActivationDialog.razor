@@ -14,10 +14,10 @@
 
             @* Header *@
             <div class="d-flex flex-column align-center mb-6">
-                <div style="background: linear-gradient(135deg, #1565C0, #1976D2); border-radius: 50%; width: 70px; height: 70px; display:flex; align-items:center; justify-content:center; margin-bottom: 12px; box-shadow: 0 4px 18px rgba(25,118,210,0.3);">
-                    <MudIcon Icon="@Icons.Material.Filled.Security" Style="color:white; font-size:2.2rem;" />
+                <div style="background: linear-gradient(135deg, #ea580c, #c2410c); border-radius: 50%; width: 70px; height: 70px; display:flex; align-items:center; justify-content:center; margin-bottom: 12px; box-shadow: 0 4px 18px rgba(234,88,12,0.3);">
+                    <MudIcon Icon="@Icons.Material.Filled.Warehouse" Style="color:white; font-size:2.2rem;" />
                 </div>
-                <MudText Typo="Typo.h5" Align="Align.Center" Style="font-weight: 800; color: #1565C0; letter-spacing: -0.5px;">نظـام إدارة التراخيص المركزية</MudText>
+                <MudText Typo="Typo.h5" Align="Align.Center" Style="font-weight: 800; color: #ea580c; letter-spacing: -0.5px;">تفعيل ترخيص المخزن الرئيسي (Warehouse License)</MudText>
             </div>
 
             @if (!_isAuthenticated)
@@ -40,18 +40,26 @@
             else
             {
                 <div class="d-flex align-center justify-space-between mb-4">
-                    <MudText Typo="Typo.h6" Style="font-weight: 700; color: #1565C0;">قائمة التراخيص المتاحة</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700; color: #ea580c;">قائمة تراخيص المخازن المتاحة (Warehouse Only)</MudText>
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="DoRefresh" />
                 </div>
 
                 @if (_deviceAlreadyRegistered)
                 {
-                    <MudAlert Severity="Severity.Warning" Class="mb-4">هذا الجهاز مرتبط بالفعل بترخيص نشط.</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">هذا الجهاز مرتبط بالفعل بترخيص مخزن نشط.</MudAlert>
                 }
 
                 @if (_isLoading)
                 {
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mx-auto d-block my-8" />
+                }
+                else if (_licenses.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="my-4" Icon="@Icons.Material.Filled.Info">
+                        لا توجد تراخيص مخازن (Warehouse Only) مُصدرة لهذا الفرع في قاعدة البيانات حتى الآن.
+                        <br />
+                        <b>خطوة التفعيل:</b> يرجى تشغيل تطبيق <b>License Manager</b> واختيار الفرع وتحديد عدد <b>Warehouse Only = 1</b> ثم الضغط على <b>Generate</b>، وبعدها اضغط زر التحديث هنا.
+                    </MudAlert>
                 }
                 else
                 {
@@ -130,7 +138,9 @@
     private async Task LoadLicensesAsync() {
         _isLoading = true; StateHasChanged();
         try {
-            _licenses = await Client.GetFromJsonAsync<List<License>>("api/License/GetAll") ?? new();
+            var all = await Client.GetFromJsonAsync<List<License>>("api/License/GetAll") ?? new();
+            // Filter strictly to Warehouse licenses - Warehouse has its own independent license
+            _licenses = all.Where(l => l.LicenseType == "WarehouseOnly" || l.LicenseType == "4").ToList();
             var hwId = await LicenseService.GetHardwareIdAsync();
             _deviceAlreadyRegistered = _licenses.Any(l => !string.IsNullOrEmpty(l.MacAddress) && l.MacAddress.Equals(hwId, StringComparison.OrdinalIgnoreCase));
         } catch { Snackbar.Add("فشل التحميل", Severity.Error); }
@@ -150,19 +160,22 @@
     }
 
     private string GetLicenseLabel(License l) {
-        if (l.LicenseType == "Full" || l.LicenseType == "3") return "POS & BackOffice";
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return "Warehouse Only";
+        if (l.LicenseType == "Full" || l.LicenseType == "3") return "Full (POS & BackOffice)";
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return "BackOffice";
         if (l.LicenseType == "POSOnly" || l.LicenseType == "1") return "POS";
         return l.LicenseType ?? "غير معروف";
     }
     private MudBlazor.Color GetLicenseColor(License l) {
         if (l.LicenseType == "Full"          || l.LicenseType == "3") return MudBlazor.Color.Success;
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return MudBlazor.Color.Primary;
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return MudBlazor.Color.Info;
         if (l.LicenseType == "POSOnly"        || l.LicenseType == "1") return MudBlazor.Color.Warning;
         return MudBlazor.Color.Default;
     }
     private string GetLicenseIcon(License l) {
         if (l.LicenseType == "Full"          || l.LicenseType == "3") return Icons.Material.Filled.Stars;
+        if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return Icons.Material.Filled.Warehouse;
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return Icons.Material.Filled.AdminPanelSettings;
         return Icons.Material.Filled.PointOfSale;
     }
@@ -197,6 +210,8 @@
             BlazorBase.ERPFrontServices.LicensingServices.LicenseType licType;
             if (license.LicenseType == "Full" || license.LicenseType == "3")
                 licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.Full;
+            else if (license.LicenseType == "WarehouseOnly" || license.LicenseType == "4")
+                licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.WarehouseOnly;
             else if (license.LicenseType == "BackOfficeOnly" || license.LicenseType == "2")
                 licType = BlazorBase.ERPFrontServices.LicensingServices.LicenseType.BackOfficeOnly;
             else

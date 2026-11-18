@@ -1,0 +1,295 @@
+@page "/production/orders"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using POS.Contract.Dtos.InventoryDtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject BlazorBase.Services.LocalizationService LocalizerService
+
+<div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
+    <!-- Header -->
+    <div class="wh-page-header d-flex justify-space-between align-center mb-3">
+        <div>
+            <MudText MudBlazor.Typo="Typo.h5" Class="wh-title" Style="font-weight: 900; color: #1e293b;">
+                <MudIcon Icon="@Icons.Material.Filled.PrecisionManufacturing" Size="MudBlazor.Size.Large" Class="me-2" Style="vertical-align: middle; color: #ea580c;" />
+                أوامر التصنيع والتشغيل المركزي
+            </MudText>
+            <MudText MudBlazor.Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                إدارة خطوط إنتاج وتجهيز الخامات ونصف المصنعة في المخزن الرئيسي وصرف الخامات آلياً
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Warning"
+                       StartIcon="@Icons.Material.Filled.MenuBook"
+                       OnClick="@(() => NavigationManager.NavigateTo("/production/recipes"))"
+                       Style="border-radius: 10px; font-weight: 700;">
+                وصفات التصنيع (BOM)
+            </MudButton>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Style="border-radius: 10px; font-weight: 800; background: linear-gradient(135deg, #f97316, #ea580c); color: white;">
+                + أمر إنتاج جديد
+            </MudButton>
+        </div>
+    </div>
+
+    <!-- Filters & Tabs -->
+    <MudPaper Class="wh-card mb-3 pa-2 d-flex gap-2 flex-wrap align-center" Elevation="0" Style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+        <MudChip T="int" Color="@(_activeTab == -1 ? MudBlazor.Color.Warning : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == -1 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = -1)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            الكل (@_orders.Count)
+        </MudChip>
+        <MudChip T="int" Color="@(_activeTab == 2 ? MudBlazor.Color.Success : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 2 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 2)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            مكتمل ومسلّم للمخزن (@_orders.Count(o => o.Status == 2))
+        </MudChip>
+        <MudChip T="int" Color="@(_activeTab == 1 ? MudBlazor.Color.Info : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 1 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 1)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            معتمد للتشغيل (@_orders.Count(o => o.Status == 1))
+        </MudChip>
+        <MudChip T="int" Color="@(_activeTab == 0 ? MudBlazor.Color.Default : MudBlazor.Color.Default)"
+                 Variant="@(_activeTab == 0 ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
+                 OnClick="@(() => _activeTab = 0)" Size="MudBlazor.Size.Medium" Style="font-weight: 800; cursor: pointer;">
+            مسودة (@_orders.Count(o => o.Status == 0))
+        </MudChip>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchText" Placeholder="بحث برقم الأمر أو اسم الصنف..."
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense" Style="max-width: 280px; background: #f8fafc;" />
+    </MudPaper>
+
+    <!-- Table -->
+    <MudCard Class="wh-card" Elevation="0" Style="border: 1px solid #e2e8f0; border-radius: 14px;">
+        <MudCardContent Class="pa-0">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center pa-8">
+                    <MudProgressCircular Color="MudBlazor.Color.Warning" Indeterminate="true" />
+                </div>
+            }
+            else if (!FilteredOrders.Any())
+            {
+                <div class="pa-8 text-center" style="color: #94a3b8;">
+                    <MudIcon Icon="@Icons.Material.Filled.PrecisionManufacturing" Size="MudBlazor.Size.Large" Class="mb-2" />
+                    <MudText Typo="MudBlazor.Typo.body1" Style="font-weight: 700;">لا توجد أوامر إنتاج مطابقة</MudText>
+                    <MudText Typo="MudBlazor.Typo.caption">اضغط على "+ أمر إنتاج جديد" لبدء تشغيل وتصنيع دفعة خامات للمخزن الرئيسي</MudText>
+                </div>
+            }
+            else
+            {
+                <MudTable Items="FilteredOrders" Hover="true" Striped="true" Dense="true" Elevation="0" Class="wh-table">
+                    <HeaderContent>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">رقم أمر الإنتاج</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">المخزن</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">الصنف المُصنّع</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">الكمية المنتجة</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">تكلفة الوحدة</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">إجمالي تكلفة الخامات</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">التاريخ</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc;">الحالة</MudTh>
+                        <MudTh Style="font-weight: 800; background: #f8fafc; text-align: center;">الإجراءات</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="رقم الأمر">
+                            <span style="font-weight: 900; color: #0284c7;">@context.OrderNumber</span>
+                        </MudTd>
+                        <MudTd DataLabel="المخزن">
+                            <span style="font-weight: 700; color: #475569;">@context.WarehouseName</span>
+                        </MudTd>
+                        <MudTd DataLabel="الصنف المُصنّع">
+                            <div class="d-flex align-center gap-2">
+                                <div class="pa-1 rounded" style="background:#fff7ed; color:#ea580c;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Kitchen" Size="MudBlazor.Size.Small" />
+                                </div>
+                                <div>
+                                    <span style="font-weight: 800; color: #1e293b;">@context.ProducedProductName</span>
+                                    @if (!string.IsNullOrEmpty(context.ProducedProductSku))
+                                    {
+                                        <div style="font-size: 0.72rem; color: #94a3b8;">SKU: @context.ProducedProductSku</div>
+                                    }
+                                </div>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="الكمية المنتجة">
+                            <span style="font-weight: 900; color: #16a34a; font-size: 1rem;">
+                                @context.ActualQuantityProduced.ToString("N2")
+                            </span>
+                            <span style="font-size: 0.75rem; color: #64748b;">@context.ProducedProductUnitName</span>
+                        </MudTd>
+                        <MudTd DataLabel="تكلفة الوحدة">
+                            <span style="font-weight: 700; color: #1e293b;">@context.UnitCost.ToString("N2") ج.م</span>
+                        </MudTd>
+                        <MudTd DataLabel="إجمالي التكلفة">
+                            <span style="font-weight: 800; color: #b45309;">@context.TotalActualCost.ToString("N2") ج.م</span>
+                        </MudTd>
+                        <MudTd DataLabel="التاريخ">
+                            <span style="font-size: 0.85rem; color: #64748b;">
+                                @context.OrderDate.ToString("yyyy-MM-dd HH:mm")
+                            </span>
+                        </MudTd>
+                        <MudTd DataLabel="الحالة">
+                            <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetStatusColor(context.Status)" Variant="MudBlazor.Variant.Filled" Style="font-weight: 700;">
+                                @context.StatusText
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="الإجراءات" Style="text-align: center;">
+                            <MudButtonGroup Variant="MudBlazor.Variant.Outlined" Size="MudBlazor.Size.Small">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="MudBlazor.Color.Default"
+                                               Title="عرض تفاصيل الخامات والتكاليف" OnClick="@(() => OpenViewDialog(context))" />
+                                @if (context.Status == 1)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="MudBlazor.Color.Success"
+                                                   Title="إتمام التصنيع وإيداع بالمخزن" OnClick="@(() => CompleteOrder(context))" />
+                                }
+                                @if (context.Status != 2 && context.Status != 3)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="MudBlazor.Color.Error"
+                                                   Title="إلغاء الأمر" OnClick="@(() => CancelOrder(context))" />
+                                }
+                            </MudButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
+    private bool _loading = true;
+    private int _activeTab = -1;
+    private string _searchText = "";
+    private List<ProductionOrderDto> _orders = new();
+
+    private IEnumerable<ProductionOrderDto> FilteredOrders
+    {
+        get
+        {
+            var list = _orders.AsEnumerable();
+            if (_activeTab != -1)
+                list = list.Where(o => o.Status == _activeTab);
+
+            if (!string.IsNullOrWhiteSpace(_searchText))
+            {
+                var term = _searchText.Trim().ToLower();
+                list = list.Where(o => o.OrderNumber.ToLower().Contains(term) ||
+                                       o.ProducedProductName.ToLower().Contains(term) ||
+                                       (o.ProducedProductSku != null && o.ProducedProductSku.ToLower().Contains(term)));
+            }
+
+            return list;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        _loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<ProductionOrderDto>>("api/warehouse/production/orders");
+            _orders = res ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء تحميل أوامر الإنتاج: {ex.Message}", MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private MudBlazor.Color GetStatusColor(int status) => status switch
+    {
+        0 => MudBlazor.Color.Default,
+        1 => MudBlazor.Color.Info,
+        2 => MudBlazor.Color.Success,
+        3 => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Default
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = DialogService.Show<ProductionOrderDialog>("أمر إنتاج وتشغيل جديد", options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadOrders();
+        }
+    }
+
+    private async Task OpenViewDialog(ProductionOrderDto order)
+    {
+        var parameters = new MudBlazor.DialogParameters { ["OrderId"] = order.Id };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        DialogService.Show<ProductionOrderDetailDialog>($"تفاصيل أمر الإنتاج: {order.OrderNumber}", parameters, options);
+    }
+
+    private async Task CompleteOrder(ProductionOrderDto order)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد إتمام الإنتاج",
+            $"هل تم الانتهاء من تصنيع {order.ActualQuantityProduced} {order.ProducedProductUnitName} من ({order.ProducedProductName})؟ سيتم خصم الخامات وإيداع الصنف في رصيد المخزن.",
+            yesText: "نعم، إتمام الإنتاج", cancelText: "إلغاء");
+
+        if (confirm == true)
+        {
+            try
+            {
+                var response = await Http.PostAsync($"api/warehouse/production/orders/{order.Id}/complete?actualQty={order.ActualQuantityProduced}", null);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("تم إتمام الإنتاج وإيداع الكميات في رصيد المخزن بنجاح!", MudBlazor.Severity.Success);
+                    await LoadOrders();
+                }
+                else
+                {
+                    Snackbar.Add("فشل في إتمام أمر الإنتاج", MudBlazor.Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"حدث خطأ: {ex.Message}", MudBlazor.Severity.Error);
+            }
+        }
+    }
+
+    private async Task CancelOrder(ProductionOrderDto order)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "تأكيد إلغاء الأمر",
+            $"هل أنت متأكد من إلغاء أمر الإنتاج {order.OrderNumber}؟",
+            yesText: "نعم، إلغاء", cancelText: "رجوع");
+
+        if (confirm == true)
+        {
+            try
+            {
+                var response = await Http.PostAsync($"api/warehouse/production/orders/{order.Id}/cancel?reason=إلغاء_بواسطة_المستخدم", null);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("تم إلغاء أمر الإنتاج", MudBlazor.Severity.Warning);
+                    await LoadOrders();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"حدث خطأ: {ex.Message}", MudBlazor.Severity.Error);
+            }
+        }
+    }
+}

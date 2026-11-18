@@ -1,4 +1,4 @@
-@using POS.Contract.Dtos.InventoryDtos
+﻿@using POS.Contract.Dtos.InventoryDtos
 @using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -265,10 +265,10 @@
                         _items = fullReq.Lines.Select(l => new RequisitionItemVm
                         {
                             ProductId = l.ProductId,
-                            ProductName = l.Product?.NameAr ?? $"ØµÙ†Ù #{l.ProductId}",
+                            ProductName = l.Product?.NameAr ?? $"صنف #{l.ProductId}",
                             SKU = l.Product?.SKU ?? "",
                             UnitId = l.UnitId,
-                            UnitName = l.Unit?.NameAr ?? "ÙˆØ­Ø¯Ø©",
+                            UnitName = l.Unit?.NameAr ?? "وحدة",
                             RequestedQuantity = l.RequestedQuantity
                         }).ToList();
                     }
@@ -479,7 +479,7 @@
 
         if (branchId <= 0)
         {
-            Snackbar.Add("Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ÙØ±Ø¹ Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„Ù†Ø¸Ø§Ù…. ÙŠØ±Ø¬Ù‰ Ø¥Ø¶Ø§ÙØ© ÙØ±Ø¹ Ø£ÙˆÙ„Ø§Ù‹.", MudBlazor.Severity.Error);
+            Snackbar.Add("لم يتم العثور على فرع مسجل بالنظام. يرجى إضافة فرع أولاً.", MudBlazor.Severity.Error);
             return;
         }
 

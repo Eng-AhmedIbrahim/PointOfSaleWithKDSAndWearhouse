@@ -25,6 +25,7 @@ namespace LicenseManager
         private NumericUpDown numFull = null!; // For Full
         private NumericUpDown numBackOnly = null!; // For BackOffice Only
         private NumericUpDown numPOS = null!; // For POS Only
+        private NumericUpDown numWarehouse = null!; // For Warehouse Only
         private NumericUpDown numMonths = null!;
         private Button btnGenerateSave = null!;
         private TextBox txtResultTab1 = null!;
@@ -108,19 +109,22 @@ namespace LicenseManager
 
             var grpCounts = new GroupBox { Text = "License Requirements", Location = new Point(20, 170), Size = new Size(720, 130), BackColor = bgPanel, ForeColor = accentBlue, Font = new Font("Segoe UI", 12, FontStyle.Bold) };
             
-            var lblFullCount = new Label { Text = "Full (Back+Front):", Location = new Point(20, 35), Width = 140, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
-            numFull = new NumericUpDown { Value = 1, Location = new Point(160, 33), Width = 60, Minimum = 0, Maximum = 100, BackColor = inputBg, ForeColor = textWhite, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10) };
+            var lblFullCount = new Label { Text = "Full (Back+Front):", Location = new Point(10, 35), Width = 130, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
+            numFull = new NumericUpDown { Value = 1, Location = new Point(140, 33), Width = 55, Minimum = 0, Maximum = 100, BackColor = Color.FromArgb(230, 240, 255), ForeColor = Color.FromArgb(0, 60, 130), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
 
-            var lblBackOnlyCount = new Label { Text = "BackOffice Only:", Location = new Point(240, 35), Width = 140, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
-            numBackOnly = new NumericUpDown { Value = 0, Location = new Point(380, 33), Width = 60, Minimum = 0, Maximum = 100, BackColor = inputBg, ForeColor = textWhite, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10) };
+            var lblBackOnlyCount = new Label { Text = "BackOffice Only:", Location = new Point(205, 35), Width = 120, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
+            numBackOnly = new NumericUpDown { Value = 0, Location = new Point(325, 33), Width = 55, Minimum = 0, Maximum = 100, BackColor = Color.FromArgb(230, 240, 255), ForeColor = Color.FromArgb(0, 60, 130), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
 
-            var lblPosCount = new Label { Text = "POS Only:", Location = new Point(460, 35), Width = 100, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
-            numPOS = new NumericUpDown { Value = 0, Location = new Point(570, 33), Width = 60, Minimum = 0, Maximum = 100, BackColor = inputBg, ForeColor = textWhite, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10) };
+            var lblPosCount = new Label { Text = "POS Only:", Location = new Point(390, 35), Width = 85, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
+            numPOS = new NumericUpDown { Value = 0, Location = new Point(475, 33), Width = 55, Minimum = 0, Maximum = 100, BackColor = Color.FromArgb(230, 240, 255), ForeColor = Color.FromArgb(0, 60, 130), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
 
-            var lblMonths = new Label { Text = "Validity (Months):", Location = new Point(20, 80), Width = 140, ForeColor = textWhite, Font = new Font("Segoe UI", 10) };
-            numMonths = new NumericUpDown { Value = 12, Location = new Point(160, 78), Width = 60, Minimum = 1, Maximum = 120, BackColor = inputBg, ForeColor = textWhite, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10) };
+            var lblWarehouseCount = new Label { Text = "Warehouse Only:", Location = new Point(540, 35), Width = 120, ForeColor = accentTeal, Font = new Font("Segoe UI", 10) };
+            numWarehouse = new NumericUpDown { Value = 0, Location = new Point(660, 33), Width = 50, Minimum = 0, Maximum = 100, BackColor = Color.FromArgb(220, 255, 245), ForeColor = Color.FromArgb(0, 100, 80), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
 
-            grpCounts.Controls.AddRange(new Control[] { lblFullCount, numFull, lblBackOnlyCount, numBackOnly, lblPosCount, numPOS, lblMonths, numMonths });
+            var lblMonths = new Label { Text = "Validity (Months):", Location = new Point(10, 80), Width = 140, ForeColor = accentGreen, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+            numMonths = new NumericUpDown { Value = 12, Location = new Point(140, 78), Width = 70, Minimum = 1, Maximum = 120, BackColor = Color.FromArgb(230, 255, 240), ForeColor = Color.FromArgb(0, 100, 50), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 11, FontStyle.Bold) };
+
+            grpCounts.Controls.AddRange(new Control[] { lblFullCount, numFull, lblBackOnlyCount, numBackOnly, lblPosCount, numPOS, lblWarehouseCount, numWarehouse, lblMonths, numMonths });
 
             btnGenerateSave = new Button { 
                 Text = "⚡ Generate & Securely Submit to Server", 
@@ -223,7 +227,7 @@ namespace LicenseManager
 
             var branch = (BranchItem)cmbBranches.SelectedItem;
 
-            if (numFull.Value == 0 && numBackOnly.Value == 0 && numPOS.Value == 0)
+            if (numFull.Value == 0 && numBackOnly.Value == 0 && numPOS.Value == 0 && numWarehouse.Value == 0)
             {
                 MessageBox.Show("Please specify at least 1 device count!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -236,6 +240,7 @@ namespace LicenseManager
             try
             {
                 using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("X-License-Manager-Secret", "LM_SUPER_ADMIN_AUTHORIZATION_TOKEN_SECRET_2026");
                 int totalSuccess = 0;
 
                 // 1. Generate FULL (BackOffice + POS) - Type 3
@@ -244,7 +249,16 @@ namespace LicenseManager
                     txtResultTab1.AppendText($"[API] Issuing Full License ({i + 1}/{(int)numFull.Value})...");
                     string url = $"{txtApiUrl.Text.TrimEnd('/')}/api/License/GenerateKey?branchId={branch.Id}&licenseType=3&maxDevices=1&expiryMonths={(int)numMonths.Value}";
                     var response = await client.GetAsync(url);
-                    if (response.IsSuccessStatusCode) { txtResultTab1.AppendText(" SUCCESS\r\n"); totalSuccess++; }
+                    if (response.IsSuccessStatusCode) 
+                    { 
+                        txtResultTab1.AppendText(" SUCCESS\r\n"); 
+                        totalSuccess++; 
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        txtResultTab1.AppendText($" FAILED ({(int)response.StatusCode}): {err}\r\n");
+                    }
                 }
 
                 // 2. Generate BackOffice Only - Type 2
@@ -253,7 +267,16 @@ namespace LicenseManager
                     txtResultTab1.AppendText($"[API] Issuing BackOffice-Only License ({i + 1}/{(int)numBackOnly.Value})...");
                     string url = $"{txtApiUrl.Text.TrimEnd('/')}/api/License/GenerateKey?branchId={branch.Id}&licenseType=2&maxDevices=1&expiryMonths={(int)numMonths.Value}";
                     var response = await client.GetAsync(url);
-                    if (response.IsSuccessStatusCode) { txtResultTab1.AppendText(" SUCCESS\r\n"); totalSuccess++; }
+                    if (response.IsSuccessStatusCode) 
+                    { 
+                        txtResultTab1.AppendText(" SUCCESS\r\n"); 
+                        totalSuccess++; 
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        txtResultTab1.AppendText($" FAILED ({(int)response.StatusCode}): {err}\r\n");
+                    }
                 }
 
                 // 3. Generate POS Only - Type 1
@@ -262,7 +285,34 @@ namespace LicenseManager
                     txtResultTab1.AppendText($"[API] Issuing POS-Only License ({i + 1}/{(int)numPOS.Value})...");
                     string url = $"{txtApiUrl.Text.TrimEnd('/')}/api/License/GenerateKey?branchId={branch.Id}&licenseType=1&maxDevices=1&expiryMonths={(int)numMonths.Value}";
                     var response = await client.GetAsync(url);
-                    if (response.IsSuccessStatusCode) { txtResultTab1.AppendText(" SUCCESS\r\n"); totalSuccess++; }
+                    if (response.IsSuccessStatusCode) 
+                    { 
+                        txtResultTab1.AppendText(" SUCCESS\r\n"); 
+                        totalSuccess++; 
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        txtResultTab1.AppendText($" FAILED ({(int)response.StatusCode}): {err}\r\n");
+                    }
+                }
+
+                // 4. Generate Warehouse Only - Type 4
+                for (int i = 0; i < (int)numWarehouse.Value; i++)
+                {
+                    txtResultTab1.AppendText($"[API] Issuing Warehouse-Only License ({i + 1}/{(int)numWarehouse.Value})...");
+                    string url = $"{txtApiUrl.Text.TrimEnd('/')}/api/License/GenerateKey?branchId={branch.Id}&licenseType=4&maxDevices=1&expiryMonths={(int)numMonths.Value}";
+                    var response = await client.GetAsync(url);
+                    if (response.IsSuccessStatusCode) 
+                    { 
+                        txtResultTab1.AppendText(" SUCCESS\r\n"); 
+                        totalSuccess++; 
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        txtResultTab1.AppendText($" FAILED ({(int)response.StatusCode}): {err}\r\n");
+                    }
                 }
 
                 txtResultTab1.AppendText($"\r\n[Completed] {totalSuccess} keys generated and inserted to database securely.");

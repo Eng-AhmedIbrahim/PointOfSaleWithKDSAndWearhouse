@@ -30,5 +30,11 @@ namespace POS.Core.Entities.Settings
         /// </summary>
         [MaxLength(500)]
         public string? LicenseKey { get; set; }
+
+        /// <summary>
+        /// HMAC-SHA256 Digital Signature verifying that HardwareId, LicenseKey, and ExpiryDate have not been tampered with in DB.
+        /// </summary>
+        [MaxLength(128)]
+        public string? Signature { get; set; }
     }
 }

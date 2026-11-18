@@ -15,6 +15,14 @@
             إدارة المنتجات
         </MudText>
         <MudSpacer />
+        <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Warning" StartIcon="@Icons.Material.Filled.Category"
+                   OnClick="OpenManageCategoriesDialog" Class="me-2" Style="border-radius: 8px; font-weight: 700; height: 38px;">
+            إدارة الفئات
+        </MudButton>
+        <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.Straighten"
+                   OnClick="OpenManageUnitsDialog" Class="me-2" Style="border-radius: 8px; font-weight: 700; height: 38px;">
+            إدارة الوحدات
+        </MudButton>
         <MudButton Variant="MudBlazor.Variant.Filled" Class="wh-btn-primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenAddDialog">إضافة منتج</MudButton>
     </div>
@@ -205,6 +213,22 @@
 
     private string RowClass(ProductDto? row, int _)
         => (row != null && row.CurrentStock <= row.DisplayReorderLevel) ? "low-stock-row" : string.Empty;
+
+    private async Task OpenManageCategoriesDialog()
+    {
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dlg = DialogService.Show<ManageCategoriesDialog>("إدارة فئات وتصنيفات الأصناف المخزنية", options);
+        var result = await dlg.Result;
+        if (!result.Canceled) await LoadProducts();
+    }
+
+    private async Task OpenManageUnitsDialog()
+    {
+        var options = new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dlg = DialogService.Show<ManageUnitsDialog>("إدارة وحدات القياس المخزنية", options);
+        var result = await dlg.Result;
+        if (!result.Canceled) await LoadProducts();
+    }
 
     private async Task OpenAddDialog()
     {

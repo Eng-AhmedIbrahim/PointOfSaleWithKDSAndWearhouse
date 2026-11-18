@@ -10,6 +10,8 @@
 @inject IDialogService DialogService
 @inject LocalizationService LocalizerService
 @inject IDesktopPrintingService PrintingService
+@inject WarehouseCurrencyService CurrencyService
+@inject IJSRuntime JS
 
 <div class="wh-page-wrapper" dir="@(IsArabic ? "rtl" : "ltr")">
     <!-- Header -->
@@ -183,7 +185,7 @@
                         <MudTh Style="text-align: left;">إجمالي القيمة</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="التاريخ">@context.MovementDate.ToString("yyyy/MM/dd HH:mm")</MudTd>
+                        <MudTd DataLabel="التاريخ">@context.MovementDate.ToString("yyyy/MM/dd hh:mm tt")</MudTd>
                         <MudTd DataLabel="نوع الحركة">
                             <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetMovementColor(context.MovementType)" Variant="MudBlazor.Variant.Filled" Style="font-weight: 700;">
                                 @GetMovementLabel(context.MovementType)
@@ -216,9 +218,9 @@
                         <MudTd DataLabel="الرصيد التراكمي" Style="text-align: center;">
                             <b style="color: #0f172a; font-size: 1.05em;">@context.RunningBalance.ToString("N2")</b>
                         </MudTd>
-                        <MudTd DataLabel="تكلفة الوحدة" Style="text-align: left;">@context.UnitCost.ToString("N2") ج.م</MudTd>
+                        <MudTd DataLabel="تكلفة الوحدة" Style="text-align: left;">@context.UnitCost.ToString("N2") @_currency</MudTd>
                         <MudTd DataLabel="إجمالي القيمة" Style="text-align: left;">
-                            <b style="color: #ea580c;">@context.TotalCost.ToString("N2") ج.م</b>
+                            <b style="color: #ea580c;">@context.TotalCost.ToString("N2") @_currency</b>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
@@ -230,121 +232,115 @@
     </MudCard>
 </div>
 
-<!-- ════════════════════ PRINT PREVIEW DIALOG ════════════════════ -->
+<!-- ════════════════════ PRINT PREVIEW MODAL OVERLAY ════════════════════ -->
 @if (_showPrintPreview)
 {
-    <MudDialog IsVisible="true" Options="@(new MudBlazor.DialogOptions { MaxWidth = MudBlazor.MaxWidth.Large, FullWidth = true, CloseButton = true })">
-        <TitleContent>
-            <div class="d-flex align-center justify-space-between w-100" dir="rtl">
+    <div class="wh-print-overlay" @onclick="@(() => _showPrintPreview = false)">
+        <div class="wh-print-dialog-card" @onclick:stopPropagation="true">
+            <div class="wh-print-dialog-header no-print">
                 <div class="d-flex align-center gap-2">
-                    <MudIcon Icon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Warning" />
-                    <MudText Typo="Typo.h6" Style="font-weight: 800;">معاينة وطباعة كارت الصنف - @SelectedProductName</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="MudBlazor.Color.Warning" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 800; color: #0f172a;">معاينة وطباعة كارت الصنف - @SelectedProductName</MudText>
                 </div>
                 <div class="d-flex align-center gap-2">
-                    <MudSelect T="string" @bind-Value="_selectedPrinter" Dense="true" Margin="Margin.Dense"
-                               Variant="MudBlazor.Variant.Outlined" Style="min-width: 200px;" Placeholder="اختر الطابعة">
-                        @foreach (var p in _printers)
-                        {
-                            <MudSelectItem Value="@p">@p</MudSelectItem>
-                        }
-                    </MudSelect>
                     <MudButton Variant="MudBlazor.Variant.Filled" Color="MudBlazor.Color.Warning"
-                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 700;">
-                        طباعة
+                               StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReport" Style="font-weight: 800; border-radius: 8px;">
+                        طباعة الآن
+                    </MudButton>
+                    <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
+                               StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel" Style="font-weight: 700; border-radius: 8px;">
+                        تصدير إكسيل (.xlsx)
                     </MudButton>
                     <MudIconButton Icon="@Icons.Material.Rounded.Close" OnClick="@(() => _showPrintPreview = false)" />
                 </div>
             </div>
-        </TitleContent>
-        <DialogContent>
-            <div class="print-sheet pa-6 bg-white" dir="rtl" style="max-height: 70vh; overflow-y: auto;">
-                <div class="d-flex justify-space-between align-center pb-4 mb-4" style="border-bottom: 2px solid #0f172a;">
-                    <div>
-                        <h2 style="margin: 0; color: #0f172a; font-weight: 900;">إدارة المستودعات واللوجستيات</h2>
-                        <h3 style="margin: 4px 0 0 0; color: #ea580c; font-weight: 800;">كارت الصنف وسجل حركة المخزون</h3>
+
+            <div class="wh-print-dialog-body">
+                <div class="wh-printable-sheet" dir="rtl">
+                    <!-- Clean Header (Report Title Only) -->
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px;">
+                        <h2 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 1.4rem;">كارت الصنف وسجل حركة المخزون</h2>
                         <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
                             الصنف: <strong>@SelectedProductName</strong> | الكود: @SelectedProductSKU | الفترة: من @(_fromDate?.ToString("yyyy/MM/dd")) إلى @(_toDate?.ToString("yyyy/MM/dd"))
                         </p>
                     </div>
-                    <div style="text-align: left;">
-                        <span style="font-size: 0.75rem; color: #94a3b8; display: block;">New Tech WMS</span>
-                        <strong style="color: #0f172a; font-size: 0.9rem;">كارت حركة الصنف</strong>
-                    </div>
-                </div>
 
-                <!-- KPI in Print -->
-                <div class="d-flex gap-3 mb-4" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="flex: 1; padding: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #047857; display: block;">إجمالي الوارد (+)</span>
-                        <strong style="font-size: 1.15rem; color: #065f46;">+@TotalIn.ToString("N2")</strong>
+                    <!-- KPI Cards in Print -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                        <div style="flex: 1; padding: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #047857; display: block; font-weight: 700;">إجمالي الوارد (+)</span>
+                            <strong style="font-size: 1.15rem; color: #065f46;">+@TotalIn.ToString("N2")</strong>
+                        </div>
+                        <div style="flex: 1; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #b91c1c; display: block; font-weight: 700;">إجمالي المنصرف (-)</span>
+                            <strong style="font-size: 1.15rem; color: #991b1b;">-@TotalOut.ToString("N2")</strong>
+                        </div>
+                        <div style="flex: 1; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #c2410c; display: block; font-weight: 700;">صافي حركة الفترة</span>
+                            <strong style="font-size: 1.15rem; color: #9a3412;">@((TotalIn - TotalOut).ToString("N2"))</strong>
+                        </div>
+                        <div style="flex: 1; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 0.78rem; color: #0369a1; display: block; font-weight: 700;">الرصيد الختامي</span>
+                            <strong style="font-size: 1.15rem; color: #075985;">@FinalBalance.ToString("N2")</strong>
+                        </div>
                     </div>
-                    <div style="flex: 1; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #b91c1c; display: block;">إجمالي المنصرف (-)</span>
-                        <strong style="font-size: 1.15rem; color: #991b1b;">-@TotalOut.ToString("N2")</strong>
-                    </div>
-                    <div style="flex: 1; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #c2410c; display: block;">صافي حركة الفترة</span>
-                        <strong style="font-size: 1.15rem; color: #9a3412;">@((TotalIn - TotalOut).ToString("N2"))</strong>
-                    </div>
-                    <div style="flex: 1; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #0369a1; display: block;">الرصيد الختامي</span>
-                        <strong style="font-size: 1.15rem; color: #075985;">@FinalBalance.ToString("N2")</strong>
-                    </div>
-                </div>
 
-                <!-- Table in Print -->
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 24px;">
-                    <thead>
-                        <tr style="background: #0f172a; color: white;">
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">التاريخ</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">نوع الحركة</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">المستند المرجعي</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">المستودع</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">وارد (+)</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">صادر (-)</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">الرصيد</th>
-                            <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">التكلفة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @{ int mIdx = 1; }
-                        @foreach (var m in _movements)
-                        {
-                            <tr style="background: @(mIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center;">@mIdx</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@m.MovementDate.ToString("yyyy/MM/dd HH:mm")</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@GetMovementLabel(m.MovementType)</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: 700;">@m.ReferenceDocumentType - @m.ReferenceDocumentNumber</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0;">@m.WarehouseName</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">@(m.QuantityIn > 0 ? $"+{m.QuantityIn:N2}" : "-")</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; color: #dc2626; font-weight: 700;">@(m.QuantityOut > 0 ? $"-{m.QuantityOut:N2}" : "-")</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">@m.RunningBalance.ToString("N2")</td>
-                                <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: left;">@m.UnitCost.ToString("N2")</td>
+                    <!-- Table in Print -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 24px;">
+                        <thead>
+                            <tr style="background: #0f172a; color: white;">
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">#</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">التاريخ</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">نوع الحركة</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">المستند المرجعي</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">المستودع</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">وارد (+)</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">صادر (-)</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">الرصيد</th>
+                                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: left;">التكلفة (@_currency)</th>
                             </tr>
-                            mIdx++;
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @{ int mIdx = 1; }
+                            @foreach (var m in _movements)
+                            {
+                                <tr style="background: @(mIdx % 2 == 0 ? "#f8fafc" : "#ffffff");">
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center;">@mIdx</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0;">@m.MovementDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0;">@GetMovementLabel(m.MovementType)</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; font-weight: 700;">@m.ReferenceDocumentType - @m.ReferenceDocumentNumber</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0;">@m.WarehouseName</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">@(m.QuantityIn > 0 ? $"+{m.QuantityIn:N2}" : "-")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; color: #dc2626; font-weight: 700;">@(m.QuantityOut > 0 ? $"-{m.QuantityOut:N2}" : "-")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">@m.RunningBalance.ToString("N2")</td>
+                                    <td style="padding: 5px 6px; border: 1px solid #e2e8f0; text-align: left;">@m.UnitCost.ToString("N2")</td>
+                                </tr>
+                                mIdx++;
+                            }
+                        </tbody>
+                    </table>
+
+                    <!-- Signatures -->
+                    <div style="display: flex; justify-content: space-around; margin-top: 24px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">أمين المستودع</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                        <div style="text-align: center; width: 220px;">
+                            <span style="font-weight: 700; color: #475569; display: block; margin-bottom: 24px;">المسؤول / الاعتماد</span>
+                            <span style="border-top: 1px solid #94a3b8; display: block; padding-top: 4px;">التوقيع: .....................</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </DialogContent>
-        <DialogActions>
-            <div class="d-flex justify-between w-100 px-4 py-2" dir="rtl">
-                <MudButton Variant="MudBlazor.Variant.Outlined" Color="MudBlazor.Color.Success"
-                           StartIcon="@Icons.Material.Filled.TableChart" OnClick="ExportToExcel">
-                    تصدير إكسيل
-                </MudButton>
-                <MudButton Variant="MudBlazor.Variant.Filled" OnClick="@(() => _showPrintPreview = false)">
-                    إغلاق
-                </MudButton>
-            </div>
-        </DialogActions>
-    </MudDialog>
+        </div>
+    </div>
 }
 
 @code {
     private bool IsArabic => LocalizerService.GetCurrentLanguage() == "ar";
     private bool _loading = false;
+    private string _currency = "ج.م";
     private int _selectedProductId;
     private int? _selectedWarehouseId;
     private DateTime? _fromDate = DateTime.Today.AddDays(-30);
@@ -468,10 +464,16 @@
         _showPrintPreview = true;
     }
 
-    private void PrintReport()
+    private async Task PrintReport()
     {
-        _showPrintPreview = false;
-        Snackbar.Add($"تم إرسال أمر الطباعة للطابعة: {_selectedPrinter ?? "الافتراضية"}", MudBlazor.Severity.Success);
+        try
+        {
+            await JS.InvokeVoidAsync("printReportElement", ".wh-printable-sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"خطأ أثناء فتح الطباعة: {ex.Message}", MudBlazor.Severity.Error);
+        }
     }
 
     private void ExportToExcel()
