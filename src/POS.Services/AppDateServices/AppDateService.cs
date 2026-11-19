@@ -42,25 +42,8 @@ public class AppDateService : IAppDateService
     public async Task<AppDate> UpdateOrderNumber()
     {
         var appDate = await GetAppDateAsync();
+        // Order number increment only — reset is handled exclusively by SQL Trigger (trg_AutoResetOrderNumber on dbo.AppDates)
         appDate.CurrentOrderNumber = appDate.CurrentOrderNumber + 1;
-
-        try
-        {
-            var resetSetting = await _unitOfWork.Repository<POS.Core.Entities.OrderEntity.PosFeatureSetting>()
-                .GetByIdWithSpecificationAsync(new POS.Core.Specifications.BaseSpecifications<POS.Core.Entities.OrderEntity.PosFeatureSetting>(s => s.FeatureName == "AutoResetOrderLimit"));
-
-            if (resetSetting != null && resetSetting.Value && int.TryParse(resetSetting.ScreenName, out int maxLimit) && maxLimit > 0)
-            {
-                if (appDate.CurrentOrderNumber > maxLimit)
-                {
-                    appDate.CurrentOrderNumber = 0;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to evaluate AutoResetOrderLimit setting");
-        }
 
         _unitOfWork.Repository<AppDate>().Update(appDate);
         await _unitOfWork.CompleteAsync();
