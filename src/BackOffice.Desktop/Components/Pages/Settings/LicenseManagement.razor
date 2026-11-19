@@ -24,7 +24,7 @@
         <MudTd DataLabel="الفرع">@context.BranchName (@context.BranchID)</MudTd>
         <MudTd DataLabel="العميل">@context.CustomerName</MudTd>
         <MudTd DataLabel="نوع الترخيص">
-            <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.LicenseType</MudChip>
+            <MudChip T="string" Color="@GetLicenseColor(context)" Size="Size.Small">@GetLicenseLabel(context)</MudChip>
         </MudTd>
         <MudTd DataLabel="Date Limit">@context.DateLimit</MudTd>
         <MudTd DataLabel="حالة الجهاز">

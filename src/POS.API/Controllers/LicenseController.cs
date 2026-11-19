@@ -379,6 +379,154 @@ namespace POS.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { Message = "تم فك ارتباط الجهاز بالترخيص بنجاح." });
         }
+
+        [HttpGet("GetOrderCounterStatus")]
+        public async Task<IActionResult> GetOrderCounterStatus([FromQuery] int branchId = 1)
+        {
+            var appDate = await _context.AppDate.FirstOrDefaultAsync(a => a.BranchId == branchId) 
+                       ?? await _context.AppDate.FirstOrDefaultAsync();
+
+            var setting = await _context.PosFeatureSettings.FirstOrDefaultAsync(s => s.FeatureName == "AutoResetOrderLimit");
+            bool isAutoResetEnabled = setting != null && setting.Value;
+            int maxOrderLimit = 100;
+            if (setting != null && int.TryParse(setting.ScreenName, out int parsedLimit) && parsedLimit > 0)
+            {
+                maxOrderLimit = parsedLimit;
+            }
+
+            bool triggerInstalled = false;
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM sys.triggers WHERE name = 'trg_AutoResetOrderNumber'";
+                if (connection.State != System.Data.ConnectionState.Open)
+                    await connection.OpenAsync();
+                var result = await command.ExecuteScalarAsync();
+                triggerInstalled = Convert.ToInt32(result) > 0;
+            }
+            catch { }
+
+            return Ok(new
+            {
+                BranchId = appDate?.BranchId ?? branchId,
+                PosDate = appDate?.PosDate.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"),
+                StoreDate = appDate?.StoreDate.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"),
+                CurrentOrderNumber = appDate?.CurrentOrderNumber ?? 0,
+                IsAutoResetEnabled = isAutoResetEnabled,
+                MaxOrderLimit = maxOrderLimit,
+                TriggerInstalled = triggerInstalled
+            });
+        }
+
+        [HttpPost("ConfigureOrderReset")]
+        public async Task<IActionResult> ConfigureOrderReset([FromBody] ConfigureOrderResetRequest request)
+        {
+            var appDate = await _context.AppDate.FirstOrDefaultAsync(a => a.BranchId == request.BranchId)
+                       ?? await _context.AppDate.FirstOrDefaultAsync();
+
+            if (appDate == null)
+            {
+                return BadRequest("لم يتم العثور على سجل تاريخ التطبيق (AppDate) في قاعدة البيانات.");
+            }
+
+            // 1. Reset current counter if requested
+            if (request.ResetCurrentNow)
+            {
+                appDate.CurrentOrderNumber = 0;
+                _context.AppDate.Update(appDate);
+            }
+            else if (request.SetCurrentTo.HasValue)
+            {
+                appDate.CurrentOrderNumber = request.SetCurrentTo.Value;
+                _context.AppDate.Update(appDate);
+            }
+
+            // 2. Save / Update Setting in PosFeatureSettings
+            var setting = await _context.PosFeatureSettings.FirstOrDefaultAsync(s => s.FeatureName == "AutoResetOrderLimit");
+            if (setting == null)
+            {
+                setting = new POS.Core.Entities.OrderEntity.PosFeatureSetting
+                {
+                    FeatureName = "AutoResetOrderLimit",
+                    NameAr = "تصفير عداد الأوردرات بعد حد معين",
+                    NameEn = "Auto Reset Order Limit",
+                    ModuleName = "Orders",
+                    ScreenName = request.MaxOrderLimit.ToString(),
+                    Value = request.EnableAutoReset
+                };
+                await _context.PosFeatureSettings.AddAsync(setting);
+            }
+            else
+            {
+                setting.Value = request.EnableAutoReset;
+                setting.ScreenName = request.MaxOrderLimit.ToString();
+                _context.PosFeatureSettings.Update(setting);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // 3. Execute Database Script (Create or Drop Trigger)
+            string scriptStatus = "غير مفعل";
+            try
+            {
+                if (request.EnableAutoReset && request.MaxOrderLimit > 0)
+                {
+                    // Drop old trigger if exists
+                    await _context.Database.ExecuteSqlRawAsync(@"
+                        IF OBJECT_ID('dbo.trg_AutoResetOrderNumber', 'TR') IS NOT NULL
+                            DROP TRIGGER dbo.trg_AutoResetOrderNumber;
+                    ");
+
+                    // Create new trigger
+                    var createTriggerSql = $@"
+                    CREATE TRIGGER dbo.trg_AutoResetOrderNumber
+                    ON dbo.AppDates
+                    AFTER UPDATE
+                    AS
+                    BEGIN
+                        SET NOCOUNT ON;
+                        IF UPDATE(CurrentOrderNumber)
+                        BEGIN
+                            DECLARE @maxLimit INT = {request.MaxOrderLimit};
+                            IF @maxLimit > 0
+                            BEGIN
+                                UPDATE a
+                                SET CurrentOrderNumber = 1
+                                FROM dbo.AppDates a
+                                INNER JOIN inserted i ON a.Id = i.Id
+                                WHERE i.CurrentOrderNumber > @maxLimit;
+                            END
+                        END
+                    END";
+
+                    await _context.Database.ExecuteSqlRawAsync(createTriggerSql);
+                    scriptStatus = $"✅ تم إنشاء وتفعيل اسكريبت التريجر في الداتا بيز بعد كل {request.MaxOrderLimit} أوردر.";
+                }
+                else
+                {
+                    await _context.Database.ExecuteSqlRawAsync(@"
+                        IF OBJECT_ID('dbo.trg_AutoResetOrderNumber', 'TR') IS NOT NULL
+                            DROP TRIGGER dbo.trg_AutoResetOrderNumber;
+                    ");
+                    scriptStatus = "❌ تم إلغاء تفعيل الاسكريبت وحذف التريجر من قاعدة البيانات.";
+                }
+            }
+            catch (Exception ex)
+            {
+                scriptStatus = $"⚠️ تم حفظ الإعداد البرمجي لكن تعذر تطبيق التريجر في SQL Server: {ex.Message}";
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Message = $"تم حفظ الإعدادات بنجاح. {scriptStatus}",
+                CurrentOrderNumber = appDate.CurrentOrderNumber,
+                IsAutoResetEnabled = request.EnableAutoReset,
+                MaxOrderLimit = request.MaxOrderLimit,
+                ScriptStatus = scriptStatus
+            });
+        }
     }
 
     public class UnlinkDeviceRequest
@@ -391,5 +539,14 @@ namespace POS.API.Controllers
     {
         public string HardwareId { get; set; } = string.Empty;
         public string LicenseKey { get; set; } = string.Empty;
+    }
+
+    public class ConfigureOrderResetRequest
+    {
+        public int BranchId { get; set; } = 1;
+        public bool EnableAutoReset { get; set; }
+        public int MaxOrderLimit { get; set; } = 100;
+        public bool ResetCurrentNow { get; set; }
+        public int? SetCurrentTo { get; set; }
     }
 }

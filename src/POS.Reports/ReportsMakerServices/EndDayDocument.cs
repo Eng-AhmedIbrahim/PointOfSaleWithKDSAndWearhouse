@@ -1,4 +1,4 @@
-namespace POS.Reports.ReportsMakerServices;
+﻿namespace POS.Reports.ReportsMakerServices;
 
 public class EndDayDocument : IDocument
 {
@@ -58,7 +58,12 @@ public class EndDayDocument : IDocument
                 BuildModeBreakdown(column);
                 BuildCashierSummaries(column);
                 BuildItemsTable(column);
-                
+
+                if (_summary.DetailedExpenses != null && _summary.DetailedExpenses.Any())
+                {
+                    BuildExpensesTable(column);
+                }
+
                 if (_summary.DetailedOrders != null && _summary.DetailedOrders.Any(o => (o.TotalOrderDiscount ?? 0) > 0 || (o.TotalDiscount ?? 0) > 0))
                 {
                     BuildDiscountsTable(column);
@@ -135,11 +140,24 @@ public class EndDayDocument : IDocument
             AddFinancialRow(t, _isArabic ? "صافي المبيعات" : "Net Sales", _summary.Overall.TotalSales.ToString("0.##"), true);
             
             AddFinancialRow(t, _isArabic ? "المحصل نقدي" : "Cash Collected", _summary.Overall.CashAmount.ToString("0.##"));
-            AddFinancialRow(t, _isArabic ? "المحصل فيزا" : "Visa Collected", _summary.Overall.CreditAmount.ToString("0.##"));
-            AddFinancialRow(t, _isArabic ? "المرتجعات" : "Refunds", _summary.Overall.RefundAmount.ToString("0.##"));
-            AddFinancialRow(t, _isArabic ? "الملغيات" : "Voids", _summary.Overall.VoidAmount.ToString("0.##"));
+            AddFinancialRow(t, _isArabic ? "المحصل فيزا / إلكتروني" : "Visa Collected", _summary.Overall.CreditAmount.ToString("0.##"));
             
-            AddFinancialRow(t, _isArabic ? "صافي النقدية بالدرج" : "Net Cash in Drawer", _summary.Overall.NetCash.ToString("0.##"), true);
+            if (_summary.Overall.Expenses > 0)
+            {
+                AddFinancialRow(t, _isArabic ? "مصروفات الدرج (-)" : "Drawer Expenses (-)", "-" + _summary.Overall.Expenses.ToString("0.##"));
+            }
+
+            if (_summary.Overall.RefundAmount > 0)
+            {
+                AddFinancialRow(t, _isArabic ? "المرتجعات (-)" : "Refunds (-)", "-" + _summary.Overall.RefundAmount.ToString("0.##"));
+            }
+
+            if (_summary.Overall.VoidAmount > 0)
+            {
+                AddFinancialRow(t, _isArabic ? "الملغيات" : "Voids", _summary.Overall.VoidAmount.ToString("0.##"));
+            }
+            
+            AddFinancialRow(t, _isArabic ? "صافي النقدية بالدرج" : "Net Cash in Drawer", _summary.Overall.NetCash.ToString("0.##") + " " + _currency, true);
         });
 
         column.Item().PaddingTop(5).Element(c => SectionTitle(c, _isArabic ? "إحصائيات التشغيل" : "Operational Statistics"));
@@ -151,16 +169,16 @@ public class EndDayDocument : IDocument
                 cols.RelativeColumn();
             });
 
-            AddFinancialRow(t, _isArabic ? "عدد الطلبات (الكل)" : "Total Orders", (_summary.DetailedOrders?.Count ?? 0).ToString());
-            AddFinancialRow(t, _isArabic ? "عدد طلبات الصالة" : "Dine-In Orders", _summary.DineIn.OrderCount.ToString());
-            AddFinancialRow(t, _isArabic ? "عدد طلبات التيك أواي" : "Take-Away Orders", _summary.TakeAway.OrderCount.ToString());
-            AddFinancialRow(t, _isArabic ? "عدد طلبات التوصيل" : "Delivery Orders", _summary.Delivery.OrderCount.ToString());
+            AddFinancialRow(t, _isArabic ? "إجمالي عدد الطلبات" : "Total Orders", (_summary.DetailedOrders?.Count ?? 0).ToString());
+            AddFinancialRow(t, _isArabic ? "طلبات الصالة" : "Dine-In Orders", _summary.DineIn.OrderCount.ToString());
+            AddFinancialRow(t, _isArabic ? "طلبات التيك أواي" : "Take-Away Orders", _summary.TakeAway.OrderCount.ToString());
+            AddFinancialRow(t, _isArabic ? "طلبات التوصيل (دليفري)" : "Delivery Orders", _summary.Delivery.OrderCount.ToString());
         });
     }
 
     private void BuildModeBreakdown(ColumnDescriptor column)
     {
-        column.Item().Element(c => SectionTitle(c, _isArabic ? "المبيعات حسب النوع" : "Sales Breakdown"));
+        column.Item().Element(c => SectionTitle(c, _isArabic ? "المبيعات حسب نوع الطلب" : "Sales Breakdown"));
 
         column.Item().Table(table =>
         {
@@ -190,7 +208,7 @@ public class EndDayDocument : IDocument
                 {
                     header.Cell().AlignLeft().Text("الإجمالي").Bold().FontSize(7);
                     header.Cell().AlignCenter().Text("خصم").Bold().FontSize(7);
-                    header.Cell().AlignCenter().Text("فويد").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("ملغي").Bold().FontSize(7);
                     header.Cell().AlignCenter().Text("عدد").Bold().FontSize(7);
                     header.Cell().AlignRight().Text("النوع").Bold().FontSize(7);
                 }
@@ -208,7 +226,7 @@ public class EndDayDocument : IDocument
 
             AddModeRow(table, _summary.TakeAway, _isArabic ? "تيك أواي" : "Take-Away");
             AddModeRow(table, _summary.DineIn, _isArabic ? "صالة" : "Dine-In");
-            AddModeRow(table, _summary.Delivery, _isArabic ? "توصيل" : "Delivery");
+            AddModeRow(table, _summary.Delivery, _isArabic ? "دليفري" : "Delivery");
         });
 
         column.Item().PaddingVertical(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
@@ -243,7 +261,7 @@ public class EndDayDocument : IDocument
         if (_summary.CashierSummaries == null || !_summary.CashierSummaries.Any()) return;
 
         column.Item().PaddingTop(4).PaddingBottom(2).AlignCenter()
-              .Text(_isArabic ? "--- مبيعات الموظفين ---" : "--- Staff Sales Summary ---")
+              .Text(_isArabic ? "--- مبيعات الموظفين والكاشير ---" : "--- Staff Sales Summary ---")
               .Bold().FontSize(9);
 
         column.Item().Table(table =>
@@ -271,7 +289,7 @@ public class EndDayDocument : IDocument
                 if (_isArabic)
                 {
                     header.Cell().AlignLeft().Text("الإجمالي").Bold().FontSize(7);
-                    header.Cell().AlignCenter().Text("فويد").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("ملغي").Bold().FontSize(7);
                     header.Cell().AlignCenter().Text("خصم").Bold().FontSize(7);
                     header.Cell().AlignRight().Text("الموظف").Bold().FontSize(7);
                 }
@@ -391,6 +409,102 @@ public class EndDayDocument : IDocument
                 }
             });
         });
+        column.Item().PaddingVertical(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+    }
+
+    private void BuildExpensesTable(ColumnDescriptor column)
+    {
+        column.Item().PaddingTop(4).PaddingBottom(2).AlignCenter()
+              .Text(_isArabic ? "--- إذن صرف / مصروفات الدرج ---" : "--- Drawer Expenses Summary ---")
+              .Bold().FontSize(9);
+
+        column.Item().Table(table =>
+        {
+            table.ColumnsDefinition(cols =>
+            {
+                if (_isArabic)
+                {
+                    cols.RelativeColumn(2);    // Amount
+                    cols.RelativeColumn(2.5f); // Category/SpentBy
+                    cols.RelativeColumn(3);    // Description
+                    cols.RelativeColumn(1.5f); // Time
+                    cols.RelativeColumn(1);    // ID
+                }
+                else
+                {
+                    cols.RelativeColumn(1);    // ID
+                    cols.RelativeColumn(1.5f); // Time
+                    cols.RelativeColumn(3);    // Description
+                    cols.RelativeColumn(2.5f); // Category/SpentBy
+                    cols.RelativeColumn(2);    // Amount
+                }
+            });
+
+            table.Header(header =>
+            {
+                if (_isArabic)
+                {
+                    header.Cell().AlignLeft().Text("المبلغ").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("الفئة / المستلم").Bold().FontSize(7);
+                    header.Cell().AlignRight().Text("البيان").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("الوقت").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("رقم").Bold().FontSize(7);
+                }
+                else
+                {
+                    header.Cell().AlignCenter().Text("ID").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("Time").Bold().FontSize(7);
+                    header.Cell().AlignLeft().Text("Description").Bold().FontSize(7);
+                    header.Cell().AlignCenter().Text("Category").Bold().FontSize(7);
+                    header.Cell().AlignRight().Text("Amount").Bold().FontSize(7);
+                }
+                header.Cell().ColumnSpan(5).PaddingVertical(1).LineHorizontal(0.5f).LineColor(Colors.Black);
+            });
+
+            foreach (var exp in _summary.DetailedExpenses)
+            {
+                var timeStr = exp.Date.ToString("hh:mm tt");
+                var catOrRecipient = !string.IsNullOrWhiteSpace(exp.SpentBy) 
+                    ? $"{exp.Category} ({exp.SpentBy})" 
+                    : (exp.Category ?? "عام");
+
+                if (_isArabic)
+                {
+                    table.Cell().AlignLeft().Text(exp.Amount.ToString("0.##")).FontSize(7).Bold();
+                    table.Cell().AlignCenter().Text(catOrRecipient).FontSize(7);
+                    table.Cell().AlignRight().Text(exp.Description ?? "-").FontSize(7);
+                    table.Cell().AlignCenter().Text(timeStr).FontSize(7);
+                    table.Cell().AlignCenter().Text($"#{exp.Id}").FontSize(7);
+                }
+                else
+                {
+                    table.Cell().AlignCenter().Text($"#{exp.Id}").FontSize(7);
+                    table.Cell().AlignCenter().Text(timeStr).FontSize(7);
+                    table.Cell().AlignLeft().Text(exp.Description ?? "-").FontSize(7);
+                    table.Cell().AlignCenter().Text(catOrRecipient).FontSize(7);
+                    table.Cell().AlignRight().Text(exp.Amount.ToString("0.##")).FontSize(7).Bold();
+                }
+                table.Cell().ColumnSpan(5).PaddingVertical(0.5f).LineHorizontal(0.1f).LineColor(Colors.Grey.Lighten4);
+            }
+
+            // Footer row with total expenses
+            table.Footer(footer =>
+            {
+                var totalExpenses = _summary.DetailedExpenses.Sum(e => e.Amount);
+                footer.Cell().ColumnSpan(5).PaddingVertical(2).LineHorizontal(0.5f).LineColor(Colors.Black);
+                if (_isArabic)
+                {
+                    footer.Cell().AlignLeft().Text(totalExpenses.ToString("0.##") + " " + _currency).FontSize(7).Bold();
+                    footer.Cell().ColumnSpan(4).AlignRight().Text("إجمالي المصروفات").FontSize(7).Bold();
+                }
+                else
+                {
+                    footer.Cell().ColumnSpan(4).AlignLeft().Text("Total Expenses").FontSize(7).Bold();
+                    footer.Cell().AlignRight().Text(totalExpenses.ToString("0.##") + " " + _currency).FontSize(7).Bold();
+                }
+            });
+        });
+
         column.Item().PaddingVertical(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
     }
 
@@ -581,7 +695,7 @@ public class EndDayDocument : IDocument
             col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten3);
             col.Item().PaddingTop(2).AlignCenter().Text(x =>
             {
-                x.Span(_isArabic ? "تم الطباعة في: " : "Printed at: ").FontSize(7).FontColor(Colors.Grey.Darken1);
+                x.Span(_isArabic ? "تمت الطباعة في: " : "Printed at: ").FontSize(7).FontColor(Colors.Grey.Darken1);
                 x.Span($"{DateTime.Now:yyyy-MM-dd HH:mm}").FontSize(7).FontColor(Colors.Grey.Darken1);
                 if (_format == ReportPageFormat.A4)
                 {

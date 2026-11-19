@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,6 +9,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\POS.Core\POS.Core.csproj" />
+    <ProjectReference Include="..\Contract.Common\POS.Contract.csproj" />
+    <ProjectReference Include="..\POS.Reports\POS.Reports.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QuestPDF" Version="2025.1.3" />
   </ItemGroup>
 
 </Project>
