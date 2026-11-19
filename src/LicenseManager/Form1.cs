@@ -224,7 +224,7 @@ namespace LicenseManager
 
             chkEnableAutoReset = new CheckBox { Text = "تفعيل خاصية التصفير التلقائي الدوري بعد عدد محدد من الأوردرات", Location = new Point(20, 26), Width = 680, ForeColor = textWhite, Font = new Font("Segoe UI", 10, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
 
-            var lblMax = new Label { Text = "إعادة التصفير إلى 1 بعد كل:", Location = new Point(490, 60), Width = 210, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
+            var lblMax = new Label { Text = "إعادة التصفير إلى 0 بعد كل:", Location = new Point(490, 60), Width = 210, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
             numMaxOrders = new NumericUpDown { Value = 100, Minimum = 1, Maximum = 99999, Location = new Point(390, 58), Width = 95, BackColor = Color.FromArgb(230, 255, 240), ForeColor = Color.FromArgb(0, 100, 50), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.No };
             var lblOrdersWord = new Label { Text = "أوردر (Threshold Limit)", Location = new Point(245, 60), Width = 140, ForeColor = textGray, Font = new Font("Segoe UI", 9.5f), TextAlign = ContentAlignment.MiddleRight };
 

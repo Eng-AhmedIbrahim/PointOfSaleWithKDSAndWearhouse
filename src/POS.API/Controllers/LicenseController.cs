@@ -492,7 +492,7 @@ namespace POS.API.Controllers
                             IF @maxLimit > 0
                             BEGIN
                                 UPDATE a
-                                SET CurrentOrderNumber = 1
+                                SET CurrentOrderNumber = 0
                                 FROM dbo.AppDates a
                                 INNER JOIN inserted i ON a.Id = i.Id
                                 WHERE i.CurrentOrderNumber > @maxLimit;
