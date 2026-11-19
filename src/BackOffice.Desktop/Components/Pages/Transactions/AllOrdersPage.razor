@@ -46,7 +46,7 @@
             <HeaderContent>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">#</MudTh>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;"><MudTableSortLabel SortBy="new Func<OrderDto, object>(x => x.OrderId)" InitialDirection="SortDirection.Descending">@Localizer["OrderId"]</MudTableSortLabel></MudTh>
-                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Time"]</MudTh>
+                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;"><MudTableSortLabel SortBy="new Func<OrderDto, object>(x => x.OrderDate ?? DateTime.MinValue)" InitialDirection="SortDirection.Descending">@Localizer["Time"]</MudTableSortLabel></MudTh>
                 <MudTh style="text-align: center; background: #f8fafc; font-weight: 800;">@Localizer["Type"]</MudTh>
                 <MudTh style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Customer"]</MudTh>
                 <MudTh style="text-align: center; background: #f8fafc; font-weight: 800;">@Localizer["Status"]</MudTh>
