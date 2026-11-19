@@ -52,7 +52,7 @@
                 <MudTh style="text-align: center; background: #f8fafc; font-weight: 800;">@Localizer["Status"]</MudTh>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Subtotal"]</MudTh>
                 <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Discount"]</MudTh>
-                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;">@Localizer["Total"]</MudTh>
+                <MudTh Style="text-align: right; background: #f8fafc; font-weight: 800;"><MudTableSortLabel SortBy="new Func<OrderDto, object>(x => x.GrandTotal ?? 0)">@Localizer["Total"]</MudTableSortLabel></MudTh>
                 <MudTh style="text-align: center; background: #f8fafc; font-weight: 800;">@Localizer["Actions"]</MudTh>
             </HeaderContent>
             <RowTemplate>
