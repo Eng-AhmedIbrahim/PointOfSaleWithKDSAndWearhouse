@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Net.Http;
@@ -15,6 +15,7 @@ namespace LicenseManager
     {
         private TabControl tabControl = null!;
         private TabPage tabLicense = null!;
+        private TabPage tabResetOrder = null!;
         private TabPage tabDbCrypt = null!;
         private TabPage tabAdminHash = null!;
 
@@ -30,14 +31,29 @@ namespace LicenseManager
         private Button btnGenerateSave = null!;
         private TextBox txtResultTab1 = null!;
 
+        // --- Tab 2: Reset Order Count ---
+        private TextBox txtApiUrlReset = null!;
+        private Button btnFetchReset = null!;
+        private ComboBox cmbBranchesReset = null!;
+        private Label lblCurrentPosDate = null!;
+        private Label lblCurrentOrderNumber = null!;
+        private Label lblScriptStatusBadge = null!;
+        private CheckBox chkEnableAutoReset = null!;
+        private NumericUpDown numMaxOrders = null!;
+        private CheckBox chkResetCurrentNow = null!;
+        private Button btnApplyResetConfig = null!;
+        private NumericUpDown numManualCounter = null!;
+        private Button btnSetManualCounter = null!;
+        private TextBox txtResultTabReset = null!;
+
         private const string DbCryptKey = "b14ca5898a4e4133bbce2ea2315a1916";
 
-        // --- Tab 2: Database Connection Crypt ---
+        // --- Tab 3: Database Connection Crypt ---
         private TextBox txtPlainDbStr = null!;
         private Button btnEncryptDb = null!;
         private TextBox txtEncDbStr = null!;
 
-        // --- Tab 3: Admin Password Hasher ---
+        // --- Tab 4: Admin Password Hasher ---
         private TextBox txtPlainAdminPass = null!;
         private Button btnHashAdminPass = null!;
         private TextBox txtHashAdminPass = null!;
@@ -60,6 +76,17 @@ namespace LicenseManager
             public override string ToString() => $"[{Id}] {CompanyName ?? "N/A"} - {BranchName ?? "N/A"}";
         }
 
+        private class OrderCounterStatusResponse
+        {
+            public int BranchId { get; set; }
+            public string PosDate { get; set; } = string.Empty;
+            public string StoreDate { get; set; } = string.Empty;
+            public int CurrentOrderNumber { get; set; }
+            public bool IsAutoResetEnabled { get; set; }
+            public int MaxOrderLimit { get; set; }
+            public bool TriggerInstalled { get; set; }
+        }
+
         public Form1()
         {
             InitializeComponent();
@@ -68,24 +95,27 @@ namespace LicenseManager
         private void InitializeComponent()
         {
             this.Text = "System Administrator Toolkit (PRO)";
-            this.Size = new Size(800, 750);
+            this.Size = new Size(800, 760);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = bgDark;
             this.ForeColor = textWhite;
             this.Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point);
 
-            tabControl = new TabControl { Dock = DockStyle.Fill, ItemSize = new Size(200, 40), SizeMode = TabSizeMode.Fixed, Padding = new Point(10, 5) };
+            tabControl = new TabControl { Dock = DockStyle.Fill, ItemSize = new Size(180, 40), SizeMode = TabSizeMode.Fixed, Padding = new Point(10, 5) };
             
             tabLicense = new TabPage("إصدار التراخيص");
+            tabResetOrder = new TabPage("تصفير العداد");
             tabDbCrypt = new TabPage("تشفير الاتصال");
             tabAdminHash = new TabPage("تشفير الباسورد");
 
             tabControl.TabPages.Add(tabLicense);
+            tabControl.TabPages.Add(tabResetOrder);
             tabControl.TabPages.Add(tabDbCrypt);
             tabControl.TabPages.Add(tabAdminHash);
             this.Controls.Add(tabControl);
 
             SetupLicenseTab();
+            SetupOrderResetTab();
             SetupDbCryptTab();
             SetupAdminHashTab();
         }
@@ -131,19 +161,296 @@ namespace LicenseManager
                 Location = new Point(20, 320), 
                 Width = 720, 
                 Height = 60, 
-                BackColor = accentBlue,
-                ForeColor = textWhite,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Cursor = Cursors.Hand,
-                Enabled = false
+                BackColor = accentBlue, 
+                ForeColor = textWhite, 
+                FlatStyle = FlatStyle.Flat, 
+                Font = new Font("Segoe UI", 14, FontStyle.Bold), 
+                Cursor = Cursors.Hand, 
+                Enabled = false 
             };
             btnGenerateSave.FlatAppearance.BorderSize = 0;
             btnGenerateSave.Click += BtnGenerateSave_Click;
 
-            txtResultTab1 = new TextBox { Multiline = true, ReadOnly = true, Location = new Point(20, 400), Size = new Size(720, 240), ScrollBars = ScrollBars.Vertical, BackColor = inputBg, ForeColor = accentTeal, BorderStyle = BorderStyle.FixedSingle };
+            txtResultTab1 = new TextBox { Multiline = true, ReadOnly = true, Location = new Point(20, 400), Size = new Size(720, 280), ScrollBars = ScrollBars.Vertical, BackColor = inputBg, ForeColor = accentTeal, BorderStyle = BorderStyle.FixedSingle };
 
             pnl.Controls.AddRange(new Control[] { lblTitle, lblApi, txtApiUrl, btnFetch, lblBranch, cmbBranches, grpCounts, btnGenerateSave, txtResultTab1 });
+        }
+
+        private void SetupOrderResetTab()
+        {
+            tabResetOrder.RightToLeft = RightToLeft.Yes;
+            var pnl = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20), BackColor = bgPanel, RightToLeft = RightToLeft.Yes };
+            tabResetOrder.Controls.Add(pnl);
+
+            var lblTitle = new Label { 
+                Text = "التحكم في عداد الأوردرات والتصفير التلقائي (Reset Order Counter)", 
+                Location = new Point(20, 12), 
+                Width = 720, 
+                Height = 35, 
+                Font = new Font("Segoe UI", 14, FontStyle.Bold), 
+                ForeColor = accentTeal, 
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            // API Row (RTL: Label on Right, TextBox in Middle, Button on Left)
+            var lblApi = new Label { Text = "رابط السيرفر (API):", Location = new Point(590, 55), Width = 150, Font = new Font("Segoe UI", 10, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+            txtApiUrlReset = new TextBox { Text = "http://localhost:5050", Location = new Point(220, 53), Width = 365, BackColor = inputBg, ForeColor = textWhite, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10), RightToLeft = RightToLeft.No };
+            
+            btnFetchReset = new Button { Text = "🔍 فحص العداد والاتصال", Location = new Point(20, 51), Width = 190, Height = 32, BackColor = accentGreen, ForeColor = textWhite, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10, FontStyle.Bold), Cursor = Cursors.Hand };
+            btnFetchReset.FlatAppearance.BorderSize = 0;
+            btnFetchReset.Click += BtnFetchReset_Click;
+
+            // Branch Row (RTL: Label on Right, ComboBox on Left/Middle)
+            var lblBranch = new Label { Text = "الفرع المستهدف:", Location = new Point(590, 93), Width = 150, Font = new Font("Segoe UI", 10, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+            cmbBranchesReset = new ComboBox { Location = new Point(20, 91), Width = 565, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = inputBg, ForeColor = textWhite, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10), RightToLeft = RightToLeft.Yes };
+            cmbBranchesReset.SelectedIndexChanged += async (s, e) => await RefreshOrderCounterStatusAsync();
+
+            // Status GroupBox (RTL)
+            var grpStatus = new GroupBox { Text = "حالة العداد الحالية بقاعدة البيانات (dbo.AppDates)", Location = new Point(20, 130), Size = new Size(720, 92), BackColor = bgPanel, ForeColor = accentBlue, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
+            
+            var lblDateTitle = new Label { Text = "تاريخ اليوم (POS Date):", Location = new Point(530, 25), Width = 175, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
+            lblCurrentPosDate = new Label { Text = "--", Location = new Point(410, 25), Width = 120, ForeColor = accentTeal, Font = new Font("Segoe UI", 11, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft, RightToLeft = RightToLeft.No };
+
+            var lblCounterTitle = new Label { Text = "رقم الأوردر الحالي (Current #):", Location = new Point(140, 22), Width = 260, ForeColor = textWhite, Font = new Font("Segoe UI", 11, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+            lblCurrentOrderNumber = new Label { Text = "--", Location = new Point(20, 16), Width = 115, Height = 38, ForeColor = Color.Yellow, Font = new Font("Segoe UI", 20, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter, RightToLeft = RightToLeft.No };
+
+            var lblStatusTitle = new Label { Text = "حالة اسكريبت الداتا بيز:", Location = new Point(510, 58), Width = 195, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
+            lblScriptStatusBadge = new Label { Text = "[فحص الحالة مطلوب]", Location = new Point(20, 58), Width = 485, ForeColor = textGray, Font = new Font("Segoe UI", 10, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+
+            grpStatus.Controls.AddRange(new Control[] { lblDateTitle, lblCurrentPosDate, lblCounterTitle, lblCurrentOrderNumber, lblStatusTitle, lblScriptStatusBadge });
+
+            // Auto Reset Configuration GroupBox (RTL)
+            var grpAutoReset = new GroupBox { Text = "إعدادات التصفير التلقائي الدوري (Cyclic Auto-Reset)", Location = new Point(20, 230), Size = new Size(720, 138), BackColor = bgPanel, ForeColor = accentTeal, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
+
+            chkEnableAutoReset = new CheckBox { Text = "تفعيل خاصية التصفير التلقائي الدوري بعد عدد محدد من الأوردرات", Location = new Point(20, 26), Width = 680, ForeColor = textWhite, Font = new Font("Segoe UI", 10, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
+
+            var lblMax = new Label { Text = "إعادة التصفير إلى 1 بعد كل:", Location = new Point(490, 60), Width = 210, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
+            numMaxOrders = new NumericUpDown { Value = 100, Minimum = 1, Maximum = 99999, Location = new Point(390, 58), Width = 95, BackColor = Color.FromArgb(230, 255, 240), ForeColor = Color.FromArgb(0, 100, 50), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.No };
+            var lblOrdersWord = new Label { Text = "أوردر (Threshold Limit)", Location = new Point(245, 60), Width = 140, ForeColor = textGray, Font = new Font("Segoe UI", 9.5f), TextAlign = ContentAlignment.MiddleRight };
+
+            chkResetCurrentNow = new CheckBox { Text = "تصفير العداد الحالي فوراً إلى 0 الآن", Location = new Point(20, 60), Width = 220, ForeColor = Color.FromArgb(255, 180, 80), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
+
+            btnApplyResetConfig = new Button { 
+                Text = "⚡ حفظ الإعداد وتفعيل الاسكريبت في الداتا بيز (Apply & Execute Script in DB)", 
+                Location = new Point(20, 94), 
+                Width = 680, 
+                Height = 34, 
+                BackColor = accentBlue, 
+                ForeColor = textWhite, 
+                FlatStyle = FlatStyle.Flat, 
+                Font = new Font("Segoe UI", 10.5f, FontStyle.Bold), 
+                Cursor = Cursors.Hand, 
+                Enabled = false 
+            };
+            btnApplyResetConfig.FlatAppearance.BorderSize = 0;
+            btnApplyResetConfig.Click += BtnApplyResetConfig_Click;
+
+            grpAutoReset.Controls.AddRange(new Control[] { chkEnableAutoReset, lblMax, numMaxOrders, lblOrdersWord, chkResetCurrentNow, btnApplyResetConfig });
+
+            // Manual Counter Override GroupBox (RTL)
+            var grpManual = new GroupBox { Text = "تعديل قيمة العداد يدوياً (Manual Counter Override)", Location = new Point(20, 375), Size = new Size(720, 72), BackColor = bgPanel, ForeColor = accentGreen, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.Yes };
+
+            var lblSetManual = new Label { Text = "تعيين قيمة CurrentOrderNumber يدوياً إلى:", Location = new Point(350, 26), Width = 350, ForeColor = textWhite, Font = new Font("Segoe UI", 10), TextAlign = ContentAlignment.MiddleRight };
+            numManualCounter = new NumericUpDown { Value = 0, Minimum = 0, Maximum = 999999, Location = new Point(230, 24), Width = 110, BackColor = Color.FromArgb(230, 240, 255), ForeColor = Color.FromArgb(0, 60, 130), BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 11, FontStyle.Bold), RightToLeft = RightToLeft.No };
+
+            btnSetManualCounter = new Button { 
+                Text = "تحديث العداد الآن", 
+                Location = new Point(20, 22), 
+                Width = 200, 
+                Height = 34, 
+                BackColor = Color.FromArgb(70, 70, 75), 
+                ForeColor = textWhite, 
+                FlatStyle = FlatStyle.Flat, 
+                Font = new Font("Segoe UI", 10, FontStyle.Bold), 
+                Cursor = Cursors.Hand, 
+                Enabled = false 
+            };
+            btnSetManualCounter.FlatAppearance.BorderSize = 0;
+            btnSetManualCounter.Click += BtnSetManualCounter_Click;
+
+            grpManual.Controls.AddRange(new Control[] { lblSetManual, numManualCounter, btnSetManualCounter });
+
+            // Results Log Console
+            txtResultTabReset = new TextBox { Multiline = true, ReadOnly = true, Location = new Point(20, 455), Size = new Size(720, 235), ScrollBars = ScrollBars.Vertical, BackColor = inputBg, ForeColor = accentTeal, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Consolas", 10), RightToLeft = RightToLeft.No };
+
+            pnl.Controls.AddRange(new Control[] { lblTitle, lblApi, txtApiUrlReset, btnFetchReset, lblBranch, cmbBranchesReset, grpStatus, grpAutoReset, grpManual, txtResultTabReset });
+        }
+
+        private async void BtnFetchReset_Click(object? sender, EventArgs e)
+        {
+            btnFetchReset.Enabled = false;
+            cmbBranchesReset.Items.Clear();
+            txtResultTabReset.Clear();
+            txtResultTabReset.AppendText($"[System] الاتصال بالسيرفر {txtApiUrlReset.Text.TrimEnd('/')}...\r\n");
+
+            try
+            {
+                using var client = new HttpClient();
+                string branchesUrl = $"{txtApiUrlReset.Text.TrimEnd('/')}/api/License/GetBranches";
+                var response = await client.GetStringAsync(branchesUrl);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var branches = JsonSerializer.Deserialize<List<BranchItem>>(response, options);
+
+                if (branches != null && branches.Count > 0)
+                {
+                    foreach (var b in branches) cmbBranchesReset.Items.Add(b);
+                    cmbBranchesReset.SelectedIndex = 0;
+                    btnApplyResetConfig.Enabled = true;
+                    btnSetManualCounter.Enabled = true;
+                    txtResultTabReset.AppendText($"✅ تم تحميل {branches.Count} فرع بنجاح.\r\n");
+                    await RefreshOrderCounterStatusAsync();
+                }
+                else
+                {
+                    txtResultTabReset.AppendText("❌ تم الاتصال بالسيرفر لكن لم يتم العثور على فروع.\r\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtResultTabReset.AppendText($"❌ خطأ أثناء الاتصال: {ex.Message}\r\nتأكد أن الـ API يعمل بشكل صحيح.\r\n");
+            }
+            finally
+            {
+                btnFetchReset.Enabled = true;
+            }
+        }
+
+        private async Task RefreshOrderCounterStatusAsync()
+        {
+            if (cmbBranchesReset.SelectedItem == null) return;
+            var branch = (BranchItem)cmbBranchesReset.SelectedItem;
+
+            try
+            {
+                using var client = new HttpClient();
+                string statusUrl = $"{txtApiUrlReset.Text.TrimEnd('/')}/api/License/GetOrderCounterStatus?branchId={branch.Id}";
+                var statusRes = await client.GetStringAsync(statusUrl);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var status = JsonSerializer.Deserialize<OrderCounterStatusResponse>(statusRes, options);
+
+                if (status != null)
+                {
+                    lblCurrentPosDate.Text = status.PosDate;
+                    lblCurrentOrderNumber.Text = status.CurrentOrderNumber.ToString();
+                    chkEnableAutoReset.Checked = status.IsAutoResetEnabled;
+                    numMaxOrders.Value = status.MaxOrderLimit > 0 ? status.MaxOrderLimit : 100;
+
+                    if (status.TriggerInstalled)
+                    {
+                        lblScriptStatusBadge.Text = $"✅ تريجر الداتا بيز مفعل في SQL Server (حد التصفير: {status.MaxOrderLimit})";
+                        lblScriptStatusBadge.ForeColor = accentGreen;
+                    }
+                    else
+                    {
+                        lblScriptStatusBadge.Text = "❌ التريجر غير مفعل في الداتا بيز (العداد يتزايد باستمرار دون تصفير دوري)";
+                        lblScriptStatusBadge.ForeColor = textGray;
+                    }
+
+                    txtResultTabReset.AppendText($"[Status] الفرع [{branch.BranchName}] - تاريخ العمل: {status.PosDate} | العداد الحالي: {status.CurrentOrderNumber} | الاسكريبت: {(status.TriggerInstalled ? "مفعل" : "معطل")}\r\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtResultTabReset.AppendText($"⚠️ تعذر جلب تفاصيل العداد: {ex.Message}\r\n");
+            }
+        }
+
+        private async void BtnApplyResetConfig_Click(object? sender, EventArgs e)
+        {
+            if (cmbBranchesReset.SelectedItem == null) return;
+            var branch = (BranchItem)cmbBranchesReset.SelectedItem;
+
+            btnApplyResetConfig.Enabled = false;
+            txtResultTabReset.AppendText($"\r\n[Action] جاري حفظ الإعداد وتطبيق الاسكريبت في الداتا بيز...\r\n");
+
+            try
+            {
+                using var client = new HttpClient();
+                var req = new
+                {
+                    branchId = branch.Id,
+                    enableAutoReset = chkEnableAutoReset.Checked,
+                    maxOrderLimit = (int)numMaxOrders.Value,
+                    resetCurrentNow = chkResetCurrentNow.Checked
+                };
+
+                var json = JsonSerializer.Serialize(req);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                string url = $"{txtApiUrlReset.Text.TrimEnd('/')}/api/License/ConfigureOrderReset";
+                var res = await client.PostAsync(url, content);
+                var body = await res.Content.ReadAsStringAsync();
+
+                if (res.IsSuccessStatusCode)
+                {
+                    txtResultTabReset.AppendText($"✅ نجاح: {body}\r\n");
+                    MessageBox.Show("تم تطبيق الإعداد وتفعيل الاسكريبت في قاعدة البيانات بنجاح!", "نجاح العملية", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    chkResetCurrentNow.Checked = false;
+                    await RefreshOrderCounterStatusAsync();
+                }
+                else
+                {
+                    txtResultTabReset.AppendText($"❌ فشل ({res.StatusCode}): {body}\r\n");
+                    MessageBox.Show($"فشل تطبيق الإعداد: {body}", "خطأ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                txtResultTabReset.AppendText($"❌ خطأ استثنائي: {ex.Message}\r\n");
+            }
+            finally
+            {
+                btnApplyResetConfig.Enabled = true;
+            }
+        }
+
+        private async void BtnSetManualCounter_Click(object? sender, EventArgs e)
+        {
+            if (cmbBranchesReset.SelectedItem == null) return;
+            var branch = (BranchItem)cmbBranchesReset.SelectedItem;
+
+            btnSetManualCounter.Enabled = false;
+            int targetValue = (int)numManualCounter.Value;
+            txtResultTabReset.AppendText($"\r\n[Action] تعيين العداد يدوياً إلى {targetValue}...\r\n");
+
+            try
+            {
+                using var client = new HttpClient();
+                var req = new
+                {
+                    branchId = branch.Id,
+                    enableAutoReset = chkEnableAutoReset.Checked,
+                    maxOrderLimit = (int)numMaxOrders.Value,
+                    resetCurrentNow = false,
+                    setCurrentTo = targetValue
+                };
+
+                var json = JsonSerializer.Serialize(req);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                string url = $"{txtApiUrlReset.Text.TrimEnd('/')}/api/License/ConfigureOrderReset";
+                var res = await client.PostAsync(url, content);
+                var body = await res.Content.ReadAsStringAsync();
+
+                if (res.IsSuccessStatusCode)
+                {
+                    txtResultTabReset.AppendText($"✅ تم تحديث العداد الحالي إلى {targetValue} بنجاح!\r\n");
+                    MessageBox.Show($"تم تحديث العداد الحالي إلى {targetValue} بنجاح!", "تم التحديث", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await RefreshOrderCounterStatusAsync();
+                }
+                else
+                {
+                    txtResultTabReset.AppendText($"❌ فشل ({res.StatusCode}): {body}\r\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtResultTabReset.AppendText($"❌ خطأ: {ex.Message}\r\n");
+            }
+            finally
+            {
+                btnSetManualCounter.Enabled = true;
+            }
         }
 
         private void SetupDbCryptTab()
@@ -330,44 +637,39 @@ namespace LicenseManager
 
         private void BtnEncryptDb_Click(object? sender, EventArgs e)
         {
-            string plain = txtPlainDbStr.Text.Trim();
-            if (string.IsNullOrEmpty(plain)) return;
-
+            if (string.IsNullOrWhiteSpace(txtPlainDbStr.Text)) return;
             try
             {
-                using (Aes aes = Aes.Create())
-                {
-                    aes.Key = Encoding.UTF8.GetBytes(DbCryptKey);
-                    aes.IV = new byte[16]; 
-                    ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+                byte[] key = Encoding.UTF8.GetBytes(DbCryptKey);
+                using var aes = Aes.Create();
+                aes.Key = key;
+                aes.GenerateIV();
 
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                        {
-                            using (StreamWriter sw = new StreamWriter(cs))
-                            {
-                                sw.Write(plain);
-                            }
-                        }
-                        txtEncDbStr.Text = Convert.ToBase64String(ms.ToArray());
-                    }
+                using var ms = new MemoryStream();
+                ms.Write(aes.IV, 0, aes.IV.Length); // prepend IV
+
+                using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                using (var sw = new StreamWriter(cs))
+                {
+                    sw.Write(txtPlainDbStr.Text.Trim());
                 }
+
+                txtEncDbStr.Text = Convert.ToBase64String(ms.ToArray());
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Encryption Error: {ex.Message}");
+                MessageBox.Show("Encryption failed: " + ex.Message);
             }
         }
 
         private void BtnHashAdminPass_Click(object? sender, EventArgs e)
         {
-            string plain = txtPlainAdminPass.Text.Trim();
-            if (string.IsNullOrEmpty(plain)) return;
-
-            using var sha256 = SHA256.Create();
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(plain));
-            txtHashAdminPass.Text = BitConverter.ToString(bytes).Replace("-", "").ToLower();
+            if (string.IsNullOrWhiteSpace(txtPlainAdminPass.Text)) return;
+            using var sha = SHA256.Create();
+            byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(txtPlainAdminPass.Text.Trim()));
+            var sb = new StringBuilder();
+            foreach (var b in bytes) sb.Append(b.ToString("x2"));
+            txtHashAdminPass.Text = sb.ToString();
         }
     }
 }

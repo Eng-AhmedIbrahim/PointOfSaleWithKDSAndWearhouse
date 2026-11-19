@@ -22,18 +22,29 @@
 
             @if (!_isAuthenticated)
             {
-                <MudPaper Elevation="0" Class="pa-8 mx-auto" Style="max-width: 640px; width: 100%; border-radius: 16px; background: white; border: 1px solid #e0e7ff; box-shadow: 0 8px 32px rgba(25,118,210,0.08);">
-                    <div class="d-flex flex-column">
-                        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-5" Style="font-weight: 700; color: #212121;">تأكيد صلاحيات الإدارة</MudText>
-                        <MudTextField @bind-Value="_username" Label="اسم المستخدم" Variant="MudBlazor.Variant.Outlined" FullWidth Class="mb-4"
-                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" Style="font-size:1rem;" />
-                        <MudTextField @bind-Value="_password" Label="كلمة المرور" Variant="MudBlazor.Variant.Outlined" FullWidth Class="mb-6"
-                                      InputType="@_passwordInput"
-                                      Adornment="Adornment.End"
-                                      AdornmentIcon="@(_passwordInput == InputType.Password ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                                      OnAdornmentClick="TogglePassword" Style="font-size:1rem;" />
+                <MudPaper Elevation="0" Class="pa-8 mx-auto" Style="max-width: 520px; width: 100%; border-radius: 16px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+                    <div class="d-flex flex-column" style="text-align: right;">
+                        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-6" Style="font-weight: 700; color: #1e293b;">تأكيد صلاحيات الإدارة</MudText>
+
+                        <div class="mb-4" style="text-align: right;">
+                            <label style="font-weight: 700; color: #475569; font-size: 0.9rem; display: block; margin-bottom: 6px;">اسم المستخدم</label>
+                            <MudTextField @bind-Value="_username" Placeholder="أدخل اسم المستخدم للمسؤول" Variant="MudBlazor.Variant.Outlined" FullWidth="true"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
+                                          Style="background: #f8fafc; font-size: 1rem;" />
+                        </div>
+
+                        <div class="mb-6" style="text-align: right;">
+                            <label style="font-weight: 700; color: #475569; font-size: 0.9rem; display: block; margin-bottom: 6px;">كلمة المرور</label>
+                            <MudTextField @bind-Value="_password" Placeholder="أدخل كلمة المرور" Variant="MudBlazor.Variant.Outlined" FullWidth="true"
+                                          InputType="@_passwordInput"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@(_passwordInput == InputType.Password ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                          OnAdornmentClick="TogglePassword"
+                                          Style="background: #f8fafc; font-size: 1rem;" />
+                        </div>
+
                         <MudButton Color="Color.Primary" Variant="MudBlazor.Variant.Filled" Size="Size.Large" FullWidth="true" OnClick="Authenticate"
-                                   Style="font-weight:700; font-size:1.05rem; border-radius:10px; height:48px;">دخول وإدارة التراخيص</MudButton>
+                                   Style="font-weight: 700; font-size: 1.05rem; border-radius: 10px; height: 48px; box-shadow: 0 4px 12px rgba(25,118,210,0.25);">دخول وإدارة التراخيص</MudButton>
                     </div>
                 </MudPaper>
             }
@@ -150,7 +161,7 @@
     }
 
     private string GetLicenseLabel(License l) {
-        if (l.LicenseType == "Full" || l.LicenseType == "3") return "Full (POS+Back+Warehouse)";
+        if (l.LicenseType == "Full" || l.LicenseType == "3") return "Full (POS + BackOffice)";
         if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return "Warehouse";
         if (l.LicenseType == "BackOfficeOnly" || l.LicenseType == "2") return "BackOffice";
         if (l.LicenseType == "POSOnly" || l.LicenseType == "1") return "POS";
@@ -186,6 +197,17 @@
 
     private async Task PullAndActivateLicense(License license)
     {
+        if (license.LicenseType == "WarehouseOnly" || license.LicenseType == "4")
+        {
+            Snackbar.Add("هذا الترخيص مخصص للمخزن الرئيسي فقط (Warehouse Only) ولا يمكن استخدامه للـ BackOffice.", Severity.Error);
+            return;
+        }
+        if (license.LicenseType == "POSOnly" || license.LicenseType == "1")
+        {
+            Snackbar.Add("هذا الترخيص مخصص لنقاط البيع (POS Only) ولا يمكن استخدامه للـ BackOffice.", Severity.Error);
+            return;
+        }
+
         // Confirm activation
         bool? confirm = await DialogService.ShowMessageBox(
             "تأكيد التفعيل",

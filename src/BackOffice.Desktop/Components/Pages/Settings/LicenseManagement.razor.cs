@@ -46,6 +46,24 @@ namespace BackOffice.Desktop.Components.Pages.Settings
             }
         }
 
+        private static string GetLicenseLabel(License l)
+        {
+            if (l.LicenseType == "Full"          || l.LicenseType == "3") return "Full (POS + BackOffice)";
+            if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return "Warehouse";
+            if (l.LicenseType == "BackOfficeOnly"|| l.LicenseType == "2") return "BackOffice";
+            if (l.LicenseType == "POSOnly"       || l.LicenseType == "1") return "POS";
+            return l.LicenseType ?? "غير معروف";
+        }
+
+        private static MudBlazor.Color GetLicenseColor(License l)
+        {
+            if (l.LicenseType == "Full"          || l.LicenseType == "3") return MudBlazor.Color.Success;
+            if (l.LicenseType == "WarehouseOnly" || l.LicenseType == "4") return MudBlazor.Color.Primary;
+            if (l.LicenseType == "BackOfficeOnly"|| l.LicenseType == "2") return MudBlazor.Color.Info;
+            if (l.LicenseType == "POSOnly"       || l.LicenseType == "1") return MudBlazor.Color.Warning;
+            return MudBlazor.Color.Default;
+        }
+
         private bool FilterFunc(License license)
         {
             if (string.IsNullOrWhiteSpace(_searchString))
