@@ -28,6 +28,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<License>()
             .HasKey(l => new { l.CustomerID, l.BranchID, l.LicenseKey });
 
+        // Tell EF Core that AppDates has a SQL trigger so it won't use OUTPUT clause (EF Core + SQL Trigger compatibility fix)
+        modelBuilder.Entity<AppDate>()
+            .ToTable(tb => tb.HasTrigger("trg_AutoResetOrderNumber"));
+
         // Warehouse Module Configurations - Restrict delete behaviors to avoid SQL Server cycles
         modelBuilder.Entity<StockBalance>(b =>
         {
