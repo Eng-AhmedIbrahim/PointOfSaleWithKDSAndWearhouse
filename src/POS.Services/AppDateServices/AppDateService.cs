@@ -53,7 +53,7 @@ public class AppDateService : IAppDateService
             {
                 if (appDate.CurrentOrderNumber > maxLimit)
                 {
-                    appDate.CurrentOrderNumber = 1;
+                    appDate.CurrentOrderNumber = 0;
                 }
             }
         }

@@ -170,12 +170,12 @@ public class ReceiptDocument : IDocument
 
                 // Only print ReceiptType if it's NOT a special mode (Hospitality/Staff) 
                 // to avoid double labeling since we print custom headers above
-                //if (!receipt.IsHospitality && !receipt.IsStaffMeal)
-                //{
-                //    text.Span(receipt.ReceiptType)
-                //        .Bold()
-                //        .FontSize(18);
-                //}
+                if (!receipt.IsHospitality && !receipt.IsStaffMeal)
+                {
+                    text.Span(receipt.ReceiptType)
+                        .Bold()
+                        .FontSize(18);
+                }
 
                 text.AlignCenter();
             });
