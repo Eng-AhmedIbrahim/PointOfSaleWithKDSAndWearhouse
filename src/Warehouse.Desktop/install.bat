@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul 2>&1
 title New Tech WMS - IIS Setup
 color 0A
 echo.
