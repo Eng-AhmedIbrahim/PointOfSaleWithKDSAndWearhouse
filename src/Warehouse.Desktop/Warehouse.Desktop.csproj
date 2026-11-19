@@ -14,12 +14,8 @@
 
   <ItemGroup>
     <Content Include="Warehouse.ico" />
-    <!-- Include install script and web.config in publish output -->
+    <!-- install.bat: IIS setup script included in publish output -->
     <Content Include="install.bat">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-    </Content>
-    <Content Include="web.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
