@@ -1,4 +1,4 @@
-@using MudBlazor
+﻿@using MudBlazor
 @using POS.Contract.Dtos.InventoryDtos
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -59,6 +59,7 @@
                     <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">الكمية المستهدفة للإنتاج *</MudText>
                     <MudNumericField T="decimal" @bind-Value="_model.TargetQuantity" @bind-Value:after="OnParamsChanged"
                                      Format="N2" Min="0.01m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                     HideSpinButtons="true"
                                      Adornment="Adornment.End" AdornmentText="@_selectedProductUnit" />
                 </MudItem>
 
@@ -66,6 +67,7 @@
                     <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">الكمية المنتجة الفعلية</MudText>
                     <MudNumericField T="decimal" @bind-Value="_model.ActualQuantityProduced"
                                      Format="N2" Min="0.01m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                     HideSpinButtons="true"
                                      Adornment="Adornment.End" AdornmentText="@_selectedProductUnit" />
                 </MudItem>
 

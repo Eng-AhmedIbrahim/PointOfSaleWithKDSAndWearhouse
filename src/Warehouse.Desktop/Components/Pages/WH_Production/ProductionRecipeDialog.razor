@@ -59,6 +59,7 @@
                     <MudText Typo="MudBlazor.Typo.caption" Class="fw-bold mb-1 d-block" Style="color: #475569;">كمية المعيار الناتجة (Yield) *</MudText>
                     <MudNumericField T="decimal" @bind-Value="_recipe.YieldQuantity" @bind-Value:after="RecalculateCosts"
                                      Format="N2" Min="0.01m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                     HideSpinButtons="true"
                                      Adornment="Adornment.End" AdornmentText="@_yieldUnitName" />
                 </MudItem>
 
@@ -108,12 +109,14 @@
                                         <MudNumericField T="decimal" Value="@context.Quantity"
                                                          ValueChanged="@((val) => { context.Quantity = val; RecalculateCosts(); })"
                                                          Format="N3" Min="0.001m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                                         HideSpinButtons="true"
                                                          Adornment="Adornment.End" AdornmentText="@context.UnitName" />
                                     </MudTd>
                                     <MudTd DataLabel="نسبة الهالك">
                                         <MudNumericField T="decimal" Value="@context.WastePercent"
                                                          ValueChanged="@((val) => { context.WastePercent = val; RecalculateCosts(); })"
                                                          Format="N1" Min="0m" Max="100m" Variant="MudBlazor.Variant.Outlined" Margin="Margin.Dense"
+                                                         HideSpinButtons="true"
                                                          Adornment="Adornment.End" AdornmentText="%" />
                                     </MudTd>
                                     <MudTd DataLabel="التكلفة">
@@ -183,8 +186,13 @@
         public string? SKU { get; set; }
         public string NameAr { get; set; } = string.Empty;
         public string? UnitName { get; set; }
+        public string? BaseUnitName { get; set; }
         public decimal Cost { get; set; }
+        public decimal CostPrice { get; set; }
+        public decimal LastPurchaseCost { get; set; }
         public string DisplayName => !string.IsNullOrEmpty(SKU) ? $"{NameAr} ({SKU})" : NameAr;
+        public string EffectiveUnit => !string.IsNullOrEmpty(BaseUnitName) ? BaseUnitName : (!string.IsNullOrEmpty(UnitName) ? UnitName : "وحدة");
+        public decimal EffectiveCost => CostPrice > 0 ? CostPrice : (Cost > 0 ? Cost : LastPurchaseCost);
     }
 
     protected override async Task OnInitializedAsync()
@@ -203,7 +211,7 @@
                 {
                     _recipe = existing;
                     var prod = _products.FirstOrDefault(p => p.Id == _recipe.ProducedProductId);
-                    _yieldUnitName = prod?.UnitName ?? _recipe.YieldUnitName ?? "وحدة";
+                    _yieldUnitName = prod?.EffectiveUnit ?? _recipe.YieldUnitName ?? "وحدة";
                 }
             }
         }
@@ -222,8 +230,9 @@
         var prod = _products.FirstOrDefault(p => p.Id == _recipe.ProducedProductId);
         if (prod != null)
         {
-            _yieldUnitName = prod.UnitName ?? "وحدة";
+            _yieldUnitName = prod.EffectiveUnit;
             _recipe.ProducedProductName = prod.NameAr;
+            _recipe.YieldUnitName = prod.EffectiveUnit;
             if (string.IsNullOrWhiteSpace(_recipe.Name))
                 _recipe.Name = $"وصفة تشغيل {prod.NameAr}";
         }
@@ -237,7 +246,7 @@
         {
             IngredientProductId = defaultProd?.Id ?? 0,
             IngredientProductName = defaultProd?.NameAr ?? "",
-            UnitName = defaultProd?.UnitName ?? "وحدة",
+            UnitName = defaultProd?.EffectiveUnit ?? "وحدة",
             Quantity = 1,
             WastePercent = 0
         });
@@ -251,7 +260,7 @@
         if (prod != null)
         {
             line.IngredientProductName = prod.NameAr;
-            line.UnitName = prod.UnitName ?? "وحدة";
+            line.UnitName = prod.EffectiveUnit;
         }
         RecalculateCosts();
     }
@@ -268,7 +277,7 @@
         foreach (var ing in _recipe.Ingredients)
         {
             var prod = _products.FirstOrDefault(p => p.Id == ing.IngredientProductId);
-            decimal cost = prod?.Cost ?? 0;
+            decimal cost = prod?.EffectiveCost ?? 0;
             decimal baseQty = ing.Quantity;
             decimal wasteQty = ing.WastePercent > 0 ? baseQty * (ing.WastePercent / 100m) : 0;
             decimal lineCost = Math.Round((baseQty + wasteQty) * cost, 2);
