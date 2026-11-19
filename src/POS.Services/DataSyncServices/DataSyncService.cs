@@ -601,8 +601,7 @@ DECLARE @effBranchId INT = @BranchId;
 
 IF @effBranchId <= 0
 BEGIN
-    SELECT TOP 1 @effBranchId = Id FROM Branches WHERE IsMain = 1;
-    IF @effBranchId IS NULL SELECT TOP 1 @effBranchId = Id FROM Branches;
+    SELECT TOP 1 @effBranchId = Id FROM Branches ORDER BY Id ASC;
 END
 
 -- 1. Try match existing item by Barcode (if not empty)
