@@ -30,13 +30,13 @@
                         {
                             @Body
                         }
-                        else if (_isConnectionError)
+                        else if (_isConnectionError && _isTrueNetworkError)
                         {
                             <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
                                 <MudIcon Icon="@Icons.Material.Filled.CloudOff" Style="font-size: 6rem;" Color="Color.Warning" Class="mb-4" />
                                 <MudText Typo="Typo.h4" Color="Color.Warning" Class="mb-2">تعذر الاتصال بخادم النظام أو قاعدة البيانات</MudText>
                                 <MudText Typo="Typo.body1" Class="mb-4" Style="max-width: 500px;">@(_connectionErrorMessage ?? "يرجى التأكد من تشغيل سيرفر الـ API وقاعدة البيانات والاتصال بالشبكة.")</MudText>
-                                <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" 
+                                <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
                                            OnClick="CheckLicenseAndConnectionAsync" Disabled="_isCheckingConnection">
                                     @(_isCheckingConnection ? "جاري الفحص..." : "إعادة المحاولة")
                                 </MudButton>
@@ -46,12 +46,19 @@
                         {
                             <div class="d-flex align-center justify-center flex-grow-1 mt-10" style="flex-direction:column; text-align:center;">
                                 <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 6rem; color: #ea580c;" Class="mb-4" />
-                                <MudText Typo="Typo.h4" Style="color: #ea580c; font-weight: 800;" Class="mb-2">هذا الجهاز غير مرخص لنظام المخازن</MudText>
-                                <MudText Typo="Typo.body1" Class="mb-5" Style="color: #64748b; font-size: 1.1rem;">برجاء الضغط على زر "التسجيل" لتفعيل ترخيص المخزن لهذا الجهاز أو الرجوع للإدارة.</MudText>
-                                <MudButton Variant="MudBlazor.Variant.Filled" Size="Size.Large" StartIcon="@Icons.Material.Rounded.AppRegistration"
-                                           OnClick="OpenRegistrationDialog" Style="background: #ea580c; color: white; font-weight: 700; font-size: 1.1rem; border-radius: 12px; padding: 10px 28px;">
-                                    تسجيل وتفعيل ترخيص المخزن
-                                </MudButton>
+                                <MudText Typo="Typo.h4" Style="color: #ea580c; font-weight: 800;" Class="mb-2">قم بتسجيل المخزن</MudText>
+                                <MudText Typo="Typo.body1" Class="mb-2" Style="color: #64748b; font-size: 1.1rem;">هذا الجهاز غير مرخص لنظام المخازن.</MudText>
+                                <MudText Typo="Typo.body1" Class="mb-5" Style="color: #64748b; font-size: 1rem;">اضغط على زر التسجيل لتفعيل ترخيص المخزن أو تواصل مع الإدارة.</MudText>
+                                <div class="d-flex gap-3">
+                                    <MudButton Variant="MudBlazor.Variant.Filled" Size="Size.Large" StartIcon="@Icons.Material.Rounded.AppRegistration"
+                                               OnClick="OpenRegistrationDialog" Style="background: #ea580c; color: white; font-weight: 700; font-size: 1.1rem; border-radius: 12px; padding: 10px 28px;">
+                                        تسجيل وتفعيل ترخيص المخزن
+                                    </MudButton>
+                                    <MudButton Variant="MudBlazor.Variant.Outlined" Size="Size.Large" StartIcon="@Icons.Material.Filled.Refresh"
+                                               OnClick="CheckLicenseAndConnectionAsync" Disabled="_isCheckingConnection" Style="border-radius: 12px; padding: 10px 20px;">
+                                        @(_isCheckingConnection ? "جاري الفحص..." : "إعادة المحاولة")
+                                    </MudButton>
+                                </div>
                             </div>
                         }
                     </div>
@@ -76,6 +83,7 @@
     bool _isMini = false;
     bool _isLicensed = false;
     bool _isConnectionError = false;
+    bool _isTrueNetworkError = false; // true only for real network/timeout errors, false for 400/license errors
     string? _connectionErrorMessage = null;
     bool _isCheckingConnection = false;
 
@@ -144,10 +152,17 @@
                 _isConnectionError = true;
                 _isLicensed = false;
                 _connectionErrorMessage = res.ErrorMessage;
+                // True network error = timeout or unreachable (NOT a 400/license failure)
+                _isTrueNetworkError = res.ErrorMessage != null &&
+                    (res.ErrorMessage.Contains("Timeout") ||
+                     res.ErrorMessage.Contains("تعذر الوصول") ||
+                     res.ErrorMessage.Contains("انتهت مهلة") ||
+                     res.ErrorMessage.Contains("SQL Server"));
             }
             else
             {
                 _isConnectionError = false;
+                _isTrueNetworkError = false;
                 _isLicensed = res.IsLicensed;
                 _connectionErrorMessage = null;
             }
@@ -155,6 +170,7 @@
         catch
         {
             _isConnectionError = true;
+            _isTrueNetworkError = true;
             _isLicensed = false;
             _connectionErrorMessage = "تعذر الاتصال بسيرفر النظام (API). يرجى التأكد من تشغيل السيرفر.";
         }
