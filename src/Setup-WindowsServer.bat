@@ -20,7 +20,7 @@ if %errorLevel% NEQ 0 (
     exit /b 1
 )
 
-echo [1/8] ضبط أداء السيرفر وخطة الطاقة (High Performance & Never Sleep)...
+echo [1/9] ضبط أداء السيرفر وخطة الطاقة (High Performance & Never Sleep)...
 powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
 powercfg /change standby-timeout-ac 0 >nul 2>&1
 powercfg /change monitor-timeout-ac 30 >nul 2>&1
@@ -29,7 +29,7 @@ powercfg /hibernate off >nul 2>&1
 echo       تم بنجاح [✓]
 
 echo.
-echo [2/8] تثبيت وتفعيل IIS بكافة الخصائص المطلوبة لـ ASP.NET Core و SignalR...
+echo [2/9] تثبيت وتفعيل IIS بكافة الخصائص المطلوبة لـ ASP.NET Core و SignalR...
 :: Try Windows Server native command first, fallback to DISM
 powershell -Command "if (Get-Command Install-WindowsFeature -ErrorAction SilentlyContinue) { Install-WindowsFeature -Name Web-Server, Web-WebServer, Web-Common-Http, Web-Default-Doc, Web-Dir-Browsing, Web-Http-Errors, Web-Static-Content, Web-Http-Redirect, Web-Net-Ext45, Web-Asp-Net45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-WebSockets, Web-Filtering, Web-Mgmt-Console -IncludeManagementTools | Out-Null }" >nul 2>&1
 
@@ -48,7 +48,7 @@ dism /online /enable-feature /featurename:IIS-ManagementConsole /all /norestart 
 echo       تم بنجاح [✓]
 
 echo.
-echo [3/8] تشغيل خدمات IIS وضبطها لتبدأ تلقائياً مع تشغيل السيرفر (Automatic)...
+echo [3/9] تشغيل خدمات IIS وضبطها لتبدأ تلقائياً مع تشغيل السيرفر (Automatic)...
 sc config W3SVC start= auto >nul 2>&1
 sc config WAS start= auto >nul 2>&1
 net start WAS >nul 2>&1
@@ -56,13 +56,13 @@ net start W3SVC >nul 2>&1
 echo       تم بنجاح [✓]
 
 echo.
-echo [4/8] ضبط إعدادات HTTP.sys لمنع أخطاء Header Too Long (400 Bad Request)...
+echo [4/9] ضبط إعدادات HTTP.sys لمنع أخطاء Header Too Long (400 Bad Request)...
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\HTTP\Parameters" /v MaxFieldLength /t REG_DWORD /d 65536 /f >nul 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\HTTP\Parameters" /v MaxRequestBytes /t REG_DWORD /d 65536 /f >nul 2>&1
 echo       تم بنجاح [✓]
 
 echo.
-echo [5/8] فتح البورتات في الجدار الناري (SQL Server, POS API, Web, Ping)...
+echo [5/9] فتح البورتات في الجدار الناري (SQL Server, POS API, Web, Ping)...
 :: SQL Server Default Port (1433)
 netsh advfirewall firewall delete rule name="SQL Server (Port 1433)" >nul 2>&1
 netsh advfirewall firewall add rule name="SQL Server (Port 1433)" dir=in action=allow protocol=TCP localport=1433 >nul 2>&1
@@ -91,19 +91,42 @@ netsh advfirewall firewall add rule name="Allow ICMPv4-In (Ping)" protocol=icmpv
 echo       تم بنجاح [✓]
 
 echo.
-echo [6/8] ضبط نوع الشبكة إلى خاصة (Private Network) للسماح بالاتصال بين الأجهزة...
+echo [6/9] ضبط نوع الشبكة إلى خاصة (Private Network) للسماح بالاتصال بين الأجهزة...
 powershell -Command "Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue" >nul 2>&1
 echo       تم بنجاح [✓]
 
 echo.
-echo [7/8] إنشاء مجلد نشر الـ API الافتراضي ومنح الصلاحيات...
+echo [7/9] إنشاء مجلد نشر الـ API الافتراضي ومنح الصلاحيات...
 if not exist "C:\inetpub\POS_API" mkdir "C:\inetpub\POS_API" >nul 2>&1
 icacls "C:\inetpub\POS_API" /grant "IIS_IUSRS":(OI)(CI)F /T >nul 2>&1
 icacls "C:\inetpub\POS_API" /grant "IUSR":(OI)(CI)F /T >nul 2>&1
 echo       تم بنجاح [✓]
 
 echo.
-echo [8/8] إعادة تشغيل خدمة HTTP و IIS لتفعيل وتطبيق كامل الإعدادات...
+echo [8/9] ضبط صيغة التاريخ (dd/MM/yyyy) والوقت لنظام 12 ساعة (hh:mm:ss tt)...
+:: Current User Regional Settings
+reg add "HKCU\Control Panel\International" /v sShortDate /t REG_SZ /d "dd/MM/yyyy" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v sLongDate /t REG_SZ /d "dddd, d MMMM yyyy" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v sTimeFormat /t REG_SZ /d "hh:mm:ss tt" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v sShortTime /t REG_SZ /d "hh:mm tt" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v iTime /t REG_SZ /d "0" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v iTLZero /t REG_SZ /d "1" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v sDate /t REG_SZ /d "/" /f >nul 2>&1
+reg add "HKCU\Control Panel\International" /v sTime /t REG_SZ /d ":" /f >nul 2>&1
+
+:: System / Default User (for IIS, Background Services, and New Users)
+reg add "HKU\.DEFAULT\Control Panel\International" /v sShortDate /t REG_SZ /d "dd/MM/yyyy" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v sLongDate /t REG_SZ /d "dddd, d MMMM yyyy" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v sTimeFormat /t REG_SZ /d "hh:mm:ss tt" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v sShortTime /t REG_SZ /d "hh:mm tt" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v iTime /t REG_SZ /d "0" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v iTLZero /t REG_SZ /d "1" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v sDate /t REG_SZ /d "/" /f >nul 2>&1
+reg add "HKU\.DEFAULT\Control Panel\International" /v sTime /t REG_SZ /d ":" /f >nul 2>&1
+echo       تم بنجاح [✓]
+
+echo.
+echo [9/9] إعادة تشغيل خدمة HTTP و IIS لتفعيل وتطبيق كامل الإعدادات...
 net stop http /y >nul 2>&1
 net start http >nul 2>&1
 net start WAS >nul 2>&1
@@ -119,8 +142,9 @@ echo     1. تم تثبيت وتفعيل IIS مع بروتوكول WebSockets ل
 echo     2. تم ضبط خدمات IIS لتبدأ تلقائياً (Automatic Startup)
 echo     3. تم فتح كافة البورتات (SQL 1433 + API 5050 + Web 80 + Ping)
 echo     4. تم توسيع حجم Headers لمنع خطأ 400 Bad Request نهائياً
-echo     5. تم ضبط السيرفر على وضع الأداء العالي ومنع السكون 24/7
-echo     6. تم إنشاء مجلد C:\inetpub\POS_API وإعطاؤه الصلاحيات الكاملة
+echo     5. تم ضبط صيغة التاريخ (dd/MM/yyyy) والوقت نظام 12 ساعة (AM/PM)
+echo     6. تم ضبط السيرفر على وضع الأداء العالي ومنع السكون 24/7
+echo     7. تم إنشاء مجلد C:\inetpub\POS_API وإعطاؤه الصلاحيات الكاملة
 echo.
 echo     [تنبيه]: إذا لم تكن قمت بتثبيت (.NET 8 Hosting Bundle)، قم بتثبيته
 echo              مرة واحدة لكي يتمكن IIS من تشغيل تطبيقات .NET Core.
